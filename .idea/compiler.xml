@@ -12,6 +12,9 @@
         <module name="sigac" />
       </profile>
     </annotationProcessing>
+    <bytecodeTargetLevel>
+      <module name="sigac" target="25" />
+    </bytecodeTargetLevel>
   </component>
   <component name="JavacSettings">
     <option name="ADDITIONAL_OPTIONS_OVERRIDE">
