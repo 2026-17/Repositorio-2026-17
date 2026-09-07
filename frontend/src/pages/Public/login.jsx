@@ -43,6 +43,9 @@ function Login() {
             <h2>Iniciar sesión</h2>
 
             <form onSubmit={handleSubmit}>
+
+                <p>Hola</p>
+
                 <label>Cédula</label>
                 <input
                     type="text"
