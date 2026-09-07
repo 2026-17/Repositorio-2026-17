@@ -53,7 +53,6 @@ public record EstudianteCreateRequest(
         @NotNull(message = "El instrumento es obligatorio")
         Integer idInstrumento,
 
-        @NotEmpty(message = "Debe indicar al menos un encargado para un menor")
         @Valid
         List<EncargadoRequest> encargados
 ) {
