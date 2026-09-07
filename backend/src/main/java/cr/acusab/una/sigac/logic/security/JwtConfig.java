@@ -34,4 +34,5 @@ public class JwtConfig {
     public JWSAlgorithm getAlgorithm() {
         return new JWSAlgorithm(algorithm);
     }
+
 }
