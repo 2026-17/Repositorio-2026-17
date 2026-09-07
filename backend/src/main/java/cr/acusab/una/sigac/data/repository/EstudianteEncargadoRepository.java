@@ -3,5 +3,5 @@ package cr.acusab.una.sigac.data.repository;
 import cr.acusab.una.sigac.data.entity.EstudianteEncargado;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface EstudianteEncargadoRepository extends JpaRepository<EstudianteEncargado, EstudianteEncargado.Id> {
+public interface EstudianteEncargadoRepository extends JpaRepository<EstudianteEncargado, Object> {
 }
