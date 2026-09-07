@@ -1,6 +1,5 @@
 package cr.acusab.una.sigac.logic.security;
 
-
 import lombok.AllArgsConstructor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -34,11 +33,12 @@ public class SecurityConfig {
                     configuration.setAllowedOrigins(Arrays.asList("http://localhost:5173"));
                     configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
                     configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type"));
-            return configuration;
-                 }))
+                    return configuration;
+                }))
                 .sessionManagement(sessionManagement -> sessionManagement.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/auth/login", "/usuarios", "/roles", "/estados-usuarios").permitAll()
+                        .requestMatchers("/api/estudiantes/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
                 );
         return http.build();
@@ -48,5 +48,4 @@ public class SecurityConfig {
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
     }
-
 }
