@@ -53,6 +53,7 @@ public record EstudianteCreateRequest(
         @NotNull(message = "El instrumento es obligatorio")
         Integer idInstrumento,
 
+        @Size(max = 2, message = "Un estudiante puede registrar como máximo dos encargados")
         @Valid
         List<EncargadoRequest> encargados
 ) {
@@ -67,17 +68,17 @@ public record EstudianteCreateRequest(
             String nombres,
 
             @NotBlank(message = "El primer apellido del encargado es obligatorio")
-            @Size(max = 80, message = "El primer apellido del encargado no puede superar 80 caracteres")
+            @Size(max = 80, message = "El primer apellido no puede superar 80 caracteres")
             String primerApellido,
 
-            @Size(max = 80, message = "El segundo apellido del encargado no puede superar 80 caracteres")
+            @Size(max = 80, message = "El segundo apellido no puede superar 80 caracteres")
             String segundoApellido,
 
             @NotBlank(message = "El teléfono principal del encargado es obligatorio")
             @Size(max = 30, message = "El teléfono no puede superar 30 caracteres")
             String telefonoPrincipal,
 
-            @Size(max = 30, message = "El teléfono secundario no puede superar 30 caracteres")
+            @Size(max = 30, message = "El teléfono no puede superar 30 caracteres")
             String telefonoSecundario,
 
             @Email(message = "El correo del encargado no tiene un formato válido")
