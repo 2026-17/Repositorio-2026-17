@@ -9,6 +9,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.Locale;
 
 @Service
 public class UsuarioDetailsService implements UserDetailsService {
@@ -27,12 +28,14 @@ public class UsuarioDetailsService implements UserDetailsService {
         boolean bloqueado = usuario.getBloqueadoHasta() != null
                 && usuario.getBloqueadoHasta().isAfter(Instant.now());
 
+        String codigoRol = usuario.getIdRol().getCodigo().toUpperCase(Locale.ROOT);
+
         return User.builder()
                 .username(cedula)
                 .password(usuario.getHashContrasena())
                 .accountLocked(bloqueado)
                 .disabled(false)
-                .authorities("ROLE_USER") // temporal, luego lo mapeas desde entidad Role
+                .authorities("ROLE_" + codigoRol)
                 .build();
     }
 }
