@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
+import java.util.List;
 
 @Service
 public class UsuarioService {
@@ -81,5 +82,20 @@ public class UsuarioService {
                 saved.getUltimoAcceso(),
                 saved.getCreadoEn()
         );
+    }
+
+    @Transactional(readOnly = true)
+    public List<UsuarioResponse> listarUsuarios() {
+        return usuarioRepository.findAll().stream()
+                .map(usuario -> new UsuarioResponse(
+                        usuario.getId(),
+                        usuario.getCorreo(),
+                        new RoleResponse(usuario.getIdRol().getId(), usuario.getIdRol().getCodigo(), usuario.getIdRol().getNombre()),
+                        new EstadoUsuarioResponse(usuario.getIdEstadoUsuario().getId(), usuario.getIdEstadoUsuario().getCodigo(), usuario.getIdEstadoUsuario().getNombre()),
+                        usuario.getRequiereCambioContrasena(),
+                        usuario.getUltimoAcceso(),
+                        usuario.getCreadoEn()
+                ))
+                .toList();
     }
 }
