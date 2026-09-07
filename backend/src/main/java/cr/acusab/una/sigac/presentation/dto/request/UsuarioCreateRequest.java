@@ -1,6 +1,7 @@
 package cr.acusab.una.sigac.presentation.dto.request;
 
 import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -18,13 +19,17 @@ import lombok.Setter;
 @AllArgsConstructor
 public class UsuarioCreateRequest {
 
+    @NotBlank
+    @Size(max = 40)
+    private String cedula;
+
     @NotNull
     @Email
     @Size(max = 254)
     private String correo;
 
     @NotNull
-    @Size(min = 12, message = "La contrasena debe tener al menos 12 caracteres")
+    @Size(min = 8, message = "La contrasena debe tener al menos 12 caracteres")
     private String contrasena;
 
     @NotNull
@@ -32,4 +37,5 @@ public class UsuarioCreateRequest {
 
     @NotNull
     private Integer idEstadoUsuario;
+
 }

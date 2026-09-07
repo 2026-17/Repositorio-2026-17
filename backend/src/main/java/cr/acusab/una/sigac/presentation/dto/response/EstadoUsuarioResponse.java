@@ -13,6 +13,5 @@ public class EstadoUsuarioResponse {
     private Integer id;
     private String codigo;
     private String nombre;
-    private String descripcion;
-    private Boolean activo;
+
 }
