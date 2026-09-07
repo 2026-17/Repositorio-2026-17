@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:8080";
-const MAX_PDF = 10 * 1024 * 1024;
+const MAX_PDF = 50 * 1024 * 1024;
 const GENEROS = ["MASCULINO", "FEMENINO", "OTRO"];
 
 const emptyGuardian = () => ({
