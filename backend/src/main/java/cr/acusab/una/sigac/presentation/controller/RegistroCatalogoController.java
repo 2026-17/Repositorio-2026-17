@@ -12,13 +12,11 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/registro/catalogos")
 public class RegistroCatalogoController {
-
     private final TipoIdentificacionRepository tipos;
     private final CentroEducativoRepository centros;
     private final InstrumentoRepository instrumentos;
 
-    public RegistroCatalogoController(TipoIdentificacionRepository tipos,
-                                      CentroEducativoRepository centros,
+    public RegistroCatalogoController(TipoIdentificacionRepository tipos, CentroEducativoRepository centros,
                                       InstrumentoRepository instrumentos) {
         this.tipos = tipos;
         this.centros = centros;
@@ -27,25 +25,20 @@ public class RegistroCatalogoController {
 
     @GetMapping("/tipos-identificacion")
     public List<TipoIdentificacionOption> tiposIdentificacion() {
-        return tipos.findAll().stream()
-                .map(t -> new TipoIdentificacionOption(t.getId(), t.getCodigo(), t.getNombre()))
-                .toList();
+        return tipos.findAll().stream().filter(t -> Boolean.TRUE.equals(t.getActivo()))
+                .map(t -> new TipoIdentificacionOption(t.getId(), t.getCodigo(), t.getNombre())).toList();
     }
 
     @GetMapping("/centros-educativos")
     public List<CentroEducativoOption> centrosEducativos() {
-        return centros.findAll().stream()
-                .filter(c -> Boolean.TRUE.equals(c.getActivo()))
-                .map(c -> new CentroEducativoOption(c.getId(), c.getNombre(), c.getTipo()))
-                .toList();
+        return centros.findAll().stream().filter(c -> Boolean.TRUE.equals(c.getActivo()))
+                .map(c -> new CentroEducativoOption(c.getId(), c.getNombre(), c.getTipo())).toList();
     }
 
     @GetMapping("/instrumentos")
     public List<InstrumentoOption> instrumentos() {
-        return instrumentos.findAll().stream()
-                .filter(i -> Boolean.TRUE.equals(i.getActivo()))
-                .map(i -> new InstrumentoOption(i.getId(), i.getCodigo(), i.getNombre()))
-                .toList();
+        return instrumentos.findAll().stream().filter(i -> Boolean.TRUE.equals(i.getActivo()))
+                .map(i -> new InstrumentoOption(i.getId(), i.getCodigo(), i.getNombre())).toList();
     }
 
     public record TipoIdentificacionOption(Integer id, String codigo, String nombre) {}
