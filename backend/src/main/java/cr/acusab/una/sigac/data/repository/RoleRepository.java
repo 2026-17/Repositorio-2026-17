@@ -5,3 +5,4 @@ import cr.acusab.una.sigac.data.entity.Role;
 public interface RoleRepository extends JpaRepository<Role, Integer> {
 
 }
+

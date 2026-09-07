@@ -83,7 +83,7 @@ public class EstudianteService {
             throw new BusinessException("Los encargados solo se registran para menores de edad");
         }
 
-        CentroEducativo centro = null;
+        CentrosEducativo centro = null;
         if (request.idCentroEducativo() != null) {
             centro = centroEducativoRepository.findById(request.idCentroEducativo())
                     .orElseThrow(() -> new BusinessException("El centro educativo indicado no existe"));
@@ -91,9 +91,9 @@ public class EstudianteService {
 
         Instrumento instrumento = instrumentoRepository.findById(request.idInstrumento())
                 .orElseThrow(() -> new BusinessException("El instrumento indicado no existe"));
-        TipoIdentificacion tipo = tipoIdentificacionRepository.findById(request.idTipoIdentificacion())
+        TiposIdentificacion tipo = tipoIdentificacionRepository.findById(request.idTipoIdentificacion())
                 .orElseThrow(() -> new BusinessException("El tipo de identificación indicado no existe"));
-        TipoDocumento tipoPoliza = tipoDocumentoRepository.findByCodigo("POLIZA")
+        TiposDocumento tipoPoliza = tipoDocumentoRepository.findByCodigo("POLIZA")
                 .orElseThrow(() -> new BusinessException("No está configurado el tipo de documento POLIZA"));
 
         Estudiante estudiante = new Estudiante();
@@ -114,7 +114,7 @@ public class EstudianteService {
         estudiante.setIdCentroEducativo(centro);
         estudiante = estudianteRepository.save(estudiante);
 
-        EstudianteInstrumento ei = new EstudianteInstrumento();
+        EstudiantesInstrumento ei = new EstudiantesInstrumento();
         ei.setEstudiante(estudiante);
         ei.setInstrumento(instrumento);
         ei.setFechaInicio(LocalDate.now());
@@ -124,7 +124,7 @@ public class EstudianteService {
         if (menor) {
             for (var data : request.encargados()) {
                 Encargado encargado = obtenerOCrearEncargado(data);
-                EstudianteEncargado relacion = new EstudianteEncargado();
+                EstudiantesEncargado relacion = new EstudiantesEncargado();
                 relacion.setEstudiante(estudiante);
                 relacion.setEncargado(encargado);
                 relacion.setParentesco(normalizar(data.parentesco()).toUpperCase(Locale.ROOT));
@@ -201,7 +201,7 @@ public class EstudianteService {
         }
     }
 
-    private void guardarPolitica(Estudiante estudiante, MultipartFile file, TipoDocumento tipoDocumento) {
+    private void guardarPolitica(Estudiante estudiante, MultipartFile file, TiposDocumento tipoDocumento) {
         Path studentDir = Paths.get(storageDirectory).toAbsolutePath().normalize().resolve(String.valueOf(estudiante.getId()));
         String storedName = UUID.randomUUID() + ".pdf";
         Path destination = studentDir.resolve(storedName).normalize();
@@ -209,7 +209,7 @@ public class EstudianteService {
         try {
             Files.createDirectories(studentDir);
             Files.copy(file.getInputStream(), destination, StandardCopyOption.REPLACE_EXISTING);
-            DocumentoEstudiante documento = new DocumentoEstudiante();
+            DocumentosEstudiante documento = new DocumentosEstudiante();
             documento.setEstudiante(estudiante);
             documento.setIdTipoDocumento(tipoDocumento);
             documento.setNombreOriginal(file.getOriginalFilename());
