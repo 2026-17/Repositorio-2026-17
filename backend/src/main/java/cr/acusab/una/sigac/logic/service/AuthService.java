@@ -27,7 +27,6 @@ public class AuthService {
         this.jwtConfig = jwtConfig;
     }
 
-
     public LoginResponse login(LoginRequest loginRequest) {
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
