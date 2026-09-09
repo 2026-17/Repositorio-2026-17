@@ -24,8 +24,8 @@ import java.util.UUID;
 
 @Service
 public class EstudianteService {
-    private static final long MAX_PDF_SIZE = 10L * 1024L * 1024L;
-    private static final List<String> GENEROS = List.of("MASCULINO", "FEMENINO", "NO_BINARIO", "OTRO", "PREFIERO_NO_DECIR");
+    private static final long MAX_PDF_SIZE = 50L * 1024L * 1024L;
+    private static final List<String> GENEROS = List.of("MASCULINO", "FEMENINO", "OTRO");
     private static final List<String> PARENTESCOS = List.of("MADRE", "PADRE", "TUTOR", "FAMILIAR", "OTRO");
 
     private final EstudianteRepository estudianteRepository;
@@ -189,7 +189,7 @@ public class EstudianteService {
 
     private void validarPdf(MultipartFile file) {
         if (file == null || file.isEmpty()) throw new BusinessException("La póliza en PDF es obligatoria");
-        if (file.getSize() > MAX_PDF_SIZE) throw new BusinessException("La póliza no puede superar 10 MB");
+        if (file.getSize() > MAX_PDF_SIZE) throw new BusinessException("La póliza no puede superar 50 MB");
         String type = Objects.toString(file.getContentType(), "").toLowerCase(Locale.ROOT);
         String name = Objects.toString(file.getOriginalFilename(), "").toLowerCase(Locale.ROOT);
         if (!name.endsWith(".pdf") || !type.equals("application/pdf")) throw new BusinessException("La póliza debe ser un archivo PDF");
