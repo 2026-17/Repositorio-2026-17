@@ -33,6 +33,10 @@ public record EstudianteCreateRequest(
         @Size(max = 30, message = "El género no puede superar 30 caracteres")
         String genero,
 
+        @NotBlank(message = "La dirección es obligatoria")
+        @Size(max = 500, message = "La dirección no puede superar 500 caracteres")
+        String direccion,
+
         @Size(max = 30, message = "El teléfono no puede superar 30 caracteres")
         String telefono,
 
@@ -40,9 +44,7 @@ public record EstudianteCreateRequest(
         @Size(max = 254, message = "El correo no puede superar 254 caracteres")
         String correo,
 
-        @Size(max = 500, message = "La dirección no puede superar 500 caracteres")
-        String direccion,
-
+        @NotBlank(message = "El nivel escolar es obligatorio")
         @Size(max = 80, message = "El nivel escolar no puede superar 80 caracteres")
         String nivelEscolar,
 
@@ -68,10 +70,10 @@ public record EstudianteCreateRequest(
             String nombres,
 
             @NotBlank(message = "El primer apellido del encargado es obligatorio")
-            @Size(max = 80, message = "El primer apellido no puede superar 80 caracteres")
+            @Size(max = 80, message = "El nombre del encargado no puede superar 100 caracteres")
             String primerApellido,
 
-            @Size(max = 80, message = "El segundo apellido no puede superar 80 caracteres")
+            @Size(max = 80, message = "El segundo apellido del encargado no puede superar 80 caracteres")
             String segundoApellido,
 
             @NotBlank(message = "El teléfono principal del encargado es obligatorio")
