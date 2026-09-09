@@ -64,37 +64,59 @@ public class EstudianteService {
     @Transactional
     public EstudianteResponse crear(EstudianteCreateRequest request, MultipartFile politica) {
         String identificacion = normalizar(request.numeroIdentificacion());
-        if (estudianteRepository.existsByIdTipoIdentificacion_IdAndNumeroIdentificacion(request.idTipoIdentificacion(), identificacion)) {
+
+        if (estudianteRepository.existsByIdTipoIdentificacion_IdAndNumeroIdentificacion(
+                request.idTipoIdentificacion(), identificacion)) {
             throw new DuplicateResourceException("Ya existe un estudiante con esa identificación");
         }
 
         validarGenero(request.genero());
         validarPdf(politica);
+
+        TipoIdentificacion tipo = tipoIdentificacionRepository.findById(request.idTipoIdentificacion())
+                .orElseThrow(() -> new BusinessException("El tipo de identificación indicado no existe"));
+        if (!Boolean.TRUE.equals(tipo.getActivo())) {
+            throw new BusinessException("El tipo de identificación seleccionado está inactivo");
+        }
+
         LocalDate nacimiento = request.fechaNacimiento();
         int edad = Period.between(nacimiento, LocalDate.now()).getYears();
         boolean menor = edad < 18;
+        boolean requiereCentro = requiereCentroEducativo(edad);
 
         if (menor) {
             validarEncargados(request.encargados());
-            if (requiereCentroEducativo(edad) && request.idCentroEducativo() == null) {
-                throw new BusinessException("Debe indicar el centro educativo para esta edad");
-            }
         } else if (request.encargados() != null && !request.encargados().isEmpty()) {
             throw new BusinessException("Los encargados solo se registran para menores de edad");
+        }
+
+        if (requiereCentro && request.idCentroEducativo() == null) {
+            throw new BusinessException("Debe indicar el centro educativo para esta edad");
+        }
+        if (!requiereCentro && request.idCentroEducativo() != null) {
+            throw new BusinessException("El centro educativo no aplica para la edad indicada");
         }
 
         CentroEducativo centro = null;
         if (request.idCentroEducativo() != null) {
             centro = centroEducativoRepository.findById(request.idCentroEducativo())
                     .orElseThrow(() -> new BusinessException("El centro educativo indicado no existe"));
+            if (!Boolean.TRUE.equals(centro.getActivo())) {
+                throw new BusinessException("El centro educativo seleccionado está inactivo");
+            }
         }
 
         Instrumento instrumento = instrumentoRepository.findById(request.idInstrumento())
                 .orElseThrow(() -> new BusinessException("El instrumento indicado no existe"));
-        TipoIdentificacion tipo = tipoIdentificacionRepository.findById(request.idTipoIdentificacion())
-                .orElseThrow(() -> new BusinessException("El tipo de identificación indicado no existe"));
+        if (!Boolean.TRUE.equals(instrumento.getActivo())) {
+            throw new BusinessException("El instrumento seleccionado está inactivo");
+        }
+
         TipoDocumento tipoPoliza = tipoDocumentoRepository.findByCodigo("POLIZA")
                 .orElseThrow(() -> new BusinessException("No está configurado el tipo de documento POLIZA"));
+        if (!Boolean.TRUE.equals(tipoPoliza.getActivo())) {
+            throw new BusinessException("El tipo de documento POLIZA está inactivo");
+        }
 
         Estudiante estudiante = new Estudiante();
         estudiante.setIdTipoIdentificacion(tipo);
@@ -149,13 +171,19 @@ public class EstudianteService {
     private Encargado obtenerOCrearEncargado(EstudianteCreateRequest.EncargadoRequest data) {
         String identificacion = normalizarNullable(data.numeroIdentificacion());
         if (data.idTipoIdentificacion() != null && identificacion != null) {
-            var existente = encargadoRepository.findByIdTipoIdentificacion_IdAndNumeroIdentificacion(data.idTipoIdentificacion(), identificacion);
+            var existente = encargadoRepository.findByIdTipoIdentificacion_IdAndNumeroIdentificacion(
+                    data.idTipoIdentificacion(), identificacion);
             if (existente.isPresent()) return existente.get();
         }
+
         Encargado encargado = new Encargado();
         if (data.idTipoIdentificacion() != null) {
-            encargado.setIdTipoIdentificacion(tipoIdentificacionRepository.findById(data.idTipoIdentificacion())
-                    .orElseThrow(() -> new BusinessException("El tipo de identificación del encargado no existe")));
+            TipoIdentificacion tipo = tipoIdentificacionRepository.findById(data.idTipoIdentificacion())
+                    .orElseThrow(() -> new BusinessException("El tipo de identificación del encargado no existe"));
+            if (!Boolean.TRUE.equals(tipo.getActivo())) {
+                throw new BusinessException("El tipo de identificación del encargado está inactivo");
+            }
+            encargado.setIdTipoIdentificacion(tipo);
         }
         encargado.setNumeroIdentificacion(identificacion);
         encargado.setNombres(normalizar(data.nombres()));
@@ -173,42 +201,65 @@ public class EstudianteService {
         if (encargados == null || encargados.isEmpty() || encargados.size() > 2) {
             throw new BusinessException("Un menor debe tener uno o dos encargados");
         }
-        long principales = encargados.stream().filter(EstudianteCreateRequest.EncargadoRequest::responsablePrincipal).count();
-        long emergencias = encargados.stream().filter(EstudianteCreateRequest.EncargadoRequest::contactoEmergencia).count();
+
+        long principales = encargados.stream()
+                .filter(EstudianteCreateRequest.EncargadoRequest::responsablePrincipal)
+                .count();
+        long emergencias = encargados.stream()
+                .filter(EstudianteCreateRequest.EncargadoRequest::contactoEmergencia)
+                .count();
+
         if (principales != 1) throw new BusinessException("Debe existir exactamente un responsable principal");
         if (emergencias > 2) throw new BusinessException("No puede haber más de dos contactos de emergencia");
+
         for (var encargado : encargados) {
             String parentesco = normalizar(encargado.parentesco()).toUpperCase(Locale.ROOT);
-            if (!PARENTESCOS.contains(parentesco)) throw new BusinessException("El parentesco no es válido");
+            if (!PARENTESCOS.contains(parentesco)) {
+                throw new BusinessException("El parentesco no es válido");
+            }
         }
     }
 
     private void validarGenero(String genero) {
-        if (!GENEROS.contains(normalizar(genero).toUpperCase(Locale.ROOT))) throw new BusinessException("El género seleccionado no es válido");
+        if (!GENEROS.contains(normalizar(genero).toUpperCase(Locale.ROOT))) {
+            throw new BusinessException("El género seleccionado no es válido");
+        }
     }
 
     private void validarPdf(MultipartFile file) {
         if (file == null || file.isEmpty()) throw new BusinessException("La póliza en PDF es obligatoria");
         if (file.getSize() > MAX_PDF_SIZE) throw new BusinessException("La póliza no puede superar 10 MB");
+
         String type = Objects.toString(file.getContentType(), "").toLowerCase(Locale.ROOT);
         String name = Objects.toString(file.getOriginalFilename(), "").toLowerCase(Locale.ROOT);
-        if (!name.endsWith(".pdf") || !type.equals("application/pdf")) throw new BusinessException("La póliza debe ser un archivo PDF");
+        if (!name.endsWith(".pdf") || !type.equals("application/pdf")) {
+            throw new BusinessException("La póliza debe ser un archivo PDF");
+        }
+
         try (InputStream input = file.getInputStream()) {
             byte[] header = input.readNBytes(5);
-            if (header.length < 5 || !new String(header).equals("%PDF-")) throw new BusinessException("El archivo no es un PDF válido");
+            if (header.length < 5 || !new String(header).equals("%PDF-")) {
+                throw new BusinessException("El archivo no es un PDF válido");
+            }
         } catch (IOException e) {
             throw new BusinessException("No fue posible leer la póliza");
         }
     }
 
     private void guardarPolitica(Estudiante estudiante, MultipartFile file, TipoDocumento tipoDocumento) {
-        Path studentDir = Paths.get(storageDirectory).toAbsolutePath().normalize().resolve(String.valueOf(estudiante.getId()));
+        Path studentDir = Paths.get(storageDirectory).toAbsolutePath().normalize()
+                .resolve(String.valueOf(estudiante.getId()));
         String storedName = UUID.randomUUID() + ".pdf";
         Path destination = studentDir.resolve(storedName).normalize();
-        if (!destination.startsWith(studentDir)) throw new BusinessException("Ruta de almacenamiento inválida");
+
+        if (!destination.startsWith(studentDir)) {
+            throw new BusinessException("Ruta de almacenamiento inválida");
+        }
+
         try {
             Files.createDirectories(studentDir);
             Files.copy(file.getInputStream(), destination, StandardCopyOption.REPLACE_EXISTING);
+
             DocumentoEstudiante documento = new DocumentoEstudiante();
             documento.setEstudiante(estudiante);
             documento.setIdTipoDocumento(tipoDocumento);
@@ -242,6 +293,12 @@ public class EstudianteService {
         }
     }
 
-    private String normalizar(String value) { return value == null ? "" : value.trim().replaceAll("\\s+", " "); }
-    private String normalizarNullable(String value) { String result = normalizar(value); return result.isBlank() ? null : result; }
+    private String normalizar(String value) {
+        return value == null ? "" : value.trim().replaceAll("\\s+", " ");
+    }
+
+    private String normalizarNullable(String value) {
+        String result = normalizar(value);
+        return result.isBlank() ? null : result;
+    }
 }
