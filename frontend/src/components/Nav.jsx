@@ -1,16 +1,31 @@
 import { Link } from "react-router-dom";
 import acusabIcon from "../assets/acusabIcon.png";
 
+const backend = "http://localhost:8080";
+
 function Nav() {
     const token = localStorage.getItem("token");
     const rol = localStorage.getItem("rol");
     const cedula = localStorage.getItem("cedula");
 
-    function cerrarSesion() {
+    function limpiarSesionLocal() {
         localStorage.removeItem("token");
         localStorage.removeItem("rol");
         localStorage.removeItem("cedula");
         window.location.href = "/";
+    }
+
+    async function cerrarSesion() {
+        try {
+            await fetch(`${backend}/auth/logout`, {
+                method: "POST",
+                headers: { Authorization: `Bearer ${token}` },
+            });
+        } catch {
+            // Si falla la llamada al backend, igual cerramos sesión localmente
+        } finally {
+            limpiarSesionLocal();
+        }
     }
 
     return (
