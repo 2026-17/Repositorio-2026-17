@@ -86,6 +86,7 @@ CREATE TABLE IF NOT EXISTS usuarios (
                                         id_usuario                  INT UNSIGNED NOT NULL AUTO_INCREMENT,
                                         id_rol                      SMALLINT UNSIGNED NOT NULL,
                                         id_estado_usuario           SMALLINT UNSIGNED NOT NULL,
+                                        nombre                      VARCHAR(150) NOT NULL,
                                         correo                      VARCHAR(254) NOT NULL,
     hash_contrasena             VARCHAR(255) NOT NULL,
     requiere_cambio_contrasena  BOOLEAN NOT NULL DEFAULT TRUE,
@@ -1828,6 +1829,12 @@ CREATE OR REPLACE VIEW vw_estudiantes_instrumentos AS
             foto_perfil_tamano_bytes IS NULL
             OR foto_perfil_tamano_bytes <= 5242880
         );
+
+-- Migracion para bases de datos existentes creadas antes de agregar el nombre del usuario.
+-- (Si la tabla usuarios se crea desde cero con este script, la columna ya existe y este bloque no es necesario).
+ALTER TABLE usuarios
+    ADD COLUMN IF NOT EXISTS nombre VARCHAR(150) NOT NULL DEFAULT '' AFTER id_estado_usuario;
+
 -- =============================================================================
 -- FIN DEL SCRIPT
 -- Resumen: 39 tablas, 21 triggers de auditoria, 4 triggers de validacion

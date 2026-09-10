@@ -1,7 +1,21 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import acusabIcon from "../../assets/acusabIcon.png";
+import slide1 from "../../assets/slideshow/slide1.jpg";
+import slide2 from "../../assets/slideshow/slide2.jpeg";
+import slide3 from "../../assets/slideshow/slide3.jpg";
+import { API_URL } from "../../config/api";
+import "./publico.css";
+
+// Ruta a la que se redirige según el rol tras el login.
+// TODO: agregar el resto de rutas cuando existan las páginas de cada rol.
+const RUTAS_POR_ROL = {
+    ADMINISTRADOR: "/admin/usuarios/crear",
+};
 
 function Login() {
-    const backend = "http://localhost:8080";
+
+    const navigate = useNavigate();
 
     const [form, setForm] = useState({
         cedula: "",
@@ -16,7 +30,7 @@ function Login() {
         setCargando(true);
 
         try {
-            const response = await fetch(`${backend}/auth/login`, {
+            const response = await fetch(`${API_URL}/auth/login`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(form),
@@ -30,7 +44,15 @@ function Login() {
             const data = await response.json();
             localStorage.setItem("token", data.token || "");
             localStorage.setItem("rol", data.rol || "");
-            alert("Login exitoso");
+            localStorage.setItem("cedula", form.cedula);
+            localStorage.setItem("nombre", data.nombre || "");
+
+            const destino = RUTAS_POR_ROL[data.rol];
+            if (destino) {
+                navigate(destino);
+            } else {
+                alert("Login exitoso. Aún no hay una página asignada para tu rol.");
+            }
         } catch {
             setError("No se pudo conectar con el servidor");
         } finally {
@@ -39,40 +61,70 @@ function Login() {
     }
 
     return (
-        <main>
-            <h2>Iniciar sesión</h2>
+        <div className="app-container">
+            {/* Header corporativo */}
+            <header className="sigac-header">
+                <img src={acusabIcon} alt="Logo ACUSAB" className="header-logo" />
+                <h1 className="header-title">SIGAC</h1>
+                <div className="header-spacer"></div>
+            </header>
 
-            <form onSubmit={handleSubmit}>
+            {/* Contenedor principal dividido */}
+            <main className="split-layout">
 
-                <p>Hola</p>
+                {/* Panel Izquierdo: Formulario de Login */}
+                <section className="form-panel">
+                    <div className="login-card">
+                        <h2 className="login-title">Iniciar sesión</h2>
 
-                <label>Cédula</label>
-                <input
-                    type="text"
-                    value={form.cedula}
-                    onChange={(e) => setForm({...form, cedula: e.target.value})}
-                    required
-                />
+                        <form onSubmit={handleSubmit} className="login-form">
+                            <p className="login-greeting">¡Bienvenido de nuevo!</p>
 
-                <br/><br/>
+                            <div className="form-group">
+                                <label className="form-label">Cédula</label>
+                                <input
+                                    type="text"
+                                    className="form-input"
+                                    value={form.cedula}
+                                    onChange={(e) => setForm({...form, cedula: e.target.value})}
+                                    required
+                                />
+                            </div>
 
-                <label>Contraseña</label>
-                <input
-                    type="password"
-                    value={form.contrasena}
-                    onChange={(e) => setForm({...form, contrasena: e.target.value})}
-                    required
-                />
+                            <div className="form-group">
+                                <label className="form-label">Contraseña</label>
+                                <input
+                                    type="password"
+                                    className="form-input"
+                                    value={form.contrasena}
+                                    onChange={(e) => setForm({...form, contrasena: e.target.value})}
+                                    required
+                                />
+                            </div>
 
-                <br/><br/>
+                            <div className="form-actions">
+                                <button type="submit" disabled={cargando} className="btn-primary">
+                                    {cargando ? "Ingresando..." : "Ingresar"}
+                                </button>
+                            </div>
+                        </form>
 
-                <button type="submit" disabled={cargando}>
-                    {cargando ? "Ingresando..." : "Ingresar"}
-                </button>
-            </form>
+                        {error && <p className="error-message">{error}</p>}
+                    </div>
+                </section>
 
-            {error && <p>{error}</p>}
-        </main>
+                {/* Panel Derecho: Slideshow de Imágenes */}
+                <section className="slideshow-panel">
+                    <div className="slide slide-1" style={{ backgroundImage: `url(${slide1})` }}></div>
+                    <div className="slide slide-2" style={{ backgroundImage: `url(${slide2})` }}></div>
+                    <div className="slide slide-3" style={{ backgroundImage: `url(${slide3})` }}></div>
+
+                    {/* Overlay opcional para darle un tinte corporativo a las imágenes */}
+                    <div className="slideshow-overlay"></div>
+                </section>
+
+            </main>
+        </div>
     );
 }
 

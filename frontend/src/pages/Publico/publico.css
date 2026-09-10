@@ -1,0 +1,290 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,500;0,600;0,700&display=swap');
+
+/* =========================================
+   Estilos Base y Generales (Escritorio por defecto)
+   ========================================= */
+.app-container {
+    font-family: 'Montserrat', sans-serif;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* Header Institucional */
+.sigac-header {
+    background-color: #662483;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 30px;
+    height: 60px;
+    box-sizing: border-box;
+    z-index: 1000;
+}
+
+.header-logo {
+    height: 40px;
+    object-fit: contain;
+}
+
+.header-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin: 0;
+    text-align: center;
+    flex-grow: 1;
+    letter-spacing: 1px;
+}
+
+.header-spacer {
+    width: 40px;
+}
+
+/* Layout Dividido */
+.split-layout {
+    display: flex;
+    flex-grow: 1;
+    height: calc(100vh - 60px);
+}
+
+/* Panel Izquierdo (Formulario) */
+.form-panel {
+    flex: 0 0 45%;
+    background-color: #f4f4f9;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 40px;
+    box-sizing: border-box;
+}
+
+.login-card {
+    background-color: #ffffff;
+    border-radius: 12px;
+    padding: 40px;
+    width: 100%;
+    max-width: 420px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+.login-title {
+    font-weight: 700;
+    color: #000000;
+    margin-top: 0;
+    margin-bottom: 5px;
+    font-size: 1.8rem;
+}
+
+.login-greeting {
+    margin-bottom: 30px;
+    color: #666;
+    font-size: 0.95rem;
+}
+
+.form-group {
+    margin-bottom: 25px;
+}
+
+.form-label {
+    display: block;
+    font-weight: 500;
+    margin-bottom: 8px;
+    color: #333333;
+}
+
+.form-input {
+    width: 100%;
+    padding: 12px;
+    border: 1.5px solid #e0e0e0;
+    border-radius: 8px;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1rem;
+    box-sizing: border-box;
+    transition: all 0.3s ease;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: #662483;
+    box-shadow: 0 0 0 3px rgba(102, 36, 131, 0.1);
+}
+
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 30px;
+}
+
+.btn-primary {
+    background-color: #662483;
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 28px;
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.1s ease;
+    width: 100%;
+}
+
+.btn-primary:hover:not(:disabled) {
+    background-color: #47245f;
+}
+
+.btn-primary:active:not(:disabled) {
+    transform: scale(0.98);
+}
+
+.btn-primary:disabled {
+    background-color: #a37eb5;
+    cursor: not-allowed;
+}
+
+.error-message {
+    color: #be1622;
+    background-color: #fde8e9;
+    padding: 12px;
+    border-radius: 6px;
+    margin-top: 25px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    text-align: center;
+    border-left: 4px solid #be1622;
+}
+
+/* Panel Derecho (Slideshow CSS-Only) */
+.slideshow-panel {
+    flex: 0 0 55%;
+    position: relative;
+    background-color: #000;
+    overflow: hidden;
+}
+
+.slide {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    background-position: center;
+    opacity: 0;
+    animation: fadeAnimation 15s infinite;
+}
+
+.slide-1 {
+    animation-delay: 0s;
+}
+
+.slide-2 {
+    animation-delay: 5s;
+}
+
+.slide-3 {
+    animation-delay: 10s;
+}
+
+@keyframes fadeAnimation {
+    0%   { opacity: 0; transform: scale(1.05); }
+    10%  { opacity: 1; transform: scale(1.02); }
+    33%  { opacity: 1; transform: scale(1); }
+    43%  { opacity: 0; transform: scale(0.98); }
+    100% { opacity: 0; }
+}
+
+.slideshow-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, rgba(102, 36, 131, 0.4) 0%, rgba(0, 0, 0, 0.6) 100%);
+    z-index: 10;
+    pointer-events: none;
+}
+
+/* =========================================
+   MEDIA QUERIES (Responsividad)
+   ========================================= */
+
+/* 1. TABLETS (Hasta 1024px) */
+@media screen and (max-width: 1024px) {
+    .form-panel {
+        flex: 0 0 50%; /* Mitad para el formulario */
+        padding: 30px;
+    }
+
+    .slideshow-panel {
+        flex: 0 0 50%; /* Mitad para la imagen */
+    }
+
+    .login-card {
+        padding: 30px;
+    }
+
+    .login-title {
+        font-size: 1.5rem;
+    }
+}
+
+/* 2. DISPOSITIVOS MÓVILES (Hasta 768px) */
+@media screen and (max-width: 768px) {
+    /* Permitir scroll en móviles si el teclado virtual sube */
+    .app-container {
+        height: auto;
+        min-height: 100vh;
+        overflow: auto;
+    }
+
+    /* Ajustar el header para que no se amontone */
+    .sigac-header {
+        padding: 10px 15px;
+    }
+
+    .header-logo {
+        height: 35px;
+    }
+
+    .header-title {
+        font-size: 1.1rem;
+    }
+
+    /* Colapsar el layout a una sola columna */
+    .split-layout {
+        flex-direction: column;
+        height: auto;
+    }
+
+    /* El formulario ocupa todo el ancho */
+    .form-panel {
+        flex: 1 1 100%;
+        width: 100%;
+        padding: 20px 15px;
+        min-height: calc(100vh - 60px);
+    }
+
+    .login-card {
+        padding: 25px 20px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
+
+    /* Ocultar el carrusel en móviles para ahorrar datos y espacio */
+    .slideshow-panel {
+        display: none;
+    }
+}
+
+/* 3. MÓVILES PEQUEÑOS (Hasta 480px) */
+@media screen and (max-width: 480px) {
+    .login-title {
+        font-size: 1.4rem;
+    }
+
+    .btn-primary {
+        padding: 10px 20px;
+    }
+}
