@@ -1,0 +1,230 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,500;0,600;0,700&display=swap');
+
+/* Contenedor general */
+.app-container {
+    font-family: 'Montserrat', sans-serif;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; /* Evita scroll en la pantalla de login */
+}
+
+/* Header */
+.sigac-header {
+    background-color: #662483;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 30px;
+    height: 60px;
+    box-sizing: border-box;
+    z-index: 1000;
+}
+
+.header-logo {
+    height: 40px;
+    object-fit: contain;
+}
+
+.header-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin: 0;
+    text-align: center;
+    flex-grow: 1;
+    letter-spacing: 1px;
+}
+
+.header-spacer {
+    width: 40px;
+}
+
+/* Layout Dividido */
+.split-layout {
+    display: flex;
+    flex-grow: 1;
+    height: calc(100vh - 60px); /* Resta la altura del header */
+}
+
+/* Panel Izquierdo (Formulario) */
+.form-panel {
+    flex: 0 0 45%; /* Ocupa el 45% del ancho */
+    background-color: #f4f4f9;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 40px;
+    box-sizing: border-box;
+}
+
+.login-card {
+    background-color: #ffffff;
+    border-radius: 12px;
+    padding: 40px;
+    width: 100%;
+    max-width: 420px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+.login-title {
+    font-weight: 700;
+    color: #000000;
+    margin-top: 0;
+    margin-bottom: 5px;
+    font-size: 1.8rem;
+}
+
+.login-greeting {
+    margin-bottom: 30px;
+    color: #666;
+    font-size: 0.95rem;
+}
+
+.form-group {
+    margin-bottom: 25px;
+}
+
+.form-label {
+    display: block;
+    font-weight: 500;
+    margin-bottom: 8px;
+    color: #333333;
+}
+
+.form-input {
+    width: 100%;
+    padding: 12px;
+    border: 1.5px solid #e0e0e0;
+    border-radius: 8px;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1rem;
+    box-sizing: border-box;
+    transition: all 0.3s ease;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: #662483;
+    box-shadow: 0 0 0 3px rgba(102, 36, 131, 0.1);
+}
+
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 30px;
+}
+
+.btn-primary {
+    background-color: #662483;
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 28px;
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.1s ease;
+    width: 100%; /* Botón ancho para el formulario */
+}
+
+.btn-primary:hover:not(:disabled) {
+    background-color: #47245f;
+}
+
+.btn-primary:active:not(:disabled) {
+    transform: scale(0.98);
+}
+
+.btn-primary:disabled {
+    background-color: #a37eb5;
+    cursor: not-allowed;
+}
+
+.error-message {
+    color: #be1622;
+    background-color: #fde8e9;
+    padding: 12px;
+    border-radius: 6px;
+    margin-top: 25px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    text-align: center;
+    border-left: 4px solid #be1622;
+}
+
+/* =========================================
+   Panel Derecho (Slideshow CSS-Only)
+   ========================================= */
+.slideshow-panel {
+    flex: 0 0 55%; /* Ocupa el 55% del ancho restante */
+    position: relative;
+    background-color: #000;
+    overflow: hidden;
+}
+
+/* Base de cada diapositiva */
+.slide {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    background-position: center;
+    opacity: 0;
+    /* Duración total de 15s (5s por imagen) */
+    animation: fadeAnimation 15s infinite;
+}
+
+/* Asignar imágenes e inicio de la animación (staggered) */
+.slide-1 {
+    background-image: url('https://images.unsplash.com/photo-1514320291840-2e0a9bf2a9ae?q=80&w=1000');
+    animation-delay: 0s;
+}
+
+.slide-2 {
+    background-image: url('https://images.unsplash.com/photo-1460723237483-7a6dc9d0b212?q=80&w=1000');
+    animation-delay: 5s;
+}
+
+.slide-3 {
+    background-image: url('https://images.unsplash.com/photo-1511192336575-5a79af67a629?q=80&w=1000');
+    animation-delay: 10s;
+}
+
+/* Keyframes para el smooth fade */
+@keyframes fadeAnimation {
+    0%   { opacity: 0; transform: scale(1.05); }
+    10%  { opacity: 1; transform: scale(1.02); }
+    33%  { opacity: 1; transform: scale(1); }
+    43%  { opacity: 0; transform: scale(0.98); }
+    100% { opacity: 0; }
+}
+
+/* Overlay opcional para mejorar estética y unir con la marca */
+.slideshow-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, rgba(102, 36, 131, 0.4) 0%, rgba(0, 0, 0, 0.6) 100%);
+    z-index: 10;
+    pointer-events: none;
+}
+
+/* Responsividad: Ocultar el slideshow en móviles y hacer el formulario ancho completo */
+@media (max-width: 900px) {
+    .split-layout {
+        flex-direction: column;
+    }
+    .form-panel {
+        flex: 1 1 100%;
+        width: 100%;
+    }
+    .slideshow-panel {
+        display: none;
+    }
+}

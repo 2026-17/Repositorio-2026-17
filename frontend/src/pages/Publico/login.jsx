@@ -1,4 +1,5 @@
 import { useState } from "react";
+import "./publico.css";
 
 function Login() {
     const backend = "http://localhost:8080";
@@ -39,40 +40,71 @@ function Login() {
     }
 
     return (
-        <main>
-            <h2>Iniciar sesión</h2>
+        <div className="app-container">
+            {/* Header corporativo */}
+            <header className="sigac-header">
+                <img src="/logo-acusab.png" alt="Logo ACUSAB" className="header-logo" />
+                <h1 className="header-title">SIGAC</h1>
+                <div className="header-spacer"></div>
+            </header>
 
-            <form onSubmit={handleSubmit}>
+            {/* Contenedor principal dividido */}
+            <main className="split-layout">
 
-                <p>Hola</p>
+                {/* Panel Izquierdo: Formulario de Login */}
+                <section className="form-panel">
+                    <div className="login-card">
+                        <h2 className="login-title">Iniciar sesión</h2>
 
-                <label>Cédula</label>
-                <input
-                    type="text"
-                    value={form.cedula}
-                    onChange={(e) => setForm({...form, cedula: e.target.value})}
-                    required
-                />
+                        <form onSubmit={handleSubmit} className="login-form">
+                            <p className="login-greeting">¡Bienvenido de nuevo!</p>
 
-                <br/><br/>
+                            <div className="form-group">
+                                <label className="form-label">Cédula</label>
+                                <input
+                                    type="text"
+                                    className="form-input"
+                                    value={form.cedula}
+                                    onChange={(e) => setForm({...form, cedula: e.target.value})}
+                                    required
+                                />
+                            </div>
 
-                <label>Contraseña</label>
-                <input
-                    type="password"
-                    value={form.contrasena}
-                    onChange={(e) => setForm({...form, contrasena: e.target.value})}
-                    required
-                />
+                            <div className="form-group">
+                                <label className="form-label">Contraseña</label>
+                                <input
+                                    type="password"
+                                    className="form-input"
+                                    value={form.contrasena}
+                                    onChange={(e) => setForm({...form, contrasena: e.target.value})}
+                                    required
+                                />
+                            </div>
 
-                <br/><br/>
+                            <div className="form-actions">
+                                <button type="submit" disabled={cargando} className="btn-primary">
+                                    {cargando ? "Ingresando..." : "Ingresar"}
+                                </button>
+                            </div>
+                        </form>
 
-                <button type="submit" disabled={cargando}>
-                    {cargando ? "Ingresando..." : "Ingresar"}
-                </button>
-            </form>
+                        {error && <p className="error-message">{error}</p>}
+                    </div>
+                </section>
 
-            {error && <p>{error}</p>}
-        </main>
+                {/* Panel Derecho: Slideshow de Imágenes */}
+                <section className="slideshow-panel">
+                    {/* Nota: Reemplaza estas URLs con las imágenes culturales o de tu institución */}
+                    <div className="slide slide-1"></div>
+                    <div className="slide slide-2"></div>
+                    <div className="slide slide-3"></div>
+
+                    {/* Overlay opcional para darle un tinte corporativo a las imágenes */}
+                    <div className="slideshow-overlay"></div>
+                </section>
+
+            </main>
+        </div>
     );
 }
 
