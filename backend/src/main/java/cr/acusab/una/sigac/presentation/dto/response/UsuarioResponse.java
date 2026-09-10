@@ -17,6 +17,7 @@ import java.time.Instant;
 @AllArgsConstructor
 public class UsuarioResponse {
     private Long id;
+    private String nombre;
     private String correo;
     private RoleResponse rol;
     private EstadoUsuarioResponse estado;

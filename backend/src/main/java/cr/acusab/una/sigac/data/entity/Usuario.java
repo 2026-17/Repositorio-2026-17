@@ -33,6 +33,11 @@ public class Usuario {
     @Column(name = "cedula", length = 40)
     private String cedula;
 
+    @Size(max = 150)
+    @NotNull
+    @Column(name = "nombre", nullable = false, length = 150)
+    private String nombre;
+
     @Size(max = 254)
     @NotNull
     @Column(name = "correo", nullable = false, length = 254)

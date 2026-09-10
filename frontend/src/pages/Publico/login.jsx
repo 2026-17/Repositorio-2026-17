@@ -1,8 +1,20 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import acusabIcon from "../../assets/acusabIcon.png";
+import slide1 from "../../assets/slideshow/slide1.jpg";
+import slide2 from "../../assets/slideshow/slide2.jpeg";
+import slide3 from "../../assets/slideshow/slide3.jpg";
 import "./publico.css";
+
+// Ruta a la que se redirige según el rol tras el login.
+// TODO: agregar el resto de rutas cuando existan las páginas de cada rol.
+const RUTAS_POR_ROL = {
+    ADMINISTRADOR: "/admin/usuarios/crear",
+};
 
 function Login() {
     const backend = "http://localhost:8080";
+    const navigate = useNavigate();
 
     const [form, setForm] = useState({
         cedula: "",
@@ -31,7 +43,15 @@ function Login() {
             const data = await response.json();
             localStorage.setItem("token", data.token || "");
             localStorage.setItem("rol", data.rol || "");
-            alert("Login exitoso");
+            localStorage.setItem("cedula", form.cedula);
+            localStorage.setItem("nombre", data.nombre || "");
+
+            const destino = RUTAS_POR_ROL[data.rol];
+            if (destino) {
+                navigate(destino);
+            } else {
+                alert("Login exitoso. Aún no hay una página asignada para tu rol.");
+            }
         } catch {
             setError("No se pudo conectar con el servidor");
         } finally {
@@ -43,7 +63,7 @@ function Login() {
         <div className="app-container">
             {/* Header corporativo */}
             <header className="sigac-header">
-                <img src="/logo-acusab.png" alt="Logo ACUSAB" className="header-logo" />
+                <img src={acusabIcon} alt="Logo ACUSAB" className="header-logo" />
                 <h1 className="header-title">SIGAC</h1>
                 <div className="header-spacer"></div>
             </header>
@@ -94,10 +114,9 @@ function Login() {
 
                 {/* Panel Derecho: Slideshow de Imágenes */}
                 <section className="slideshow-panel">
-                    {/* Nota: Reemplaza estas URLs con las imágenes culturales o de tu institución */}
-                    <div className="slide slide-1"></div>
-                    <div className="slide slide-2"></div>
-                    <div className="slide slide-3"></div>
+                    <div className="slide slide-1" style={{ backgroundImage: `url(${slide1})` }}></div>
+                    <div className="slide slide-2" style={{ backgroundImage: `url(${slide2})` }}></div>
+                    <div className="slide slide-3" style={{ backgroundImage: `url(${slide3})` }}></div>
 
                     {/* Overlay opcional para darle un tinte corporativo a las imágenes */}
                     <div className="slideshow-overlay"></div>

@@ -8,6 +8,7 @@ function CreateUsers() {
     const [error, setError] = useState("");
     const [form, setForm] = useState({
         cedula: "",
+        nombre: "",
         correo: "",
         contrasena: "",
         idRol: "",
@@ -55,6 +56,7 @@ function CreateUsers() {
 
         const payload = {
             cedula: form.cedula,
+            nombre: form.nombre,
             correo: form.correo,
             contrasena: form.contrasena,
             idRol: Number(form.idRol),
@@ -75,6 +77,7 @@ function CreateUsers() {
         alert("Usuario creado");
         setForm({
             cedula: "",
+            nombre: "",
             correo: "",
             contrasena: "",
             idRol: "",
@@ -83,7 +86,7 @@ function CreateUsers() {
     }
 
     return (
-        <main>
+        <div className="container">
             <h2>Crear usuario</h2>
             {error && <p>{error}</p>}
 
@@ -93,6 +96,16 @@ function CreateUsers() {
                     type="text"
                     value={form.cedula}
                     onChange={(e) => setForm({...form, cedula: e.target.value})}
+                    required
+                />
+
+                <br/><br/>
+
+                <label>Nombre</label>
+                <input
+                    type="text"
+                    value={form.nombre}
+                    onChange={(e) => setForm({...form, nombre: e.target.value})}
                     required
                 />
 
@@ -152,7 +165,7 @@ function CreateUsers() {
 
                 <button type="submit">Crear usuario</button>
             </form>
-        </main>
+        </div>
     );
 }
 
