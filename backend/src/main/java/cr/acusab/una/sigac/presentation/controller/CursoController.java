@@ -1,8 +1,9 @@
 package cr.acusab.una.sigac.presentation.controller;
 
+
 import cr.acusab.una.sigac.logic.service.CursoService;
-import cr.acusab.una.sigac.presentation.dto.request.CursoRequestDTO;
 import cr.acusab.una.sigac.presentation.dto.response.CursoResponseDTO;
+import cr.acusab.una.sigac.presentation.dto.request.CursoRequestDTO;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
