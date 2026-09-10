@@ -1,0 +1,166 @@
+.container {
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+    box-sizing: border-box;
+}
+
+/* Header fijo (Nav) */
+.nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 64px;
+    background-color: #662483;
+    color: #ffffff;
+    z-index: 1000;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.nav__inner {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+}
+
+.nav__logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #ffffff;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 1.1rem;
+    letter-spacing: 1px;
+    white-space: nowrap;
+}
+
+.nav__logo_img {
+    height: 36px;
+    object-fit: contain;
+}
+
+.nav__links {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    flex-grow: 1;
+    flex-wrap: wrap;
+}
+
+.nav__link {
+    color: #ffffff;
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 0.95rem;
+}
+
+.nav__link:hover {
+    text-decoration: underline;
+}
+
+.nav__actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    white-space: nowrap;
+}
+
+.nav__user {
+    color: #ffffff;
+    font-size: 0.9rem;
+}
+
+.btn {
+    padding: 8px 16px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.btn--primary {
+    background-color: #be1622;
+    color: #ffffff;
+}
+
+.btn--primary:hover {
+    background-color: #9e121c;
+}
+
+/* Contenido entre header y footer fijos */
+.app-main {
+    margin-top: 64px;
+    margin-bottom: 56px;
+    min-height: calc(100vh - 64px - 56px);
+}
+
+/* Footer fijo */
+.footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 56px;
+    background-color: #2b2b2b;
+    color: #ffffff;
+    z-index: 1000;
+}
+
+.footer__inner {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+}
+
+.footer__top {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.footer__logo {
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+.footer__contact {
+    color: #ffffff;
+    text-decoration: none;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.footer__contact:hover {
+    text-decoration: underline;
+}
+
+.footer__copy {
+    margin: 0;
+    font-size: 0.8rem;
+    color: #cccccc;
+}
+
+@media (max-width: 768px) {
+    .nav__links {
+        display: none;
+    }
+
+    .footer__copy {
+        display: none;
+    }
+}
