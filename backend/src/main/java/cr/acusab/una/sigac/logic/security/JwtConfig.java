@@ -11,13 +11,13 @@ import java.nio.charset.StandardCharsets;
 @Configuration
 public class JwtConfig {
 
-//    @Value("${security.jwt.secret-key}")
+    @Value("${security.jwt.secret-key}")
     private String secretKey;
 
-//    @Value("${security.jwt.expiration-time}")
+    @Value("${security.jwt.expiration-time}")
     private long jwtExpiration;
 
-//    @Value("${security.jwt.algorithm}")
+    @Value("${security.jwt.algorithm}")
     private String algorithm;
 
     public SecretKey getSecretKey() {
