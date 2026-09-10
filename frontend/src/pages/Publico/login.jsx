@@ -44,6 +44,7 @@ function Login() {
             localStorage.setItem("token", data.token || "");
             localStorage.setItem("rol", data.rol || "");
             localStorage.setItem("cedula", form.cedula);
+            localStorage.setItem("nombre", data.nombre || "");
 
             const destino = RUTAS_POR_ROL[data.rol];
             if (destino) {

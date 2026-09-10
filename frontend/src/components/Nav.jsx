@@ -1,17 +1,26 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
-import acusabIcon from "../assets/acusabIcon.png";
+import acusabIcon from "../assets/acusabIcon.png"
+import { User, Menu, X } from "lucide-react";
 
 const backend = "http://localhost:8080";
 
 function Nav() {
     const token = localStorage.getItem("token");
     const rol = localStorage.getItem("rol");
-    const cedula = localStorage.getItem("cedula");
+    const nombre = localStorage.getItem("nombre");
+
+    const [menuAbierto, setMenuAbierto] = useState(false);
+
+    function toggleMenu() {
+        setMenuAbierto((prev) => !prev);
+    }
 
     function limpiarSesionLocal() {
         localStorage.removeItem("token");
         localStorage.removeItem("rol");
         localStorage.removeItem("cedula");
+        localStorage.removeItem("nombre");
         window.location.href = "/";
     }
 
@@ -31,17 +40,37 @@ function Nav() {
     return (
         <nav className="nav">
             <div className="nav__inner container">
-                <Link to="/" className="nav__logo">
+                {/* Logo e Identidad Corporativa (Estándar D01) */}
+                <Link className="nav__logo" onClick={() => setMenuAbierto(false)}>
                     <img src={acusabIcon} className="nav__logo_img" alt="Logo ACUSAB" />
                     SIGAC
                 </Link>
 
-                <ul className="nav__links" role="list">
+                {/* Botón Hamburguesa en Móvil */}
+                <button
+                    className="nav__toggle"
+                    onClick={toggleMenu}
+                    aria-label="Alternar menú de navegación"
+                >
+                    {menuAbierto ? <X size={24} /> : <Menu size={24} />}
+                </button>
+
+                {/* Enlaces de Navegación por Rol */}
+                <ul className={`nav__links ${menuAbierto ? "nav__links--open" : ""}`} role="list">
                     {/* Admin */}
-                    {rol === "ADMINISTRADOR" && <>
-                        <li><Link to="/admin/usuarios/crear" className="nav__link">Crear usuario</Link></li>
-                        {/* TODO: agregar link a Dashboard cuando exista la página */}
-                    </>}
+                    {rol === "ADMINISTRADOR" && (
+                        <>
+                            <li>
+                                <Link
+                                    to="/admin/usuarios/crear"
+                                    className="nav__link"
+                                    onClick={() => setMenuAbierto(false)}
+                                >
+                                    Crear usuario
+                                </Link>
+                            </li>
+                        </>
+                    )}
 
                     {/* Director académico */}
                     {rol === "DIRECTOR_ACADEMICO" && <>
@@ -69,12 +98,22 @@ function Nav() {
                     </>}
                 </ul>
 
+                {/* Acciones de Sesión */}
                 <div className="nav__actions">
-                    {!token && <Link to="/login" className="btn btn--primary">Iniciar sesión</Link>}
+                    {!token && (
+                        <Link to="/login" className="btn btn--secondary">
+                            Iniciar sesión
+                        </Link>
+                    )}
                     {token && (
                         <>
-                            <span className="nav__user">{cedula}</span>
-                            <button className="btn btn--primary" onClick={cerrarSesion}>Cerrar sesión</button>
+                            <span className="nav__user">
+                               <User size={18} />
+                                {nombre}
+                            </span>
+                            <button className="btn btn--danger" onClick={cerrarSesion}>
+                                Cerrar sesión
+                            </button>
                         </>
                     )}
                 </div>

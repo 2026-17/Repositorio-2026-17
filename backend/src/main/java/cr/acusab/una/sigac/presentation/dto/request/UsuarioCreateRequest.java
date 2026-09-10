@@ -24,6 +24,10 @@ public class UsuarioCreateRequest {
     private String cedula;
 
     @NotBlank
+    @Size(max = 150)
+    private String nombre;
+
+    @NotBlank
     @Email
     @Size(max = 254)
     private String correo;

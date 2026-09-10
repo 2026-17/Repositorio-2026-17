@@ -4,13 +4,15 @@ function Footer() {
             <div className="container footer__inner">
                 <div className="footer__top">
                     <div className="footer__logo">SIGAC</div>
-                    <a href="mailto:sigac@una.ac.cr" className="footer__contact">
+                    <a href="mailto:acusab@gmail.com" className="footer__contact">
                         <span className="footer__contact-icon">✉</span>
-                        sigac@una.ac.cr
+                        acusab@gmail.com
                     </a>
                 </div>
                 <div className="footer__bottom">
-                    <p className="footer__copy">&copy; 2026 <strong>SIGAC.</strong> Universidad Nacional. Todos los derechos reservados.</p>
+                    <p className="footer__copy">
+                        &copy; {new Date().getFullYear()} <strong>SIGAC.</strong> Asociación Cultural de Santa Bárbara (ACUSAB). Todos los derechos reservados.
+                    </p>
                 </div>
             </div>
         </footer>

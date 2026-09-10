@@ -1,3 +1,35 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,500;0,600;0,700&display=swap');
+
+/* =========================================
+   Variables de Marca y Tema (ACUSAB / SIGAC)
+   ========================================= */
+:root {
+    --primary-purple: #662483;     /* Morado 01 */
+    --primary-purple-dark: #47245f; /* Morado 02 */
+    --primary-red: #be1622;        /* Rojo 01 */
+    --primary-red-dark: #821720;   /* Rojo 02 */
+    --green-active: #2fac66;       /* Verde 01 */
+    --neutral-dark: #2b2b2b;
+    --neutral-text: #333333;
+    --neutral-light: #f4f4f9;
+    --border-color: #e0e0e0;
+    --white: #ffffff;
+    --font-family: 'Montserrat', sans-serif;
+}
+
+/* Reset y Estilos Base */
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: var(--font-family);
+    color: var(--neutral-text);
+    background-color: var(--neutral-light);
+    -webkit-font-smoothing: antialiased;
+}
+
 .container {
     width: 100%;
     max-width: 1200px;
@@ -6,17 +38,20 @@
     box-sizing: border-box;
 }
 
-/* Header fijo (Nav) */
+/* =========================================
+   Header Fijo (Nav - Estándar D06)
+   ========================================= */
 .nav {
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
     height: 64px;
-    background-color: #662483;
-    color: #ffffff;
+    background-color: var(--primary-purple);
+    color: var(--white);
     z-index: 1000;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    font-family: var(--font-family);
 }
 
 .nav__inner {
@@ -30,42 +65,47 @@
 .nav__logo {
     display: flex;
     align-items: center;
-    gap: 10px;
-    color: #ffffff;
+    gap: 12px;
+    color: var(--white);
     text-decoration: none;
     font-weight: 700;
-    font-size: 1.1rem;
+    font-size: 1.2rem;
     letter-spacing: 1px;
     white-space: nowrap;
 }
 
 .nav__logo_img {
-    height: 36px;
+    height: 38px;
     object-fit: contain;
 }
 
+/* Enlaces de Navegación */
 .nav__links {
     display: flex;
     align-items: center;
-    gap: 20px;
+    gap: 16px;
     list-style: none;
     margin: 0;
     padding: 0;
     flex-grow: 1;
-    flex-wrap: wrap;
 }
 
 .nav__link {
-    color: #ffffff;
+    color: var(--white);
     text-decoration: none;
     font-weight: 500;
     font-size: 0.95rem;
+    padding: 8px 12px;
+    border-radius: 6px;
+    transition: background-color 0.25s ease, opacity 0.25s ease;
 }
 
 .nav__link:hover {
-    text-decoration: underline;
+    background-color: rgba(255, 255, 255, 0.15);
+    text-decoration: none;
 }
 
+/* Acciones de Usuario */
 .nav__actions {
     display: flex;
     align-items: center;
@@ -74,47 +114,103 @@
 }
 
 .nav__user {
-    color: #ffffff;
+    color: var(--white);
     font-size: 0.9rem;
+    font-weight: 600;
+    background-color: rgba(255, 255, 255, 0.15);
+    padding: 6px 14px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
-.btn {
-    padding: 8px 16px;
+/* Botón Hamburguesa para Móvil */
+.nav__toggle {
+    display: none;
+    background: none;
+    border: none;
+    color: var(--white);
+    cursor: pointer;
+    padding: 6px;
     border-radius: 6px;
+    transition: background-color 0.2s ease;
+}
+
+.nav__toggle:hover {
+    background-color: rgba(255, 255, 255, 0.15);
+}
+
+/* =========================================
+   Botones Globales (Estándar D04)
+   ========================================= */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 9px 18px;
+    border-radius: 8px;
     border: none;
     cursor: pointer;
+    font-family: var(--font-family);
     font-weight: 600;
     font-size: 0.9rem;
     text-decoration: none;
-    display: inline-block;
+    transition: all 0.25s ease;
 }
 
 .btn--primary {
-    background-color: #be1622;
-    color: #ffffff;
+    background-color: var(--primary-purple);
+    color: var(--white);
 }
 
 .btn--primary:hover {
-    background-color: #9e121c;
+    background-color: var(--primary-purple-dark);
 }
 
-/* Contenido entre header y footer fijos */
+.btn--secondary {
+    background-color: var(--white);
+    color: var(--primary-purple);
+    border: 1.5px solid var(--white);
+}
+
+.btn--secondary:hover {
+    background-color: var(--neutral-light);
+    color: var(--primary-purple-dark);
+}
+
+.btn--danger {
+    background-color: var(--primary-red);
+    color: var(--white);
+}
+
+.btn--danger:hover {
+    background-color: var(--primary-red-dark);
+}
+
+/* Contenido entre Header y Footer Fijos */
 .app-main {
     margin-top: 64px;
     margin-bottom: 56px;
     min-height: calc(100vh - 64px - 56px);
+    box-sizing: border-box;
 }
 
-/* Footer fijo */
+/* =========================================
+   Footer Fijo Institucional
+   ========================================= */
 .footer {
     position: fixed;
     bottom: 0;
     left: 0;
     right: 0;
     height: 56px;
-    background-color: #2b2b2b;
-    color: #ffffff;
+    background-color: var(--neutral-dark);
+    color: var(--white);
     z-index: 1000;
+    font-family: var(--font-family);
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .footer__inner {
@@ -122,7 +218,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    flex-wrap: wrap;
+    gap: 16px;
 }
 
 .footer__top {
@@ -133,20 +229,28 @@
 
 .footer__logo {
     font-weight: 700;
+    font-size: 0.95rem;
     letter-spacing: 0.5px;
+    color: var(--white);
 }
 
 .footer__contact {
-    color: #ffffff;
+    color: #e0e0e0;
     text-decoration: none;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     display: flex;
     align-items: center;
     gap: 6px;
+    transition: color 0.2s ease;
 }
 
 .footer__contact:hover {
+    color: var(--white);
     text-decoration: underline;
+}
+
+.footer__contact-icon {
+    font-size: 0.9rem;
 }
 
 .footer__copy {
@@ -155,12 +259,67 @@
     color: #cccccc;
 }
 
-@media (max-width: 768px) {
+/* =========================================
+   MEDIA QUERIES (Responsividad)
+   ========================================= */
+
+@media screen and (max-width: 768px) {
+    .container {
+        padding: 0 16px;
+    }
+
+    .nav__toggle {
+        display: block;
+    }
+
+    /* Menú desplegable para móviles */
     .nav__links {
+        position: absolute;
+        top: 64px;
+        left: 0;
+        right: 0;
+        background-color: var(--primary-purple-dark);
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 16px 24px;
+        gap: 12px;
         display: none;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    .nav__links--open {
+        display: flex;
+    }
+
+    .nav__link {
+        width: 100%;
+        padding: 10px 12px;
+    }
+
+    .nav__user {
+        font-size: 0.8rem;
+        padding: 4px 10px;
+    }
+
+    .footer__inner {
+        justify-content: center;
     }
 
     .footer__copy {
         display: none;
+    }
+}
+
+@media screen and (max-width: 480px) {
+    .nav__logo {
+        font-size: 1rem;
+    }
+
+    .nav__logo_img {
+        height: 32px;
+    }
+
+    .footer__contact {
+        font-size: 0.8rem;
     }
 }
