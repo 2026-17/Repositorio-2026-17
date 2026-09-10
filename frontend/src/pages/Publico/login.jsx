@@ -4,6 +4,7 @@ import acusabIcon from "../../assets/acusabIcon.png";
 import slide1 from "../../assets/slideshow/slide1.jpg";
 import slide2 from "../../assets/slideshow/slide2.jpeg";
 import slide3 from "../../assets/slideshow/slide3.jpg";
+import { API_URL } from "../../config/api";
 import "./publico.css";
 
 // Ruta a la que se redirige según el rol tras el login.
@@ -13,7 +14,7 @@ const RUTAS_POR_ROL = {
 };
 
 function Login() {
-    const backend = "http://localhost:8080";
+
     const navigate = useNavigate();
 
     const [form, setForm] = useState({
@@ -29,7 +30,7 @@ function Login() {
         setCargando(true);
 
         try {
-            const response = await fetch(`${backend}/auth/login`, {
+            const response = await fetch(`${API_URL}/auth/login`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(form),
