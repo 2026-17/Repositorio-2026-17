@@ -48,7 +48,7 @@ function CreateUsers() {
         }
 
         cargarCatalogos();
-    }, [backend, getHeaders]);
+    }, [getHeaders]);
 
 
     async function handleSubmit(e) {
