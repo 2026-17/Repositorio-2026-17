@@ -1,15 +1,17 @@
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,500;0,600;0,700&display=swap');
 
-/* Contenedor general */
+/* =========================================
+   Estilos Base y Generales (Escritorio por defecto)
+   ========================================= */
 .app-container {
     font-family: 'Montserrat', sans-serif;
     height: 100vh;
     display: flex;
     flex-direction: column;
-    overflow: hidden; /* Evita scroll en la pantalla de login */
+    overflow: hidden;
 }
 
-/* Header */
+/* Header Institucional */
 .sigac-header {
     background-color: #662483;
     color: #ffffff;
@@ -44,12 +46,12 @@
 .split-layout {
     display: flex;
     flex-grow: 1;
-    height: calc(100vh - 60px); /* Resta la altura del header */
+    height: calc(100vh - 60px);
 }
 
 /* Panel Izquierdo (Formulario) */
 .form-panel {
-    flex: 0 0 45%; /* Ocupa el 45% del ancho */
+    flex: 0 0 45%;
     background-color: #f4f4f9;
     display: flex;
     justify-content: center;
@@ -126,7 +128,7 @@
     font-size: 1rem;
     cursor: pointer;
     transition: background-color 0.3s ease, transform 0.1s ease;
-    width: 100%; /* Botón ancho para el formulario */
+    width: 100%;
 }
 
 .btn-primary:hover:not(:disabled) {
@@ -154,17 +156,14 @@
     border-left: 4px solid #be1622;
 }
 
-/* =========================================
-   Panel Derecho (Slideshow CSS-Only)
-   ========================================= */
+/* Panel Derecho (Slideshow CSS-Only) */
 .slideshow-panel {
-    flex: 0 0 55%; /* Ocupa el 55% del ancho restante */
+    flex: 0 0 55%;
     position: relative;
     background-color: #000;
     overflow: hidden;
 }
 
-/* Base de cada diapositiva */
 .slide {
     position: absolute;
     top: 0;
@@ -174,11 +173,9 @@
     background-size: cover;
     background-position: center;
     opacity: 0;
-    /* Duración total de 15s (5s por imagen) */
     animation: fadeAnimation 15s infinite;
 }
 
-/* Asignar imágenes e inicio de la animación (staggered) */
 .slide-1 {
     background-image: url('https://images.unsplash.com/photo-1514320291840-2e0a9bf2a9ae?q=80&w=1000');
     animation-delay: 0s;
@@ -194,7 +191,6 @@
     animation-delay: 10s;
 }
 
-/* Keyframes para el smooth fade */
 @keyframes fadeAnimation {
     0%   { opacity: 0; transform: scale(1.05); }
     10%  { opacity: 1; transform: scale(1.02); }
@@ -203,7 +199,6 @@
     100% { opacity: 0; }
 }
 
-/* Overlay opcional para mejorar estética y unir con la marca */
 .slideshow-overlay {
     position: absolute;
     top: 0;
@@ -215,16 +210,84 @@
     pointer-events: none;
 }
 
-/* Responsividad: Ocultar el slideshow en móviles y hacer el formulario ancho completo */
-@media (max-width: 900px) {
+/* =========================================
+   MEDIA QUERIES (Responsividad)
+   ========================================= */
+
+/* 1. TABLETS (Hasta 1024px) */
+@media screen and (max-width: 1024px) {
+    .form-panel {
+        flex: 0 0 50%; /* Mitad para el formulario */
+        padding: 30px;
+    }
+
+    .slideshow-panel {
+        flex: 0 0 50%; /* Mitad para la imagen */
+    }
+
+    .login-card {
+        padding: 30px;
+    }
+
+    .login-title {
+        font-size: 1.5rem;
+    }
+}
+
+/* 2. DISPOSITIVOS MÓVILES (Hasta 768px) */
+@media screen and (max-width: 768px) {
+    /* Permitir scroll en móviles si el teclado virtual sube */
+    .app-container {
+        height: auto;
+        min-height: 100vh;
+        overflow: auto;
+    }
+
+    /* Ajustar el header para que no se amontone */
+    .sigac-header {
+        padding: 10px 15px;
+    }
+
+    .header-logo {
+        height: 35px;
+    }
+
+    .header-title {
+        font-size: 1.1rem;
+    }
+
+    /* Colapsar el layout a una sola columna */
     .split-layout {
         flex-direction: column;
+        height: auto;
     }
+
+    /* El formulario ocupa todo el ancho */
     .form-panel {
         flex: 1 1 100%;
         width: 100%;
+        padding: 20px 15px;
+        min-height: calc(100vh - 60px);
     }
+
+    .login-card {
+        padding: 25px 20px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
+
+    /* Ocultar el carrusel en móviles para ahorrar datos y espacio */
     .slideshow-panel {
         display: none;
+    }
+}
+
+/* 3. MÓVILES PEQUEÑOS (Hasta 480px) */
+@media screen and (max-width: 480px) {
+    .login-title {
+        font-size: 1.4rem;
+    }
+
+    .btn-primary {
+        padding: 10px 20px;
     }
 }
