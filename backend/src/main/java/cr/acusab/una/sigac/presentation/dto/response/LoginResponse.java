@@ -9,4 +9,5 @@ import lombok.Getter;
 public class LoginResponse {
     private final String token;
     private final long expiration;
+    private final String rol;
 }

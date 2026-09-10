@@ -177,17 +177,14 @@
 }
 
 .slide-1 {
-    background-image: url('https://images.unsplash.com/photo-1514320291840-2e0a9bf2a9ae?q=80&w=1000');
     animation-delay: 0s;
 }
 
 .slide-2 {
-    background-image: url('https://images.unsplash.com/photo-1460723237483-7a6dc9d0b212?q=80&w=1000');
     animation-delay: 5s;
 }
 
 .slide-3 {
-    background-image: url('https://images.unsplash.com/photo-1511192336575-5a79af67a629?q=80&w=1000');
     animation-delay: 10s;
 }
 

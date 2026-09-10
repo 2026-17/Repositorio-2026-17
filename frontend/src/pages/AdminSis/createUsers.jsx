@@ -83,7 +83,7 @@ function CreateUsers() {
     }
 
     return (
-        <main>
+        <div className="container">
             <h2>Crear usuario</h2>
             {error && <p>{error}</p>}
 
@@ -152,7 +152,7 @@ function CreateUsers() {
 
                 <button type="submit">Crear usuario</button>
             </form>
-        </main>
+        </div>
     );
 }
 
