@@ -2,8 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import acusabIcon from "../assets/acusabIcon.png"
 import { User, Menu, X } from "lucide-react";
-
-const backend = "http://localhost:8080";
+import { API_URL } from "../config/api";
 
 function Nav() {
     const token = localStorage.getItem("token");
@@ -26,7 +25,7 @@ function Nav() {
 
     async function cerrarSesion() {
         try {
-            await fetch(`${backend}/auth/logout`, {
+            await fetch(`${API_URL}/auth/logout`, {
                 method: "POST",
                 headers: { Authorization: `Bearer ${token}` },
             });

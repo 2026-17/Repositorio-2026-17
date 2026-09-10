@@ -1,6 +1,7 @@
 package cr.acusab.una.sigac.logic.security;
 
 import lombok.AllArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -15,7 +16,9 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -30,11 +33,27 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http,
+                                                   @Value("${cors.allowed-origins:}") String extraAllowedOrigins) throws Exception {
         http.csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(request -> {
                     CorsConfiguration configuration = new CorsConfiguration();
-                    configuration.setAllowedOrigins(Arrays.asList("http://localhost:5173", "https://api.acusab.ed.cr"));
+
+                    // Orígenes fijos (no se eliminan aunque cambie el entorno)
+                    List<String> allowedOrigins = new ArrayList<>(Arrays.asList(
+                            "http://localhost:5173",
+                            "https://api.acusab.ed.cr"
+                    ));
+
+                    // Orígenes adicionales inyectados por variable de entorno (ej: dominio del frontend en Railway)
+                    if (extraAllowedOrigins != null && !extraAllowedOrigins.isBlank()) {
+                        Arrays.stream(extraAllowedOrigins.split(","))
+                                .map(String::trim)
+                                .filter(origin -> !origin.isEmpty() && !allowedOrigins.contains(origin))
+                                .forEach(allowedOrigins::add);
+                    }
+
+                    configuration.setAllowedOrigins(allowedOrigins);
                     configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
                     configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type"));
                     return configuration;

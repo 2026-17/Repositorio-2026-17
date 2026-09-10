@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
+import { API_URL } from "../../config/api";
 
 function CreateUsers() {
-    const backend = "http://localhost:8080";
 
     const [roles, setRoles] = useState([]);
     const [estados, setEstados] = useState([]);
@@ -27,8 +27,8 @@ function CreateUsers() {
             try {
                 setError("");
                 const [rolesRes, estadosRes] = await Promise.all([
-                    fetch(`${backend}/roles`, { headers: getHeaders() }),
-                    fetch(`${backend}/estados-usuarios`, { headers: getHeaders() }),
+                    fetch(`${API_URL}/roles`, { headers: getHeaders() }),
+                    fetch(`${API_URL}/estados-usuarios`, { headers: getHeaders() }),
                 ]);
 
                 if (!rolesRes.ok || !estadosRes.ok) {
@@ -63,10 +63,11 @@ function CreateUsers() {
             idEstadoUsuario: Number(form.idEstadoUsuario),
         };
 
-        const response = await fetch("http://localhost:8080/usuarios", {
+        const response = await fetch(`${API_URL}/usuarios`, {
             method: "POST",
             headers: getHeaders(),
             body: JSON.stringify(payload),
+
         });
 
         if (!response.ok) {
