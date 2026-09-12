@@ -15,24 +15,21 @@ import java.util.Map;
 
 @RestControllerAdvice
 public class ApiExceptionHandler {
-
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, Object>> validation(MethodArgumentNotValidException ex) {
         Map<String, String> fields = new LinkedHashMap<>();
-        ex.getBindingResult().getFieldErrors()
-                .forEach(error -> fields.put(error.getField(), error.getDefaultMessage()));
+        ex.getBindingResult().getFieldErrors().forEach(error -> fields.put(error.getField(), error.getDefaultMessage()));
         return response(HttpStatus.BAD_REQUEST, "Datos inválidos", fields);
     }
 
     @ExceptionHandler(MissingServletRequestPartException.class)
     public ResponseEntity<Map<String, Object>> missingPart(MissingServletRequestPartException ex) {
-        return response(HttpStatus.BAD_REQUEST,
-                "Falta la parte obligatoria del formulario: " + ex.getRequestPartName(), null);
+        return response(HttpStatus.BAD_REQUEST, "Falta la parte obligatoria del formulario: " + ex.getRequestPartName(), null);
     }
 
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     public ResponseEntity<Map<String, Object>> uploadTooLarge(MaxUploadSizeExceededException ex) {
-        return response(HttpStatus.BAD_REQUEST, "La póliza no puede superar 10 MB", null);
+        return response(HttpStatus.BAD_REQUEST, "La póliza no puede superar 50 MB", null);
     }
 
     @ExceptionHandler(BusinessException.class)
