@@ -3,6 +3,7 @@ package cr.acusab.una.sigac.presentation.controller;
 import cr.acusab.una.sigac.logic.service.ProfesorService;
 import cr.acusab.una.sigac.presentation.dto.request.ProfesorCreateRequest;
 import cr.acusab.una.sigac.presentation.dto.request.ProfesorUpdateRequest;
+import cr.acusab.una.sigac.presentation.dto.request.UsuarioCreateRequest;
 import cr.acusab.una.sigac.presentation.dto.response.ProfesorResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -22,8 +23,8 @@ public class ProfesorController {
     }
 
     @PostMapping
-    public ResponseEntity<ProfesorResponse> registrar(@Valid @RequestBody ProfesorCreateRequest request) {
-        ProfesorResponse response = profesorService.registrar(request);
+    public ResponseEntity<ProfesorResponse> registrar(@Valid @RequestBody ProfesorCreateRequest request, @Valid @RequestBody UsuarioCreateRequest usuarioRequest) {
+        ProfesorResponse response = profesorService.registrar(request, usuarioRequest);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 

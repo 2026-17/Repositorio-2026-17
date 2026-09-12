@@ -8,8 +8,10 @@ import cr.acusab.una.sigac.data.repository.TipoIdentificacionRepository;
 import cr.acusab.una.sigac.data.repository.UsuarioRepository;
 import cr.acusab.una.sigac.presentation.dto.request.ProfesorCreateRequest;
 import cr.acusab.una.sigac.presentation.dto.request.ProfesorUpdateRequest;
+import cr.acusab.una.sigac.presentation.dto.request.UsuarioCreateRequest;
 import cr.acusab.una.sigac.presentation.dto.response.ProfesorResponse;
 import cr.acusab.una.sigac.presentation.dto.response.TipoIdentificacionResponse;
+import cr.acusab.una.sigac.presentation.dto.response.UsuarioResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -27,6 +29,7 @@ public class ProfesorService {
     private final ProfesorRepository profesorRepository;
     private final TipoIdentificacionRepository tipoIdentificacionRepository;
     private final UsuarioRepository usuarioRepository;
+    private UsuarioService usuarioService;
 
     public ProfesorService(
             ProfesorRepository profesorRepository,
@@ -39,7 +42,11 @@ public class ProfesorService {
     }
 
     @Transactional
-    public ProfesorResponse registrar(ProfesorCreateRequest request) {
+    public ProfesorResponse registrar(ProfesorCreateRequest request, UsuarioCreateRequest usuarioRequest) {
+        UsuarioResponse usuarioCreado = usuarioService.crearUsuario(usuarioRequest);
+        Usuario usuario = usuarioRepository.findById(usuarioCreado.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "No se pudo recuperar el usuario recien creado"));
+
         TipoIdentificacion tipo = tipoIdentificacionRepository.findById(request.getIdTipoIdentificacion())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Tipo de identificacion no existe"));
 
@@ -52,6 +59,7 @@ public class ProfesorService {
         Instant now = Instant.now();
 
         Profesor profesor = new Profesor();
+        profesor.setIdUsuario(usuario);
         profesor.setIdTipoIdentificacion(tipo);
         profesor.setNumeroIdentificacion(request.getNumeroIdentificacion());
         profesor.setNombres(request.getNombres());
