@@ -11,6 +11,7 @@ public record EstudianteResponse(
         LocalDate fechaNacimiento,
         int edad,
         String genero,
+        String direccion,
         String telefono,
         String correo,
         String nivelEscolar,
