@@ -28,7 +28,7 @@ function App() {
 
                 <Route element={<Layout />}>
                     <Route path="/admin/usuarios/crear" element={<CreateUsers />} />
-                    {/* TODO: agregar aquí las demás rutas internas a medida que se creen */}
+                    {/* T-ODO: agregar aquí las demás rutas internas a medida que se creen */}
                 </Route>
             </Routes>
         </BrowserRouter>
