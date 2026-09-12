@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
+import java.util.List;
 
 @Service
 public class UsuarioService {
@@ -59,6 +60,7 @@ public class UsuarioService {
 
         Usuario usuario = new Usuario();
         usuario.setCedula(request.getCedula());
+        usuario.setNombre(request.getNombre());
         usuario.setCorreo(request.getCorreo());
         usuario.setHashContrasena(passwordEncoder.encode(request.getContrasena()));
         usuario.setIdRol(rol);
@@ -74,6 +76,7 @@ public class UsuarioService {
 
         return new UsuarioResponse(
                 saved.getId(),
+                saved.getNombre(),
                 saved.getCorreo(),
                 new RoleResponse(rol.getId(), rol.getCodigo(), rol.getNombre()),
                 new EstadoUsuarioResponse(estado.getId(), estado.getCodigo(), estado.getNombre()),
@@ -81,5 +84,21 @@ public class UsuarioService {
                 saved.getUltimoAcceso(),
                 saved.getCreadoEn()
         );
+    }
+
+    @Transactional(readOnly = true)
+    public List<UsuarioResponse> listarUsuarios() {
+        return usuarioRepository.findAll().stream()
+                .map(usuario -> new UsuarioResponse(
+                        usuario.getId(),
+                        usuario.getNombre(),
+                        usuario.getCorreo(),
+                        new RoleResponse(usuario.getIdRol().getId(), usuario.getIdRol().getCodigo(), usuario.getIdRol().getNombre()),
+                        new EstadoUsuarioResponse(usuario.getIdEstadoUsuario().getId(), usuario.getIdEstadoUsuario().getCodigo(), usuario.getIdEstadoUsuario().getNombre()),
+                        usuario.getRequiereCambioContrasena(),
+                        usuario.getUltimoAcceso(),
+                        usuario.getCreadoEn()
+                ))
+                .toList();
     }
 }

@@ -1,13 +1,14 @@
 import { useEffect, useState, useCallback } from "react";
+import { API_URL } from "../../config/api";
 
 function CreateUsers() {
-    const backend = "http://localhost:8080";
 
     const [roles, setRoles] = useState([]);
     const [estados, setEstados] = useState([]);
     const [error, setError] = useState("");
     const [form, setForm] = useState({
         cedula: "",
+        nombre: "",
         correo: "",
         contrasena: "",
         idRol: "",
@@ -26,8 +27,8 @@ function CreateUsers() {
             try {
                 setError("");
                 const [rolesRes, estadosRes] = await Promise.all([
-                    fetch(`${backend}/roles`, { headers: getHeaders() }),
-                    fetch(`${backend}/estados-usuarios`, { headers: getHeaders() }),
+                    fetch(`${API_URL}/roles`, { headers: getHeaders() }),
+                    fetch(`${API_URL}/estados-usuarios`, { headers: getHeaders() }),
                 ]);
 
                 if (!rolesRes.ok || !estadosRes.ok) {
@@ -47,7 +48,7 @@ function CreateUsers() {
         }
 
         cargarCatalogos();
-    }, [backend, getHeaders]);
+    }, [getHeaders]);
 
 
     async function handleSubmit(e) {
@@ -55,16 +56,18 @@ function CreateUsers() {
 
         const payload = {
             cedula: form.cedula,
+            nombre: form.nombre,
             correo: form.correo,
             contrasena: form.contrasena,
             idRol: Number(form.idRol),
             idEstadoUsuario: Number(form.idEstadoUsuario),
         };
 
-        const response = await fetch("http://localhost:8080/usuarios", {
+        const response = await fetch(`${API_URL}/usuarios`, {
             method: "POST",
             headers: getHeaders(),
             body: JSON.stringify(payload),
+
         });
 
         if (!response.ok) {
@@ -75,6 +78,7 @@ function CreateUsers() {
         alert("Usuario creado");
         setForm({
             cedula: "",
+            nombre: "",
             correo: "",
             contrasena: "",
             idRol: "",
@@ -83,7 +87,7 @@ function CreateUsers() {
     }
 
     return (
-        <main>
+        <div className="container">
             <h2>Crear usuario</h2>
             {error && <p>{error}</p>}
 
@@ -93,6 +97,16 @@ function CreateUsers() {
                     type="text"
                     value={form.cedula}
                     onChange={(e) => setForm({...form, cedula: e.target.value})}
+                    required
+                />
+
+                <br/><br/>
+
+                <label>Nombre</label>
+                <input
+                    type="text"
+                    value={form.nombre}
+                    onChange={(e) => setForm({...form, nombre: e.target.value})}
                     required
                 />
 
@@ -152,7 +166,7 @@ function CreateUsers() {
 
                 <button type="submit">Crear usuario</button>
             </form>
-        </main>
+        </div>
     );
 }
 

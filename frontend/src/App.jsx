@@ -1,22 +1,35 @@
-import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
-import Login from "./pages/Public/login";
+import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom";
+import Login from "./pages/Publico/login";
 import CreateUsers from "./pages/AdminSis/createUsers";
-import CreateStudent from "./pages/AdminSis/createStudent";
+import Nav from "./components/Nav";
+import Footer from "./components/Footer";
+import "./components/layout.css";
+
+/* Layout fijo (header + footer) para las páginas internas del sistema.
+   El Login queda fuera de este layout porque ya tiene su propio header a pantalla completa. */
+function Layout() {
+    return (
+        <>
+            <Nav />
+            <main className="app-main">
+                <Outlet />
+            </main>
+            <Footer />
+        </>
+    );
+}
 
 function App() {
     return (
         <BrowserRouter>
-            <nav>
-                <Link to="/login">Login</Link> |{" "}
-                <Link to="/admin/usuarios/crear">Crear usuario</Link> |{" "}
-                <Link to="/admin/estudiantes/crear">Registrar estudiante</Link>
-            </nav>
-
             <Routes>
                 <Route path="/" element={<Login />} />
                 <Route path="/login" element={<Login />} />
-                <Route path="/admin/usuarios/crear" element={<CreateUsers />} />
-                <Route path="/admin/estudiantes/crear" element={<CreateStudent />} />
+
+                <Route element={<Layout />}>
+                    <Route path="/admin/usuarios/crear" element={<CreateUsers />} />
+                    {/* T-ODO: agregar aquí las demás rutas internas a medida que se creen */}
+                </Route>
             </Routes>
         </BrowserRouter>
     );
