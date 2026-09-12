@@ -7,7 +7,6 @@ import "./components/layout.css";
 import Layout_Administrador from "./components/Administrador/Layout_Administrador";
 import Estudiantes from "./pages/AdminSis/Estudiantes";
 import Matricula from "./pages/AdminSis/Matricula";
-import Pagos from "./pages/AdminSis/Pagos";
 import Profesores from "./pages/AdminSis/Profesores";
 import Reportes from "./pages/AdminSis/Reportes";
 
@@ -37,11 +36,10 @@ function App() {
                     {/* TODO: agregar aquí las demás rutas internas a medida que se creen */}
                 </Route>
                 <Route element={<Layout_Administrador />}>
-                    <Route path="/admin/gestion-financiera/estudiantes" element={<Estudiantes />} />
-                    <Route path="/admin/gestion-financiera/matricula" element={<Matricula />} />
-                    <Route path="/admin/gestion-financiera/pagos" element={<Pagos />} />
-                    <Route path="/admin/gestion-financiera/profesores" element={<Profesores />} />
-                    <Route path="/admin/gestion-financiera/reportes" element={<Reportes />} />
+                    <Route path="/admin/administracion/estudiantes" element={<Estudiantes />} />
+                    <Route path="/admin/administracion/matricula" element={<Matricula />} />
+                    <Route path="/admin/administracion/profesores" element={<Profesores />} />
+                    <Route path="/admin/administracion/reportes" element={<Reportes />} />
                 </Route>
             </Routes>
         </BrowserRouter>

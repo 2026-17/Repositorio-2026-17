@@ -135,6 +135,21 @@ body {
     top: 60px;
     z-index: 9;
 }
+.subnav-links {
+    display: flex;
+    gap: 4px;
+}
+.subnav-toggle {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 44px;
+    background: none;
+    border: none;
+    color: var(--morado-01);
+    cursor: pointer;
+}
 .subnav-item {
     padding: 14px 16px;
     font-size: 13.5px;
@@ -476,8 +491,8 @@ body {
 
 /* ===========================================================
    HU-003 — Encabezado con menú de usuario desplegable
-   y subnavegación por rol (módulo "Gestión Financiera")
-   Componente: src/components/GestionFinanciera/HeaderGestionFinanciera.jsx
+   y subnavegación por rol (módulo "Administración Académica")
+   Componente: src/components/Administrador/Header_Administrador.jsx
    ============================================================ */
 
 /* Botón que abre/cierra el menú (nombre del usuario + flecha) */
@@ -594,6 +609,39 @@ body {
         display: none;
     }
     .subnav {
-        padding: 0 14px;
+        padding: 0 8px;
+        position: relative;
+        overflow: visible;
+    }
+    .subnav-toggle {
+        display: flex;
+    }
+    .subnav-links {
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 8px;
+        right: 8px;
+        flex-direction: column;
+        gap: 0;
+        background: var(--blanco);
+        border: 1px solid var(--borde);
+        border-top: none;
+        border-radius: 0 0 10px 10px;
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12);
+        z-index: 9;
+    }
+    .subnav-links--open {
+        display: flex;
+    }
+    .subnav-links .subnav-item {
+        width: 100%;
+        border-bottom: 1px solid #f0eee9;
+        border-left: 3px solid transparent;
+    }
+    .subnav-links .subnav-item.active {
+        border-bottom-color: #f0eee9;
+        border-left-color: var(--morado-01);
+        background: #faf7fc;
     }
 }

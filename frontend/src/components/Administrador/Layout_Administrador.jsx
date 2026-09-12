@@ -3,8 +3,8 @@ import Header_Administrador from "./Header_Administrador";
 import Footer from "../Footer";
 import "../../pages/AdminSis/styles/admin_Sis.css";
 
-/* Layout compartido por las páginas del módulo "Gestión Financiera"
-   (Estudiantes, Matricula, Pagos, Profesores, Reportes).
+/* Layout compartido por las páginas del módulo "Administración Académica"
+   (Estudiantes, Matricula, Profesores, Reportes).
    Header con menú de usuario + subnavegación arriba, Footer institucional abajo. */
 function Layout_Administrador() {
     return (

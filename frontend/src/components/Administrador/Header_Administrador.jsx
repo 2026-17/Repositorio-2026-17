@@ -1,20 +1,19 @@
 import { useEffect, useRef, useState } from "react";
 import { NavLink } from "react-router-dom";
-import { ChevronDown, LogOut } from "lucide-react";
+import { ChevronDown, LogOut, Menu, X } from "lucide-react";
 import { API_URL } from "../../config/api";
 import { etiquetaRol, ROLES } from "../../constants/roles";
 import "../../pages/AdminSis/styles/admin_Sis.css";
 
 /* Enlaces de la subnavegación, agrupados por rol.
-   Hoy solo tiene contenido el rol ADMINISTRADOR (módulo "Gestión Financiera");
+   Hoy solo tiene contenido el rol ADMINISTRADOR (módulo "Administración Académica");
    los demás quedan listos para cuando existan sus páginas. */
 const SUBNAV_POR_ROL = {
     [ROLES.ADMINISTRADOR]: [
-        { to: "/admin/gestion-financiera/estudiantes", label: "Estudiantes" },
-        { to: "/admin/gestion-financiera/matricula", label: "Matricula" },
-        { to: "/admin/gestion-financiera/pagos", label: "Pagos" },
-        { to: "/admin/gestion-financiera/profesores", label: "Profesores" },
-        { to: "/admin/gestion-financiera/reportes", label: "Reportes" },
+        { to: "/admin/administracion/estudiantes", label: "Estudiantes" },
+        { to: "/admin/administracion/matricula", label: "Matricula" },
+        { to: "/admin/administracion/profesores", label: "Profesores" },
+        { to: "/admin/administracion/reportes", label: "Reportes" },
     ],
     [ROLES.DIRECTOR_ACADEMICO]: [],
     [ROLES.ADMINISTRATIVO]: [],
@@ -23,20 +22,25 @@ const SUBNAV_POR_ROL = {
     [ROLES.ESTUDIANTE]: [],
 };
 
-function Header_Administrador({ titulo = "Gestión Financiera" }) {
+function Header_Administrador({ titulo = "" }) {
     const token = localStorage.getItem("token");
     const rol = localStorage.getItem("rol");
     const nombre = localStorage.getItem("nombre");
     const correo = localStorage.getItem("correo");
 
     const [menuAbierto, setMenuAbierto] = useState(false);
+    const [subnavAbierto, setSubnavAbierto] = useState(false);
     const menuRef = useRef(null);
+    const subnavRef = useRef(null);
 
     // Cierra el menú al hacer clic fuera de él.
     useEffect(() => {
         function alClicFuera(e) {
             if (menuRef.current && !menuRef.current.contains(e.target)) {
                 setMenuAbierto(false);
+            }
+            if (subnavRef.current && !subnavRef.current.contains(e.target)) {
+                setSubnavAbierto(false);
             }
         }
         document.addEventListener("mousedown", alClicFuera);
@@ -117,18 +121,32 @@ function Header_Administrador({ titulo = "Gestión Financiera" }) {
 
             {/* ---------- Subnavegación por rol ---------- */}
             {enlaces.length > 0 && (
-                <nav className="subnav" aria-label="Secciones de Gestión Financiera">
-                    {enlaces.map((enlace) => (
-                        <NavLink
-                            key={enlace.to}
-                            to={enlace.to}
-                            className={({ isActive }) =>
-                                `subnav-item ${isActive ? "active" : ""}`
-                            }
-                        >
-                            {enlace.label}
-                        </NavLink>
-                    ))}
+                <nav className="subnav" aria-label="Secciones de Administración Académica" ref={subnavRef}>
+                    <button
+                        type="button"
+                        className="subnav-toggle"
+                        aria-haspopup="true"
+                        aria-expanded={subnavAbierto}
+                        aria-label="Alternar menú de secciones"
+                        onClick={() => setSubnavAbierto((prev) => !prev)}
+                    >
+                        {subnavAbierto ? <X size={22} /> : <Menu size={22} />}
+                    </button>
+
+                    <div className={`subnav-links ${subnavAbierto ? "subnav-links--open" : ""}`}>
+                        {enlaces.map((enlace) => (
+                            <NavLink
+                                key={enlace.to}
+                                to={enlace.to}
+                                className={({ isActive }) =>
+                                    `subnav-item ${isActive ? "active" : ""}`
+                                }
+                                onClick={() => setSubnavAbierto(false)}
+                            >
+                                {enlace.label}
+                            </NavLink>
+                        ))}
+                    </div>
                 </nav>
             )}
         </>

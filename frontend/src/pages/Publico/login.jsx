@@ -10,7 +10,7 @@ import "./publico.css";
 // Ruta a la que se redirige según el rol tras el login.
 // TODO: agregar el resto de rutas cuando existan las páginas de cada rol.
 const RUTAS_POR_ROL = {
-    ADMINISTRADOR: "/admin/gestion-financiera/estudiantes",
+    ADMINISTRADOR: "/admin/administracion/estudiantes",
 };
 
 function Login() {
