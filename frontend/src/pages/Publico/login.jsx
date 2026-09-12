@@ -10,7 +10,7 @@ import "./publico.css";
 // Ruta a la que se redirige según el rol tras el login.
 // TODO: agregar el resto de rutas cuando existan las páginas de cada rol.
 const RUTAS_POR_ROL = {
-    ADMINISTRADOR: "/admin/usuarios/crear",
+    ADMINISTRADOR: "/admin/gestion-financiera/estudiantes",
 };
 
 function Login() {
@@ -46,6 +46,7 @@ function Login() {
             localStorage.setItem("rol", data.rol || "");
             localStorage.setItem("cedula", form.cedula);
             localStorage.setItem("nombre", data.nombre || "");
+            localStorage.setItem("correo", data.correo || "");
 
             const destino = RUTAS_POR_ROL[data.rol];
             if (destino) {
