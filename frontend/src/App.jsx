@@ -1,5 +1,5 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
-import Login from "./pages/Public/login";
+import Login from "./pages/Publico/login";
 import CreateUsers from "./pages/AdminSis/createUsers";
 import CreateStudent from "./pages/AdminSis/createStudent";
 import AdminLayout from "./components/AdminLayout";
