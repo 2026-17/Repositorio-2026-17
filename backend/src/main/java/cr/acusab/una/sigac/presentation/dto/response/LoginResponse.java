@@ -3,7 +3,6 @@ package cr.acusab.una.sigac.presentation.dto.response;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
-
 @AllArgsConstructor
 @Getter
 public class LoginResponse {

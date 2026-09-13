@@ -16,7 +16,6 @@ import java.util.UUID;
 
 @Service
 public class JwtService {
-
     private final JwtConfig jwtConfig;
 
     public JwtService(JwtConfig jwtConfig) {
@@ -27,7 +26,6 @@ public class JwtService {
         try {
             Instant now = Instant.now();
             Instant exp = now.plusMillis(jwtConfig.getJwtExpiration());
-
             JWTClaimsSet claims = new JWTClaimsSet.Builder()
                     .subject(cedula)
                     .claim("rol", rolCodigo)
@@ -35,10 +33,8 @@ public class JwtService {
                     .issueTime(Date.from(now))
                     .expirationTime(Date.from(exp))
                     .build();
-
             SignedJWT signedJWT = new SignedJWT(new JWSHeader(jwtConfig.getAlgorithm()), claims);
-            JWSSigner signer = new MACSigner(jwtConfig.getSecretKey().getEncoded());
-            signedJWT.sign(signer);
+            signedJWT.sign(new MACSigner(jwtConfig.getSecretKey().getEncoded()));
             return signedJWT.serialize();
         } catch (JOSEException e) {
             throw new RuntimeException("Error generating JWT token", e);
@@ -48,18 +44,14 @@ public class JwtService {
     public JWTClaimsSet validarYObtenerClaims(String token) {
         try {
             SignedJWT signedJWT = SignedJWT.parse(token);
-            JWSVerifier verifier = new MACVerifier(jwtConfig.getSecretKey().getEncoded());
-
-            if (!signedJWT.verify(verifier)) {
+            if (!signedJWT.verify(new MACVerifier(jwtConfig.getSecretKey().getEncoded()))) {
                 throw new JwtInvalidoException("Firma de token inválida");
             }
-
             JWTClaimsSet claims = signedJWT.getJWTClaimsSet();
             Date expiration = claims.getExpirationTime();
             if (expiration == null || expiration.before(new Date())) {
                 throw new JwtInvalidoException("Token expirado");
             }
-
             return claims;
         } catch (ParseException | JOSEException e) {
             throw new JwtInvalidoException("Token malformado", e);
