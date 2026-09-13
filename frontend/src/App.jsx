@@ -7,6 +7,12 @@ import CrearCurso from "./pages/DirectorAcademico/CrearCurso";
 import Nav from "./components/Nav";
 import Footer from "./components/Footer";
 
+import Layout_Administrador from "./components/Administrador/Layout_Administrador";
+import Estudiantes from "./pages/AdminSis/Estudiantes";
+import Matricula from "./pages/AdminSis/Matricula";
+import Profesores from "./pages/AdminSis/Profesores";
+import Reportes from "./pages/AdminSis/Reportes";
+
 import "./components/layout.css";
 
 
@@ -32,7 +38,6 @@ function Layout() {
 function App() {
     return (
         <BrowserRouter>
-
             <Routes>
 
                 {/* Rutas públicas */}
@@ -47,7 +52,7 @@ function App() {
                 />
 
 
-                {/* Rutas internas */}
+                {/* Rutas internas generales */}
                 <Route element={<Layout />}>
 
                     {/* Administrador */}
@@ -64,8 +69,31 @@ function App() {
 
                 </Route>
 
-            </Routes>
 
+                {/* Nuevas rutas administrativas provenientes de main */}
+                <Route element={<Layout_Administrador />}>
+                    <Route
+                        path="/admin/administracion/estudiantes"
+                        element={<Estudiantes />}
+                    />
+
+                    <Route
+                        path="/admin/administracion/matricula"
+                        element={<Matricula />}
+                    />
+
+                    <Route
+                        path="/admin/administracion/profesores"
+                        element={<Profesores />}
+                    />
+
+                    <Route
+                        path="/admin/administracion/reportes"
+                        element={<Reportes />}
+                    />
+                </Route>
+
+            </Routes>
         </BrowserRouter>
     );
 }
