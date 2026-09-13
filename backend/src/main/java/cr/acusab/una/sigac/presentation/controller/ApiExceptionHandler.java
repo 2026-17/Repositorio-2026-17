@@ -4,6 +4,7 @@ import cr.acusab.una.sigac.logic.exception.BusinessException;
 import cr.acusab.una.sigac.logic.exception.DuplicateResourceException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.multipart.support.MissingServletRequestPartException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -40,6 +41,11 @@ public class ApiExceptionHandler {
     @ExceptionHandler(DuplicateResourceException.class)
     public ResponseEntity<Map<String, Object>> duplicate(DuplicateResourceException ex) {
         return response(HttpStatus.CONFLICT, ex.getMessage(), null);
+    }
+
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<Map<String, Object>> authentication(AuthenticationException ex) {
+        return response(HttpStatus.UNAUTHORIZED, ex.getClass().getSimpleName() + ": " + ex.getMessage(), null);
     }
 
     private ResponseEntity<Map<String, Object>> response(HttpStatus status, String message, Object details) {
