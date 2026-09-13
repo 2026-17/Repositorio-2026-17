@@ -2,11 +2,11 @@ package cr.acusab.una.sigac.logic.security;
 
 import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
-import org.springframework.context.annotation.Bean;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -22,6 +22,7 @@ import java.util.List;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 @AllArgsConstructor
 public class SecurityConfig {
 
@@ -38,14 +39,11 @@ public class SecurityConfig {
         http.csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(request -> {
                     CorsConfiguration configuration = new CorsConfiguration();
-
-                    // Orígenes fijos (no se eliminan aunque cambie el entorno)
                     List<String> allowedOrigins = new ArrayList<>(Arrays.asList(
                             "http://localhost:5173",
                             "https://api.acusab.ed.cr"
                     ));
 
-                    // Orígenes adicionales inyectados por variable de entorno (ej: dominio del frontend en Railway)
                     if (extraAllowedOrigins != null && !extraAllowedOrigins.isBlank()) {
                         Arrays.stream(extraAllowedOrigins.split(","))
                                 .map(String::trim)
@@ -58,7 +56,7 @@ public class SecurityConfig {
                     configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type"));
                     return configuration;
                 }))
-                .sessionManagement(sessionManagement -> sessionManagement.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/auth/login", "/usuarios", "/roles", "/estados-usuarios").permitAll()
                         .anyRequest().authenticated()
@@ -71,5 +69,4 @@ public class SecurityConfig {
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
     }
-
 }
