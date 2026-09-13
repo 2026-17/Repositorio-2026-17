@@ -59,6 +59,11 @@ public class EstudiantesEncargado {
     @Column(name = "creado_en", nullable = false)
     private Instant creadoEn;
 
+    @PrePersist
+    protected void alPersistir() {
+        if (creadoEn == null) creadoEn = Instant.now();
+    }
+
     // Bridge getters/setters for compatibility with service
     public void setEstudiante(Estudiante estudiante) { this.idEstudiante = estudiante; }
     public Estudiante getEstudiante() { return this.idEstudiante; }

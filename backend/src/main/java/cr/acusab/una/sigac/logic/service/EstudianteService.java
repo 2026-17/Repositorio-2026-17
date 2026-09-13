@@ -4,9 +4,9 @@ import cr.acusab.una.sigac.data.entity.*;
 import cr.acusab.una.sigac.data.repository.*;
 import cr.acusab.una.sigac.logic.exception.BusinessException;
 import cr.acusab.una.sigac.logic.exception.DuplicateResourceException;
-import cr.acusab.una.sigac.presentation.dto.EstudianteCreateRequest;
-import cr.acusab.una.sigac.presentation.dto.EstudianteResponse;
-import cr.acusab.una.sigac.presentation.dto.EstudianteUpdateRequest;
+import cr.acusab.una.sigac.presentation.dto.request.EstudianteCreateRequest;
+import cr.acusab.una.sigac.presentation.dto.response.EstudianteResponse;
+import cr.acusab.una.sigac.presentation.dto.request.EstudianteUpdateRequest;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.*;
 import java.security.MessageDigest;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.Period;
 import java.util.List;
@@ -91,6 +92,9 @@ public class EstudianteService {
                 request.genero(), request.direccion(), request.telefono(), request.correo(), request.nivelEscolar(), centro, request.condicionesRelevantes());
         estudiante.setFechaIngreso(LocalDate.now());
         estudiante.setActivo(true);
+        Instant ahora = Instant.now();
+        estudiante.setCreadoEn(ahora);
+        estudiante.setActualizadoEn(ahora);
         estudiante = estudianteRepository.save(estudiante);
 
         crearRelacionInstrumento(estudiante, instrumento);
@@ -145,6 +149,7 @@ public class EstudianteService {
 
         aplicarDatos(estudiante, tipo, identificacion, request.nombres(), request.primerApellido(), request.segundoApellido(), request.fechaNacimiento(),
                 request.genero(), request.direccion(), request.telefono(), request.correo(), request.nivelEscolar(), centro, request.condicionesRelevantes());
+        estudiante.setActualizadoEn(Instant.now());
         estudianteRepository.save(estudiante);
 
         var principales = estudianteInstrumentoRepository.findAll().stream()
@@ -273,6 +278,7 @@ public class EstudianteService {
             documento.setTamanoBytes(file.getSize());
             documento.setSha256(sha256(destination));
             documento.setEsActual(true);
+            documento.setCargadoEn(Instant.now());
             documentoEstudianteRepository.save(documento);
         } catch (IOException e) {
             try { Files.deleteIfExists(destination); } catch (IOException ignored) { }

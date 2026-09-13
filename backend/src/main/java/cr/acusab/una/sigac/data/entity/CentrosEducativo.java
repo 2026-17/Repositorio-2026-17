@@ -61,4 +61,15 @@ public class CentrosEducativo {
     @JoinColumn(name = "id_centro_educativo")
     private Set<Estudiante> estudiantes = new LinkedHashSet<>();
 
+    @PrePersist
+    protected void alPersistir() {
+        Instant ahora = Instant.now();
+        if (creadoEn == null) creadoEn = ahora;
+        if (actualizadoEn == null) actualizadoEn = ahora;
+    }
+
+    @PreUpdate
+    protected void alActualizar() {
+        actualizadoEn = Instant.now();
+    }
 }

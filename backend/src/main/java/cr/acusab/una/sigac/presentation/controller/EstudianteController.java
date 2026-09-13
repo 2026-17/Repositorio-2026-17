@@ -1,9 +1,9 @@
 package cr.acusab.una.sigac.presentation.controller;
 
 import cr.acusab.una.sigac.logic.service.EstudianteService;
-import cr.acusab.una.sigac.presentation.dto.EstudianteCreateRequest;
-import cr.acusab.una.sigac.presentation.dto.EstudianteResponse;
-import cr.acusab.una.sigac.presentation.dto.EstudianteUpdateRequest;
+import cr.acusab.una.sigac.presentation.dto.request.EstudianteCreateRequest;
+import cr.acusab.una.sigac.presentation.dto.response.EstudianteResponse;
+import cr.acusab.una.sigac.presentation.dto.request.EstudianteUpdateRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;

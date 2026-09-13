@@ -43,4 +43,8 @@ public class Instrumento {
     @Column(name = "creado_en", nullable = false)
     private Instant creadoEn;
 
+    @PrePersist
+    protected void alPersistir() {
+        if (creadoEn == null) creadoEn = Instant.now();
+    }
 }

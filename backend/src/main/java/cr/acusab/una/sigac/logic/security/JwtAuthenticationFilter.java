@@ -45,7 +45,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 String cedula = claims.getSubject();
                 String rol = (String) claims.getClaim("rol");
                 List<SimpleGrantedAuthority> authorities = rol != null
-                        ? List.of(new SimpleGrantedAuthority("ROLE_" + rol))
+                        ? List.of(new SimpleGrantedAuthority("ROLE_" + rol.toUpperCase()))
                         : List.of();
                 SecurityContextHolder.getContext().setAuthentication(
                         new UsernamePasswordAuthenticationToken(cedula, null, authorities));

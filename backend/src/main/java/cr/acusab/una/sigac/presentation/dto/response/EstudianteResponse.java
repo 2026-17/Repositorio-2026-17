@@ -1,4 +1,4 @@
-package cr.acusab.una.sigac.presentation.dto;
+package cr.acusab.una.sigac.presentation.dto.response;
 
 import java.time.LocalDate;
 

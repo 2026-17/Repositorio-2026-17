@@ -6,8 +6,10 @@ import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -91,11 +93,13 @@ public class Estudiante {
     private Boolean activo = false;
 
     @NotNull
+    @CreationTimestamp
     @ColumnDefault("CURRENT_TIMESTAMP(6)")
     @Column(name = "creado_en", nullable = false)
     private Instant creadoEn;
 
     @NotNull
+    @UpdateTimestamp
     @ColumnDefault("CURRENT_TIMESTAMP(6)")
     @Column(name = "actualizado_en", nullable = false)
     private Instant actualizadoEn;
@@ -118,4 +122,15 @@ public class Estudiante {
     @Column(name = "foto_perfil_actualizada_en")
     private Instant fotoPerfilActualizadaEn;
 
+    @PrePersist
+    protected void alPersistir() {
+        Instant ahora = Instant.now();
+        if (creadoEn == null) creadoEn = ahora;
+        if (actualizadoEn == null) actualizadoEn = ahora;
+    }
+
+    @PreUpdate
+    protected void alActualizar() {
+        actualizadoEn = Instant.now();
+    }
 }

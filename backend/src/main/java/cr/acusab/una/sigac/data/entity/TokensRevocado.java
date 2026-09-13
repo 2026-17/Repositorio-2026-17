@@ -37,4 +37,9 @@ public class TokensRevocado {
     @ColumnDefault("CURRENT_TIMESTAMP(6)")
     @Column(name = "revocado_en", nullable = false)
     private Instant revocadoEn;
+
+    @PrePersist
+    protected void alPersistir() {
+        if (revocadoEn == null) revocadoEn = Instant.now();
+    }
 }

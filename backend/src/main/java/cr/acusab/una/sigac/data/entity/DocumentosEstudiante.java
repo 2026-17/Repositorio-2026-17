@@ -6,6 +6,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
@@ -80,6 +81,7 @@ public class DocumentosEstudiante {
     private Usuario idUsuarioCarga;
 
     @NotNull
+    @CreationTimestamp
     @ColumnDefault("CURRENT_TIMESTAMP(6)")
     @Column(name = "cargado_en", nullable = false)
     private Instant cargadoEn;
@@ -89,6 +91,11 @@ public class DocumentosEstudiante {
 
     @OneToMany
     private Set<MensualidadesEstudiante> mensualidadesEstudiantes = new LinkedHashSet<>();
+
+    @PrePersist
+    protected void alPersistir() {
+        if (cargadoEn == null) cargadoEn = Instant.now();
+    }
 
     // Bridge getters/setters for compatibility with service
     public void setEstudiante(Estudiante estudiante) { this.idEstudiante = estudiante; }

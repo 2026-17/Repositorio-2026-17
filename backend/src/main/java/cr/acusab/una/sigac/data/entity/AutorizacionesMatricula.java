@@ -54,4 +54,15 @@ public class AutorizacionesMatricula {
     @Column(name = "actualizado_en", nullable = false)
     private Instant actualizadoEn;
 
+    @PrePersist
+    protected void alPersistir() {
+        Instant ahora = Instant.now();
+        if (creadoEn == null) creadoEn = ahora;
+        if (actualizadoEn == null) actualizadoEn = ahora;
+    }
+
+    @PreUpdate
+    protected void alActualizar() {
+        actualizadoEn = Instant.now();
+    }
 }
