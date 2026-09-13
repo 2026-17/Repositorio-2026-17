@@ -11,4 +11,5 @@ public class LoginResponse {
     private final long expiration;
     private final String rol;
     private final String nombre;
+    private final String correo;
 }
