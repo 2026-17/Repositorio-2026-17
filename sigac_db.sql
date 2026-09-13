@@ -86,8 +86,9 @@ CREATE TABLE IF NOT EXISTS usuarios (
                                         id_usuario                  INT UNSIGNED NOT NULL AUTO_INCREMENT,
                                         id_rol                      SMALLINT UNSIGNED NOT NULL,
                                         id_estado_usuario           SMALLINT UNSIGNED NOT NULL,
-                                        nombre                      VARCHAR(150) NOT NULL,
-                                        correo                      VARCHAR(254) NOT NULL,
+                                        cedula                      VARCHAR(40) NULL,
+    nombre                      VARCHAR(150) NOT NULL,
+    correo                      VARCHAR(254) NOT NULL,
     hash_contrasena             VARCHAR(255) NOT NULL,
     requiere_cambio_contrasena  BOOLEAN NOT NULL DEFAULT TRUE,
     intentos_fallidos           TINYINT UNSIGNED NOT NULL DEFAULT 0,
@@ -96,16 +97,44 @@ CREATE TABLE IF NOT EXISTS usuarios (
     creado_en                   DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     actualizado_en              DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6)
     ON UPDATE CURRENT_TIMESTAMP(6),
+
     CONSTRAINT pk_usuarios PRIMARY KEY (id_usuario),
+    CONSTRAINT uq_usuarios_cedula UNIQUE (cedula),
     CONSTRAINT uq_usuarios_correo UNIQUE (correo),
+
     CONSTRAINT fk_usuarios_roles
     FOREIGN KEY (id_rol) REFERENCES roles (id_rol)
     ON UPDATE RESTRICT ON DELETE RESTRICT,
+
     CONSTRAINT fk_usuarios_estados
     FOREIGN KEY (id_estado_usuario)
     REFERENCES estados_usuarios (id_estado_usuario)
     ON UPDATE RESTRICT ON DELETE RESTRICT
-    ) ENGINE=InnoDB COMMENT='Cuentas para ingresar al sistema; nunca almacena contrasenas en texto plano';
+    ) ENGINE=InnoDB
+    COMMENT='Cuentas para ingresar al sistema; nunca almacena contrasenas en texto plano';
+
+CREATE TABLE IF NOT EXISTS tokens_revocados (
+                                                id_token_revocado INT UNSIGNED NOT NULL AUTO_INCREMENT,
+                                                jti               VARCHAR(36) NOT NULL,
+    id_usuario        INT UNSIGNED NOT NULL,
+    expira_en         DATETIME(6) NOT NULL,
+    revocado_en       DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+
+    CONSTRAINT pk_tokens_revocados
+    PRIMARY KEY (id_token_revocado),
+
+    CONSTRAINT uq_tokens_revocados_jti
+    UNIQUE (jti),
+
+    CONSTRAINT fk_tokens_revocados_usuario
+    FOREIGN KEY (id_usuario)
+    REFERENCES usuarios (id_usuario)
+    ON UPDATE RESTRICT
+    ON DELETE CASCADE,
+
+    INDEX idx_tokens_revocados_expira_en (expira_en)
+    ) ENGINE=InnoDB
+    COMMENT='JWT revocados hasta su fecha de expiracion';
 
 -- =============================================================================
 -- 2. PERSONAS Y CATALOGOS PARA FORMULARIOS
@@ -1830,10 +1859,6 @@ CREATE OR REPLACE VIEW vw_estudiantes_instrumentos AS
             OR foto_perfil_tamano_bytes <= 5242880
         );
 
--- Migracion para bases de datos existentes creadas antes de agregar el nombre del usuario.
--- (Si la tabla usuarios se crea desde cero con este script, la columna ya existe y este bloque no es necesario).
-ALTER TABLE usuarios
-    ADD COLUMN IF NOT EXISTS nombre VARCHAR(150) NOT NULL DEFAULT '' AFTER id_estado_usuario;
 
 -- =============================================================================
 -- FIN DEL SCRIPT

@@ -11,6 +11,7 @@ import "./publico.css";
 // TODO: agregar el resto de rutas cuando existan las páginas de cada rol.
 const RUTAS_POR_ROL = {
     ADMINISTRADOR: "/admin/usuarios/crear",
+    DIRECTOR_ACADEMICO: "/director-academico/cursos/crear",
 };
 
 function Login() {

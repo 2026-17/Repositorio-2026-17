@@ -72,9 +72,19 @@ function Nav() {
                     )}
 
                     {/* Director académico */}
-                    {rol === "DIRECTOR_ACADEMICO" && <>
-                        {/* TODO: agregar links de Director Académico cuando existan las páginas */}
-                    </>}
+                    {rol === "DIRECTOR_ACADEMICO" && (
+                        <>
+                            <li>
+                                <Link
+                                    to="/director-academico/cursos/crear"
+                                    className="nav__link"
+                                    onClick={() => setMenuAbierto(false)}
+                                >
+                                    Crear curso
+                                </Link>
+                            </li>
+                        </>
+                    )}
 
                     {/* Administrativo */}
                     {rol === "ADMINISTRATIVO" && <>
