@@ -4,34 +4,34 @@ import Login from "./pages/Publico/login";
 import CreateUsers from "./pages/AdminSis/createUsers";
 import CrearCurso from "./pages/DirectorAcademico/CrearCurso";
 import DesactivarCurso from "./pages/DirectorAcademico/DesactivarCurso";
-
 import Nav from "./components/Nav";
 import Footer from "./components/Footer";
-
 import Layout_Administrador from "./components/Administrador/Layout_Administrador";
 import Estudiantes from "./pages/AdminSis/Estudiantes";
 import Matricula from "./pages/AdminSis/Matricula";
 import Profesores from "./pages/AdminSis/Profesores";
 import Reportes from "./pages/AdminSis/Reportes";
-
+import Header from "./components/Header";
+import Footer from "./components/Footer";
 import "./components/layout.css";
 
 
 /*
  * Layout general de las páginas internas del sistema.
  * El Login queda fuera porque utiliza su propio diseño.
+ * Header muestra las secciones según el rol autenticado (ver components/Header.jsx).
  */
 function Layout() {
     return (
-        <>
-            <Nav />
+        <div className="sigac-app">
+            <Header />
 
             <main className="app-main">
                 <Outlet />
             </main>
 
             <Footer />
-        </>
+        </div>
     );
 }
 
@@ -40,7 +40,6 @@ function App() {
     return (
         <BrowserRouter>
             <Routes>
-
                 {/* Rutas públicas */}
                 <Route
                     path="/"
@@ -57,6 +56,12 @@ function App() {
                 <Route element={<Layout />}>
 
                     {/* Administrador */}
+
+                {/* Rutas internas: comparten el mismo Layout/Header global,
+                    que muestra la subnavegación correspondiente al rol autenticado. */}
+                <Route element={<Layout />}>
+
+                    {/* Administrador del sistema */}
                     <Route
                         path="/admin/usuarios/crear"
                         element={<CreateUsers />}
@@ -73,12 +78,13 @@ function App() {
                         path="/director-academico/cursos/desactivar"
                         element={<DesactivarCurso />}
                     />
-
                 </Route>
 
 
                 {/* Nuevas rutas administrativas provenientes de main */}
                 <Route element={<Layout_Administrador />}>
+
+                    {/* Administrativo - módulo "Administración Académica" */}
                     <Route
                         path="/admin/administracion/estudiantes"
                         element={<Estudiantes />}

@@ -25,6 +25,8 @@ function CrearCurso() {
 
     const [error, setError] = useState("");
     const [mensajeExito, setMensajeExito] = useState("");
+    const [errores, setErrores] = useState({});
+
 
     useEffect(() => {
 
@@ -111,50 +113,56 @@ function CrearCurso() {
             [name]: value,
         }));
 
-        // Limpiar mensajes cuando el usuario corrige información.
+        // Limpiar el error del campo que el usuario está corrigiendo.
+        setErrores((prev) => {
+            if (!prev[name]) {
+                return prev;
+            }
+
+            const siguiente = { ...prev };
+            delete siguiente[name];
+            return siguiente;
+        });
         setError("");
         setMensajeExito("");
     }
 
     function validarFormulario() {
+        const siguientesErrores = {};
 
         if (!form.codigo.trim()) {
-            return "Ingrese el código del curso.";
-        }
-
-        if (form.codigo.trim().length > 30) {
-            return "El código del curso no puede superar los 30 caracteres.";
+            siguientesErrores.codigo = "Ingrese el código del curso.";
+        } else if (form.codigo.trim().length > 30) {
+            siguientesErrores.codigo = "El código del curso no puede superar los 30 caracteres.";
         }
 
         if (!form.nombre.trim()) {
-            return "Ingrese el nombre del curso.";
-        }
-
-        if (form.nombre.trim().length > 160) {
-            return "El nombre del curso no puede superar los 160 caracteres.";
+            siguientesErrores.nombre = "Ingrese el nombre del curso.";
+        } else if (form.nombre.trim().length > 160) {
+            siguientesErrores.nombre = "El nombre del curso no puede superar los 160 caracteres.";
         }
 
         if (!form.horasTotales || Number(form.horasTotales) <= 0) {
-            return "La cantidad de horas debe ser mayor que cero.";
+            siguientesErrores.horasTotales = "La cantidad de horas debe ser mayor que cero.";
         }
 
         if (!form.idPrograma) {
-            return "Seleccione un programa académico.";
+            siguientesErrores.idPrograma = "Seleccione un programa académico.";
         }
 
         if (!form.nivel || Number(form.nivel) <= 0) {
-            return "El nivel académico debe ser mayor que cero.";
+            siguientesErrores.nivel = "El nivel académico debe ser mayor que cero.";
         }
 
         if (!form.cupos || Number(form.cupos) <= 0) {
-            return "La cantidad de cupos debe ser mayor que cero.";
+            siguientesErrores.cupos = "La cantidad de cupos debe ser mayor que cero.";
         }
 
         if (!form.idPeriodo) {
-            return "Seleccione un período lectivo.";
+            siguientesErrores.idPeriodo = "Seleccione un período lectivo.";
         }
 
-        return "";
+        return siguientesErrores;
     }
 
     async function handleSubmit(e) {
@@ -163,14 +171,14 @@ function CrearCurso() {
 
         setError("");
         setMensajeExito("");
+        const erroresValidacion = validarFormulario();
 
-        const errorValidacion = validarFormulario();
-
-        if (errorValidacion) {
-            setError(errorValidacion);
+        if (Object.keys(erroresValidacion).length > 0) {
+            setErrores(erroresValidacion);
             return;
         }
 
+        setErrores({});
         const payload = {
             codigo: form.codigo.trim(),
             nombre: form.nombre.trim(),
@@ -265,6 +273,7 @@ function CrearCurso() {
 
         setError("");
         setMensajeExito("");
+        setErrores({});
     }
 
     return (
@@ -321,8 +330,7 @@ function CrearCurso() {
                         <h2>Información del curso</h2>
 
                         <div className="curso-form__grid">
-
-                            <div className="curso-field">
+                            <div className={`curso-field${errores.codigo ? " curso-field--error" : ""}`}>
                                 <label htmlFor="codigo">
                                     Código del curso *
                                 </label>
@@ -336,15 +344,25 @@ function CrearCurso() {
                                     onChange={handleChange}
                                     placeholder="Ej. MUS-101"
                                     autoComplete="off"
+
+                                    aria-invalid={Boolean(errores.codigo)}
+                                    aria-describedby={errores.codigo ? "codigo-error" : undefined}
                                     required
                                 />
 
-                                <small>
-                                    Debe ser un código único.
-                                </small>
+                                {errores.codigo ? (
+                                    <span className="curso-field__error" id="codigo-error" role="alert">
+                                        {errores.codigo}
+                                    </span>
+                                ) : (
+                                    <small>
+                                        Debe ser un código único.
+                                    </small>
+                                )}
                             </div>
 
-                            <div className="curso-field">
+                            <div className={`curso-field${errores.nombre ? " curso-field--error" : ""}`}>
+
                                 <label htmlFor="nombre">
                                     Nombre del curso *
                                 </label>
@@ -358,8 +376,17 @@ function CrearCurso() {
                                     onChange={handleChange}
                                     placeholder="Ej. Introducción a la música"
                                     autoComplete="off"
+                                    aria-invalid={Boolean(errores.nombre)}
+                                    aria-describedby={errores.nombre ? "nombre-error" : undefined}
                                     required
                                 />
+
+                                {errores.nombre && (
+                                    <span className="curso-field__error" id="nombre-error" role="alert">
+                                        {errores.nombre}
+                                    </span>
+                                )}
+
                             </div>
 
                             <div className="curso-field curso-field--full">
@@ -377,7 +404,9 @@ function CrearCurso() {
                                 />
                             </div>
 
-                            <div className="curso-field">
+
+                            <div className={`curso-field${errores.horasTotales ? " curso-field--error" : ""}`}>
+
                                 <label htmlFor="horasTotales">
                                     Cantidad de horas *
                                 </label>
@@ -392,11 +421,21 @@ function CrearCurso() {
                                     value={form.horasTotales}
                                     onChange={handleChange}
                                     placeholder="Ej. 40"
+
+                                    aria-invalid={Boolean(errores.horasTotales)}
+                                    aria-describedby={errores.horasTotales ? "horasTotales-error" : undefined}
                                     required
                                 />
+
+                                {errores.horasTotales && (
+                                    <span className="curso-field__error" id="horasTotales-error" role="alert">
+                                        {errores.horasTotales}
+                                    </span>
+                                )}
                             </div>
 
-                            <div className="curso-field">
+                            <div className={`curso-field${errores.nivel ? " curso-field--error" : ""}`}>
+
                                 <label htmlFor="nivel">
                                     Nivel académico *
                                 </label>
@@ -410,8 +449,17 @@ function CrearCurso() {
                                     value={form.nivel}
                                     onChange={handleChange}
                                     placeholder="Ej. 1"
+                                    aria-invalid={Boolean(errores.nivel)}
+                                    aria-describedby={errores.nivel ? "nivel-error" : undefined}
                                     required
                                 />
+
+                                {errores.nivel && (
+                                    <span className="curso-field__error" id="nivel-error" role="alert">
+                                        {errores.nivel}
+                                    </span>
+                                )}
+
                             </div>
 
                         </div>
@@ -423,7 +471,9 @@ function CrearCurso() {
 
                         <div className="curso-form__grid">
 
-                            <div className="curso-field">
+
+                            <div className={`curso-field${errores.idPrograma ? " curso-field--error" : ""}`}>
+
                                 <label htmlFor="idPrograma">
                                     Programa académico *
                                 </label>
@@ -434,6 +484,10 @@ function CrearCurso() {
                                     value={form.idPrograma}
                                     onChange={handleChange}
                                     disabled={cargandoCatalogos}
+
+                                    aria-invalid={Boolean(errores.idPrograma)}
+                                    aria-describedby={errores.idPrograma ? "idPrograma-error" : undefined}
+
                                     required
                                 >
                                     <option value="">
@@ -452,9 +506,15 @@ function CrearCurso() {
                                         </option>
                                     ))}
                                 </select>
+
+                                {errores.idPrograma && (
+                                    <span className="curso-field__error" id="idPrograma-error" role="alert">
+                                        {errores.idPrograma}
+                                    </span>
+                                )}
                             </div>
 
-                            <div className="curso-field">
+                            <div className={`curso-field${errores.idPeriodo ? " curso-field--error" : ""}`}>
                                 <label htmlFor="idPeriodo">
                                     Período lectivo *
                                 </label>
@@ -465,6 +525,10 @@ function CrearCurso() {
                                     value={form.idPeriodo}
                                     onChange={handleChange}
                                     disabled={cargandoCatalogos}
+
+                                    aria-invalid={Boolean(errores.idPeriodo)}
+                                    aria-describedby={errores.idPeriodo ? "idPeriodo-error" : undefined}
+
                                     required
                                 >
                                     <option value="">
@@ -483,9 +547,15 @@ function CrearCurso() {
                                         </option>
                                     ))}
                                 </select>
+
+                                {errores.idPeriodo && (
+                                    <span className="curso-field__error" id="idPeriodo-error" role="alert">
+                                        {errores.idPeriodo}
+                                    </span>
+                                )}
                             </div>
 
-                            <div className="curso-field">
+                            <div className={`curso-field${errores.cupos ? " curso-field--error" : ""}`}>
                                 <label htmlFor="cupos">
                                     Cantidad de cupos *
                                 </label>
@@ -499,8 +569,16 @@ function CrearCurso() {
                                     value={form.cupos}
                                     onChange={handleChange}
                                     placeholder="Ej. 25"
+                                    aria-invalid={Boolean(errores.cupos)}
+                                    aria-describedby={errores.cupos ? "cupos-error" : undefined}
                                     required
                                 />
+
+                                {errores.cupos && (
+                                    <span className="curso-field__error" id="cupos-error" role="alert">
+                                        {errores.cupos}
+                                    </span>
+                                )}
                             </div>
 
                         </div>

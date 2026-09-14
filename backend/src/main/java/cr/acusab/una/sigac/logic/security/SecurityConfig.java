@@ -43,17 +43,15 @@ public class SecurityConfig {
 
                     CorsConfiguration configuration = new CorsConfiguration();
 
-                    // Orígenes fijos.
+
+                    // Orígenes fijos
                     List<String> allowedOrigins = new ArrayList<>(Arrays.asList(
                             "http://localhost:5173",
                             "https://api.acusab.ed.cr"
                     ));
 
-                    // Orígenes adicionales configurados mediante
-                    // variable de entorno.
-                    if (extraAllowedOrigins != null
-                            && !extraAllowedOrigins.isBlank()) {
-
+                    // Orígenes adicionales configurados mediante variable de entorno
+                    if (extraAllowedOrigins != null && !extraAllowedOrigins.isBlank()) {
                         Arrays.stream(extraAllowedOrigins.split(","))
                                 .map(String::trim)
                                 .filter(origin ->

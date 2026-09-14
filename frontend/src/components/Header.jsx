@@ -1,28 +1,36 @@
 import { useEffect, useRef, useState } from "react";
 import { NavLink } from "react-router-dom";
 import { ChevronDown, LogOut, Menu, X } from "lucide-react";
-import { API_URL } from "../../config/api";
-import { etiquetaRol, ROLES } from "../../constants/roles";
-import "../../pages/AdminSis/styles/admin_Sis.css";
+import { API_URL } from "../config/api";
+import { etiquetaRol, ROLES } from "../constants/roles";
+import "../pages/AdminSis/styles/admin_Sis.css";
 
 /* Enlaces de la subnavegación, agrupados por rol.
-   Hoy solo tiene contenido el rol ADMINISTRADOR (módulo "Administración Académica");
-   los demás quedan listos para cuando existan sus páginas. */
+   Cada rol define aquí sus propias secciones; los que aún no tienen
+   páginas quedan con un arreglo vacío listos para cuando existan. */
 const SUBNAV_POR_ROL = {
     [ROLES.ADMINISTRADOR]: [
+        { to: "/admin/usuarios/crear", label: "Crear usuario" },
+    ],
+    [ROLES.DIRECTOR_ACADEMICO]: [
+        { to: "/director-academico/cursos/crear", label: "Crear curso" },
+        { to: "/director-academico/cursos/desactivar", label: "Desactivar curso" },
+    ],
+    [ROLES.ADMINISTRATIVO]: [
         { to: "/admin/administracion/estudiantes", label: "Estudiantes" },
         { to: "/admin/administracion/matricula", label: "Matricula" },
         { to: "/admin/administracion/profesores", label: "Profesores" },
         { to: "/admin/administracion/reportes", label: "Reportes" },
     ],
-    [ROLES.DIRECTOR_ACADEMICO]: [],
-    [ROLES.ADMINISTRATIVO]: [],
     [ROLES.PROFESOR]: [],
     [ROLES.JUNTA_DIRECTIVA]: [],
     [ROLES.ESTUDIANTE]: [],
 };
 
-function Header_Administrador({ titulo = "" }) {
+/* Header global de las páginas internas del sistema.
+   Muestra el menú de usuario y, debajo, la subnavegación con las
+   secciones que le corresponden al rol autenticado. */
+function Header({ titulo = "" }) {
     const token = localStorage.getItem("token");
     const rol = localStorage.getItem("rol");
     const nombre = localStorage.getItem("nombre");
@@ -83,45 +91,47 @@ function Header_Administrador({ titulo = "" }) {
                 <div className="header-title">{titulo}</div>
 
                 <div className="header-right">
-                    <div className="header-user" ref={menuRef}>
-                        <button
-                            type="button"
-                            className="header-user-trigger"
-                            aria-haspopup="true"
-                            aria-expanded={menuAbierto}
-                            onClick={() => setMenuAbierto((prev) => !prev)}
-                        >
-                            {nombre}
-                            <ChevronDown size={16} className="chevron" />
-                        </button>
+                    {token && (
+                        <div className="header-user" ref={menuRef}>
+                            <button
+                                type="button"
+                                className="header-user-trigger"
+                                aria-haspopup="true"
+                                aria-expanded={menuAbierto}
+                                onClick={() => setMenuAbierto((prev) => !prev)}
+                            >
+                                {nombre}
+                                <ChevronDown size={16} className="chevron" />
+                            </button>
 
-                        {menuAbierto && (
-                            <div className="user-dropdown" role="menu">
-                                <p className="user-dropdown-name">{nombre}</p>
-                                <p className="user-dropdown-role">{etiquetaRol(rol)}</p>
-                                {correo && (
-                                    <a href={`mailto:${correo}`} className="user-dropdown-email">
-                                        {correo}
-                                    </a>
-                                )}
-                                <hr className="user-dropdown-divider" />
-                                <button
-                                    type="button"
-                                    className="user-dropdown-logout"
-                                    onClick={cerrarSesion}
-                                >
-                                    <LogOut size={16} />
-                                    Cerrar sesión
-                                </button>
-                            </div>
-                        )}
-                    </div>
+                            {menuAbierto && (
+                                <div className="user-dropdown" role="menu">
+                                    <p className="user-dropdown-name">{nombre}</p>
+                                    <p className="user-dropdown-role">{etiquetaRol(rol)}</p>
+                                    {correo && (
+                                        <a href={`mailto:${correo}`} className="user-dropdown-email">
+                                            {correo}
+                                        </a>
+                                    )}
+                                    <hr className="user-dropdown-divider" />
+                                    <button
+                                        type="button"
+                                        className="user-dropdown-logout"
+                                        onClick={cerrarSesion}
+                                    >
+                                        <LogOut size={16} />
+                                        Cerrar sesión
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
             </header>
 
             {/* ---------- Subnavegación por rol ---------- */}
             {enlaces.length > 0 && (
-                <nav className="subnav" aria-label="Secciones de Administración Académica" ref={subnavRef}>
+                <nav className="subnav" aria-label="Secciones del rol autenticado" ref={subnavRef}>
                     <button
                         type="button"
                         className="subnav-toggle"
@@ -153,4 +163,4 @@ function Header_Administrador({ titulo = "" }) {
     );
 }
 
-export default Header_Administrador;
+export default Header;
