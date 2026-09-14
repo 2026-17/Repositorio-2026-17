@@ -13,7 +13,6 @@ const RUTAS_POR_ROL = {
     ADMINISTRADOR: "/admin/usuarios/crear",
     DIRECTOR_ACADEMICO: "/director-academico/cursos/crear",
     ADMINISTRATIVO: "/admin/administracion/estudiantes",
-    DIRECTOR_ACADEMICO: "/director-academico/cursos/crear",
 };
 
 function Login() {

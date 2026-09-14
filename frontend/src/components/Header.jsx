@@ -14,6 +14,7 @@ const SUBNAV_POR_ROL = {
     ],
     [ROLES.DIRECTOR_ACADEMICO]: [
         { to: "/director-academico/cursos/crear", label: "Crear curso" },
+        { to: "/director-academico/cursos/desactivar", label: "Desactivar curso" },
     ],
     [ROLES.ADMINISTRATIVO]: [
         { to: "/admin/administracion/estudiantes", label: "Estudiantes" },
