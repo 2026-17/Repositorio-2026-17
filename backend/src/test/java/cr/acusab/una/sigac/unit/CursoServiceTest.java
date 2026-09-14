@@ -25,10 +25,11 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 class CursoServiceTest {
@@ -295,6 +296,178 @@ class CursoServiceTest {
         verify(cursoRepository, never())
                 .save(any(Curso.class));
     }
+
+    /*
+     * ============================================================
+     * HU-031 - Desactivar curso de la malla curricular
+     * ============================================================
+     */
+
+    @Test
+    void desactivarCursoCorrectamente() {
+
+        Curso curso = new Curso();
+        curso.setId(100L);
+        curso.setCodigo("CUR-101");
+        curso.setNombre("Curso de prueba");
+        curso.setActivo(true);
+
+        when(cursoRepository.findById(100L))
+                .thenReturn(Optional.of(curso));
+
+        Usuario usuario = mock(Usuario.class);
+        when(usuario.getId()).thenReturn(7L);
+
+        when(usuarioRepository.findByCedula("123456789"))
+                .thenReturn(Optional.of(usuario));
+
+        configurarUsuarioAutenticado();
+
+        MallaCurricular malla1 = new MallaCurricular();
+        malla1.setId(200L);
+        malla1.setIdCurso(100L);
+        malla1.setActivo(true);
+
+        MallaCurricular malla2 = new MallaCurricular();
+        malla2.setId(201L);
+        malla2.setIdCurso(100L);
+        malla2.setActivo(true);
+
+        List<MallaCurricular> mallasActivas =
+                List.of(malla1, malla2);
+
+        when(mallaCurricularRepository
+                .findByIdCursoAndActivoTrue(100L))
+                .thenReturn(mallasActivas);
+
+        cursoService.desactivar(100L);
+
+        /*
+         * El curso no debe eliminarse.
+         * Únicamente debe quedar marcado como inactivo.
+         */
+        assertFalse(curso.getActivo());
+
+        assertEquals(
+                7L,
+                curso.getIdUsuarioUltimaModificacion()
+        );
+
+        assertNotNull(curso.getActualizadoEn());
+
+        /*
+         * Las asociaciones activas con la malla curricular
+         * también deben quedar inactivas.
+         */
+        assertFalse(malla1.getActivo());
+        assertFalse(malla2.getActivo());
+
+        assertEquals(
+                7L,
+                malla1.getIdUsuarioUltimaModificacion()
+        );
+
+        assertEquals(
+                7L,
+                malla2.getIdUsuarioUltimaModificacion()
+        );
+
+        assertNotNull(malla1.getActualizadoEn());
+        assertNotNull(malla2.getActualizadoEn());
+
+        /*
+         * Comprobar que los cambios se guardaron.
+         */
+        verify(cursoRepository).save(curso);
+
+        verify(mallaCurricularRepository)
+                .findByIdCursoAndActivoTrue(100L);
+
+        verify(mallaCurricularRepository)
+                .saveAll(mallasActivas);
+
+        /*
+         * HU-031 exige soft-delete.
+         * Por lo tanto, nunca debe eliminarse físicamente
+         * el curso de la base de datos.
+         */
+        verify(cursoRepository, never())
+                .delete(any(Curso.class));
+
+        verify(cursoRepository, never())
+                .deleteById(anyLong());
+    }
+
+    @Test
+    void noDebeDesactivarCursoInexistente() {
+
+        when(cursoRepository.findById(999L))
+                .thenReturn(Optional.empty());
+
+        IllegalArgumentException exception =
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () -> cursoService.desactivar(999L)
+                );
+
+        assertEquals(
+                "El curso indicado no existe.",
+                exception.getMessage()
+        );
+
+        /*
+         * Si el curso no existe, no debe modificarse nada.
+         */
+        verify(cursoRepository, never())
+                .save(any(Curso.class));
+
+        verify(mallaCurricularRepository, never())
+                .findByIdCursoAndActivoTrue(anyLong());
+
+        verify(mallaCurricularRepository, never())
+                .saveAll(anyList());
+    }
+
+    @Test
+    void noDebeDesactivarCursoYaInactivo() {
+
+        Curso curso = new Curso();
+        curso.setId(100L);
+        curso.setActivo(false);
+
+        when(cursoRepository.findById(100L))
+                .thenReturn(Optional.of(curso));
+
+        IllegalArgumentException exception =
+                assertThrows(
+                        IllegalArgumentException.class,
+                        () -> cursoService.desactivar(100L)
+                );
+
+        assertEquals(
+                "El curso ya se encuentra inactivo.",
+                exception.getMessage()
+        );
+
+        /*
+         * Si ya está inactivo, no debe volver a guardarse
+         * ni modificar sus asociaciones con la malla.
+         */
+        verify(cursoRepository, never())
+                .save(any(Curso.class));
+
+        verify(mallaCurricularRepository, never())
+                .findByIdCursoAndActivoTrue(anyLong());
+
+        verify(mallaCurricularRepository, never())
+                .saveAll(anyList());
+    }
+
+    /*
+     * ============================================================
+     * Métodos auxiliares para las pruebas
+     * ============================================================
+     */
 
     private CursoRequestDTO crearRequestValido() {
 

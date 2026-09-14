@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface MallaCurricularRepository
@@ -20,4 +21,6 @@ public interface MallaCurricularRepository
             @Param("idPlanEstudio") Long idPlanEstudio,
             @Param("nivel") Short nivel
     );
+
+    List<MallaCurricular> findByIdCursoAndActivoTrue(Long idCurso);
 }

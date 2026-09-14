@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom";
 import Login from "./pages/Publico/login";
 import CreateUsers from "./pages/AdminSis/createUsers";
 import CrearCurso from "./pages/DirectorAcademico/CrearCurso";
+import DesactivarCurso from "./pages/DirectorAcademico/DesactivarCurso";
 import Estudiantes from "./pages/AdminSis/Estudiantes";
 import Matricula from "./pages/AdminSis/Matricula";
 import Profesores from "./pages/AdminSis/Profesores";
@@ -27,28 +28,17 @@ function Layout() {
             <main className="app-main">
                 <Outlet />
             </main>
-
             <Footer />
         </div>
     );
 }
 
-
 function App() {
     return (
         <BrowserRouter>
             <Routes>
-
-                {/* Rutas públicas */}
-                <Route
-                    path="/"
-                    element={<Login />}
-                />
-
-                <Route
-                    path="/login"
-                    element={<Login />}
-                />
+                <Route path="/" element={<Login />} />
+                <Route path="/login" element={<Login />} />
 
 
                 {/* Rutas internas: comparten el mismo Layout/Header global,
@@ -66,6 +56,13 @@ function App() {
                         path="/director-academico/cursos/crear"
                         element={<CrearCurso />}
                     />
+
+                    {/* Director Académico - HU-031 */}
+                    <Route
+                        path="/director-academico/cursos/desactivar"
+                        element={<DesactivarCurso />}
+                    />
+
 
                     {/* Administrativo - módulo "Administración Académica" */}
                     <Route
