@@ -72,12 +72,6 @@ class CursoServiceTest {
         SecurityContextHolder.clearContext();
     }
 
-    /*
-     * ============================================================
-     * HU-028 - Crear curso en la malla curricular
-     * ============================================================
-     */
-
     @Test
     void crearCursoCorrectamente() {
 
@@ -120,7 +114,6 @@ class CursoServiceTest {
         )).thenReturn(Optional.of((short) 3));
 
         Curso cursoGuardado = mock(Curso.class);
-
         when(cursoGuardado.getId()).thenReturn(100L);
         when(cursoGuardado.getCodigo()).thenReturn("CUR-101");
         when(cursoGuardado.getNombre()).thenReturn("Curso de prueba");

@@ -8,9 +8,11 @@ import { API_URL } from "../../config/api";
 import "./publico.css";
 
 // Ruta a la que se redirige según el rol tras el login.
-// TODO: agregar el resto de rutas cuando existan las páginas de cada rol.
+// T-odo: agregar el resto de rutas cuando existan las páginas de cada rol.
 const RUTAS_POR_ROL = {
-    ADMINISTRADOR: "/admin/administracion/estudiantes",
+    ADMINISTRADOR: "/admin/usuarios/crear",
+    DIRECTOR_ACADEMICO: "/director-academico/cursos/crear",
+    ADMINISTRATIVO: "/admin/administracion/estudiantes",
     DIRECTOR_ACADEMICO: "/director-academico/cursos/crear",
 };
 
