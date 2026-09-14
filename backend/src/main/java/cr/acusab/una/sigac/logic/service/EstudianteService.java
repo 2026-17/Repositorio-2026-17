@@ -8,6 +8,7 @@ import cr.acusab.una.sigac.presentation.dto.request.EstudianteCreateRequest;
 import cr.acusab.una.sigac.presentation.dto.response.EstudianteResponse;
 import cr.acusab.una.sigac.presentation.dto.request.EstudianteUpdateRequest;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -29,6 +30,7 @@ public class EstudianteService {
     private static final long MAX_PDF_SIZE = 50L * 1024L * 1024L;
     private static final List<String> GENEROS = List.of("MASCULINO", "FEMENINO", "OTRO");
     private static final List<String> PARENTESCOS = List.of("MADRE", "PADRE", "TUTOR", "FAMILIAR", "OTRO");
+    private static final String CONTRASENA_TEMPORAL = "Temporal123";
 
     private final EstudianteRepository estudianteRepository;
     private final EncargadoRepository encargadoRepository;
@@ -39,6 +41,10 @@ public class EstudianteService {
     private final TipoIdentificacionRepository tipoIdentificacionRepository;
     private final TipoDocumentoRepository tipoDocumentoRepository;
     private final CentroEducativoRepository centroEducativoRepository;
+    private final UsuarioRepository usuarioRepository;
+    private final RoleRepository roleRepository;
+    private final EstadoUsuarioRepository estadoUsuarioRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Value("${sigac.storage.documents:./storage/documents}")
     private String storageDirectory;
@@ -51,7 +57,11 @@ public class EstudianteService {
                              DocumentoEstudianteRepository documentoEstudianteRepository,
                              TipoIdentificacionRepository tipoIdentificacionRepository,
                              TipoDocumentoRepository tipoDocumentoRepository,
-                             CentroEducativoRepository centroEducativoRepository) {
+                             CentroEducativoRepository centroEducativoRepository,
+                             UsuarioRepository usuarioRepository,
+                             RoleRepository roleRepository,
+                             EstadoUsuarioRepository estadoUsuarioRepository,
+                             PasswordEncoder passwordEncoder) {
         this.estudianteRepository = estudianteRepository;
         this.encargadoRepository = encargadoRepository;
         this.estudianteEncargadoRepository = estudianteEncargadoRepository;
@@ -61,6 +71,10 @@ public class EstudianteService {
         this.tipoIdentificacionRepository = tipoIdentificacionRepository;
         this.tipoDocumentoRepository = tipoDocumentoRepository;
         this.centroEducativoRepository = centroEducativoRepository;
+        this.usuarioRepository = usuarioRepository;
+        this.roleRepository = roleRepository;
+        this.estadoUsuarioRepository = estadoUsuarioRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Transactional
@@ -87,9 +101,12 @@ public class EstudianteService {
         TiposDocumento tipoPoliza = tipoDocumentoRepository.findByCodigoAndActivoTrue("POLIZA")
                 .orElseThrow(() -> new BusinessException("No está configurado el tipo de documento POLIZA activo"));
 
+        Usuario usuario = crearUsuarioEstudiante(request, identificacion);
+
         Estudiante estudiante = new Estudiante();
         aplicarDatos(estudiante, tipo, identificacion, request.nombres(), request.primerApellido(), request.segundoApellido(), request.fechaNacimiento(),
                 request.genero(), request.direccion(), request.telefono(), request.correo(), request.nivelEscolar(), centro, request.condicionesRelevantes());
+        estudiante.setUsuario(usuario);
         estudiante.setFechaIngreso(LocalDate.now());
         estudiante.setActivo(true);
         Instant ahora = Instant.now();
@@ -117,6 +134,44 @@ public class EstudianteService {
 
         guardarPolitica(estudiante, politica, tipoPoliza);
         return respuesta(estudiante, instrumento.getId(), edad);
+    }
+
+    private Usuario crearUsuarioEstudiante(EstudianteCreateRequest request, String identificacion) {
+        if (usuarioRepository.findByCedula(identificacion).isPresent()) {
+            throw new DuplicateResourceException("Ya existe un usuario con esa identificación");
+        }
+
+        String correo = normalizarNullable(request.correo());
+        if (correo == null) {
+            correo = identificacion + "@estudiante.sigac.local";
+        } else if (usuarioRepository.findByCorreo(correo).isPresent()) {
+            throw new DuplicateResourceException("El correo ya está registrado");
+        }
+
+        Role rol = roleRepository.findByCodigoIgnoreCase("ESTUDIANTE")
+                .orElseThrow(() -> new BusinessException("No está configurado el rol ESTUDIANTE"));
+        EstadosUsuario estado = estadoUsuarioRepository.findAll().stream()
+                .filter(x -> "ACTIVO".equalsIgnoreCase(x.getCodigo()))
+                .findFirst()
+                .orElseThrow(() -> new BusinessException("No está configurado el estado ACTIVO de usuario"));
+
+        Usuario usuario = new Usuario();
+        usuario.setCedula(identificacion);
+        usuario.setNombre(normalizar(request.nombres()) + " " + normalizar(request.primerApellido())
+                + (normalizarNullable(request.segundoApellido()) == null ? "" : " " + normalizar(request.segundoApellido())));
+        usuario.setCorreo(correo);
+        usuario.setHashContrasena(passwordEncoder.encode(CONTRASENA_TEMPORAL));
+        usuario.setIdRol(rol);
+        usuario.setIdEstadoUsuario(estado);
+        usuario.setRequiereCambioContrasena(true);
+        usuario.setIntentosFallidos((short) 0);
+        usuario.setBloqueadoHasta(null);
+        usuario.setUltimoAcceso(null);
+        Instant ahora = Instant.now();
+        usuario.setCreadoEn(ahora);
+        usuario.setActualizadoEn(ahora);
+
+        return usuarioRepository.save(usuario);
     }
 
     @Transactional(readOnly = true)
