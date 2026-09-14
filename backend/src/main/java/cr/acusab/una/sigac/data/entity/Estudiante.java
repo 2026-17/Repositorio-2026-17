@@ -24,6 +24,11 @@ public class Estudiante {
     @Column(name = "id_estudiante", columnDefinition = "int UNSIGNED not null")
     private Long id;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @OnDelete(action = OnDeleteAction.SET_NULL)
+    @JoinColumn(name = "id_usuario")
+    private Usuario usuario;
+
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "id_tipo_identificacion", nullable = false)
