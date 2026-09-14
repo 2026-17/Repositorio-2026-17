@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import "../../index.css";
 
-const API = "/api";
 const MAX_PDF = 50 * 1024 * 1024;
 const GENEROS = ["MASCULINO", "FEMENINO", "OTRO"];
 const PARENTESCOS = ["MADRE", "PADRE", "TUTOR", "FAMILIAR", "OTRO"];
@@ -55,9 +54,9 @@ export default function CreateStudent() {
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
     setCatalogLoading(true);
     Promise.all([
-      fetch(`${API}/registro/catalogos/tipos-identificacion`, { headers }).then(async r => r.ok ? r.json() : Promise.reject()),
-      fetch(`${API}/registro/catalogos/centros-educativos`, { headers }).then(async r => r.ok ? r.json() : Promise.reject()),
-      fetch(`${API}/registro/catalogos/instrumentos`, { headers }).then(async r => r.ok ? r.json() : Promise.reject()),
+      fetch(`/api/registro/catalogos/tipos-identificacion`, { headers }).then(async r => r.ok ? r.json() : Promise.reject()),
+      fetch(`/api/registro/catalogos/centros-educativos`, { headers }).then(async r => r.ok ? r.json() : Promise.reject()),
+      fetch(`/api/registro/catalogos/instrumentos`, { headers }).then(async r => r.ok ? r.json() : Promise.reject()),
     ]).then(([t, c, i]) => {
       setTypes(t); setCenters(c); setInstruments(i);
     }).catch(() => setError("No fue posible cargar los catálogos. Verifique que el backend esté disponible."))
@@ -112,7 +111,7 @@ export default function CreateStudent() {
     try {
       setSaving(true);
       const token = localStorage.getItem("token");
-      const response = await fetch(`${API}/estudiantes`, {
+      const response = await fetch(`/api/estudiantes`, {
         method: "POST",
         headers: token ? { Authorization: `Bearer ${token}` } : {},
         body: data,
