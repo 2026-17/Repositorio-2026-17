@@ -166,6 +166,34 @@
 }
 
 /* =========================================
+   Campos con error de validación
+   ========================================= */
+
+.curso-field--error label {
+    color: var(--primary-red-dark);
+}
+
+.curso-field--error input,
+.curso-field--error select,
+.curso-field--error textarea {
+    border-color: var(--primary-red-dark);
+}
+
+.curso-field--error input:focus,
+.curso-field--error select:focus,
+.curso-field--error textarea:focus {
+    border-color: var(--primary-red-dark);
+    box-shadow: 0 0 0 3px rgba(190, 22, 34, 0.14);
+}
+
+.curso-field__error {
+    color: var(--primary-red-dark);
+    font-size: 0.78rem;
+    font-weight: 500;
+    line-height: 1.4;
+}
+
+/* =========================================
    Campos obligatorios y acciones
    ========================================= */
 

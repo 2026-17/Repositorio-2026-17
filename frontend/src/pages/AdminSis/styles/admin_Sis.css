@@ -490,9 +490,9 @@ body {
 }
 
 /* ===========================================================
-   HU-003 — Encabezado con menú de usuario desplegable
-   y subnavegación por rol (módulo "Administración Académica")
-   Componente: src/components/Administrador/Header_Administrador.jsx
+   HU-003 — Encabezado global con menú de usuario desplegable
+   y subnavegación según el rol autenticado
+   Componente: src/components/Header.jsx
    ============================================================ */
 
 /* Botón que abre/cierra el menú (nombre del usuario + flecha) */
