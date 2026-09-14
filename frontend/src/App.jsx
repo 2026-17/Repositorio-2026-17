@@ -1,46 +1,95 @@
 import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom";
+
 import Login from "./pages/Publico/login";
 import CreateUsers from "./pages/AdminSis/createUsers";
-import Nav from "./components/Nav";
-import Footer from "./components/Footer";
-import "./components/layout.css";
-import Layout_Administrador from "./components/Administrador/Layout_Administrador";
+import CrearCurso from "./pages/DirectorAcademico/CrearCurso";
 import Estudiantes from "./pages/AdminSis/Estudiantes";
 import Matricula from "./pages/AdminSis/Matricula";
 import Profesores from "./pages/AdminSis/Profesores";
 import Reportes from "./pages/AdminSis/Reportes";
 
-/* Layout fijo (header + footer) para las páginas internas del sistema.
-   El Login queda fuera de este layout porque ya tiene su propio header a pantalla completa. */
+import Header from "./components/Header";
+import Footer from "./components/Footer";
+
+import "./components/layout.css";
+
+
+/*
+ * Layout general de las páginas internas del sistema.
+ * El Login queda fuera porque utiliza su propio diseño.
+ * Header muestra las secciones según el rol autenticado (ver components/Header.jsx).
+ */
 function Layout() {
     return (
-        <>
-            <Nav />
+        <div className="sigac-app">
+            <Header />
+
             <main className="app-main">
                 <Outlet />
             </main>
+
             <Footer />
-        </>
+        </div>
     );
 }
+
 
 function App() {
     return (
         <BrowserRouter>
             <Routes>
-                <Route path="/" element={<Login />} />
-                <Route path="/login" element={<Login />} />
 
+                {/* Rutas públicas */}
+                <Route
+                    path="/"
+                    element={<Login />}
+                />
+
+                <Route
+                    path="/login"
+                    element={<Login />}
+                />
+
+
+                {/* Rutas internas: comparten el mismo Layout/Header global,
+                    que muestra la subnavegación correspondiente al rol autenticado. */}
                 <Route element={<Layout />}>
-                    <Route path="/admin/usuarios/crear" element={<CreateUsers />} />
-                    {/* T-ODO: agregar aquí las demás rutas internas a medida que se creen */}
+
+                    {/* Administrador del sistema */}
+                    <Route
+                        path="/admin/usuarios/crear"
+                        element={<CreateUsers />}
+                    />
+
+                    {/* Director Académico - HU-028 */}
+                    <Route
+                        path="/director-academico/cursos/crear"
+                        element={<CrearCurso />}
+                    />
+
+                    {/* Administrativo - módulo "Administración Académica" */}
+                    <Route
+                        path="/admin/administracion/estudiantes"
+                        element={<Estudiantes />}
+                    />
+
+                    <Route
+                        path="/admin/administracion/matricula"
+                        element={<Matricula />}
+                    />
+
+                    <Route
+                        path="/admin/administracion/profesores"
+                        element={<Profesores />}
+                    />
+
+                    <Route
+                        path="/admin/administracion/reportes"
+                        element={<Reportes />}
+                    />
+
                 </Route>
-                <Route element={<Layout_Administrador />}>
-                    <Route path="/admin/administracion/estudiantes" element={<Estudiantes />} />
-                    <Route path="/admin/administracion/matricula" element={<Matricula />} />
-                    <Route path="/admin/administracion/profesores" element={<Profesores />} />
-                    <Route path="/admin/administracion/reportes" element={<Reportes />} />
-                </Route>
+
             </Routes>
         </BrowserRouter>
     );
