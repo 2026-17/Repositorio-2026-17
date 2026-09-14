@@ -4,9 +4,6 @@ import Login from "./pages/Publico/login";
 import CreateUsers from "./pages/AdminSis/createUsers";
 import CrearCurso from "./pages/DirectorAcademico/CrearCurso";
 import DesactivarCurso from "./pages/DirectorAcademico/DesactivarCurso";
-import Nav from "./components/Nav";
-import Footer from "./components/Footer";
-import Layout_Administrador from "./components/Administrador/Layout_Administrador";
 import Estudiantes from "./pages/AdminSis/Estudiantes";
 import Matricula from "./pages/AdminSis/Matricula";
 import Profesores from "./pages/AdminSis/Profesores";
@@ -14,7 +11,6 @@ import Reportes from "./pages/AdminSis/Reportes";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 import "./components/layout.css";
-
 
 /*
  * Layout general de las páginas internas del sistema.
@@ -25,37 +21,21 @@ function Layout() {
     return (
         <div className="sigac-app">
             <Header />
-
             <main className="app-main">
                 <Outlet />
             </main>
-
             <Footer />
         </div>
     );
 }
-
 
 function App() {
     return (
         <BrowserRouter>
             <Routes>
                 {/* Rutas públicas */}
-                <Route
-                    path="/"
-                    element={<Login />}
-                />
-
-                <Route
-                    path="/login"
-                    element={<Login />}
-                />
-
-
-                {/* Rutas internas generales */}
-                <Route element={<Layout />}>
-
-                    {/* Administrador */}
+                <Route path="/" element={<Login />} />
+                <Route path="/login" element={<Login />} />
 
                 {/* Rutas internas: comparten el mismo Layout/Header global,
                     que muestra la subnavegación correspondiente al rol autenticado. */}
@@ -80,9 +60,8 @@ function App() {
                     />
                 </Route>
 
-
                 {/* Nuevas rutas administrativas provenientes de main */}
-                <Route element={<Layout_Administrador />}>
+                <Route element={<Layout />}>
 
                     {/* Administrativo - módulo "Administración Académica" */}
                     <Route

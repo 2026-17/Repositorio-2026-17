@@ -99,6 +99,12 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/cursos")
                         .hasRole("DIRECTOR_ACADEMICO")
 
+                        // HU-031 - Listado de cursos activos.
+                        // Solo el Director Académico consulta este listado
+                        // desde la pantalla de desactivar curso.
+                        .requestMatchers(HttpMethod.GET, "/cursos")
+                        .hasRole("DIRECTOR_ACADEMICO")
+
                         // HU-031 - Desactivar curso de la malla curricular.
                         // Solo el Director Académico puede desactivar cursos.
                         .requestMatchers(
