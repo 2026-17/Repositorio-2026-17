@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom";
 import Login from "./pages/Publico/login";
 import CreateUsers from "./pages/AdminSis/createUsers";
 import CrearCurso from "./pages/DirectorAcademico/CrearCurso";
+import DesactivarCurso from "./pages/DirectorAcademico/DesactivarCurso";
 
 import Nav from "./components/Nav";
 import Footer from "./components/Footer";
@@ -65,6 +66,12 @@ function App() {
                     <Route
                         path="/director-academico/cursos/crear"
                         element={<CrearCurso />}
+                    />
+
+                    {/* Director Académico - HU-031 */}
+                    <Route
+                        path="/director-academico/cursos/desactivar"
+                        element={<DesactivarCurso />}
                     />
 
                 </Route>

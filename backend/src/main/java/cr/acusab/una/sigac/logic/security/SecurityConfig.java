@@ -43,14 +43,17 @@ public class SecurityConfig {
 
                     CorsConfiguration configuration = new CorsConfiguration();
 
-                    // Orígenes fijos
+                    // Orígenes fijos.
                     List<String> allowedOrigins = new ArrayList<>(Arrays.asList(
                             "http://localhost:5173",
                             "https://api.acusab.ed.cr"
                     ));
 
-                    // Orígenes adicionales configurados mediante variable de entorno
-                    if (extraAllowedOrigins != null && !extraAllowedOrigins.isBlank()) {
+                    // Orígenes adicionales configurados mediante
+                    // variable de entorno.
+                    if (extraAllowedOrigins != null
+                            && !extraAllowedOrigins.isBlank()) {
+
                         Arrays.stream(extraAllowedOrigins.split(","))
                                 .map(String::trim)
                                 .filter(origin ->
@@ -66,6 +69,7 @@ public class SecurityConfig {
                             "GET",
                             "POST",
                             "PUT",
+                            "PATCH",
                             "DELETE",
                             "OPTIONS"
                     ));
@@ -84,7 +88,7 @@ public class SecurityConfig {
                 )
                 .authorizeHttpRequests(auth -> auth
 
-                        // Rutas públicas existentes
+                        // Rutas públicas existentes.
                         .requestMatchers(
                                 "/auth/login",
                                 "/usuarios",
@@ -92,12 +96,20 @@ public class SecurityConfig {
                                 "/estados-usuarios"
                         ).permitAll()
 
-                        // HU-028 - Crear curso en la malla curricular
-                        // Solo el Director Académico puede crear cursos
+                        // HU-028 - Crear curso en la malla curricular.
+                        // Solo el Director Académico puede crear cursos.
                         .requestMatchers(HttpMethod.POST, "/cursos")
                         .hasRole("DIRECTOR_ACADEMICO")
 
-                        // Las demás rutas requieren autenticación
+                        // HU-031 - Desactivar curso de la malla curricular.
+                        // Solo el Director Académico puede desactivar cursos.
+                        .requestMatchers(
+                                HttpMethod.PATCH,
+                                "/cursos/*/desactivar"
+                        )
+                        .hasRole("DIRECTOR_ACADEMICO")
+
+                        // Las demás rutas requieren autenticación.
                         .anyRequest()
                         .authenticated()
                 )

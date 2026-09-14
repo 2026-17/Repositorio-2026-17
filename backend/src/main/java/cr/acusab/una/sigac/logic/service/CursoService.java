@@ -197,6 +197,89 @@ public class CursoService {
         );
     }
 
+    /*
+     * HU-031 - Desactivar curso de la malla curricular.
+     *
+     * La desactivación es lógica (soft-delete).
+     * No se elimina el curso ni la información histórica relacionada.
+     *
+     * Los triggers de la base de datos registran automáticamente
+     * los UPDATE realizados sobre cursos y malla_curricular.
+     */
+    @Transactional
+    public void desactivar(Long idCurso) {
+
+        // 1. Validar que el identificador sea válido.
+        if (idCurso == null || idCurso <= 0) {
+            throw new IllegalArgumentException(
+                    "El identificador del curso no es válido."
+            );
+        }
+
+        // 2. Buscar el curso.
+        Curso curso = cursoRepository
+                .findById(idCurso)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "El curso indicado no existe."
+                ));
+
+        // 3. Evitar desactivar nuevamente un curso que ya está inactivo.
+        if (!Boolean.TRUE.equals(curso.getActivo())) {
+            throw new IllegalArgumentException(
+                    "El curso ya se encuentra inactivo."
+            );
+        }
+
+        // 4. Obtener el usuario autenticado que realiza la operación.
+        Long idUsuario = obtenerIdUsuarioAutenticado();
+
+        Instant ahora = Instant.now();
+
+        // 5. Desactivar lógicamente el curso.
+        curso.setActivo(false);
+        curso.setIdUsuarioUltimaModificacion(idUsuario);
+        curso.setActualizadoEn(ahora);
+
+        cursoRepository.save(curso);
+
+        /*
+         * El trigger trg_cursos_au_bitacora registra automáticamente:
+         *
+         * activo:
+         * true -> false
+         *
+         * junto con el usuario que realizó la modificación.
+         */
+
+        // 6. Buscar todas las asociaciones activas del curso
+        // dentro de la malla curricular.
+        var mallasActivas =
+                mallaCurricularRepository.findByIdCursoAndActivoTrue(idCurso);
+
+        // 7. Desactivar las asociaciones sin eliminarlas.
+        for (MallaCurricular malla : mallasActivas) {
+            malla.setActivo(false);
+            malla.setIdUsuarioUltimaModificacion(idUsuario);
+            malla.setActualizadoEn(ahora);
+        }
+
+        mallaCurricularRepository.saveAll(mallasActivas);
+
+        /*
+         * El trigger trg_malla_curricular_au_bitacora registra
+         * automáticamente la desactivación de cada asociación.
+         *
+         * De esta manera se conserva íntegramente la información
+         * histórica del curso y de su ubicación en la malla.
+         */
+    }
+
+    /*
+     * Obtiene el identificador del usuario actualmente autenticado.
+     *
+     * Se utiliza para que los triggers de la base de datos puedan
+     * registrar quién realizó cada modificación.
+     */
     private Long obtenerIdUsuarioAutenticado() {
 
         Authentication authentication =
@@ -222,6 +305,10 @@ public class CursoService {
         return usuario.getId();
     }
 
+    /*
+     * Convierte las entidades creadas durante HU-028
+     * en la respuesta enviada al frontend.
+     */
     private CursoResponseDTO mapearAResponse(
             Curso curso,
             MallaCurricular malla,

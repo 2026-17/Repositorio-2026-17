@@ -83,6 +83,16 @@ function Nav() {
                                     Crear curso
                                 </Link>
                             </li>
+
+                            <li>
+                                <Link
+                                    to="/director-academico/cursos/desactivar"
+                                    className="nav__link"
+                                    onClick={() => setMenuAbierto(false)}
+                                >
+                                    Desactivar curso
+                                </Link>
+                            </li>
                         </>
                     )}
 
