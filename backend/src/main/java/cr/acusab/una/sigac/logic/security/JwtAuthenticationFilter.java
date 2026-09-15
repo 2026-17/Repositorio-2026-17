@@ -1,7 +1,7 @@
 package cr.acusab.una.sigac.logic.security;
 
-import cr.acusab.una.sigac.data.repository.TokenRevocadoRepository;
 import com.nimbusds.jwt.JWTClaimsSet;
+import cr.acusab.una.sigac.data.repository.TokenRevocadoRepository;
 import cr.acusab.una.sigac.logic.exception.JwtInvalidoException;
 import cr.acusab.una.sigac.logic.service.JwtService;
 import jakarta.servlet.FilterChain;
@@ -20,7 +20,6 @@ import java.util.List;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
-
     private final JwtService jwtService;
     private final TokenRevocadoRepository tokenRevocadoRepository;
 
@@ -34,36 +33,26 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     @NonNull HttpServletResponse response,
                                     @NonNull FilterChain filterChain) throws ServletException, IOException {
         String header = request.getHeader("Authorization");
-
         if (header == null || !header.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        String token = header.substring(7);
-
         try {
-            JWTClaimsSet claims = jwtService.validarYObtenerClaims(token);
+            JWTClaimsSet claims = jwtService.validarYObtenerClaims(header.substring(7));
             String jti = claims.getJWTID();
-
-            boolean revocado = jti != null && tokenRevocadoRepository.existsByJti(jti);
-
-            if (!revocado) {
+            if (jti == null || !tokenRevocadoRepository.existsByJti(jti)) {
                 String cedula = claims.getSubject();
                 String rol = (String) claims.getClaim("rol");
-
                 List<SimpleGrantedAuthority> authorities = rol != null
-                        ? List.of(new SimpleGrantedAuthority("ROLE_" + rol))
+                        ? List.of(new SimpleGrantedAuthority("ROLE_" + rol.toUpperCase()))
                         : List.of();
-
-                var authentication = new UsernamePasswordAuthenticationToken(cedula, null, authorities);
-                SecurityContextHolder.getContext().setAuthentication(authentication);
+                SecurityContextHolder.getContext().setAuthentication(
+                        new UsernamePasswordAuthenticationToken(cedula, null, authorities));
             }
-        } catch (JwtInvalidoException e) {
-            // Token inválido/expirado: se ignora; la petición seguirá sin autenticación
-            // y Spring Security responderá 401/403 si la ruta lo requiere.
+        } catch (JwtInvalidoException ignored) {
+            // La petición continúa sin autenticación.
         }
-
         filterChain.doFilter(request, response);
     }
 }

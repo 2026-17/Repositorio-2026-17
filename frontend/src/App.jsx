@@ -36,6 +36,9 @@ function App() {
                 {/* Rutas públicas */}
                 <Route path="/" element={<Login />} />
                 <Route path="/login" element={<Login />} />
+                <Route path="/admin" element={<AdminLayout />}>
+                <Route path="usuarios/crear" element={<CreateUsers />} />
+                 <Route path="estudiantes/crear" element={<CreateStudent />} />
 
                 {/* Rutas internas: comparten el mismo Layout/Header global,
                     que muestra la subnavegación correspondiente al rol autenticado. */}

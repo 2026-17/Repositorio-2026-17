@@ -7,8 +7,10 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.Locale;
 
 @Service
 public class UsuarioDetailsService implements UserDetailsService {
@@ -20,6 +22,7 @@ public class UsuarioDetailsService implements UserDetailsService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public UserDetails loadUserByUsername(String cedula) throws UsernameNotFoundException {
         Usuario usuario = usuarioRepository.findByCedula(cedula)
                 .orElseThrow(() -> new UsernameNotFoundException("Credenciales inválidas"));
@@ -27,12 +30,14 @@ public class UsuarioDetailsService implements UserDetailsService {
         boolean bloqueado = usuario.getBloqueadoHasta() != null
                 && usuario.getBloqueadoHasta().isAfter(Instant.now());
 
+        String codigoRol = usuario.getIdRol().getCodigo().toUpperCase(Locale.ROOT);
+
         return User.builder()
                 .username(cedula)
                 .password(usuario.getHashContrasena())
                 .accountLocked(bloqueado)
                 .disabled(false)
-                .authorities("ROLE_USER") // temporal, luego lo mapeas desde entidad Role
+                .authorities("ROLE_" + codigoRol)
                 .build();
     }
 }
