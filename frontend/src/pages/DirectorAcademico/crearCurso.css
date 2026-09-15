@@ -166,8 +166,8 @@
 }
 
 /* =========================================
-   Campos con error de validación
-   ========================================= */
+Campos con error de validación
+========================================= */
 
 .curso-field--error label {
     color: var(--primary-red-dark);
@@ -194,6 +194,7 @@
 }
 
 /* =========================================
+
    Campos obligatorios y acciones
    ========================================= */
 

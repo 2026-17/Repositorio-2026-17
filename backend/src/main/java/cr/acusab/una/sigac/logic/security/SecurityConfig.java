@@ -43,6 +43,7 @@ public class SecurityConfig {
 
                     CorsConfiguration configuration = new CorsConfiguration();
 
+
                     // Orígenes fijos
                     List<String> allowedOrigins = new ArrayList<>(Arrays.asList(
                             "http://localhost:5173",
@@ -75,6 +76,7 @@ public class SecurityConfig {
                             "Authorization",
                             "Content-Type"
                     ));
+
                     return configuration;
                 }))
                 .sessionManagement(sessionManagement ->
@@ -95,6 +97,12 @@ public class SecurityConfig {
                         // HU-028 - Crear curso en la malla curricular.
                         // Solo el Director Académico puede crear cursos.
                         .requestMatchers(HttpMethod.POST, "/cursos")
+                        .hasRole("DIRECTOR_ACADEMICO")
+
+                        // HU-031 - Listado de cursos activos.
+                        // Solo el Director Académico consulta este listado
+                        // desde la pantalla de desactivar curso.
+                        .requestMatchers(HttpMethod.GET, "/cursos")
                         .hasRole("DIRECTOR_ACADEMICO")
 
                         // HU-031 - Desactivar curso de la malla curricular.

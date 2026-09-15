@@ -5,17 +5,21 @@ import cr.acusab.una.sigac.data.entity.Grupo;
 import cr.acusab.una.sigac.data.entity.MallaCurricular;
 import cr.acusab.una.sigac.data.entity.PeriodoAcademico;
 import cr.acusab.una.sigac.data.entity.PlanEstudio;
+import cr.acusab.una.sigac.data.entity.Profesor;
 import cr.acusab.una.sigac.data.entity.Programa;
+import cr.acusab.una.sigac.data.entity.TipoIdentificacion;
 import cr.acusab.una.sigac.data.entity.Usuario;
 import cr.acusab.una.sigac.data.repository.CursoRepository;
 import cr.acusab.una.sigac.data.repository.GrupoRepository;
 import cr.acusab.una.sigac.data.repository.MallaCurricularRepository;
 import cr.acusab.una.sigac.data.repository.PeriodoAcademicoRepository;
 import cr.acusab.una.sigac.data.repository.PlanEstudioRepository;
+import cr.acusab.una.sigac.data.repository.ProfesorRepository;
 import cr.acusab.una.sigac.data.repository.ProgramaRepository;
 import cr.acusab.una.sigac.data.repository.UsuarioRepository;
 import cr.acusab.una.sigac.logic.service.CursoService;
 import cr.acusab.una.sigac.presentation.dto.request.CursoRequestDTO;
+import cr.acusab.una.sigac.presentation.dto.response.CursoListadoResponseDTO;
 import cr.acusab.una.sigac.presentation.dto.response.CursoResponseDTO;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,6 +45,7 @@ class CursoServiceTest {
     private ProgramaRepository programaRepository;
     private PeriodoAcademicoRepository periodoAcademicoRepository;
     private UsuarioRepository usuarioRepository;
+    private ProfesorRepository profesorRepository;
 
     private CursoService cursoService;
 
@@ -55,6 +60,7 @@ class CursoServiceTest {
         periodoAcademicoRepository =
                 mock(PeriodoAcademicoRepository.class);
         usuarioRepository = mock(UsuarioRepository.class);
+        profesorRepository = mock(ProfesorRepository.class);
 
         cursoService = new CursoService(
                 cursoRepository,
@@ -63,7 +69,8 @@ class CursoServiceTest {
                 grupoRepository,
                 programaRepository,
                 periodoAcademicoRepository,
-                usuarioRepository
+                usuarioRepository,
+                profesorRepository
         );
     }
 
@@ -72,6 +79,11 @@ class CursoServiceTest {
         SecurityContextHolder.clearContext();
     }
 
+    /*
+     * ============================================================
+     * HU-028 - Crear curso en la malla curricular
+     * ============================================================
+     */
     @Test
     void crearCursoCorrectamente() {
 
@@ -461,6 +473,89 @@ class CursoServiceTest {
 
         verify(mallaCurricularRepository, never())
                 .saveAll(anyList());
+    }
+
+    /*
+     * ============================================================
+     * HU-031 - Listado de cursos activos
+     * ============================================================
+     */
+
+    @Test
+    void debeListarCursosActivosConDocenteYCupoDelGrupoMasReciente() {
+
+        Curso curso1 = new Curso();
+        curso1.setId(100L);
+        curso1.setCodigo("PIA-101");
+        curso1.setNombre("Piano Individual I");
+        curso1.setDescripcion("Instrumento");
+        curso1.setHorasTotales(40);
+        curso1.setActivo(true);
+
+        Curso curso2 = new Curso();
+        curso2.setId(200L);
+        curso2.setCodigo("TEO-201");
+        curso2.setNombre("Teoría Musical II");
+        curso2.setDescripcion("Teoría");
+        curso2.setHorasTotales(60);
+        curso2.setActivo(true);
+
+        when(cursoRepository.findByActivoTrueOrderByNombreAsc())
+                .thenReturn(List.of(curso1, curso2));
+
+        Grupo grupoCurso1 = new Grupo();
+        grupoCurso1.setId(300L);
+        grupoCurso1.setIdCurso(100L);
+        grupoCurso1.setIdProfesor(9L);
+        grupoCurso1.setCupoMaximo((short) 10);
+
+        // curso2 no tiene grupo (aún no se le ha asignado ninguno).
+
+        when(grupoRepository.findByIdCursoInOrderByCreadoEnDesc(
+                List.of(100L, 200L)
+        )).thenReturn(List.of(grupoCurso1));
+
+        Profesor profesor = new Profesor();
+        profesor.setId(9L);
+        profesor.setNombres("Marlene");
+        profesor.setPrimerApellido("Solano");
+        profesor.setSegundoApellido(null);
+
+        when(profesorRepository.findAllById(List.of(9L)))
+                .thenReturn(List.of(profesor));
+
+        List<CursoListadoResponseDTO> resultado =
+                cursoService.listarActivos();
+
+        assertEquals(2, resultado.size());
+
+        CursoListadoResponseDTO dto1 = resultado.get(0);
+        assertEquals(100L, dto1.getIdCurso());
+        assertEquals("PIA-101", dto1.getCodigo());
+        assertEquals("Piano Individual I", dto1.getNombre());
+        assertEquals("Instrumento", dto1.getCategoria());
+        assertEquals("Marlene Solano", dto1.getDocente());
+        assertEquals((short) 10, dto1.getCupoMaximo());
+
+        CursoListadoResponseDTO dto2 = resultado.get(1);
+        assertEquals(200L, dto2.getIdCurso());
+        assertNull(dto2.getDocente());
+        assertNull(dto2.getCupoMaximo());
+    }
+
+    @Test
+    void debeRetornarListaVaciaSiNoHayCursosActivos() {
+
+        when(cursoRepository.findByActivoTrueOrderByNombreAsc())
+                .thenReturn(List.of());
+
+        List<CursoListadoResponseDTO> resultado =
+                cursoService.listarActivos();
+
+        assertTrue(resultado.isEmpty());
+
+        verify(grupoRepository, never())
+                .findByIdCursoInOrderByCreadoEnDesc(anyList());
     }
 
     /*

@@ -4,6 +4,7 @@ import cr.acusab.una.sigac.data.entity.Curso;
 import cr.acusab.una.sigac.data.entity.Grupo;
 import cr.acusab.una.sigac.data.entity.MallaCurricular;
 import cr.acusab.una.sigac.data.entity.PlanEstudio;
+import cr.acusab.una.sigac.data.entity.Profesor;
 import cr.acusab.una.sigac.data.entity.Programa;
 import cr.acusab.una.sigac.data.entity.Usuario;
 import cr.acusab.una.sigac.data.repository.CursoRepository;
@@ -11,9 +12,11 @@ import cr.acusab.una.sigac.data.repository.GrupoRepository;
 import cr.acusab.una.sigac.data.repository.MallaCurricularRepository;
 import cr.acusab.una.sigac.data.repository.PeriodoAcademicoRepository;
 import cr.acusab.una.sigac.data.repository.PlanEstudioRepository;
+import cr.acusab.una.sigac.data.repository.ProfesorRepository;
 import cr.acusab.una.sigac.data.repository.ProgramaRepository;
 import cr.acusab.una.sigac.data.repository.UsuarioRepository;
 import cr.acusab.una.sigac.presentation.dto.request.CursoRequestDTO;
+import cr.acusab.una.sigac.presentation.dto.response.CursoListadoResponseDTO;
 import cr.acusab.una.sigac.presentation.dto.response.CursoResponseDTO;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -21,6 +24,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class CursoService {
@@ -32,6 +40,7 @@ public class CursoService {
     private final ProgramaRepository programaRepository;
     private final PeriodoAcademicoRepository periodoAcademicoRepository;
     private final UsuarioRepository usuarioRepository;
+    private final ProfesorRepository profesorRepository;
 
     public CursoService(
             CursoRepository cursoRepository,
@@ -40,7 +49,8 @@ public class CursoService {
             GrupoRepository grupoRepository,
             ProgramaRepository programaRepository,
             PeriodoAcademicoRepository periodoAcademicoRepository,
-            UsuarioRepository usuarioRepository
+            UsuarioRepository usuarioRepository,
+            ProfesorRepository profesorRepository
     ) {
         this.cursoRepository = cursoRepository;
         this.planEstudioRepository = planEstudioRepository;
@@ -49,6 +59,99 @@ public class CursoService {
         this.programaRepository = programaRepository;
         this.periodoAcademicoRepository = periodoAcademicoRepository;
         this.usuarioRepository = usuarioRepository;
+        this.profesorRepository = profesorRepository;
+    }
+
+    /*
+     * HU-031 - Listado de cursos activos.
+     *
+     * Alimenta la pantalla de "Desactivar curso": el Director Académico
+     * busca/filtra el curso en esta lista en lugar de digitar su ID.
+     *
+     * Por cada curso se muestra el docente y el cupo máximo del grupo
+     * más reciente asociado, ya que esos datos viven en Grupo y no en
+     * Curso (un curso puede tener varios grupos en distintos periodos).
+     */
+    @Transactional(readOnly = true)
+    public List<CursoListadoResponseDTO> listarActivos() {
+
+        List<Curso> cursosActivos = cursoRepository.findByActivoTrueOrderByNombreAsc();
+
+        List<Long> idsCursos = cursosActivos.stream()
+                .map(Curso::getId)
+                .toList();
+
+        // 1. Traer todos los grupos de esos cursos en una sola consulta
+        // (evita N+1) y quedarse con el más reciente por curso.
+        Map<Long, Grupo> grupoMasRecientePorCurso = new HashMap<>();
+
+        if (!idsCursos.isEmpty()) {
+            List<Grupo> grupos =
+                    grupoRepository.findByIdCursoInOrderByCreadoEnDesc(idsCursos);
+
+            for (Grupo grupo : grupos) {
+                grupoMasRecientePorCurso.putIfAbsent(grupo.getIdCurso(), grupo);
+            }
+        }
+
+        // 2. Traer los profesores referenciados por esos grupos,
+        // también en una sola consulta.
+        List<Long> idsProfesores = grupoMasRecientePorCurso.values().stream()
+                .map(Grupo::getIdProfesor)
+                .filter(id -> id != null)
+                .distinct()
+                .toList();
+
+        Map<Long, Profesor> profesoresPorId = idsProfesores.isEmpty()
+                ? Map.of()
+                : profesorRepository.findAllById(idsProfesores).stream()
+                .collect(Collectors.toMap(Profesor::getId, p -> p));
+
+        // 3. Armar la respuesta.
+        return cursosActivos.stream()
+                .map(curso -> mapearAListadoResponse(
+                        curso,
+                        grupoMasRecientePorCurso.get(curso.getId()),
+                        profesoresPorId
+                ))
+                .toList();
+    }
+
+    private CursoListadoResponseDTO mapearAListadoResponse(
+            Curso curso,
+            Grupo grupo,
+            Map<Long, Profesor> profesoresPorId
+    ) {
+        CursoListadoResponseDTO dto = new CursoListadoResponseDTO();
+
+        dto.setIdCurso(curso.getId());
+        dto.setCodigo(curso.getCodigo());
+        dto.setNombre(curso.getNombre());
+        dto.setCategoria(curso.getDescripcion());
+        dto.setHorasTotales(curso.getHorasTotales());
+
+        if (grupo != null) {
+            dto.setCupoMaximo(grupo.getCupoMaximo());
+
+            Profesor profesor = grupo.getIdProfesor() != null
+                    ? profesoresPorId.get(grupo.getIdProfesor())
+                    : null;
+
+            if (profesor != null) {
+                String nombreCompleto = String.join(
+                        " ",
+                        profesor.getNombres(),
+                        profesor.getPrimerApellido(),
+                        profesor.getSegundoApellido() != null
+                                ? profesor.getSegundoApellido()
+                                : ""
+                ).trim().replaceAll("\\s+", " ");
+
+                dto.setDocente(nombreCompleto);
+            }
+        }
+
+        return dto;
     }
 
     /*
