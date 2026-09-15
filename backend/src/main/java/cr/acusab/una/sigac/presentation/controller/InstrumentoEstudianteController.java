@@ -45,7 +45,7 @@ public class InstrumentoEstudianteController {
      * agrega como instrumento adicional sin afectar al principal.
      */
     @PostMapping
-    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    @PreAuthorize("hasRole('ADMINISTRATIVO')")
     public ResponseEntity<InstrumentoEstudianteResponse> asignar(
             @PathVariable Long idEstudiante,
             @Valid @RequestBody InstrumentoEstudianteRequest request) {
@@ -63,7 +63,7 @@ public class InstrumentoEstudianteController {
      * registra la nueva, conservando el historial completo.
      */
     @PutMapping("/principal")
-    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    @PreAuthorize("hasRole('ADMINISTRATIVO')")
     public ResponseEntity<InstrumentoEstudianteResponse> cambiarPrincipal(
             @PathVariable Long idEstudiante,
             @Valid @RequestBody InstrumentoEstudianteRequest request) {
@@ -80,7 +80,7 @@ public class InstrumentoEstudianteController {
      * más antiguo.
      */
     @GetMapping
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'DIRECTOR_ACADEMICO')")
+    @PreAuthorize("hasAnyRole('ADMINISTRATIVO', 'DIRECTOR_ACADEMICO')")
     public ResponseEntity<List<InstrumentoEstudianteResponse>> listarHistorial(
             @PathVariable Long idEstudiante) {
 
@@ -92,7 +92,7 @@ public class InstrumentoEstudianteController {
      * tiene asignados actualmente.
      */
     @GetMapping("/actual")
-    @PreAuthorize("hasAnyRole('ADMINISTRADOR', 'DIRECTOR_ACADEMICO')")
+    @PreAuthorize("hasAnyRole('ADMINISTRATIVO', 'DIRECTOR_ACADEMICO')")
     public ResponseEntity<List<InstrumentoEstudianteResponse>> listarVigentes(
             @PathVariable Long idEstudiante) {
 
