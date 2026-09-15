@@ -39,109 +39,6 @@ body {
 }
 
 /* =========================================
-   Header Fijo (Nav - Estándar D06)
-   ========================================= */
-.nav {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 64px;
-    background-color: var(--primary-purple);
-    color: var(--white);
-    z-index: 1000;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-    font-family: var(--font-family);
-}
-
-.nav__inner {
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 24px;
-}
-
-.nav__logo {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    color: var(--white);
-    text-decoration: none;
-    font-weight: 700;
-    font-size: 1.2rem;
-    letter-spacing: 1px;
-    white-space: nowrap;
-}
-
-.nav__logo_img {
-    height: 38px;
-    object-fit: contain;
-}
-
-/* Enlaces de Navegación */
-.nav__links {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    flex-grow: 1;
-}
-
-.nav__link {
-    color: var(--white);
-    text-decoration: none;
-    font-weight: 500;
-    font-size: 0.95rem;
-    padding: 8px 12px;
-    border-radius: 6px;
-    transition: background-color 0.25s ease, opacity 0.25s ease;
-}
-
-.nav__link:hover {
-    background-color: rgba(255, 255, 255, 0.15);
-    text-decoration: none;
-}
-
-/* Acciones de Usuario */
-.nav__actions {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    white-space: nowrap;
-}
-
-.nav__user {
-    color: var(--white);
-    font-size: 0.9rem;
-    font-weight: 600;
-    background-color: rgba(255, 255, 255, 0.15);
-    padding: 6px 14px;
-    border-radius: 20px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-/* Botón Hamburguesa para Móvil */
-.nav__toggle {
-    display: none;
-    background: none;
-    border: none;
-    color: var(--white);
-    cursor: pointer;
-    padding: 6px;
-    border-radius: 6px;
-    transition: background-color 0.2s ease;
-}
-
-.nav__toggle:hover {
-    background-color: rgba(255, 255, 255, 0.15);
-}
-
-/* =========================================
    Botones Globales (Estándar D04)
    ========================================= */
 .btn {
@@ -189,11 +86,12 @@ body {
     background-color: var(--primary-red-dark);
 }
 
-/* Contenido entre Header y Footer Fijos */
+/* Contenido entre el Header (sticky) y el Footer Fijo.
+   El header ya no es "fixed": ocupa su propio espacio en el flujo, así
+   que solo se reserva espacio inferior para que el footer fijo no lo tape. */
 .app-main {
-    margin-top: 64px;
     margin-bottom: 56px;
-    min-height: calc(100vh - 64px - 56px);
+    min-height: calc(100vh - 56px);
     box-sizing: border-box;
 }
 
@@ -268,39 +166,6 @@ body {
         padding: 0 16px;
     }
 
-    .nav__toggle {
-        display: block;
-    }
-
-    /* Menú desplegable para móviles */
-    .nav__links {
-        position: absolute;
-        top: 64px;
-        left: 0;
-        right: 0;
-        background-color: var(--primary-purple-dark);
-        flex-direction: column;
-        align-items: flex-start;
-        padding: 16px 24px;
-        gap: 12px;
-        display: none;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-    }
-
-    .nav__links--open {
-        display: flex;
-    }
-
-    .nav__link {
-        width: 100%;
-        padding: 10px 12px;
-    }
-
-    .nav__user {
-        font-size: 0.8rem;
-        padding: 4px 10px;
-    }
-
     .footer__inner {
         justify-content: center;
     }
@@ -311,14 +176,6 @@ body {
 }
 
 @media screen and (max-width: 480px) {
-    .nav__logo {
-        font-size: 1rem;
-    }
-
-    .nav__logo_img {
-        height: 32px;
-    }
-
     .footer__contact {
         font-size: 0.8rem;
     }

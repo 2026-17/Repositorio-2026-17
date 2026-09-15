@@ -1,0 +1,647 @@
+/* ===========
+   SIGAC — Hoja de estilos UNIFICADA según Documento de Estándares v2.0 (D01-D06)
+   -------------------------------------------------------------------------
+   Este archivo es la base de estilos compartida para TODOS los mockups de
+   pantallas de las Historias de Usuario (HU) del repositorio. No se debe
+   duplicar: cada nueva HU debe reutilizar estas clases y, si necesita
+   componentes nuevos, agregarlos al final en su propia sección comentada
+   (ver "HU-002" más abajo como ejemplo) para mantener todo unificado.
+   ============ */
+
+@import url("https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap");
+
+:root {
+    --morado-01: #662483;
+    --verde-01: #2fac66;
+    --verde-02: #278f52;
+    --rojo-01: #be1622;
+    --naranja-01: #e7781e;
+    --naranja-02: #c96518;
+    --amarillo-01: #f9e842;
+    --blanco: #ffffff;
+    --negro: #000000;
+    --texto: #1a1a1a;
+    --texto-suave: #8a8a8a;
+    --borde: #d8d5cf;
+    --fondo: #f7f5f0;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: "Montserrat", sans-serif;
+    background: var(--fondo);
+}
+
+.sigac-app {
+    min-height: 100vh;
+    background: var(--fondo);
+}
+
+/* ---------- Header (D06) ---------- */
+.header {
+    height: 60px;
+    background: var(--morado-01);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 28px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+}
+.header-logo {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--blanco);
+    font-size: 13px;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+.header-brand {
+    font-weight: 700;
+    font-size: 17px;
+    color: var(--blanco);
+    letter-spacing: 0.2px;
+}
+.header-title {
+    font-weight: 500;
+    font-size: 14.5px;
+    color: rgba(255, 255, 255, 0.92);
+    flex: 1;
+    text-align: center;
+}
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    color: var(--blanco);
+    font-weight: 500;
+    font-size: 13.5px;
+    flex: 1;
+    justify-content: flex-end;
+}
+.header-link-btn {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.85);
+    font-family: "Montserrat", sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+}
+.header-link-btn:hover {
+    color: var(--blanco);
+    text-decoration: underline;
+}
+.header-avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: var(--amarillo-01);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 12.5px;
+    color: var(--morado-01);
+    flex-shrink: 0;
+}
+
+/* ---------- Subnavegación (secciones del rol autenticado) ---------- */
+.subnav {
+    display: flex;
+    gap: 4px;
+    background: var(--blanco);
+    border-bottom: 1px solid var(--borde);
+    padding: 0 28px;
+    overflow-x: auto;
+    position: sticky;
+    top: 60px;
+    z-index: 9;
+}
+.subnav-links {
+    display: flex;
+    gap: 4px;
+}
+.subnav-toggle {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 44px;
+    background: none;
+    border: none;
+    color: var(--morado-01);
+    cursor: pointer;
+}
+.subnav-item {
+    padding: 14px 16px;
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--texto-suave);
+    text-decoration: none;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    white-space: nowrap;
+}
+.subnav-item:hover {
+    color: var(--morado-01);
+}
+.subnav-item.active {
+    color: var(--morado-01);
+    border-bottom-color: var(--morado-01);
+    font-weight: 600;
+}
+
+/* ---------- Selector de decisión (radios) ---------- */
+.radio-row {
+    display: flex;
+    gap: 22px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+.radio-label {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 14px;
+    color: var(--texto);
+    cursor: pointer;
+}
+.radio-label input[type="radio"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--morado-01);
+    cursor: pointer;
+}
+.radio-label.disabled {
+    color: var(--texto-suave);
+    cursor: not-allowed;
+}
+.radio-label.disabled input[type="radio"] {
+    cursor: not-allowed;
+}
+
+/* ---------- Layout ---------- */
+.content {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 28px 24px 60px;
+}
+
+.page-title h1 {
+    margin: 0;
+    font-weight: 700;
+    font-size: 22px;
+    color: var(--texto);
+}
+.page-title p {
+    margin: 4px 0 22px;
+    font-size: 13.5px;
+    color: var(--texto-suave);
+}
+
+/* ---------- Tarjetas (D05) ---------- */
+.card {
+    background: var(--blanco);
+    border: 1px solid #e5e2da;
+    border-radius: 12px;
+    padding: 22px 24px 8px;
+    margin-bottom: 20px;
+}
+.card-accent-warning {
+    border-left: 4px solid var(--naranja-01);
+}
+.card-title {
+    margin: 0;
+    font-weight: 600;
+    font-size: 16px;
+    color: var(--texto);
+}
+.card-subtitle {
+    margin: 2px 0 14px;
+    font-weight: 500;
+    font-size: 12.5px;
+    color: var(--texto-suave);
+}
+.card-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 4px;
+}
+
+.subcard {
+    border: 1px solid #ece9e2;
+    border-radius: 10px;
+    padding: 18px;
+    margin: 16px 0;
+    background: #fbfaf7;
+}
+.subcard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--texto);
+}
+
+/* ---------- Grid ---------- */
+.grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 20px;
+}
+@media (max-width: 640px) {
+    .grid-2 {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ---------- Campos (D04/D05) ---------- */
+.field {
+    margin-bottom: 20px;
+}
+.field-label {
+    display: block;
+    font-weight: 500;
+    font-size: 13.5px;
+    color: #2b2b2b;
+    margin-bottom: 6px;
+}
+.required {
+    color: var(--rojo-01);
+}
+.hint {
+    margin: 6px 0 0;
+    font-size: 12px;
+    color: var(--texto-suave);
+}
+.error {
+    margin: 6px 0 0;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--rojo-01);
+}
+
+.input {
+    width: 100%;
+    height: 40px;
+    padding: 0 12px;
+    font-family: "Montserrat", sans-serif;
+    font-size: 14px;
+    color: var(--texto);
+    background: var(--blanco);
+    border: 1px solid var(--borde);
+    border-radius: 8px;
+    outline: none;
+    transition: border-color 0.15s ease;
+}
+.input:focus {
+    border-color: var(--morado-01);
+}
+.input.error {
+    border-color: var(--rojo-01);
+}
+.textarea {
+    height: 72px;
+    padding: 10px 12px;
+    resize: vertical;
+}
+
+.input-suffix-wrap {
+    position: relative;
+}
+.input-suffix {
+    position: absolute;
+    right: 12px;
+    top: 10px;
+    font-size: 14px;
+    color: var(--texto-suave);
+    pointer-events: none;
+}
+
+.file-input {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    height: 40px;
+    padding: 0 14px;
+    border: 1px dashed #c8c4bb;
+    border-radius: 8px;
+    cursor: pointer;
+    background: #faf9f6;
+    font-size: 13.5px;
+    font-weight: 500;
+    color: #6a6a6a;
+    max-width: 100%;
+}
+.file-input.has-file {
+    background: #eaf7f0;
+    color: var(--verde-02);
+    border-color: #c9ebd9;
+}
+
+/* ---------- Botones (D04) ---------- */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 40px;
+    padding: 0 18px;
+    font-family: "Montserrat", sans-serif;
+    font-weight: 500;
+    font-size: 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: transform 0.1s ease;
+}
+.btn:active {
+    transform: scale(0.98);
+}
+.btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+.btn:disabled:active {
+    transform: none;
+}
+.btn-primary {
+    background: var(--morado-01);
+    color: var(--blanco);
+    border-color: var(--morado-01);
+}
+.btn-secondary {
+    background: var(--blanco);
+    color: var(--morado-01);
+    border-color: var(--morado-01);
+}
+
+.icon-btn {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    border: 1px solid var(--borde);
+    background: var(--blanco);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+}
+.icon-btn.danger {
+    color: var(--rojo-01);
+}
+
+.actions-row {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding-top: 20px;
+    border-top: 1px solid #e5e2da;
+}
+
+/* ---------- Banners de estado ---------- */
+.banner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-bottom: 20px;
+    font-size: 13.5px;
+    font-weight: 500;
+}
+.banner-success {
+    background: #eaf7f0;
+    border: 1px solid #c9ebd9;
+    color: var(--verde-02);
+}
+.banner-warning {
+    background: #fdf1e6;
+    border: 1px solid #f2d3ac;
+    color: var(--naranja-02);
+}
+.banner-danger {
+    background: #fbeaec;
+    border: 1px solid #f2c3c9;
+    color: var(--rojo-01);
+}
+
+/* ---------- Switch (toggle de beca) ---------- */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 42px;
+    height: 24px;
+    flex-shrink: 0;
+}
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--borde);
+    border-radius: 999px;
+    transition: 0.15s;
+}
+.slider::before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    top: 3px;
+    background-color: var(--blanco);
+    border-radius: 50%;
+    transition: 0.15s;
+}
+.switch input:checked + .slider {
+    background-color: var(--morado-01);
+}
+.switch input:checked + .slider::before {
+    transform: translateX(18px);
+}
+
+/* ===========================================================
+   HU-003 — Encabezado global con menú de usuario desplegable
+   y subnavegación según el rol autenticado
+   Componente: src/components/Header.jsx
+   ============================================================ */
+
+/* Botón que abre/cierra el menú (nombre del usuario + flecha) */
+.header-user {
+    position: relative;
+}
+.header-user-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 8px;
+    padding: 6px 12px;
+    color: var(--blanco);
+    font-family: "Montserrat", sans-serif;
+    font-weight: 600;
+    font-size: 13.5px;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+.header-user-trigger:hover,
+.header-user-trigger[aria-expanded="true"] {
+    background: rgba(255, 255, 255, 0.18);
+}
+.header-user-trigger .chevron {
+    transition: transform 0.15s ease;
+}
+.header-user-trigger[aria-expanded="true"] .chevron {
+    transform: rotate(180deg);
+}
+
+/* Panel desplegable */
+.user-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    width: 240px;
+    background: var(--blanco);
+    border: 1px solid var(--borde);
+    border-radius: 12px;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
+    padding: 18px 16px 12px;
+    z-index: 20;
+    text-align: center;
+    animation: dropdown-in 0.12s ease-out;
+}
+@keyframes dropdown-in {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+.user-dropdown-name {
+    margin: 0 0 2px;
+    font-weight: 700;
+    font-size: 14.5px;
+    color: var(--texto);
+}
+.user-dropdown-role {
+    margin: 0 0 10px;
+    font-weight: 500;
+    font-size: 12px;
+    color: var(--texto-suave);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+.user-dropdown-email {
+    display: block;
+    font-size: 13px;
+    color: var(--morado-01);
+    text-decoration: none;
+    word-break: break-all;
+    margin-bottom: 14px;
+}
+.user-dropdown-email:hover {
+    text-decoration: underline;
+}
+.user-dropdown-divider {
+    border: none;
+    border-top: 1px solid var(--borde);
+    margin: 0 -16px 10px;
+}
+.user-dropdown-logout {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    background: none;
+    border: none;
+    padding: 10px 0 12px;
+    font-family: "Montserrat", sans-serif;
+    font-weight: 600;
+    font-size: 13.5px;
+    color: var(--rojo-01);
+    cursor: pointer;
+    border-radius: 8px;
+}
+.user-dropdown-logout:hover {
+    background: #fbeaec;
+}
+
+@media screen and (max-width: 768px) {
+    .header {
+        padding: 0 14px;
+        gap: 10px;
+    }
+    .header-title {
+        display: none;
+    }
+    .subnav {
+        padding: 0 8px;
+        position: relative;
+        overflow: visible;
+    }
+    .subnav-toggle {
+        display: flex;
+    }
+    .subnav-links {
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 8px;
+        right: 8px;
+        flex-direction: column;
+        gap: 0;
+        background: var(--blanco);
+        border: 1px solid var(--borde);
+        border-top: none;
+        border-radius: 0 0 10px 10px;
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12);
+        z-index: 9;
+    }
+    .subnav-links--open {
+        display: flex;
+    }
+    .subnav-links .subnav-item {
+        width: 100%;
+        border-bottom: 1px solid #f0eee9;
+        border-left: 3px solid transparent;
+    }
+    .subnav-links .subnav-item.active {
+        border-bottom-color: #f0eee9;
+        border-left-color: var(--morado-01);
+        background: #faf7fc;
+    }
+}
