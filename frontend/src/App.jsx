@@ -5,8 +5,6 @@ import CreateUsers from "./pages/AdminSis/createUsers";
 import CreateStudent from "./pages/AdminSis/createStudent";
 import CrearCurso from "./pages/DirectorAcademico/CrearCurso";
 import DesactivarCurso from "./pages/DirectorAcademico/DesactivarCurso";
-import Estudiantes from "./pages/AdminSis/Estudiantes";
-import Encargados from "./pages/AdminSis/Encargados";
 import Matricula from "./pages/AdminSis/Matricula";
 import Profesores from "./pages/AdminSis/Profesores";
 import Reportes from "./pages/AdminSis/Reportes";
@@ -47,11 +45,6 @@ function App() {
                         element={<CreateUsers />}
                     />
 
-                    <Route
-                        path="/admin/estudiantes/crear"
-                        element={<CreateStudent />}
-                    />
-
                     {/* Director Académico - HU-028 */}
                     <Route
                         path="/director-academico/cursos/crear"
@@ -67,13 +60,7 @@ function App() {
                     {/* Administración Académica */}
                     <Route
                         path="/admin/administracion/estudiantes"
-                        element={<Estudiantes />}
-                    />
-
-                    {/* Administrativo - HU-023 Registrar encargados */}
-                    <Route
-                        path="/admin/administracion/encargados"
-                        element={<Encargados />}
+                        element={<CreateStudent />}
                     />
 
                     <Route

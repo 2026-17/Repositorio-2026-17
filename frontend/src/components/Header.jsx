@@ -11,15 +11,13 @@ import "../pages/AdminSis/styles/admin_Sis.css";
 const SUBNAV_POR_ROL = {
     [ROLES.ADMINISTRADOR]: [
         { to: "/admin/usuarios/crear", label: "Crear usuario" },
-        { to: "/admin/estudiantes/crear", label: "Registrar estudiante" },
     ],
     [ROLES.DIRECTOR_ACADEMICO]: [
         { to: "/director-academico/cursos/crear", label: "Crear curso" },
         { to: "/director-academico/cursos/desactivar", label: "Desactivar curso" },
     ],
     [ROLES.ADMINISTRATIVO]: [
-        { to: "/admin/administracion/estudiantes", label: "Estudiantes" },
-        { to: "/admin/administracion/encargados", label: "Encargados" },
+        { to: "/admin/administracion/estudiantes", label: "Registrar estudiante" },
         { to: "/admin/administracion/matricula", label: "Matricula" },
         { to: "/admin/administracion/profesores", label: "Profesores" },
         { to: "/admin/administracion/reportes", label: "Reportes" },

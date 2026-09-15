@@ -20,19 +20,19 @@ public class EstudianteController {
     public EstudianteController(EstudianteService estudianteService) { this.estudianteService = estudianteService; }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    @PreAuthorize("hasRole('ADMINISTRATIVO')")
     public ResponseEntity<EstudianteResponse> crear(@Valid @RequestPart("estudiante") EstudianteCreateRequest request, @RequestPart("politica") MultipartFile politica) {
         return ResponseEntity.status(HttpStatus.CREATED).body(estudianteService.crear(request, politica));
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    @PreAuthorize("hasRole('ADMINISTRATIVO')")
     public ResponseEntity<EstudianteResponse> obtener(@PathVariable Long id) {
         return ResponseEntity.ok(estudianteService.obtener(id));
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    @PreAuthorize("hasRole('ADMINISTRATIVO')")
     public ResponseEntity<EstudianteResponse> actualizar(@PathVariable Long id, @Valid @RequestBody EstudianteUpdateRequest request) {
         return ResponseEntity.ok(estudianteService.actualizar(id, request));
     }
