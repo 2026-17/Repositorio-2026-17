@@ -88,12 +88,14 @@ public class SecurityConfig {
 
                         // Rutas públicas existentes.
                         .requestMatchers(
-                                "/auth/login",
-                                "/usuarios",
-                                "/roles",
-                                "/estados-usuarios"
+                                "/auth/login"
                         ).permitAll()
 
+                        // Rutas protegidas por rol.
+                        .requestMatchers(
+                                "/usuarios",
+                                "/roles",
+                                "/estados-usuarios").hasRole("ADMINISTRADOR")
                         // HU-028 - Crear curso en la malla curricular.
                         // Solo el Director Académico puede crear cursos.
                         .requestMatchers(
