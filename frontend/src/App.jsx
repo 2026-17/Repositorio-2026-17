@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom";
 
 import Login from "./pages/Publico/login";
 import CreateUsers from "./pages/AdminSis/createUsers";
+import CreateStudent from "./pages/AdminSis/createStudent";
 import CrearCurso from "./pages/DirectorAcademico/CrearCurso";
 import DesactivarCurso from "./pages/DirectorAcademico/DesactivarCurso";
 import Estudiantes from "./pages/AdminSis/Estudiantes";
@@ -12,10 +13,6 @@ import Reportes from "./pages/AdminSis/Reportes";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 import "./components/layout.css";
-
-// IMPORTAR CON SUS RUTAS REALES
-import AdminLayout from "./ruta/real/AdminLayout";
-import CreateStudent from "./ruta/real/CreateStudent";
 
 function Layout() {
     return (
@@ -40,21 +37,19 @@ function App() {
                 <Route path="/" element={<Login />} />
                 <Route path="/login" element={<Login />} />
 
-                {/* Administrador */}
-                <Route path="/admin" element={<AdminLayout />}>
+                {/* Rutas con Layout general (header global) */}
+                <Route element={<Layout />}>
+
+                    {/* Administrador */}
                     <Route
-                        path="usuarios/crear"
+                        path="/admin/usuarios/crear"
                         element={<CreateUsers />}
                     />
 
                     <Route
-                        path="estudiantes/crear"
+                        path="/admin/estudiantes/crear"
                         element={<CreateStudent />}
                     />
-                </Route>
-
-                {/* Rutas con Layout general */}
-                <Route element={<Layout />}>
 
                     {/* Director Académico - HU-028 */}
                     <Route
