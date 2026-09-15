@@ -27,6 +27,7 @@ function CrearCurso() {
     const [mensajeExito, setMensajeExito] = useState("");
     const [errores, setErrores] = useState({});
 
+
     useEffect(() => {
 
         async function cargarCatalogos() {
@@ -122,13 +123,11 @@ function CrearCurso() {
             delete siguiente[name];
             return siguiente;
         });
-
         setError("");
         setMensajeExito("");
     }
 
     function validarFormulario() {
-
         const siguientesErrores = {};
 
         if (!form.codigo.trim()) {
@@ -172,7 +171,6 @@ function CrearCurso() {
 
         setError("");
         setMensajeExito("");
-
         const erroresValidacion = validarFormulario();
 
         if (Object.keys(erroresValidacion).length > 0) {
@@ -181,7 +179,6 @@ function CrearCurso() {
         }
 
         setErrores({});
-
         const payload = {
             codigo: form.codigo.trim(),
             nombre: form.nombre.trim(),
@@ -333,7 +330,6 @@ function CrearCurso() {
                         <h2>Información del curso</h2>
 
                         <div className="curso-form__grid">
-
                             <div className={`curso-field${errores.codigo ? " curso-field--error" : ""}`}>
                                 <label htmlFor="codigo">
                                     Código del curso *
@@ -348,6 +344,7 @@ function CrearCurso() {
                                     onChange={handleChange}
                                     placeholder="Ej. MUS-101"
                                     autoComplete="off"
+
                                     aria-invalid={Boolean(errores.codigo)}
                                     aria-describedby={errores.codigo ? "codigo-error" : undefined}
                                     required
@@ -365,6 +362,7 @@ function CrearCurso() {
                             </div>
 
                             <div className={`curso-field${errores.nombre ? " curso-field--error" : ""}`}>
+
                                 <label htmlFor="nombre">
                                     Nombre del curso *
                                 </label>
@@ -388,6 +386,7 @@ function CrearCurso() {
                                         {errores.nombre}
                                     </span>
                                 )}
+
                             </div>
 
                             <div className="curso-field curso-field--full">
@@ -405,7 +404,9 @@ function CrearCurso() {
                                 />
                             </div>
 
+
                             <div className={`curso-field${errores.horasTotales ? " curso-field--error" : ""}`}>
+
                                 <label htmlFor="horasTotales">
                                     Cantidad de horas *
                                 </label>
@@ -420,6 +421,7 @@ function CrearCurso() {
                                     value={form.horasTotales}
                                     onChange={handleChange}
                                     placeholder="Ej. 40"
+
                                     aria-invalid={Boolean(errores.horasTotales)}
                                     aria-describedby={errores.horasTotales ? "horasTotales-error" : undefined}
                                     required
@@ -433,6 +435,7 @@ function CrearCurso() {
                             </div>
 
                             <div className={`curso-field${errores.nivel ? " curso-field--error" : ""}`}>
+
                                 <label htmlFor="nivel">
                                     Nivel académico *
                                 </label>
@@ -456,6 +459,7 @@ function CrearCurso() {
                                         {errores.nivel}
                                     </span>
                                 )}
+
                             </div>
 
                         </div>
@@ -467,7 +471,9 @@ function CrearCurso() {
 
                         <div className="curso-form__grid">
 
+
                             <div className={`curso-field${errores.idPrograma ? " curso-field--error" : ""}`}>
+
                                 <label htmlFor="idPrograma">
                                     Programa académico *
                                 </label>
@@ -478,8 +484,10 @@ function CrearCurso() {
                                     value={form.idPrograma}
                                     onChange={handleChange}
                                     disabled={cargandoCatalogos}
+
                                     aria-invalid={Boolean(errores.idPrograma)}
                                     aria-describedby={errores.idPrograma ? "idPrograma-error" : undefined}
+
                                     required
                                 >
                                     <option value="">
@@ -517,8 +525,10 @@ function CrearCurso() {
                                     value={form.idPeriodo}
                                     onChange={handleChange}
                                     disabled={cargandoCatalogos}
+
                                     aria-invalid={Boolean(errores.idPeriodo)}
                                     aria-describedby={errores.idPeriodo ? "idPeriodo-error" : undefined}
+
                                     required
                                 >
                                     <option value="">

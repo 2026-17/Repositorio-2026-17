@@ -10,25 +10,30 @@ import org.hibernate.annotations.ColumnDefault;
 @Getter
 @Setter
 @Entity
-@Table(name = "tipos_identificacion")
-public class TipoIdentificacion {
+@Table(name = "tipos_documentos")
+public class TiposDocumento {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id_tipo_identificacion", columnDefinition = "smallint UNSIGNED not null")
+    @Column(name = "id_tipo_documento", columnDefinition = "smallint UNSIGNED not null")
     private Integer id;
 
-    @Size(max = 20)
+    @Size(max = 40)
     @NotNull
-    @Column(name = "codigo", nullable = false, length = 20)
+    @Column(name = "codigo", nullable = false, length = 40)
     private String codigo;
 
-    @Size(max = 60)
+    @Size(max = 100)
     @NotNull
-    @Column(name = "nombre", nullable = false, length = 60)
+    @Column(name = "nombre", nullable = false, length = 100)
     private String nombre;
+
+    @Size(max = 500)
+    @Column(name = "descripcion", length = 500)
+    private String descripcion;
 
     @NotNull
     @ColumnDefault("1")
     @Column(name = "activo", nullable = false)
-    private Boolean activo;
+    private Boolean activo = false;
+
 }

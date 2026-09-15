@@ -36,7 +36,7 @@
         <tag/>
         <url/>
     </scm>
-
+    
    <properties>
     <java.version>21</java.version>
     <lombok.version>1.18.46</lombok.version>
@@ -134,6 +134,7 @@
     <build>
         <plugins>
 
+
                   <plugin>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-maven-plugin</artifactId>
@@ -193,7 +194,6 @@
 
     </executions>
 </plugin>
-
         </plugins>
     </build>
 

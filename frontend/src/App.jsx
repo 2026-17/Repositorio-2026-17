@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom";
 
 import Login from "./pages/Publico/login";
 import CreateUsers from "./pages/AdminSis/createUsers";
+import CreateStudent from "./pages/AdminSis/createStudent";
 import CrearCurso from "./pages/DirectorAcademico/CrearCurso";
 import DesactivarCurso from "./pages/DirectorAcademico/DesactivarCurso";
 import Estudiantes from "./pages/AdminSis/Estudiantes";
@@ -12,15 +13,8 @@ import Reportes from "./pages/AdminSis/Reportes";
 
 import Header from "./components/Header";
 import Footer from "./components/Footer";
-
 import "./components/layout.css";
 
-
-/*
- * Layout general de las páginas internas del sistema.
- * El Login queda fuera porque utiliza su propio diseño.
- * Header muestra las secciones según el rol autenticado (ver components/Header.jsx).
- */
 function Layout() {
     return (
         <div className="sigac-app">
@@ -29,6 +23,7 @@ function Layout() {
             <main className="app-main">
                 <Outlet />
             </main>
+
             <Footer />
         </div>
     );
@@ -38,18 +33,23 @@ function App() {
     return (
         <BrowserRouter>
             <Routes>
+
+                {/* Rutas públicas */}
                 <Route path="/" element={<Login />} />
                 <Route path="/login" element={<Login />} />
 
-
-                {/* Rutas internas: comparten el mismo Layout/Header global,
-                    que muestra la subnavegación correspondiente al rol autenticado. */}
+                {/* Rutas con Layout general (header global) */}
                 <Route element={<Layout />}>
 
-                    {/* Administrador del sistema */}
+                    {/* Administrador */}
                     <Route
                         path="/admin/usuarios/crear"
                         element={<CreateUsers />}
+                    />
+
+                    <Route
+                        path="/admin/estudiantes/crear"
+                        element={<CreateStudent />}
                     />
 
                     {/* Director Académico - HU-028 */}
@@ -64,8 +64,7 @@ function App() {
                         element={<DesactivarCurso />}
                     />
 
-
-                    {/* Administrativo - módulo "Administración Académica" */}
+                    {/* Administración Académica */}
                     <Route
                         path="/admin/administracion/estudiantes"
                         element={<Estudiantes />}

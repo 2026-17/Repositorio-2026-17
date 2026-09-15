@@ -3,8 +3,9 @@ package cr.acusab.una.sigac.logic.service;
 import cr.acusab.una.sigac.data.entity.ContactoEmergencia;
 import cr.acusab.una.sigac.data.entity.Encargado;
 import cr.acusab.una.sigac.data.entity.Estudiante;
-import cr.acusab.una.sigac.data.entity.EstudianteEncargado;
-import cr.acusab.una.sigac.data.entity.TipoIdentificacion;
+import cr.acusab.una.sigac.data.entity.EstudiantesEncargado;
+import cr.acusab.una.sigac.data.entity.EstudiantesEncargadoId;
+import cr.acusab.una.sigac.data.entity.TiposIdentificacion;
 import cr.acusab.una.sigac.data.repository.ContactoEmergenciaRepository;
 import cr.acusab.una.sigac.data.repository.EncargadoRepository;
 import cr.acusab.una.sigac.data.repository.EstudianteEncargadoRepository;
@@ -65,7 +66,7 @@ public class EncargadoService {
         Estudiante estudiante = buscarEstudianteActivo(request.getIdEstudiante());
         validarEstudianteRequiereEncargado(estudiante);
 
-        TipoIdentificacion tipo = buscarTipoIdentificacion(
+        TiposIdentificacion tipo = buscarTipoIdentificacion(
                 request.getIdTipoIdentificacion()
         );
 
@@ -134,9 +135,14 @@ public class EncargadoService {
 
         encargado = encargadoRepository.save(encargado);
 
-        EstudianteEncargado relacion = new EstudianteEncargado();
-        relacion.setIdEstudiante(estudiante.getId());
-        relacion.setIdEncargado(encargado.getId());
+        EstudiantesEncargadoId relacionId = new EstudiantesEncargadoId();
+        relacionId.setIdEstudiante(estudiante.getId());
+        relacionId.setIdEncargado(encargado.getId());
+
+        EstudiantesEncargado relacion = new EstudiantesEncargado();
+        relacion.setId(relacionId);
+        relacion.setEstudiante(estudiante);
+        relacion.setEncargado(encargado);
         relacion.setParentesco(parentesco);
         relacion.setEsResponsablePrincipal(
                 request.getEsResponsablePrincipal()
@@ -177,12 +183,14 @@ public class EncargadoService {
                 .findByIdEstudiante(estudiante.getId())
                 .stream()
                 .map(relacion -> {
-                    Encargado encargado = encargadoRepository
-                            .findById(relacion.getIdEncargado())
-                            .orElseThrow(() -> new ResponseStatusException(
-                                    HttpStatus.NOT_FOUND,
-                                    "Encargado no encontrado."
-                            ));
+                    Encargado encargado = relacion.getEncargado();
+
+                    if (encargado == null) {
+                        throw new ResponseStatusException(
+                                HttpStatus.NOT_FOUND,
+                                "Encargado no encontrado."
+                        );
+                    }
 
                     return toResponse(
                             estudiante.getId(),
@@ -201,7 +209,7 @@ public class EncargadoService {
 
         buscarEstudianteActivo(idEstudiante);
 
-        EstudianteEncargado relacion =
+        EstudiantesEncargado relacion =
                 buscarRelacion(idEstudiante, idEncargado);
 
         Encargado encargado = encargadoRepository
@@ -230,7 +238,7 @@ public class EncargadoService {
 
         validarEstudianteRequiereEncargado(estudiante);
 
-        EstudianteEncargado relacion =
+        EstudiantesEncargado relacion =
                 buscarRelacion(idEstudiante, idEncargado);
 
         Encargado encargado = encargadoRepository
@@ -240,7 +248,7 @@ public class EncargadoService {
                         "Encargado no encontrado o inactivo."
                 ));
 
-        TipoIdentificacion tipo =
+        TiposIdentificacion tipo =
                 buscarTipoIdentificacion(
                         request.getIdTipoIdentificacion()
                 );
@@ -386,11 +394,11 @@ public class EncargadoService {
         }
     }
 
-    private TipoIdentificacion buscarTipoIdentificacion(
+    private TiposIdentificacion buscarTipoIdentificacion(
             Integer idTipoIdentificacion
     ) {
 
-        TipoIdentificacion tipo =
+        TiposIdentificacion tipo =
                 tipoIdentificacionRepository
                         .findById(idTipoIdentificacion)
                         .orElseThrow(() ->
@@ -411,7 +419,7 @@ public class EncargadoService {
     }
 
     private void validarIdentificacion(
-            TipoIdentificacion tipo,
+            TiposIdentificacion tipo,
             String numeroIdentificacion
     ) {
 
@@ -507,7 +515,7 @@ public class EncargadoService {
         }
     }
 
-    private EstudianteEncargado buscarRelacion(
+    private EstudiantesEncargado buscarRelacion(
             Long idEstudiante,
             Long idEncargado
     ) {
@@ -527,7 +535,7 @@ public class EncargadoService {
 
     private void completarDatosEncargado(
             Encargado encargado,
-            TipoIdentificacion tipo,
+            TiposIdentificacion tipo,
             String numeroIdentificacion,
             String nombres,
             String primerApellido,
@@ -674,10 +682,10 @@ public class EncargadoService {
     private EncargadoResponse toResponse(
             Long idEstudiante,
             Encargado encargado,
-            EstudianteEncargado relacion
+            EstudiantesEncargado relacion
     ) {
 
-        TipoIdentificacion tipo =
+        TiposIdentificacion tipo =
                 encargado.getIdTipoIdentificacion();
 
         List<ContactoEmergenciaResponse> contactos =

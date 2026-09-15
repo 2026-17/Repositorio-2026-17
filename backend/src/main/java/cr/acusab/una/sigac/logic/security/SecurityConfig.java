@@ -7,6 +7,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -22,6 +23,7 @@ import java.util.List;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 @AllArgsConstructor
 public class SecurityConfig {
 
@@ -42,7 +44,6 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(request -> {
 
                     CorsConfiguration configuration = new CorsConfiguration();
-
                     // Orígenes fijos
                     List<String> allowedOrigins = new ArrayList<>(Arrays.asList(
                             "http://localhost:5173",
@@ -99,6 +100,12 @@ public class SecurityConfig {
                                 HttpMethod.POST,
                                 "/cursos"
                         )
+                        .hasRole("DIRECTOR_ACADEMICO")
+
+                        // HU-031 - Listado de cursos activos.
+                        // Solo el Director Académico consulta este listado
+                        // desde la pantalla de desactivar curso.
+                        .requestMatchers(HttpMethod.GET, "/cursos")
                         .hasRole("DIRECTOR_ACADEMICO")
 
                         // HU-031 - Desactivar curso de la malla curricular.

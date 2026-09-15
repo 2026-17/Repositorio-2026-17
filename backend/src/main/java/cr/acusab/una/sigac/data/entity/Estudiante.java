@@ -6,6 +6,10 @@ import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -15,33 +19,33 @@ import java.time.LocalDate;
 @Entity
 @Table(name = "estudiantes")
 public class Estudiante {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_estudiante", columnDefinition = "int UNSIGNED not null")
     private Long id;
 
-    @OneToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @OnDelete(action = OnDeleteAction.SET_NULL)
     @JoinColumn(name = "id_usuario")
-    private Usuario idUsuario;
+    private Usuario usuario;
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "id_tipo_identificacion", nullable = false)
-    private TipoIdentificacion idTipoIdentificacion;
+    private TiposIdentificacion idTipoIdentificacion;
 
-    @NotNull
     @Size(max = 40)
+    @NotNull
     @Column(name = "numero_identificacion", nullable = false, length = 40)
     private String numeroIdentificacion;
 
-    @NotNull
     @Size(max = 100)
+    @NotNull
     @Column(name = "nombres", nullable = false, length = 100)
     private String nombres;
 
-    @NotNull
     @Size(max = 80)
+    @NotNull
     @Column(name = "primer_apellido", nullable = false, length = 80)
     private String primerApellido;
 
@@ -72,14 +76,13 @@ public class Estudiante {
     @Column(name = "nivel_escolar", length = 80)
     private String nivelEscolar;
 
-    /*
-     * No existe todavía una entidad CentroEducativo en el backend.
-     * Por eso se conserva únicamente el identificador de la FK.
-     */
-    @Column(name = "id_centro_educativo")
-    private Long idCentroEducativo;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @OnDelete(action = OnDeleteAction.SET_NULL)
+    @JoinColumn(name = "id_centro_educativo")
+    private CentrosEducativo idCentroEducativo;
 
-    @Column(name = "condiciones_relevantes", columnDefinition = "TEXT")
+    @Lob
+    @Column(name = "condiciones_relevantes")
     private String condicionesRelevantes;
 
     @NotNull
@@ -92,19 +95,47 @@ public class Estudiante {
     @NotNull
     @ColumnDefault("1")
     @Column(name = "activo", nullable = false)
-    private Boolean activo;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "id_usuario_ultima_modificacion")
-    private Usuario idUsuarioUltimaModificacion;
+    private Boolean activo = false;
 
     @NotNull
+    @CreationTimestamp
     @ColumnDefault("CURRENT_TIMESTAMP(6)")
     @Column(name = "creado_en", nullable = false)
     private Instant creadoEn;
 
     @NotNull
+    @UpdateTimestamp
     @ColumnDefault("CURRENT_TIMESTAMP(6)")
     @Column(name = "actualizado_en", nullable = false)
     private Instant actualizadoEn;
+
+    @Size(max = 700)
+    @Column(name = "foto_perfil_ruta", length = 700)
+    private String fotoPerfilRuta;
+
+    @Size(max = 255)
+    @Column(name = "foto_perfil_nombre")
+    private String fotoPerfilNombre;
+
+    @Size(max = 50)
+    @Column(name = "foto_perfil_mime", length = 50)
+    private String fotoPerfilMime;
+
+    @Column(name = "foto_perfil_tamano_bytes", columnDefinition = "int UNSIGNED")
+    private Long fotoPerfilTamanoBytes;
+
+    @Column(name = "foto_perfil_actualizada_en")
+    private Instant fotoPerfilActualizadaEn;
+
+    @PrePersist
+    protected void alPersistir() {
+        Instant ahora = Instant.now();
+        if (creadoEn == null) creadoEn = ahora;
+        if (actualizadoEn == null) actualizadoEn = ahora;
+    }
+
+    @PreUpdate
+    protected void alActualizar() {
+        actualizadoEn = Instant.now();
+    }
 }

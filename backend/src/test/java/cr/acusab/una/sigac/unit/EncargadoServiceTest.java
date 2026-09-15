@@ -2,8 +2,9 @@ package cr.acusab.una.sigac.unit;
 
 import cr.acusab.una.sigac.data.entity.Encargado;
 import cr.acusab.una.sigac.data.entity.Estudiante;
-import cr.acusab.una.sigac.data.entity.EstudianteEncargado;
-import cr.acusab.una.sigac.data.entity.TipoIdentificacion;
+import cr.acusab.una.sigac.data.entity.EstudiantesEncargado;
+import cr.acusab.una.sigac.data.entity.EstudiantesEncargadoId;
+import cr.acusab.una.sigac.data.entity.TiposIdentificacion;
 import cr.acusab.una.sigac.data.repository.ContactoEmergenciaRepository;
 import cr.acusab.una.sigac.data.repository.EncargadoRepository;
 import cr.acusab.una.sigac.data.repository.EstudianteEncargadoRepository;
@@ -68,7 +69,7 @@ class EncargadoServiceTest {
     void registrarEncargadoCorrectamente() {
 
         Estudiante estudiante = crearEstudianteMenor();
-        TipoIdentificacion tipo = crearTipoCedula();
+        TiposIdentificacion tipo = crearTipoCedula();
         EncargadoCreateRequest request = crearRequestValido();
 
         when(estudianteRepository.findByIdAndActivoTrue(1L))
@@ -122,7 +123,7 @@ class EncargadoServiceTest {
                 .save(any(Encargado.class));
 
         verify(estudianteEncargadoRepository)
-                .save(any(EstudianteEncargado.class));
+                .save(any(EstudiantesEncargado.class));
     }
 
     @Test
@@ -168,7 +169,7 @@ class EncargadoServiceTest {
     void noDebeRegistrarCedulaInvalida() {
 
         Estudiante estudiante = crearEstudianteMenor();
-        TipoIdentificacion tipo = crearTipoCedula();
+        TiposIdentificacion tipo = crearTipoCedula();
 
         when(estudianteRepository.findByIdAndActivoTrue(1L))
                 .thenReturn(Optional.of(estudiante));
@@ -205,7 +206,7 @@ class EncargadoServiceTest {
     void noDebePermitirMasDeDosContactosEmergencia() {
 
         Estudiante estudiante = crearEstudianteMenor();
-        TipoIdentificacion tipo = crearTipoCedula();
+        TiposIdentificacion tipo = crearTipoCedula();
 
         when(estudianteRepository.findByIdAndActivoTrue(1L))
                 .thenReturn(Optional.of(estudiante));
@@ -255,7 +256,7 @@ class EncargadoServiceTest {
     void noDebeAsociarDosVecesMismoEncargado() {
 
         Estudiante estudiante = crearEstudianteMenor();
-        TipoIdentificacion tipo = crearTipoCedula();
+        TiposIdentificacion tipo = crearTipoCedula();
 
         Encargado encargadoExistente =
                 crearEncargadoExistente(tipo);
@@ -311,16 +312,23 @@ class EncargadoServiceTest {
     void modificarEncargadoCorrectamente() {
 
         Estudiante estudiante = crearEstudianteMenor();
-        TipoIdentificacion tipo = crearTipoCedula();
+        TiposIdentificacion tipo = crearTipoCedula();
 
         Encargado encargado =
                 crearEncargadoExistente(tipo);
 
-        EstudianteEncargado relacion =
-                new EstudianteEncargado();
+        EstudiantesEncargadoId relacionId =
+                new EstudiantesEncargadoId();
 
-        relacion.setIdEstudiante(1L);
-        relacion.setIdEncargado(10L);
+        relacionId.setIdEstudiante(1L);
+        relacionId.setIdEncargado(10L);
+
+        EstudiantesEncargado relacion =
+                new EstudiantesEncargado();
+
+        relacion.setId(relacionId);
+        relacion.setEstudiante(estudiante);
+        relacion.setEncargado(encargado);
         relacion.setParentesco("MADRE");
         relacion.setEsResponsablePrincipal(true);
         relacion.setEsContactoEmergencia(false);
@@ -399,10 +407,10 @@ class EncargadoServiceTest {
         return estudiante;
     }
 
-    private TipoIdentificacion crearTipoCedula() {
+    private TiposIdentificacion crearTipoCedula() {
 
-        TipoIdentificacion tipo =
-                new TipoIdentificacion();
+        TiposIdentificacion tipo =
+                new TiposIdentificacion();
 
         tipo.setId(1);
         tipo.setCodigo("CEDULA");
@@ -413,7 +421,7 @@ class EncargadoServiceTest {
     }
 
     private Encargado crearEncargadoExistente(
-            TipoIdentificacion tipo
+            TiposIdentificacion tipo
     ) {
 
         Encargado encargado =
