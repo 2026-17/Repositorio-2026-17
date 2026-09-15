@@ -258,8 +258,8 @@ CREATE TABLE IF NOT EXISTS profesores (
 
 CREATE TABLE IF NOT EXISTS encargados (
                                           id_encargado                INT UNSIGNED NOT NULL AUTO_INCREMENT,
-                                          id_tipo_identificacion      SMALLINT UNSIGNED NULL,
-                                          numero_identificacion       VARCHAR(40) NULL,
+                                          id_tipo_identificacion      SMALLINT UNSIGNED NOT NULL,
+                                          numero_identificacion       VARCHAR(40) NOT NULL,
     nombres                     VARCHAR(100) NOT NULL,
     primer_apellido             VARCHAR(80) NOT NULL,
     segundo_apellido            VARCHAR(80) NULL,
@@ -267,20 +267,28 @@ CREATE TABLE IF NOT EXISTS encargados (
     telefono_secundario         VARCHAR(30) NULL,
     correo                      VARCHAR(254) NULL,
     ocupacion                   VARCHAR(120) NULL,
+    estado_civil                VARCHAR(40) NULL,
     direccion                   VARCHAR(500) NULL,
     activo                      BOOLEAN NOT NULL DEFAULT TRUE,
     creado_en                   DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     actualizado_en              DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6)
     ON UPDATE CURRENT_TIMESTAMP(6),
+
     CONSTRAINT pk_encargados PRIMARY KEY (id_encargado),
+
     CONSTRAINT uq_encargados_identificacion
     UNIQUE (id_tipo_identificacion, numero_identificacion),
+
     CONSTRAINT fk_encargados_tipos_identificacion
     FOREIGN KEY (id_tipo_identificacion)
     REFERENCES tipos_identificacion (id_tipo_identificacion)
-    ON UPDATE RESTRICT ON DELETE RESTRICT,
-    INDEX idx_encargados_nombre (primer_apellido, segundo_apellido, nombres)
-    ) ENGINE=InnoDB COMMENT='Padres, madres, tutores u otros encargados de estudiantes';
+    ON UPDATE RESTRICT
+    ON DELETE RESTRICT,
+
+    INDEX idx_encargados_nombre
+    (primer_apellido, segundo_apellido, nombres)
+) ENGINE=InnoDB
+COMMENT='Padres, madres, tutores u otros encargados de estudiantes';
 
 CREATE TABLE IF NOT EXISTS estudiantes_encargados (
                                                       id_estudiante               INT UNSIGNED NOT NULL,
@@ -302,6 +310,41 @@ CREATE TABLE IF NOT EXISTS estudiantes_encargados (
     FOREIGN KEY (id_encargado) REFERENCES encargados (id_encargado)
     ON UPDATE RESTRICT ON DELETE RESTRICT
     ) ENGINE=InnoDB COMMENT='Relacion de estudiantes con uno o varios encargados';
+
+CREATE TABLE IF NOT EXISTS contactos_emergencia (
+                                                    id_contacto_emergencia   INT UNSIGNED NOT NULL AUTO_INCREMENT,
+                                                    id_estudiante            INT UNSIGNED NOT NULL,
+                                                    id_encargado             INT UNSIGNED NULL,
+                                                    nombre                   VARCHAR(180) NOT NULL,
+    telefono                 VARCHAR(30) NOT NULL,
+    relacion                 VARCHAR(80) NOT NULL,
+    activo                   BOOLEAN NOT NULL DEFAULT TRUE,
+    creado_en                DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    actualizado_en           DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6)
+    ON UPDATE CURRENT_TIMESTAMP(6),
+
+    CONSTRAINT pk_contactos_emergencia
+    PRIMARY KEY (id_contacto_emergencia),
+
+    CONSTRAINT fk_contactos_emergencia_estudiante
+    FOREIGN KEY (id_estudiante)
+    REFERENCES estudiantes (id_estudiante)
+    ON UPDATE RESTRICT
+    ON DELETE CASCADE,
+
+    CONSTRAINT fk_contactos_emergencia_encargado
+    FOREIGN KEY (id_encargado)
+    REFERENCES encargados (id_encargado)
+    ON UPDATE RESTRICT
+    ON DELETE SET NULL,
+
+    INDEX idx_contactos_emergencia_estudiante
+(id_estudiante, activo),
+
+    INDEX idx_contactos_emergencia_encargado
+(id_encargado, activo)
+    ) ENGINE=InnoDB
+    COMMENT='Contactos de emergencia asociados al expediente del estudiante y opcionalmente a un encargado';
 
 -- =============================================================================
 -- 3. INSTRUMENTOS ESTUDIADOS (NO INVENTARIO NI PRESTAMOS)

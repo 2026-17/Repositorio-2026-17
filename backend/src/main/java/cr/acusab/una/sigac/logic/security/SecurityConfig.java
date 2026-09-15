@@ -75,6 +75,7 @@ public class SecurityConfig {
                             "Authorization",
                             "Content-Type"
                     ));
+
                     return configuration;
                 }))
                 .sessionManagement(sessionManagement ->
@@ -94,7 +95,10 @@ public class SecurityConfig {
 
                         // HU-028 - Crear curso en la malla curricular.
                         // Solo el Director Académico puede crear cursos.
-                        .requestMatchers(HttpMethod.POST, "/cursos")
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/cursos"
+                        )
                         .hasRole("DIRECTOR_ACADEMICO")
 
                         // HU-031 - Desactivar curso de la malla curricular.
@@ -104,6 +108,29 @@ public class SecurityConfig {
                                 "/cursos/*/desactivar"
                         )
                         .hasRole("DIRECTOR_ACADEMICO")
+
+                        // HU-023 - Registrar encargados.
+                        // El personal administrativo gestiona los encargados
+                        // asociados a los expedientes de los estudiantes.
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/encargados"
+                        )
+                        .hasRole("ADMINISTRATIVO")
+
+                        // HU-023 - Consultar encargados.
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/encargados/**"
+                        )
+                        .hasRole("ADMINISTRATIVO")
+
+                        // HU-023 - Modificar encargados y contactos de emergencia.
+                        .requestMatchers(
+                                HttpMethod.PUT,
+                                "/encargados/**"
+                        )
+                        .hasRole("ADMINISTRATIVO")
 
                         // Las demás rutas requieren autenticación.
                         .anyRequest()

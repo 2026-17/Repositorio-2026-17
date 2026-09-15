@@ -5,6 +5,7 @@ import CreateUsers from "./pages/AdminSis/createUsers";
 import CrearCurso from "./pages/DirectorAcademico/CrearCurso";
 import DesactivarCurso from "./pages/DirectorAcademico/DesactivarCurso";
 import Estudiantes from "./pages/AdminSis/Estudiantes";
+import Encargados from "./pages/AdminSis/Encargados";
 import Matricula from "./pages/AdminSis/Matricula";
 import Profesores from "./pages/AdminSis/Profesores";
 import Reportes from "./pages/AdminSis/Reportes";
@@ -68,6 +69,12 @@ function App() {
                     <Route
                         path="/admin/administracion/estudiantes"
                         element={<Estudiantes />}
+                    />
+
+                    {/* Administrativo - HU-023 Registrar encargados */}
+                    <Route
+                        path="/admin/administracion/encargados"
+                        element={<Encargados />}
                     />
 
                     <Route
