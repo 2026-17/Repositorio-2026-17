@@ -47,7 +47,7 @@ public class SecurityConfig {
                     // Orígenes fijos
                     List<String> allowedOrigins = new ArrayList<>(Arrays.asList(
                             "http://localhost:5173",
-                            "https://api.acusab.ed.cr"
+                            "https://sigac.acusab.ed.cr"
                     ));
 
                     // Orígenes adicionales configurados mediante variable de entorno
