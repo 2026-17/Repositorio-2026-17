@@ -65,13 +65,9 @@ public class SecurityConfig {
                                 .map(String::trim)
                                 .filter(origin ->
                                         !origin.isEmpty()
-                                                && !allowedOrigins.contains(
-                                                origin
-                                        )
+                                                && !allowedOrigins.contains(origin)
                                 )
-                                .forEach(
-                                        allowedOrigins::add
-                                );
+                                .forEach(allowedOrigins::add);
                     }
 
                     configuration.setAllowedOrigins(
@@ -114,7 +110,7 @@ public class SecurityConfig {
                          */
                         .requestMatchers(
                                 "/auth/login",
-                                "/api/auth/login",
+                                "/auth/logout",
                                 "/usuarios",
                                 "/roles",
                                 "/estados-usuarios"
@@ -130,6 +126,28 @@ public class SecurityConfig {
                         .requestMatchers(
                                 HttpMethod.POST,
                                 "/cursos"
+                        )
+                        .hasRole("DIRECTOR_ACADEMICO")
+
+                        /*
+                         * Gestión de períodos académicos.
+                         * Cambios incorporados desde origin/main.
+                         */
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/periodos-academicos"
+                        )
+                        .hasRole("DIRECTOR_ACADEMICO")
+
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/periodos-academicos/todos"
+                        )
+                        .hasRole("DIRECTOR_ACADEMICO")
+
+                        .requestMatchers(
+                                HttpMethod.PUT,
+                                "/periodos-academicos/*"
                         )
                         .hasRole("DIRECTOR_ACADEMICO")
 
@@ -175,7 +193,7 @@ public class SecurityConfig {
                          * Rol: ADMINISTRATIVO
                          *
                          * Permite:
-                         * - consultar solicitudes;
+                         * - consultar solicitudes pendientes;
                          * - consultar historial;
                          * - aprobar;
                          * - rechazar.

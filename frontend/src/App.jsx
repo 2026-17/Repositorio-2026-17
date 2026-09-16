@@ -9,14 +9,14 @@ import Login from "./pages/Publico/login";
 
 import CreateUsers from "./pages/AdminSis/createUsers";
 import CreateStudent from "./pages/AdminSis/createStudent";
-import Estudiantes from "./pages/AdminSis/Estudiantes";
-import Encargados from "./pages/AdminSis/Encargados";
 import Matricula from "./pages/AdminSis/Matricula";
 import Profesores from "./pages/AdminSis/Profesores";
 import Reportes from "./pages/AdminSis/Reportes";
 
 import CrearCurso from "./pages/DirectorAcademico/CrearCurso";
 import DesactivarCurso from "./pages/DirectorAcademico/DesactivarCurso";
+import CrearPeriodoAcademico from "./pages/DirectorAcademico/CrearPeriodoAcademico";
+import ModificarPeriodoAcademico from "./pages/DirectorAcademico/ModificarPeriodoAcademico";
 
 import Notificaciones from "./pages/Estudiante/Notificaciones";
 
@@ -70,11 +70,6 @@ function App() {
                         element={<CreateUsers />}
                     />
 
-                    <Route
-                        path="/admin/estudiantes/crear"
-                        element={<CreateStudent />}
-                    />
-
                     {/* =================================================
                         DIRECTOR ACADÉMICO
                        ================================================= */}
@@ -91,19 +86,25 @@ function App() {
                         element={<DesactivarCurso />}
                     />
 
+                    {/* Crear período académico */}
+                    <Route
+                        path="/director-academico/periodos-academicos/crear"
+                        element={<CrearPeriodoAcademico />}
+                    />
+
+                    {/* Consultar / modificar período académico */}
+                    <Route
+                        path="/director-academico/periodos-academicos/modificar"
+                        element={<ModificarPeriodoAcademico />}
+                    />
+
                     {/* =================================================
                         ADMINISTRATIVO
                        ================================================= */}
 
                     <Route
                         path="/admin/administracion/estudiantes"
-                        element={<Estudiantes />}
-                    />
-
-                    {/* HU-023 - Registrar encargados */}
-                    <Route
-                        path="/admin/administracion/encargados"
-                        element={<Encargados />}
+                        element={<CreateStudent />}
                     />
 
                     {/* HU-012 - Confirmar matrícula */}
@@ -126,7 +127,7 @@ function App() {
                         ESTUDIANTE
                        ================================================= */}
 
-                    {/* HU-012 - Consultar notificaciones de matrícula */}
+                    {/* HU-012 - Notificaciones de matrícula */}
                     <Route
                         path="/estudiante/notificaciones"
                         element={<Notificaciones />}

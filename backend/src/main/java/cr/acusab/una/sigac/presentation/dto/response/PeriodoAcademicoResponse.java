@@ -18,5 +18,7 @@ public class PeriodoAcademicoResponse {
     private String nombre;
     private LocalDate fechaInicio;
     private LocalDate fechaFin;
+    private LocalDate fechaInicioMatricula;
+    private LocalDate fechaFinMatricula;
     private String estado;
 }

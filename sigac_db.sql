@@ -564,11 +564,13 @@ CREATE TABLE IF NOT EXISTS periodos_academicos (
     fecha_inicio_matricula     DATE NULL,
     fecha_fin_matricula        DATE NULL,
     estado                     VARCHAR(20) NOT NULL DEFAULT 'PLANIFICADO',
+    id_usuario_ultima_modificacion  INT UNSIGNED NULL,
     creado_en                  DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     actualizado_en             DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6)
     ON UPDATE CURRENT_TIMESTAMP(6),
     CONSTRAINT pk_periodos_academicos PRIMARY KEY (id_periodo),
     CONSTRAINT uq_periodos_academicos_codigo UNIQUE (codigo),
+    CONSTRAINT uq_periodos_academicos_nombre UNIQUE (nombre),
     CONSTRAINT ck_periodos_academicos_fechas
     CHECK (fecha_fin >= fecha_inicio),
     CONSTRAINT ck_periodos_academicos_matricula
@@ -578,6 +580,10 @@ CREATE TABLE IF NOT EXISTS periodos_academicos (
     CONSTRAINT ck_periodos_academicos_estado
     CHECK (estado IN ('PLANIFICADO', 'MATRICULA', 'EN_CURSO',
            'CERRADO', 'CANCELADO')),
+    CONSTRAINT fk_periodos_academicos_usuario_modifica
+    FOREIGN KEY (id_usuario_ultima_modificacion)
+    REFERENCES usuarios (id_usuario)
+    ON UPDATE RESTRICT ON DELETE SET NULL,
     INDEX idx_periodos_academicos_fechas (fecha_inicio, fecha_fin)
     ) ENGINE=InnoDB COMMENT='Ciclos lectivos o periodos academicos';
 
@@ -1718,6 +1724,75 @@ BEGIN
                                                                          'activo', OLD.activo
                                                                  ), NULL);
                                                             END$$
+
+DROP TRIGGER IF EXISTS trg_periodos_academicos_ai_bitacora$$
+CREATE TRIGGER trg_periodos_academicos_ai_bitacora
+    AFTER INSERT ON periodos_academicos
+    FOR EACH ROW
+BEGIN
+    INSERT INTO bitacoras
+    (id_usuario, tabla_afectada, id_registro, accion, datos_anteriores, datos_nuevos)
+    VALUES
+        (NEW.id_usuario_ultima_modificacion, 'periodos_academicos', NEW.id_periodo, 'INSERT', NULL,
+         JSON_OBJECT(
+                 'codigo', NEW.codigo,
+                 'nombre', NEW.nombre,
+                 'fecha_inicio', NEW.fecha_inicio,
+                 'fecha_fin', NEW.fecha_fin,
+                 'fecha_inicio_matricula', NEW.fecha_inicio_matricula,
+                 'fecha_fin_matricula', NEW.fecha_fin_matricula,
+                 'estado', NEW.estado
+         ));
+    END$$
+
+DROP TRIGGER IF EXISTS trg_periodos_academicos_au_bitacora$$
+CREATE TRIGGER trg_periodos_academicos_au_bitacora
+    AFTER UPDATE ON periodos_academicos
+    FOR EACH ROW
+BEGIN
+    INSERT INTO bitacoras
+    (id_usuario, tabla_afectada, id_registro, accion, datos_anteriores, datos_nuevos)
+    VALUES
+        (NEW.id_usuario_ultima_modificacion, 'periodos_academicos', NEW.id_periodo, 'UPDATE',
+         JSON_OBJECT(
+                 'codigo', OLD.codigo,
+                 'nombre', OLD.nombre,
+                 'fecha_inicio', OLD.fecha_inicio,
+                 'fecha_fin', OLD.fecha_fin,
+                 'fecha_inicio_matricula', OLD.fecha_inicio_matricula,
+                 'fecha_fin_matricula', OLD.fecha_fin_matricula,
+                 'estado', OLD.estado
+         ),
+         JSON_OBJECT(
+                 'codigo', NEW.codigo,
+                 'nombre', NEW.nombre,
+                 'fecha_inicio', NEW.fecha_inicio,
+                 'fecha_fin', NEW.fecha_fin,
+                 'fecha_inicio_matricula', NEW.fecha_inicio_matricula,
+                 'fecha_fin_matricula', NEW.fecha_fin_matricula,
+                 'estado', NEW.estado
+         ));
+    END$$
+
+DROP TRIGGER IF EXISTS trg_periodos_academicos_ad_bitacora$$
+CREATE TRIGGER trg_periodos_academicos_ad_bitacora
+    AFTER DELETE ON periodos_academicos
+    FOR EACH ROW
+BEGIN
+    INSERT INTO bitacoras
+    (id_usuario, tabla_afectada, id_registro, accion, datos_anteriores, datos_nuevos)
+    VALUES
+        (OLD.id_usuario_ultima_modificacion, 'periodos_academicos', OLD.id_periodo, 'DELETE',
+         JSON_OBJECT(
+                 'codigo', OLD.codigo,
+                 'nombre', OLD.nombre,
+                 'fecha_inicio', OLD.fecha_inicio,
+                 'fecha_fin', OLD.fecha_fin,
+                 'fecha_inicio_matricula', OLD.fecha_inicio_matricula,
+                 'fecha_fin_matricula', OLD.fecha_fin_matricula,
+                 'estado', OLD.estado
+         ), NULL);
+    END$$
 
                                                             DROP TRIGGER IF EXISTS trg_malla_curricular_ai_bitacora$$
                                                             CREATE TRIGGER trg_malla_curricular_ai_bitacora

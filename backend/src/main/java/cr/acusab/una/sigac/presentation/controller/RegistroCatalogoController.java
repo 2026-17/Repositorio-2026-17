@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/registro/catalogos")
+@RequestMapping("/registro/catalogos")
 public class RegistroCatalogoController {
     private final TipoIdentificacionRepository tipos;
     private final CentroEducativoRepository centros;
