@@ -9,14 +9,15 @@ import Login from "./pages/Publico/login";
 
 import CreateUsers from "./pages/AdminSis/createUsers";
 import CreateStudent from "./pages/AdminSis/createStudent";
-import Matricula from "./pages/AdminSis/Matricula";
-import Profesores from "./pages/AdminSis/Profesores";
-import Reportes from "./pages/AdminSis/Reportes";
 
 import CrearCurso from "./pages/DirectorAcademico/CrearCurso";
 import DesactivarCurso from "./pages/DirectorAcademico/DesactivarCurso";
 import CrearPeriodoAcademico from "./pages/DirectorAcademico/CrearPeriodoAcademico";
 import ModificarPeriodoAcademico from "./pages/DirectorAcademico/ModificarPeriodoAcademico";
+import BecasPagos from "./pages/Administrativa/Estudiantes.jsx";
+import Matricula from "./pages/Administrativa/Matricula.jsx";
+import Profesores from "./pages/Administrativa/Profesores.jsx";
+import Reportes from "./pages/Administrativa/Reportes.jsx";
 
 import Notificaciones from "./pages/Estudiante/Notificaciones";
 
@@ -105,6 +106,12 @@ function App() {
                     <Route
                         path="/admin/administracion/estudiantes"
                         element={<CreateStudent />}
+                    />
+
+                    {/* Administrativo - HU-015 Asignar beca y registrar pago */}
+                    <Route
+                        path="/admin/administracion/becas-pagos"
+                        element={<BecasPagos />}
                     />
 
                     {/* HU-012 - Confirmar matrícula */}

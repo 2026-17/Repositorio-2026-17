@@ -63,6 +63,10 @@ const SUBNAV_POR_ROL = {
             label: "Registrar estudiante",
         },
         {
+            to: "/admin/administracion/becas-pagos",
+            label: "Becas y pagos",
+        },
+        {
             to: "/admin/administracion/matricula",
             label: "Matrícula",
         },

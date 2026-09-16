@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { API_URL } from "../../config/api";
-import "./styles/admin_Sis.css";
+import "../AdminSis/styles/admin_Sis.css";
 
 async function leerRespuesta(response) {
     try {

@@ -3,6 +3,7 @@ package cr.acusab.una.sigac.presentation.dto.request;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -57,8 +58,23 @@ public record EstudianteCreateRequest(
 
         @Size(max = 2, message = "Un estudiante puede registrar como máximo dos encargados")
         @Valid
-        List<EncargadoRequest> encargados
+        List<EncargadoRequest> encargados,
+
+        // Opcional: si viene presente, se asigna la beca junto con el registro del estudiante.
+        @Valid
+        BecaRequest beca
 ) {
+    public record BecaRequest(
+            @NotNull(message = "El período académico de la beca es obligatorio")
+            Long idPeriodo,
+
+            @NotNull(message = "El tipo de beca es obligatorio")
+            Integer idTipoBeca,
+
+            @NotNull(message = "El porcentaje de beca es obligatorio")
+            BigDecimal porcentaje
+    ) {}
+
     public record EncargadoRequest(
             Integer idTipoIdentificacion,
 
