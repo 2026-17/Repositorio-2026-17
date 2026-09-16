@@ -24,6 +24,12 @@ public class RequisitosCursoController {
         return ResponseEntity.ok(service.listarPlanesVigentes());
     }
 
+    @GetMapping("/cursos")
+    public ResponseEntity<List<RequisitosCursoResponseDTO.CursoRequisitoDTO>> listarCursos(
+            @RequestParam Long idPlanEstudio) {
+        return ResponseEntity.ok(service.listarCursosDelPlan(idPlanEstudio));
+    }
+
     @GetMapping
     public ResponseEntity<RequisitosCursoResponseDTO> consultar(
             @RequestParam Long idPlanEstudio,
