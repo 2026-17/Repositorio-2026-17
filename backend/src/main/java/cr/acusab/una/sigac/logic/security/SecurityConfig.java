@@ -100,6 +100,15 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/cursos")
                         .hasRole("DIRECTOR_ACADEMICO")
 
+                        .requestMatchers(HttpMethod.POST, "/periodos-academicos")
+                        .hasRole("DIRECTOR_ACADEMICO")
+
+                        .requestMatchers(HttpMethod.GET, "/periodos-academicos/todos")
+                        .hasRole("DIRECTOR_ACADEMICO")
+
+                        .requestMatchers(HttpMethod.PUT, "/periodos-academicos/*")
+                        .hasRole("DIRECTOR_ACADEMICO")
+
                         .requestMatchers(HttpMethod.GET, "/cursos")
                         .hasRole("DIRECTOR_ACADEMICO")
 

@@ -51,6 +51,9 @@ public class PeriodoAcademico {
     @Column(name = "estado", nullable = false, length = 20)
     private String estado;
 
+    @Column(name = "id_usuario_ultima_modificacion")
+    private Long idUsuarioUltimaModificacion;
+
     @NotNull
     @ColumnDefault("CURRENT_TIMESTAMP(6)")
     @Column(name = "creado_en", nullable = false)

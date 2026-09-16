@@ -5,6 +5,8 @@ import CreateUsers from "./pages/AdminSis/createUsers";
 import CreateStudent from "./pages/AdminSis/createStudent";
 import CrearCurso from "./pages/DirectorAcademico/CrearCurso";
 import DesactivarCurso from "./pages/DirectorAcademico/DesactivarCurso";
+import CrearPeriodoAcademico from "./pages/DirectorAcademico/CrearPeriodoAcademico";
+import ModificarPeriodoAcademico from "./pages/DirectorAcademico/ModificarPeriodoAcademico";
 import Matricula from "./pages/AdminSis/Matricula";
 import Profesores from "./pages/AdminSis/Profesores";
 import Reportes from "./pages/AdminSis/Reportes";
@@ -55,6 +57,18 @@ function App() {
                     <Route
                         path="/director-academico/cursos/desactivar"
                         element={<DesactivarCurso />}
+                    />
+
+                    {/* Director Académico - Crear período académico */}
+                    <Route
+                        path="/director-academico/periodos-academicos/crear"
+                        element={<CrearPeriodoAcademico />}
+                    />
+
+                    {/* Director Académico - Consultar/modificar período académico */}
+                    <Route
+                        path="/director-academico/periodos-academicos/modificar"
+                        element={<ModificarPeriodoAcademico />}
                     />
 
                     {/* Administración Académica */}

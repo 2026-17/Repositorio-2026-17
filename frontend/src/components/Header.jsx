@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import { ChevronDown, LogOut, Menu, X } from "lucide-react";
 import { API_URL } from "../config/api";
 import { etiquetaRol, ROLES } from "../constants/roles";
@@ -7,12 +7,22 @@ import "../pages/AdminSis/styles/admin_Sis.css";
 
 /* Enlaces de la subnavegación, agrupados por rol.
    Cada rol define aquí sus propias secciones; los que aún no tienen
-   páginas quedan con un arreglo vacío listos para cuando existan. */
+   páginas quedan con un arreglo vacío listos para cuando existan.
+
+   Un enlace puede ser directo ({ to, label }) o un desplegable con
+   varias opciones ({ label, children: [{ to, label }, ...] }). */
 const SUBNAV_POR_ROL = {
     [ROLES.ADMINISTRADOR]: [
         { to: "/admin/usuarios/crear", label: "Crear usuario" },
     ],
     [ROLES.DIRECTOR_ACADEMICO]: [
+        {
+            label: "Período académico",
+            children: [
+                { to: "/director-academico/periodos-academicos/crear", label: "Crear" },
+                { to: "/director-academico/periodos-academicos/modificar", label: "Consultar / Modificar" },
+            ],
+        },
         { to: "/director-academico/cursos/crear", label: "Crear curso" },
         { to: "/director-academico/cursos/desactivar", label: "Desactivar curso" },
     ],
@@ -35,9 +45,12 @@ function Header({ titulo = "" }) {
     const rol = localStorage.getItem("rol");
     const nombre = localStorage.getItem("nombre");
     const correo = localStorage.getItem("correo");
+    const location = useLocation();
 
     const [menuAbierto, setMenuAbierto] = useState(false);
     const [subnavAbierto, setSubnavAbierto] = useState(false);
+    const [submenuAbierto, setSubmenuAbierto] = useState(null);
+    const [posicionSubmenu, setPosicionSubmenu] = useState(null);
     const menuRef = useRef(null);
     const subnavRef = useRef(null);
 
@@ -49,6 +62,8 @@ function Header({ titulo = "" }) {
             }
             if (subnavRef.current && !subnavRef.current.contains(e.target)) {
                 setSubnavAbierto(false);
+                setSubmenuAbierto(null);
+                setPosicionSubmenu(null);
             }
         }
         document.addEventListener("mousedown", alClicFuera);
@@ -75,6 +90,43 @@ function Header({ titulo = "" }) {
         } finally {
             limpiarSesionLocal();
         }
+    }
+
+    function cerrarSubnavMovil() {
+        setSubnavAbierto(false);
+        setSubmenuAbierto(null);
+        setPosicionSubmenu(null);
+    }
+
+    /* El panel del desplegable usa position: fixed (calculado aquí)
+       para escapar del recorte que provoca el overflow-x: auto de
+       .subnav. En el menú móvil (flyout en columna) no aplica: ahí
+       el panel se muestra en línea, controlado solo por CSS. */
+    function alternarSubmenu(label, evento) {
+
+        // Se captura el nodo aquí, de forma síncrona: dentro del
+        // callback de abajo el evento sintético ya perdió
+        // currentTarget, porque React lo ejecuta en el render
+        // posterior al del clic.
+        const boton = evento.currentTarget;
+        const esMovil = window.matchMedia("(max-width: 768px)").matches;
+
+        setSubmenuAbierto((prev) => {
+            const siguiente = prev === label ? null : label;
+
+            if (siguiente && !esMovil) {
+                const rect = boton.getBoundingClientRect();
+
+                setPosicionSubmenu({
+                    top: rect.bottom + 4,
+                    left: rect.left,
+                });
+            } else {
+                setPosicionSubmenu(null);
+            }
+
+            return siguiente;
+        });
     }
 
     const enlaces = SUBNAV_POR_ROL[rol] || [];
@@ -144,18 +196,77 @@ function Header({ titulo = "" }) {
                     </button>
 
                     <div className={`subnav-links ${subnavAbierto ? "subnav-links--open" : ""}`}>
-                        {enlaces.map((enlace) => (
-                            <NavLink
-                                key={enlace.to}
-                                to={enlace.to}
-                                className={({ isActive }) =>
-                                    `subnav-item ${isActive ? "active" : ""}`
-                                }
-                                onClick={() => setSubnavAbierto(false)}
-                            >
-                                {enlace.label}
-                            </NavLink>
-                        ))}
+                        {enlaces.map((enlace) => {
+
+                            if (enlace.children) {
+
+                                const activo = enlace.children.some(
+                                    (hijo) => location.pathname === hijo.to
+                                );
+
+                                const abierto = submenuAbierto === enlace.label;
+
+                                return (
+                                    <div className="subnav-dropdown" key={enlace.label}>
+                                        <button
+                                            type="button"
+                                            className={`subnav-item subnav-item--dropdown ${activo ? "active" : ""}`}
+                                            aria-haspopup="true"
+                                            aria-expanded={abierto}
+                                            onClick={(e) => alternarSubmenu(enlace.label, e)}
+                                        >
+                                            {enlace.label}
+                                            <ChevronDown
+                                                size={14}
+                                                className={`subnav-dropdown-chevron ${abierto ? "subnav-dropdown-chevron--open" : ""}`}
+                                            />
+                                        </button>
+
+                                        {abierto && (
+                                            <div
+                                                className="subnav-dropdown-panel"
+                                                role="menu"
+                                                style={
+                                                    posicionSubmenu
+                                                        ? {
+                                                              position: "fixed",
+                                                              top: posicionSubmenu.top,
+                                                              left: posicionSubmenu.left,
+                                                          }
+                                                        : undefined
+                                                }
+                                            >
+                                                {enlace.children.map((hijo) => (
+                                                    <NavLink
+                                                        key={hijo.to}
+                                                        to={hijo.to}
+                                                        className={({ isActive }) =>
+                                                            `subnav-dropdown-link ${isActive ? "active" : ""}`
+                                                        }
+                                                        onClick={cerrarSubnavMovil}
+                                                    >
+                                                        {hijo.label}
+                                                    </NavLink>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            }
+
+                            return (
+                                <NavLink
+                                    key={enlace.to}
+                                    to={enlace.to}
+                                    className={({ isActive }) =>
+                                        `subnav-item ${isActive ? "active" : ""}`
+                                    }
+                                    onClick={cerrarSubnavMovil}
+                                >
+                                    {enlace.label}
+                                </NavLink>
+                            );
+                        })}
                     </div>
                 </nav>
             )}
