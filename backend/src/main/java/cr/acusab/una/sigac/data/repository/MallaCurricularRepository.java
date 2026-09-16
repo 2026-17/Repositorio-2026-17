@@ -8,8 +8,7 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 import java.util.Optional;
 
-public interface MallaCurricularRepository
-        extends JpaRepository<MallaCurricular, Long> {
+public interface MallaCurricularRepository extends JpaRepository<MallaCurricular, Long> {
 
     @Query("""
             SELECT MAX(m.ordenEnNivel)
@@ -24,16 +23,7 @@ public interface MallaCurricularRepository
 
     List<MallaCurricular> findByIdCursoAndActivoTrue(Long idCurso);
 
-    @Query("""
-            SELECT m
-            FROM MallaCurricular m
-            JOIN FETCH m.idCurso
-            WHERE m.idPlanEstudio = :idPlanEstudio
-              AND m.activo = true
-              AND m.idCurso.activo = true
-            ORDER BY m.nivel, m.ordenEnNivel, m.idCurso.nombre
-            """)
-    List<MallaCurricular> findCursosActivosDePlan(
-            @Param("idPlanEstudio") Long idPlanEstudio
+    List<MallaCurricular> findByIdPlanEstudioAndActivoTrueOrderByNivelAscOrdenEnNivelAsc(
+            Long idPlanEstudio
     );
 }
