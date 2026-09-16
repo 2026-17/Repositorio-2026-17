@@ -1,6 +1,7 @@
 package cr.acusab.una.sigac.logic.service;
 
 import cr.acusab.una.sigac.data.entity.Curso;
+import cr.acusab.una.sigac.data.entity.MallaCurricular;
 import cr.acusab.una.sigac.data.entity.PlanEstudio;
 import cr.acusab.una.sigac.data.entity.RequisitosCurso;
 import cr.acusab.una.sigac.data.entity.TiposRequisitosCurso;
@@ -28,7 +29,6 @@ import java.util.stream.Collectors;
 
 @Service
 public class RequisitosCursoService {
-
     private static final String PRERREQUISITO = "PRERREQUISITO";
     private static final String CORREQUISITO = "CORREQUISITO";
 
@@ -63,11 +63,7 @@ public class RequisitosCursoService {
     @Transactional(readOnly = true)
     public List<RequisitosCursoResponseDTO.CursoRequisitoDTO> listarCursosDelPlan(Long idPlanEstudio) {
         obtenerPlan(idPlanEstudio);
-        return mallaRepository.findCursosActivosDePlan(idPlanEstudio).stream()
-                .map(m -> new RequisitosCursoResponseDTO.CursoRequisitoDTO(
-                        m.getIdCurso().getId(), m.getIdCurso().getCodigo(), m.getIdCurso().getNombre(),
-                        m.getNivel(), m.getOrdenEnNivel()))
-                .toList();
+        return construirCursosDelPlan(idPlanEstudio);
     }
 
     @Transactional(readOnly = true)
@@ -77,12 +73,8 @@ public class RequisitosCursoService {
         validarCursoEnPlan(plan.getId(), curso.getId());
 
         RequisitosCursoResponseDTO response = construirRespuestaBase(plan, curso);
-        response.setCursos(mallaRepository.findCursosActivosDePlan(plan.getId()).stream()
-                .map(m -> new RequisitosCursoResponseDTO.CursoRequisitoDTO(
-                        m.getIdCurso().getId(), m.getIdCurso().getCodigo(), m.getIdCurso().getNombre(),
-                        m.getNivel(), m.getOrdenEnNivel()))
-                .filter(c -> !c.getIdCurso().equals(curso.getId()))
-                .toList());
+        response.setCursos(construirCursosDelPlan(plan.getId()).stream()
+                .filter(c -> !c.getIdCurso().equals(curso.getId())).toList());
 
         for (RequisitosCurso requisito : requisitosRepository.findConfiguracionActiva(plan.getId(), curso.getId())) {
             if (PRERREQUISITO.equals(requisito.getIdTipoRequisito().getCodigo())) {
@@ -107,8 +99,9 @@ public class RequisitosCursoService {
             throw new IllegalArgumentException("Un curso no puede ser prerrequisito o correquisito de sí mismo.");
         }
 
-        Set<Long> cursosDelPlan = mallaRepository.findCursosActivosDePlan(plan.getId()).stream()
-                .map(m -> m.getIdCurso().getId()).collect(Collectors.toSet());
+        Set<Long> cursosDelPlan = mallaRepository
+                .findByIdPlanEstudioAndActivoTrueOrderByNivelAscOrdenEnNivelAsc(plan.getId()).stream()
+                .map(MallaCurricular::getIdCurso).collect(Collectors.toSet());
         validarCursosDelPlan(prerrequisitos, cursosDelPlan);
         validarCursosDelPlan(correquisitos, cursosDelPlan);
         validarCiclos(plan.getId(), curso.getId(), prerrequisitos);
@@ -134,18 +127,34 @@ public class RequisitosCursoService {
         if (!eliminar.isEmpty()) requisitosRepository.deleteAll(eliminar);
 
         for (Long idRequerido : prerrequisitos) {
-            String clave = clave(idRequerido, PRERREQUISITO);
-            if (!actualesPorClave.containsKey(clave)) {
+            String key = clave(idRequerido, PRERREQUISITO);
+            if (!actualesPorClave.containsKey(key)) {
                 requisitosRepository.save(crearRelacion(plan, curso, idRequerido, tipoPre, usuario, ahora));
             }
         }
         for (Long idRequerido : correquisitos) {
-            String clave = clave(idRequerido, CORREQUISITO);
-            if (!actualesPorClave.containsKey(clave)) {
+            String key = clave(idRequerido, CORREQUISITO);
+            if (!actualesPorClave.containsKey(key)) {
                 requisitosRepository.save(crearRelacion(plan, curso, idRequerido, tipoCo, usuario, ahora));
             }
         }
         return consultar(plan.getId(), curso.getId());
+    }
+
+    private List<RequisitosCursoResponseDTO.CursoRequisitoDTO> construirCursosDelPlan(Long idPlanEstudio) {
+        List<MallaCurricular> mallas = mallaRepository
+                .findByIdPlanEstudioAndActivoTrueOrderByNivelAscOrdenEnNivelAsc(idPlanEstudio);
+        Set<Long> ids = mallas.stream().map(MallaCurricular::getIdCurso).collect(Collectors.toSet());
+        Map<Long, Curso> cursos = cursoRepository.findAllById(ids).stream()
+                .collect(Collectors.toMap(Curso::getId, c -> c));
+
+        return mallas.stream()
+                .filter(m -> cursos.containsKey(m.getIdCurso()) && Boolean.TRUE.equals(cursos.get(m.getIdCurso()).getActivo()))
+                .map(m -> {
+                    Curso c = cursos.get(m.getIdCurso());
+                    return new RequisitosCursoResponseDTO.CursoRequisitoDTO(
+                            c.getId(), c.getCodigo(), c.getNombre(), m.getNivel(), m.getOrdenEnNivel());
+                }).toList();
     }
 
     private RequisitosCurso crearRelacion(PlanEstudio plan, Curso curso, Long idCursoRequerido,
@@ -200,8 +209,8 @@ public class RequisitosCursoService {
     }
 
     private void validarCursoEnPlan(Long idPlan, Long idCurso) {
-        boolean pertenece = mallaRepository.findCursosActivosDePlan(idPlan).stream()
-                .anyMatch(m -> m.getIdCurso().getId().equals(idCurso));
+        boolean pertenece = mallaRepository.findByIdPlanEstudioAndActivoTrueOrderByNivelAscOrdenEnNivelAsc(idPlan).stream()
+                .anyMatch(m -> m.getIdCurso().equals(idCurso));
         if (!pertenece) throw new IllegalArgumentException("El curso no pertenece al plan de estudio indicado.");
     }
 
