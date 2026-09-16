@@ -51,4 +51,25 @@ public class RequisitosCursoResponseDTO {
         public Short getNivel() { return nivel; }
         public Short getOrdenEnNivel() { return ordenEnNivel; }
     }
+
+    public static class PlanDTO {
+        private Long idPlanEstudio;
+        private String codigo;
+        private String nombre;
+        private String version;
+
+        public PlanDTO() { }
+
+        public PlanDTO(Long idPlanEstudio, String codigo, String nombre, String version) {
+            this.idPlanEstudio = idPlanEstudio;
+            this.codigo = codigo;
+            this.nombre = nombre;
+            this.version = version;
+        }
+
+        public Long getIdPlanEstudio() { return idPlanEstudio; }
+        public String getCodigo() { return codigo; }
+        public String getNombre() { return nombre; }
+        public String getVersion() { return version; }
+    }
 }
