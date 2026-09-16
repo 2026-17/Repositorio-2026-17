@@ -7,6 +7,8 @@ import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/requisitos-cursos")
 public class RequisitosCursoController {
@@ -15,6 +17,11 @@ public class RequisitosCursoController {
 
     public RequisitosCursoController(RequisitosCursoService service) {
         this.service = service;
+    }
+
+    @GetMapping("/planes")
+    public ResponseEntity<List<RequisitosCursoResponseDTO.PlanDTO>> listarPlanes() {
+        return ResponseEntity.ok(service.listarPlanesVigentes());
     }
 
     @GetMapping
