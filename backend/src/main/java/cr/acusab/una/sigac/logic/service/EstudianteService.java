@@ -4,10 +4,14 @@ import cr.acusab.una.sigac.data.entity.*;
 import cr.acusab.una.sigac.data.repository.*;
 import cr.acusab.una.sigac.logic.exception.BusinessException;
 import cr.acusab.una.sigac.logic.exception.DuplicateResourceException;
+import cr.acusab.una.sigac.presentation.dto.request.BecaAsignarRequest;
 import cr.acusab.una.sigac.presentation.dto.request.EstudianteCreateRequest;
+import cr.acusab.una.sigac.presentation.dto.response.BecaResponse;
+import cr.acusab.una.sigac.presentation.dto.response.EstudianteBusquedaResponse;
 import cr.acusab.una.sigac.presentation.dto.response.EstudianteResponse;
 import cr.acusab.una.sigac.presentation.dto.request.EstudianteUpdateRequest;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -45,6 +49,7 @@ public class EstudianteService {
     private final RoleRepository roleRepository;
     private final EstadoUsuarioRepository estadoUsuarioRepository;
     private final PasswordEncoder passwordEncoder;
+    private final BecaService becaService;
 
     @Value("${sigac.storage.documents:./storage/documents}")
     private String storageDirectory;
@@ -61,7 +66,8 @@ public class EstudianteService {
                              UsuarioRepository usuarioRepository,
                              RoleRepository roleRepository,
                              EstadoUsuarioRepository estadoUsuarioRepository,
-                             PasswordEncoder passwordEncoder) {
+                             PasswordEncoder passwordEncoder,
+                             BecaService becaService) {
         this.estudianteRepository = estudianteRepository;
         this.encargadoRepository = encargadoRepository;
         this.estudianteEncargadoRepository = estudianteEncargadoRepository;
@@ -75,6 +81,7 @@ public class EstudianteService {
         this.roleRepository = roleRepository;
         this.estadoUsuarioRepository = estadoUsuarioRepository;
         this.passwordEncoder = passwordEncoder;
+        this.becaService = becaService;
     }
 
     @Transactional
@@ -133,7 +140,18 @@ public class EstudianteService {
         }
 
         guardarPolitica(estudiante, politica, tipoPoliza);
-        return respuesta(estudiante, instrumento.getId(), edad);
+
+        BecaResponse becaAsignada = null;
+        if (request.beca() != null) {
+            BecaAsignarRequest becaRequest = new BecaAsignarRequest();
+            becaRequest.setIdEstudiante(estudiante.getId());
+            becaRequest.setIdPeriodo(request.beca().idPeriodo());
+            becaRequest.setIdTipoBeca(request.beca().idTipoBeca());
+            becaRequest.setPorcentaje(request.beca().porcentaje());
+            becaAsignada = becaService.asignar(becaRequest);
+        }
+
+        return respuesta(estudiante, instrumento.getId(), edad, becaAsignada);
     }
 
     private Usuario crearUsuarioEstudiante(EstudianteCreateRequest request, String identificacion) {
@@ -174,6 +192,30 @@ public class EstudianteService {
         return usuarioRepository.save(usuario);
     }
 
+    private static final int LIMITE_RESULTADOS_BUSQUEDA = 20;
+
+    @Transactional(readOnly = true)
+    public List<EstudianteBusquedaResponse> buscar(String texto) {
+        String normalizado = normalizarNullable(texto);
+        if (normalizado == null || normalizado.length() < 2) {
+            return List.of();
+        }
+        return estudianteRepository
+                .buscarPorNombreOIdentificacion(normalizado, PageRequest.of(0, LIMITE_RESULTADOS_BUSQUEDA))
+                .stream()
+                .map(e -> new EstudianteBusquedaResponse(e.getId(), e.getNumeroIdentificacion(), nombreCompleto(e)))
+                .toList();
+    }
+
+    private String nombreCompleto(Estudiante e) {
+        return String.join(
+                " ",
+                e.getNombres(),
+                e.getPrimerApellido(),
+                e.getSegundoApellido() != null ? e.getSegundoApellido() : ""
+        ).trim().replaceAll("\\s+", " ");
+    }
+
     @Transactional(readOnly = true)
     public EstudianteResponse obtener(Long id) {
         Estudiante estudiante = estudianteRepository.findById(id)
@@ -182,7 +224,7 @@ public class EstudianteService {
                 .filter(x -> x.getEstudiante() != null && Objects.equals(x.getEstudiante().getId(), id)
                         && Boolean.TRUE.equals(x.getEsPrincipal()))
                 .map(x -> x.getInstrumento().getId()).findFirst().orElse(null);
-        return respuesta(estudiante, instrumentoId, calcularEdad(estudiante.getFechaNacimiento()));
+        return respuesta(estudiante, instrumentoId, calcularEdad(estudiante.getFechaNacimiento()), null);
     }
 
     @Transactional
@@ -212,7 +254,7 @@ public class EstudianteService {
                         && Boolean.TRUE.equals(x.getEsPrincipal())).toList();
         if (principales.isEmpty()) crearRelacionInstrumento(estudiante, instrumento);
         else { principales.get(0).setInstrumento(instrumento); estudianteInstrumentoRepository.save(principales.get(0)); }
-        return respuesta(estudiante, instrumento.getId(), edad);
+        return respuesta(estudiante, instrumento.getId(), edad, null);
     }
 
     private void aplicarDatos(Estudiante e, TiposIdentificacion tipo, String identificacion, String nombres,
@@ -243,11 +285,11 @@ public class EstudianteService {
         estudianteInstrumentoRepository.save(relacion);
     }
 
-    private EstudianteResponse respuesta(Estudiante e, Integer instrumentoId, int edad) {
+    private EstudianteResponse respuesta(Estudiante e, Integer instrumentoId, int edad, BecaResponse beca) {
         return new EstudianteResponse(e.getId(), e.getNumeroIdentificacion(), e.getNombres(), e.getPrimerApellido(),
                 e.getSegundoApellido(), e.getFechaNacimiento(), edad, e.getGenero(), e.getDireccion(), e.getTelefono(),
                 e.getCorreo(), e.getNivelEscolar(), e.getIdCentroEducativo() == null ? null : e.getIdCentroEducativo().getId(),
-                instrumentoId, edad < 18);
+                instrumentoId, edad < 18, beca);
     }
 
     private int calcularEdad(LocalDate nacimiento) {

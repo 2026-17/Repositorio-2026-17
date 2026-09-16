@@ -5,10 +5,10 @@ import CreateUsers from "./pages/AdminSis/createUsers";
 import CreateStudent from "./pages/AdminSis/createStudent";
 import CrearCurso from "./pages/DirectorAcademico/CrearCurso";
 import DesactivarCurso from "./pages/DirectorAcademico/DesactivarCurso";
-import Estudiantes from "./pages/AdminSis/Estudiantes";
-import Matricula from "./pages/AdminSis/Matricula";
-import Profesores from "./pages/AdminSis/Profesores";
-import Reportes from "./pages/AdminSis/Reportes";
+import Estudiantes from "./pages/Administrativa/Estudiantes.jsx";
+import Matricula from "./pages/Administrativa/Matricula.jsx";
+import Profesores from "./pages/Administrativa/Profesores.jsx";
+import Reportes from "./pages/Administrativa/Reportes.jsx";
 
 import Header from "./components/Header";
 import Footer from "./components/Footer";

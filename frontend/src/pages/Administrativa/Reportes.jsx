@@ -1,4 +1,4 @@
-import "./styles/admin_Sis.css";
+import "../AdminSis/styles/admin_Sis.css";
 
 function Reportes() {
     return (
