@@ -40,17 +40,18 @@ public class SecurityConfig {
             @Value("${cors.allowed-origins:}") String extraAllowedOrigins
     ) throws Exception {
 
-        http.csrf(csrf -> csrf.disable())
+        http
+                .csrf(csrf -> csrf.disable())
+
                 .cors(cors -> cors.configurationSource(request -> {
 
                     CorsConfiguration configuration = new CorsConfiguration();
-                    // Orígenes fijos
+
                     List<String> allowedOrigins = new ArrayList<>(Arrays.asList(
                             "http://localhost:5173",
-                            "https://api.acusab.ed.cr"
+                            "https://sigac.acusab.ed.cr"
                     ));
 
-                    // Orígenes adicionales configurados mediante variable de entorno
                     if (extraAllowedOrigins != null && !extraAllowedOrigins.isBlank()) {
                         Arrays.stream(extraAllowedOrigins.split(","))
                                 .map(String::trim)
@@ -79,50 +80,59 @@ public class SecurityConfig {
 
                     return configuration;
                 }))
+
                 .sessionManagement(sessionManagement ->
                         sessionManagement.sessionCreationPolicy(
                                 SessionCreationPolicy.STATELESS
                         )
                 )
+
                 .authorizeHttpRequests(auth -> auth
 
-                        // Rutas públicas existentes.
                         .requestMatchers(
                                 "/auth/login",
+                                "/auth/logout",
                                 "/usuarios",
                                 "/roles",
                                 "/estados-usuarios"
                         ).permitAll()
 
-                        // HU-028 - Crear curso en la malla curricular.
-                        // Solo el Director Académico puede crear cursos.
                         .requestMatchers(HttpMethod.POST, "/cursos")
                         .hasRole("DIRECTOR_ACADEMICO")
 
-                        // HU-031 - Listado de cursos activos.
-                        // Solo el Director Académico consulta este listado
-                        // desde la pantalla de desactivar curso.
+                        .requestMatchers(HttpMethod.POST, "/periodos-academicos")
+                        .hasRole("DIRECTOR_ACADEMICO")
+
+                        .requestMatchers(HttpMethod.GET, "/periodos-academicos/todos")
+                        .hasRole("DIRECTOR_ACADEMICO")
+
+                        .requestMatchers(HttpMethod.PUT, "/periodos-academicos/*")
+                        .hasRole("DIRECTOR_ACADEMICO")
+
                         .requestMatchers(HttpMethod.GET, "/cursos")
                         .hasRole("DIRECTOR_ACADEMICO")
 
-                        // HU-031 - Desactivar curso de la malla curricular.
-                        // Solo el Director Académico puede desactivar cursos.
-                        .requestMatchers(
-                                HttpMethod.PATCH,
-                                "/cursos/*/desactivar"
-                        )
+                        .requestMatchers(HttpMethod.PATCH, "/cursos/*/desactivar")
                         .hasRole("DIRECTOR_ACADEMICO")
 
-                        // Las demás rutas requieren autenticación.
+                        .requestMatchers(HttpMethod.POST, "/encargados")
+                        .hasRole("ADMINISTRATIVO")
+
+                        .requestMatchers(HttpMethod.GET, "/encargados/**")
+                        .hasRole("ADMINISTRATIVO")
+
+                        .requestMatchers(HttpMethod.PUT, "/encargados/**")
+                        .hasRole("ADMINISTRATIVO")
+
                         .anyRequest()
                         .authenticated()
                 )
+
                 .addFilterBefore(
                         jwtAuthenticationFilter,
                         UsernamePasswordAuthenticationFilter.class
                 );
-
-        return http.build();
+        return  http.build();
     }
 
     @Bean

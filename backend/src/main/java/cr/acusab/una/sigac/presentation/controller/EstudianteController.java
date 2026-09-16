@@ -16,14 +16,14 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/estudiantes")
+@RequestMapping("/estudiantes")
 public class EstudianteController {
     private final EstudianteService estudianteService;
 
     public EstudianteController(EstudianteService estudianteService) { this.estudianteService = estudianteService; }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    @PreAuthorize("hasRole('ADMINISTRATIVO')")
     public ResponseEntity<EstudianteResponse> crear(@Valid @RequestPart("estudiante") EstudianteCreateRequest request, @RequestPart("politica") MultipartFile politica) {
         return ResponseEntity.status(HttpStatus.CREATED).body(estudianteService.crear(request, politica));
     }
@@ -45,7 +45,7 @@ public class EstudianteController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    @PreAuthorize("hasRole('ADMINISTRATIVO')")
     public ResponseEntity<EstudianteResponse> actualizar(@PathVariable Long id, @Valid @RequestBody EstudianteUpdateRequest request) {
         return ResponseEntity.ok(estudianteService.actualizar(id, request));
     }

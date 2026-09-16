@@ -10,11 +10,18 @@ import java.util.List;
 import java.util.Optional;
 
 public interface EstudianteRepository extends JpaRepository<Estudiante, Long> {
+
     boolean existsByIdTipoIdentificacion_IdAndNumeroIdentificacion(
-            Integer idTipoIdentificacion, String numeroIdentificacion);
+            Integer idTipoIdentificacion,
+            String numeroIdentificacion
+    );
 
     Optional<Estudiante> findByIdTipoIdentificacion_IdAndNumeroIdentificacion(
-            Integer idTipoIdentificacion, String numeroIdentificacion);
+            Integer idTipoIdentificacion,
+            String numeroIdentificacion
+    );
+
+    Optional<Estudiante> findByIdAndActivoTrue(Long id);
 
     // Busqueda por nombre, apellidos o numero de identificacion,
     // usada en la pantalla de Administracion Academica para ubicar

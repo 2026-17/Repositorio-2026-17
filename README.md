@@ -159,7 +159,6 @@ export DB_USER=sigac_app
 export DB_PASSWORD='cambie-esta-contrasena'
 export JWT_SECRET_KEY='clave-base64-segura-de-al-menos-32-bytes'
 export CORS_ALLOWED_ORIGINS='http://localhost:5173'
-export SERVER_SERVLET_CONTEXT_PATH=/api
 
 cd backend
 ./mvnw spring-boot:run
@@ -175,13 +174,12 @@ $env:DB_USER = "sigac_app"
 $env:DB_PASSWORD = "cambie-esta-contrasena"
 $env:JWT_SECRET_KEY = "clave-base64-segura-de-al-menos-32-bytes"
 $env:CORS_ALLOWED_ORIGINS = "http://localhost:5173"
-$env:SERVER_SERVLET_CONTEXT_PATH = "/api"
 
 cd backend
 .\mvnw.cmd spring-boot:run
 ```
 
-El contexto `/api` se establece únicamente para desarrollo local porque el frontend solicita `http://localhost:8080/api`. En Railway, Nginx elimina ese prefijo antes de reenviar la solicitud al backend.
+Las rutas del backend nunca incluyen el prefijo `/api`. El prefijo solo existe de cara al frontend: en desarrollo local, el proxy de Vite recibe las solicitudes a `/api/...` y las reenvía al backend en `http://localhost:8080` quitando ese prefijo antes de entregarlas; en Railway, Nginx hace exactamente lo mismo antes de reenviar al backend.
 
 ### 4. Ejecutar el frontend
 
@@ -193,7 +191,7 @@ npm ci
 npm run dev
 ```
 
-La aplicación quedará disponible normalmente en `http://localhost:5173` y el backend en `http://localhost:8080/api`.
+La aplicación quedará disponible normalmente en `http://localhost:5173` y las solicitudes a `/api/...` se redirigen al backend en `http://localhost:8080`.
 
 ## Variables de entorno
 
@@ -207,7 +205,6 @@ La aplicación quedará disponible normalmente en `http://localhost:5173` y el b
 | `JWT_SECRET_KEY` | Sí | — | Secreto para firmar JWT con HS256. |
 | `CORS_ALLOWED_ORIGINS` | No | `https://sigac.acusab.ed.cr` | Orígenes adicionales, separados por comas. |
 | `PORT` | No | `8080` | Puerto HTTP del backend. |
-| `SERVER_SERVLET_CONTEXT_PATH` | Solo local | `/api` | Alinea el backend local con la URL usada por el frontend. |
 
 No incluya valores reales ni credenciales en archivos versionados. En Railway deben configurarse como variables del servicio.
 

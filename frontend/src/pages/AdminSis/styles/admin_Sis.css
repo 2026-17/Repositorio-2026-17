@@ -169,6 +169,58 @@ body {
     font-weight: 600;
 }
 
+/* Desplegable dentro de la subnavegación (p. ej. "Período académico") */
+.subnav-dropdown {
+    position: relative;
+}
+.subnav-item--dropdown {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: none;
+    font-family: inherit;
+}
+.subnav-dropdown-chevron {
+    transition: transform 0.15s ease;
+}
+.subnav-dropdown-chevron--open {
+    transform: rotate(180deg);
+}
+.subnav-dropdown-panel {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    min-width: 200px;
+    background: var(--blanco);
+    border: 1px solid var(--borde);
+    border-radius: 10px;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.14);
+    padding: 6px;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    animation: dropdown-in 0.12s ease-out;
+}
+.subnav-dropdown-link {
+    padding: 10px 12px;
+    border-radius: 7px;
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--texto);
+    text-decoration: none;
+    white-space: nowrap;
+}
+.subnav-dropdown-link:hover {
+    background: #f4eef7;
+    color: var(--morado-01);
+}
+.subnav-dropdown-link.active {
+    background: #f4eef7;
+    color: var(--morado-01);
+    font-weight: 600;
+}
+
 /* ---------- Selector de decisión (radios) ---------- */
 .radio-row {
     display: flex;
@@ -643,6 +695,21 @@ body {
         border-bottom-color: #f0eee9;
         border-left-color: var(--morado-01);
         background: #faf7fc;
+    }
+    .subnav-links .subnav-item--dropdown {
+        width: 100%;
+        justify-content: space-between;
+    }
+    .subnav-links .subnav-dropdown-panel {
+        position: static;
+        box-shadow: none;
+        border: none;
+        border-radius: 0;
+        padding: 0 0 0 14px;
+        background: #faf7fc;
+    }
+    .subnav-links .subnav-dropdown-link {
+        border-radius: 0;
     }
 }
 

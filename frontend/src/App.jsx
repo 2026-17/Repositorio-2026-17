@@ -5,7 +5,9 @@ import CreateUsers from "./pages/AdminSis/createUsers";
 import CreateStudent from "./pages/AdminSis/createStudent";
 import CrearCurso from "./pages/DirectorAcademico/CrearCurso";
 import DesactivarCurso from "./pages/DirectorAcademico/DesactivarCurso";
-import Estudiantes from "./pages/Administrativa/Estudiantes.jsx";
+import CrearPeriodoAcademico from "./pages/DirectorAcademico/CrearPeriodoAcademico";
+import ModificarPeriodoAcademico from "./pages/DirectorAcademico/ModificarPeriodoAcademico";
+import BecasPagos from "./pages/Administrativa/Estudiantes.jsx";
 import Matricula from "./pages/Administrativa/Matricula.jsx";
 import Profesores from "./pages/Administrativa/Profesores.jsx";
 import Reportes from "./pages/Administrativa/Reportes.jsx";
@@ -46,11 +48,6 @@ function App() {
                         element={<CreateUsers />}
                     />
 
-                    <Route
-                        path="/admin/estudiantes/crear"
-                        element={<CreateStudent />}
-                    />
-
                     {/* Director Académico - HU-028 */}
                     <Route
                         path="/director-academico/cursos/crear"
@@ -63,10 +60,28 @@ function App() {
                         element={<DesactivarCurso />}
                     />
 
+                    {/* Director Académico - Crear período académico */}
+                    <Route
+                        path="/director-academico/periodos-academicos/crear"
+                        element={<CrearPeriodoAcademico />}
+                    />
+
+                    {/* Director Académico - Consultar/modificar período académico */}
+                    <Route
+                        path="/director-academico/periodos-academicos/modificar"
+                        element={<ModificarPeriodoAcademico />}
+                    />
+
                     {/* Administración Académica */}
                     <Route
                         path="/admin/administracion/estudiantes"
-                        element={<Estudiantes />}
+                        element={<CreateStudent />}
+                    />
+
+                    {/* Administrativo - HU-015 Asignar beca y registrar pago */}
+                    <Route
+                        path="/admin/administracion/becas-pagos"
+                        element={<BecasPagos />}
                     />
 
                     <Route
