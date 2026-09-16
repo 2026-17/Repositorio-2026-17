@@ -10,12 +10,11 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 
 /*
  * HU-026 - Registrar instrumentos que aprende el estudiante.
  *
- * Se expone como sub-recurso de /api/estudiantes porque la HU
+ * Se expone como sub-recurso de /estudiantes porque la HU
  * habla de "asociar el instrumento al expediente académico del
  * estudiante": el instrumento siempre se gestiona en contexto
  * de un estudiante puntual.
@@ -28,7 +27,7 @@ import java.util.Map;
  * historial de asignaciones anteriores.
  */
 @RestController
-@RequestMapping("/api/estudiantes/{idEstudiante}/instrumentos")
+@RequestMapping("/estudiantes/{idEstudiante}/instrumentos")
 public class InstrumentoEstudianteController {
 
     private final InstrumentoEstudianteService instrumentoEstudianteService;
