@@ -466,6 +466,97 @@ class PagoServiceTest {
 
     /*
      * ============================================================
+     * Ver y eliminar el comprobante de un pago registrado
+     * ============================================================
+     */
+
+    @Test
+    void obtenerComprobanteCorrectamente() {
+
+        DocumentosEstudiante documento = new DocumentosEstudiante();
+        documento.setId(900L);
+        documento.setUbicacionArchivo(tempDir.resolve("comprobante.pdf").toString());
+        documento.setTipoMime("application/pdf");
+        documento.setNombreOriginal("comprobante.pdf");
+
+        MensualidadesEstudiante mensualidad = new MensualidadesEstudiante();
+        mensualidad.setId(700L);
+        mensualidad.setIdDocumentoComprobante(documento);
+        when(mensualidadEstudianteRepository.findById(700L)).thenReturn(Optional.of(mensualidad));
+
+        PagoService.ComprobanteArchivo resultado = pagoService.obtenerComprobante(700L);
+
+        assertEquals(documento.getUbicacionArchivo(), resultado.rutaArchivo());
+        assertEquals("application/pdf", resultado.tipoMime());
+        assertEquals("comprobante.pdf", resultado.nombreOriginal());
+    }
+
+    @Test
+    void noDebeObtenerComprobanteSiPagoNoExiste() {
+
+        when(mensualidadEstudianteRepository.findById(700L)).thenReturn(Optional.empty());
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> pagoService.obtenerComprobante(700L)
+        );
+
+        assertEquals("El pago indicado no existe.", exception.getMessage());
+    }
+
+    @Test
+    void noDebeObtenerComprobanteSiPagoNoTieneDocumento() {
+
+        MensualidadesEstudiante mensualidad = new MensualidadesEstudiante();
+        mensualidad.setId(700L);
+        when(mensualidadEstudianteRepository.findById(700L)).thenReturn(Optional.of(mensualidad));
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> pagoService.obtenerComprobante(700L)
+        );
+
+        assertEquals("Este pago no tiene comprobante adjunto.", exception.getMessage());
+    }
+
+    @Test
+    void eliminarPagoCorrectamente() throws Exception {
+
+        Path archivo = tempDir.resolve("comprobante.pdf");
+        java.nio.file.Files.writeString(archivo, "contenido");
+
+        DocumentosEstudiante documento = new DocumentosEstudiante();
+        documento.setId(900L);
+        documento.setUbicacionArchivo(archivo.toString());
+
+        MensualidadesEstudiante mensualidad = new MensualidadesEstudiante();
+        mensualidad.setId(700L);
+        mensualidad.setIdDocumentoComprobante(documento);
+        when(mensualidadEstudianteRepository.findById(700L)).thenReturn(Optional.of(mensualidad));
+
+        pagoService.eliminarPago(700L);
+
+        verify(mensualidadEstudianteRepository).delete(mensualidad);
+        verify(documentoEstudianteRepository).delete(documento);
+        assertFalse(java.nio.file.Files.exists(archivo));
+    }
+
+    @Test
+    void noDebeEliminarPagoInexistente() {
+
+        when(mensualidadEstudianteRepository.findById(700L)).thenReturn(Optional.empty());
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> pagoService.eliminarPago(700L)
+        );
+
+        assertEquals("El pago indicado no existe.", exception.getMessage());
+        verify(mensualidadEstudianteRepository, never()).delete(any(MensualidadesEstudiante.class));
+    }
+
+    /*
+     * ============================================================
      * Métodos auxiliares para las pruebas
      * ============================================================
      */

@@ -215,6 +215,59 @@ public class PagoService {
         return response;
     }
 
+    /*
+     * Comprobante adjunto a un pago ya registrado, para poder verlo
+     * (ej. confirmar que no se subió el archivo equivocado).
+     *
+     * Se extraen los datos dentro de la transaccion (en vez de devolver
+     * la entidad tal cual) porque id_documento_comprobante es una
+     * relacion "lazy": si se devuelve la entidad y se leen sus campos
+     * despues, con la sesion de Hibernate ya cerrada (open-in-view esta
+     * desactivado), truena con LazyInitializationException.
+     */
+    @Transactional(readOnly = true)
+    public ComprobanteArchivo obtenerComprobante(Long idMensualidad) {
+        MensualidadesEstudiante mensualidad = mensualidadEstudianteRepository.findById(idMensualidad)
+                .orElseThrow(() -> new BusinessException("El pago indicado no existe."));
+
+        DocumentosEstudiante documento = mensualidad.getIdDocumentoComprobante();
+        if (documento == null) {
+            throw new BusinessException("Este pago no tiene comprobante adjunto.");
+        }
+        return new ComprobanteArchivo(
+                documento.getUbicacionArchivo(),
+                documento.getTipoMime(),
+                documento.getNombreOriginal()
+        );
+    }
+
+    public record ComprobanteArchivo(String rutaArchivo, String tipoMime, String nombreOriginal) {}
+
+    /*
+     * Elimina un pago ya registrado (y su comprobante), dejando el mes
+     * nuevamente pendiente. Es la forma de "modificar" un pago: se
+     * elimina el que se subió por error y se vuelve a registrar.
+     */
+    @Transactional
+    public void eliminarPago(Long idMensualidad) {
+
+        MensualidadesEstudiante mensualidad = mensualidadEstudianteRepository.findById(idMensualidad)
+                .orElseThrow(() -> new BusinessException("El pago indicado no existe."));
+
+        DocumentosEstudiante documento = mensualidad.getIdDocumentoComprobante();
+
+        mensualidadEstudianteRepository.delete(mensualidad);
+
+        if (documento != null) {
+            try {
+                Files.deleteIfExists(Paths.get(documento.getUbicacionArchivo()));
+            } catch (IOException ignored) {
+                // El registro igual se limpia aunque el archivo físico no se pueda borrar.
+            }
+            documentoEstudianteRepository.delete(documento);
+        }
+    }
+
     @Transactional(readOnly = true)
     public List<PagoResponse> listarHistorial(Long idEstudiante) {
 

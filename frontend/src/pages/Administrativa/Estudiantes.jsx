@@ -8,6 +8,8 @@ import {
     Clock,
     AlertTriangle,
     X,
+    Eye,
+    Trash2,
 } from "lucide-react";
 import { API_URL } from "../../config/api";
 import "../AdminSis/styles/admin_Sis.css";
@@ -66,6 +68,7 @@ function Estudiantes() {
     const [mesSeleccionado, setMesSeleccionado] = useState("");
     const [estadoMes, setEstadoMes] = useState(null);
     const [cargandoEstadoMes, setCargandoEstadoMes] = useState(false);
+    const [errorEstadoMes, setErrorEstadoMes] = useState("");
 
     // --- Formulario "Registrar pago" ---
     const [fechaPago, setFechaPago] = useState(todayISO());
@@ -73,6 +76,12 @@ function Estudiantes() {
     const [erroresPago, setErroresPago] = useState({});
     const [guardandoPago, setGuardandoPago] = useState(false);
     const [errorPago, setErrorPago] = useState("");
+
+    // --- Ver / eliminar el pago ya registrado ---
+    const [confirmarEliminarPago, setConfirmarEliminarPago] = useState(false);
+    const [eliminandoPago, setEliminandoPago] = useState(false);
+    const [abriendoComprobante, setAbriendoComprobante] = useState(false);
+    const [errorAccionPago, setErrorAccionPago] = useState("");
 
     // Catálogo de períodos académicos, se carga una sola vez.
     useEffect(() => {
@@ -162,20 +171,29 @@ function Estudiantes() {
 
         setCargandoEstadoMes(true);
         setEstadoMes(null);
+        setErrorEstadoMes("");
         setErrorPago("");
         setErroresPago({});
         setComprobante(null);
         setFechaPago(todayISO());
+        setConfirmarEliminarPago(false);
+        setErrorAccionPago("");
 
         try {
             const params = new URLSearchParams({ idPeriodo, anio, mes });
             const response = await fetch(`/api/pagos/estudiante/${estudiante.id}/mes?${params}`, {
                 headers: authHeaders,
             });
-            if (!response.ok) throw new Error();
-            setEstadoMes(await response.json());
-        } catch {
+            const body = await response.json().catch(() => ({}));
+
+            if (response.status === 401) throw new Error("La sesión ha expirado. Inicie sesión nuevamente.");
+            if (response.status === 403) throw new Error("No tiene permisos para consultar pagos.");
+            if (!response.ok) throw new Error(body.message || "No fue posible consultar el estado de pago.");
+
+            setEstadoMes(body);
+        } catch (e) {
             setEstadoMes(null);
+            setErrorEstadoMes(e.message || "Ocurrió un error al consultar el estado de pago.");
         } finally {
             setCargandoEstadoMes(false);
         }
@@ -237,6 +255,54 @@ function Estudiantes() {
             setErrorPago(e.message || "Ocurrió un error al registrar el pago.");
         } finally {
             setGuardandoPago(false);
+        }
+    }
+
+    async function verComprobante() {
+        setErrorAccionPago("");
+        setAbriendoComprobante(true);
+        try {
+            const response = await fetch(`/api/pagos/${estadoMes.idMensualidad}/comprobante`, {
+                headers: authHeaders,
+            });
+            if (response.status === 401) throw new Error("La sesión ha expirado. Inicie sesión nuevamente.");
+            if (response.status === 403) throw new Error("No tiene permisos para ver el comprobante.");
+            if (response.status === 404) throw new Error("No se encontró el comprobante (404). Verifique que el backend tenga los cambios más recientes.");
+            if (!response.ok) {
+                const body = await response.json().catch(() => ({}));
+                throw new Error(body.message || `No fue posible abrir el comprobante (código ${response.status}).`);
+            }
+            const blob = await response.blob();
+            const url = URL.createObjectURL(blob);
+            window.open(url, "_blank", "noopener,noreferrer");
+        } catch (e) {
+            setErrorAccionPago(e.message || "No fue posible abrir el comprobante.");
+        } finally {
+            setAbriendoComprobante(false);
+        }
+    }
+
+    async function eliminarPagoAhora() {
+        setErrorAccionPago("");
+        try {
+            setEliminandoPago(true);
+            const response = await fetch(`/api/pagos/${estadoMes.idMensualidad}`, {
+                method: "DELETE",
+                headers: authHeaders,
+            });
+            if (response.status === 401) throw new Error("La sesión ha expirado. Inicie sesión nuevamente.");
+            if (response.status === 403) throw new Error("No tiene permisos para eliminar pagos.");
+            if (response.status === 404) throw new Error("No se encontró el pago (404). Verifique que el backend tenga los cambios más recientes.");
+            if (!response.ok && response.status !== 204) {
+                const body = await response.json().catch(() => ({}));
+                throw new Error(body.message || `No fue posible eliminar el pago (código ${response.status}).`);
+            }
+            setConfirmarEliminarPago(false);
+            await consultarEstadoMes();
+        } catch (e) {
+            setErrorAccionPago(e.message || "No fue posible eliminar el pago.");
+        } finally {
+            setEliminandoPago(false);
         }
     }
 
@@ -349,6 +415,10 @@ function Estudiantes() {
 
                         {cargandoEstadoMes && <p className="hint">Consultando estado de pago...</p>}
 
+                        {!cargandoEstadoMes && errorEstadoMes && (
+                            <div className="banner banner-danger" role="alert"><AlertTriangle size={16} /> {errorEstadoMes}</div>
+                        )}
+
                         {!cargandoEstadoMes && estadoMes && (
                             <>
                                 <div className={`banner ${estadoMes.sinPagosPendientes || estadoMes.pagada ? "banner-success" : "banner-warning"}`}>
@@ -367,6 +437,31 @@ function Estudiantes() {
                                             <strong>{formatoColones(estadoMes.monto)}</strong>
                                         </div>
                                         <p className="hint">Fecha de pago: {estadoMes.fechaPago}</p>
+
+                                        {errorAccionPago && <p className="error">{errorAccionPago}</p>}
+
+                                        {confirmarEliminarPago ? (
+                                            <div className="banner banner-warning" style={{ marginTop: 12, marginBottom: 0 }}>
+                                                ¿Confirma eliminar este pago? El mes quedará pendiente de nuevo.
+                                                <div style={{ display: "flex", gap: 8, marginLeft: "auto" }}>
+                                                    <button type="button" className="btn btn-secondary" onClick={() => setConfirmarEliminarPago(false)} disabled={eliminandoPago}>
+                                                        Cancelar
+                                                    </button>
+                                                    <button type="button" className="btn btn-primary" onClick={eliminarPagoAhora} disabled={eliminandoPago}>
+                                                        {eliminandoPago ? "Eliminando..." : "Sí, eliminar"}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+                                                <button type="button" className="btn btn-secondary" onClick={verComprobante} disabled={abriendoComprobante}>
+                                                    <Eye size={15} /> {abriendoComprobante ? "Abriendo..." : "Ver comprobante"}
+                                                </button>
+                                                <button type="button" className="btn btn-secondary" onClick={() => setConfirmarEliminarPago(true)}>
+                                                    <Trash2 size={15} /> Eliminar pago
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
                                 ) : (
                                     <>

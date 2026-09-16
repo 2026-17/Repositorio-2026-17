@@ -5,6 +5,9 @@ import cr.acusab.una.sigac.presentation.dto.request.RegistrarPagoRequest;
 import cr.acusab.una.sigac.presentation.dto.response.EstadoMesPagoResponse;
 import cr.acusab.una.sigac.presentation.dto.response.PagoResponse;
 import jakarta.validation.Valid;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -58,5 +61,32 @@ public class PagoController {
             @RequestParam Integer anio,
             @RequestParam Short mes) {
         return ResponseEntity.ok(pagoService.consultarEstadoMes(idEstudiante, idPeriodo, anio, mes));
+    }
+
+    /*
+     * Ver el comprobante adjunto a un pago ya registrado.
+     */
+    @GetMapping("/{idMensualidad}/comprobante")
+    @PreAuthorize("hasRole('ADMINISTRATIVO')")
+    public ResponseEntity<Resource> verComprobante(@PathVariable Long idMensualidad) {
+
+        PagoService.ComprobanteArchivo comprobante = pagoService.obtenerComprobante(idMensualidad);
+        Resource archivo = new FileSystemResource(comprobante.rutaArchivo());
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(comprobante.tipoMime()))
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + comprobante.nombreOriginal() + "\"")
+                .body(archivo);
+    }
+
+    /*
+     * Elimina un pago registrado por error (y su comprobante), dejando
+     * el mes pendiente de nuevo para poder registrarlo correctamente.
+     */
+    @DeleteMapping("/{idMensualidad}")
+    @PreAuthorize("hasRole('ADMINISTRATIVO')")
+    public ResponseEntity<Void> eliminarPago(@PathVariable Long idMensualidad) {
+        pagoService.eliminarPago(idMensualidad);
+        return ResponseEntity.noContent().build();
     }
 }
