@@ -23,4 +23,17 @@ public interface MallaCurricularRepository
     );
 
     List<MallaCurricular> findByIdCursoAndActivoTrue(Long idCurso);
+
+    @Query("""
+            SELECT m
+            FROM MallaCurricular m
+            JOIN FETCH m.idCurso
+            WHERE m.idPlanEstudio = :idPlanEstudio
+              AND m.activo = true
+              AND m.idCurso.activo = true
+            ORDER BY m.nivel, m.ordenEnNivel, m.idCurso.nombre
+            """)
+    List<MallaCurricular> findCursosActivosDePlan(
+            @Param("idPlanEstudio") Long idPlanEstudio
+    );
 }
