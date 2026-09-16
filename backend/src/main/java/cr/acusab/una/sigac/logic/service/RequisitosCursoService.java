@@ -1,7 +1,6 @@
 package cr.acusab.una.sigac.logic.service;
 
 import cr.acusab.una.sigac.data.entity.Curso;
-import cr.acusab.una.sigac.data.entity.MallaCurricular;
 import cr.acusab.una.sigac.data.entity.PlanEstudio;
 import cr.acusab.una.sigac.data.entity.RequisitosCurso;
 import cr.acusab.una.sigac.data.entity.TiposRequisitosCurso;
@@ -20,7 +19,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -41,19 +39,26 @@ public class RequisitosCursoService {
     private final PlanEstudioRepository planRepository;
     private final UsuarioRepository usuarioRepository;
 
-    public RequisitosCursoService(
-            RequisitosCursoRepository requisitosRepository,
-            TiposRequisitosCursoRepository tiposRepository,
-            CursoRepository cursoRepository,
-            MallaCurricularRepository mallaRepository,
-            PlanEstudioRepository planRepository,
-            UsuarioRepository usuarioRepository) {
+    public RequisitosCursoService(RequisitosCursoRepository requisitosRepository,
+                                  TiposRequisitosCursoRepository tiposRepository,
+                                  CursoRepository cursoRepository,
+                                  MallaCurricularRepository mallaRepository,
+                                  PlanEstudioRepository planRepository,
+                                  UsuarioRepository usuarioRepository) {
         this.requisitosRepository = requisitosRepository;
         this.tiposRepository = tiposRepository;
         this.cursoRepository = cursoRepository;
         this.mallaRepository = mallaRepository;
         this.planRepository = planRepository;
         this.usuarioRepository = usuarioRepository;
+    }
+
+    @Transactional(readOnly = true)
+    public List<RequisitosCursoResponseDTO.PlanDTO> listarPlanesVigentes() {
+        return planRepository.findByVigenteTrueOrderByNombreAsc().stream()
+                .map(p -> new RequisitosCursoResponseDTO.PlanDTO(
+                        p.getId(), p.getCodigo(), p.getNombre(), p.getVersion()))
+                .toList();
     }
 
     @Transactional(readOnly = true)
@@ -65,11 +70,8 @@ public class RequisitosCursoService {
         RequisitosCursoResponseDTO response = construirRespuestaBase(plan, curso);
         response.setCursos(mallaRepository.findCursosActivosDePlan(plan.getId()).stream()
                 .map(m -> new RequisitosCursoResponseDTO.CursoRequisitoDTO(
-                        m.getIdCurso().getId(),
-                        m.getIdCurso().getCodigo(),
-                        m.getIdCurso().getNombre(),
-                        m.getNivel(),
-                        m.getOrdenEnNivel()))
+                        m.getIdCurso().getId(), m.getIdCurso().getCodigo(),
+                        m.getIdCurso().getNombre(), m.getNivel(), m.getOrdenEnNivel()))
                 .filter(c -> !c.getIdCurso().equals(curso.getId()))
                 .toList());
 
@@ -80,7 +82,6 @@ public class RequisitosCursoService {
                 response.getCorrequisitos().add(requisito.getIdCursoRequerido().getId());
             }
         }
-
         return response;
     }
 
@@ -100,7 +101,6 @@ public class RequisitosCursoService {
         Set<Long> cursosDelPlan = mallaRepository.findCursosActivosDePlan(plan.getId()).stream()
                 .map(m -> m.getIdCurso().getId())
                 .collect(Collectors.toSet());
-
         validarCursosDelPlan(prerrequisitos, cursosDelPlan);
         validarCursosDelPlan(correquisitos, cursosDelPlan);
         validarCiclos(plan.getId(), curso.getId(), prerrequisitos);
@@ -117,25 +117,14 @@ public class RequisitosCursoService {
         }
 
         Set<String> deseados = new HashSet<>();
-        for (Long idRequerido : prerrequisitos) {
-            deseados.add(clave(idRequerido, PRERREQUISITO));
-        }
-        for (Long idRequerido : correquisitos) {
-            deseados.add(clave(idRequerido, CORREQUISITO));
-        }
+        prerrequisitos.forEach(id -> deseados.add(clave(id, PRERREQUISITO)));
+        correquisitos.forEach(id -> deseados.add(clave(id, CORREQUISITO)));
 
-        // Eliminar únicamente relaciones que ya no fueron seleccionadas.
         List<RequisitosCurso> eliminar = actuales.stream()
-                .filter(r -> !deseados.contains(clave(
-                        r.getIdCursoRequerido().getId(),
-                        r.getIdTipoRequisito().getCodigo())))
+                .filter(r -> !deseados.contains(clave(r.getIdCursoRequerido().getId(), r.getIdTipoRequisito().getCodigo())))
                 .toList();
-        if (!eliminar.isEmpty()) {
-            requisitosRepository.deleteAll(eliminar);
-        }
+        if (!eliminar.isEmpty()) requisitosRepository.deleteAll(eliminar);
 
-        // Crear únicamente relaciones nuevas. Las que permanecen no generan
-        // cambios innecesarios en la bitácora.
         for (Long idRequerido : prerrequisitos) {
             String clave = clave(idRequerido, PRERREQUISITO);
             if (!actualesPorClave.containsKey(clave)) {
@@ -148,23 +137,15 @@ public class RequisitosCursoService {
                 requisitosRepository.save(crearRelacion(plan, curso, idRequerido, tipoCo, usuario, ahora));
             }
         }
-
         return consultar(plan.getId(), curso.getId());
     }
 
-    private RequisitosCurso crearRelacion(
-            PlanEstudio plan,
-            Curso curso,
-            Long idCursoRequerido,
-            TiposRequisitosCurso tipo,
-            Usuario usuario,
-            Instant ahora) {
-        Curso requerido = obtenerCurso(idCursoRequerido);
-
+    private RequisitosCurso crearRelacion(PlanEstudio plan, Curso curso, Long idCursoRequerido,
+                                          TiposRequisitosCurso tipo, Usuario usuario, Instant ahora) {
         RequisitosCurso relacion = new RequisitosCurso();
         relacion.setIdPlanEstudio(plan);
         relacion.setIdCurso(curso);
-        relacion.setIdCursoRequerido(requerido);
+        relacion.setIdCursoRequerido(obtenerCurso(idCursoRequerido));
         relacion.setIdTipoRequisito(tipo);
         relacion.setNotaMinima(null);
         relacion.setActivo(true);
@@ -176,66 +157,46 @@ public class RequisitosCursoService {
 
     private void validarCiclos(Long idPlanEstudio, Long idCursoConfigurado, Set<Long> nuevosPrerrequisitos) {
         Map<Long, Set<Long>> grafo = new HashMap<>();
-
         for (RequisitosCurso r : requisitosRepository.findActivosPorPlanYTipo(idPlanEstudio, PRERREQUISITO)) {
-            // Las relaciones actuales del curso que se está configurando
-            // serán reemplazadas por la nueva selección.
             if (!r.getIdCurso().getId().equals(idCursoConfigurado)) {
                 grafo.computeIfAbsent(r.getIdCurso().getId(), k -> new HashSet<>())
                         .add(r.getIdCursoRequerido().getId());
             }
         }
-
         grafo.computeIfAbsent(idCursoConfigurado, k -> new HashSet<>()).addAll(nuevosPrerrequisitos);
 
         Set<Long> visitados = new HashSet<>();
         Set<Long> enRuta = new HashSet<>();
         for (Long nodo : grafo.keySet()) {
             if (hayCiclo(nodo, grafo, visitados, enRuta)) {
-                throw new IllegalArgumentException(
-                        "La configuración de prerrequisitos genera un ciclo entre cursos.");
+                throw new IllegalArgumentException("La configuración de prerrequisitos genera un ciclo entre cursos.");
             }
         }
     }
 
-    private boolean hayCiclo(
-            Long nodo,
-            Map<Long, Set<Long>> grafo,
-            Set<Long> visitados,
-            Set<Long> enRuta) {
-        if (enRuta.contains(nodo)) {
-            return true;
-        }
-        if (visitados.contains(nodo)) {
-            return false;
-        }
-
+    private boolean hayCiclo(Long nodo, Map<Long, Set<Long>> grafo,
+                             Set<Long> visitados, Set<Long> enRuta) {
+        if (enRuta.contains(nodo)) return true;
+        if (visitados.contains(nodo)) return false;
         visitados.add(nodo);
         enRuta.add(nodo);
-
         for (Long siguiente : grafo.getOrDefault(nodo, Set.of())) {
-            if (hayCiclo(siguiente, grafo, visitados, enRuta)) {
-                return true;
-            }
+            if (hayCiclo(siguiente, grafo, visitados, enRuta)) return true;
         }
-
         enRuta.remove(nodo);
         return false;
     }
 
     private void validarCursosDelPlan(Set<Long> seleccionados, Set<Long> cursosDelPlan) {
         if (!cursosDelPlan.containsAll(seleccionados)) {
-            throw new IllegalArgumentException(
-                    "Todos los cursos seleccionados deben pertenecer al plan de estudio indicado.");
+            throw new IllegalArgumentException("Todos los cursos seleccionados deben pertenecer al plan de estudio indicado.");
         }
     }
 
     private void validarCursoEnPlan(Long idPlan, Long idCurso) {
         boolean pertenece = mallaRepository.findCursosActivosDePlan(idPlan).stream()
                 .anyMatch(m -> m.getIdCurso().getId().equals(idCurso));
-        if (!pertenece) {
-            throw new IllegalArgumentException("El curso no pertenece al plan de estudio indicado.");
-        }
+        if (!pertenece) throw new IllegalArgumentException("El curso no pertenece al plan de estudio indicado.");
     }
 
     private PlanEstudio obtenerPlan(Long id) {
@@ -263,14 +224,10 @@ public class RequisitosCursoService {
     }
 
     private Set<Long> normalizar(List<Long> ids) {
-        return ids == null ? new HashSet<>() : ids.stream()
-                .filter(id -> id != null)
-                .collect(Collectors.toSet());
+        return ids == null ? new HashSet<>() : ids.stream().filter(id -> id != null).collect(Collectors.toSet());
     }
 
-    private String clave(Long idCurso, String tipo) {
-        return idCurso + ":" + tipo;
-    }
+    private String clave(Long idCurso, String tipo) { return idCurso + ":" + tipo; }
 
     private RequisitosCursoResponseDTO construirRespuestaBase(PlanEstudio plan, Curso curso) {
         RequisitosCursoResponseDTO response = new RequisitosCursoResponseDTO();
