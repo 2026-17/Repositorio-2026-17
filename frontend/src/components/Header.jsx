@@ -28,6 +28,7 @@ const SUBNAV_POR_ROL = {
     ],
     [ROLES.ADMINISTRATIVO]: [
         { to: "/admin/administracion/estudiantes", label: "Registrar estudiante" },
+        { to: "/admin/administracion/becas-pagos", label: "Becas y pagos" },
         { to: "/admin/administracion/matricula", label: "Matricula" },
         { to: "/admin/administracion/profesores", label: "Profesores" },
         { to: "/admin/administracion/reportes", label: "Reportes" },

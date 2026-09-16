@@ -2,6 +2,7 @@ package cr.acusab.una.sigac.presentation.controller;
 
 import cr.acusab.una.sigac.logic.service.EstudianteService;
 import cr.acusab.una.sigac.presentation.dto.request.EstudianteCreateRequest;
+import cr.acusab.una.sigac.presentation.dto.response.EstudianteBusquedaResponse;
 import cr.acusab.una.sigac.presentation.dto.response.EstudianteResponse;
 import cr.acusab.una.sigac.presentation.dto.request.EstudianteUpdateRequest;
 import jakarta.validation.Valid;
@@ -11,6 +12,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/estudiantes")
@@ -23,6 +26,16 @@ public class EstudianteController {
     @PreAuthorize("hasRole('ADMINISTRATIVO')")
     public ResponseEntity<EstudianteResponse> crear(@Valid @RequestPart("estudiante") EstudianteCreateRequest request, @RequestPart("politica") MultipartFile politica) {
         return ResponseEntity.status(HttpStatus.CREATED).body(estudianteService.crear(request, politica));
+    }
+
+    /*
+     * Busqueda de estudiantes por nombre o cedula, usada en Administracion
+     * Academica para ubicar al estudiante antes de ver su beca o pagos.
+     */
+    @GetMapping
+    @PreAuthorize("hasRole('ADMINISTRATIVO')")
+    public ResponseEntity<List<EstudianteBusquedaResponse>> buscar(@RequestParam(required = false) String texto) {
+        return ResponseEntity.ok(estudianteService.buscar(texto));
     }
 
     @GetMapping("/{id}")

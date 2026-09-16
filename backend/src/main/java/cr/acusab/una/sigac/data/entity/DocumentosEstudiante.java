@@ -86,10 +86,15 @@ public class DocumentosEstudiante {
     @Column(name = "cargado_en", nullable = false)
     private Instant cargadoEn;
 
-    @OneToMany
+    // mappedBy: estas colecciones son el lado inverso de una FK que ya
+    // existe en la otra tabla (documentos_estudiantes.id_documento). Sin
+    // mappedBy, Hibernate asume una relacion unidireccional con tabla
+    // intermedia propia, que no existe en el esquema real, y falla al
+    // intentar borrar un documento (ej. al eliminar un pago).
+    @OneToMany(mappedBy = "documentosEstudiantes")
     private Set<AutorizacionesMatricula> autorizacionesMatriculas = new LinkedHashSet<>();
 
-    @OneToMany
+    @OneToMany(mappedBy = "idDocumentoComprobante")
     private Set<MensualidadesEstudiante> mensualidadesEstudiantes = new LinkedHashSet<>();
 
     @PrePersist

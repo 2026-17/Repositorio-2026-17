@@ -17,5 +17,7 @@ public record EstudianteResponse(
         String nivelEscolar,
         Long idCentroEducativo,
         Integer idInstrumento,
-        boolean menor
+        boolean menor,
+        // Presente solo cuando se asignó una beca durante el registro.
+        BecaResponse beca
 ) {}
