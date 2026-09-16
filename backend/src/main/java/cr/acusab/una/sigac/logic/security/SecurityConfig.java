@@ -45,15 +45,23 @@ public class SecurityConfig {
 
                 .cors(cors -> cors.configurationSource(request -> {
 
-                    CorsConfiguration configuration = new CorsConfiguration();
+                    CorsConfiguration configuration =
+                            new CorsConfiguration();
 
-                    List<String> allowedOrigins = new ArrayList<>(Arrays.asList(
-                            "http://localhost:5173",
-                            "https://sigac.acusab.ed.cr"
-                    ));
+                    List<String> allowedOrigins =
+                            new ArrayList<>(
+                                    Arrays.asList(
+                                            "http://localhost:5173",
+                                            "https://sigac.acusab.ed.cr"
+                                    )
+                            );
 
-                    if (extraAllowedOrigins != null && !extraAllowedOrigins.isBlank()) {
-                        Arrays.stream(extraAllowedOrigins.split(","))
+                    if (extraAllowedOrigins != null
+                            && !extraAllowedOrigins.isBlank()) {
+
+                        Arrays.stream(
+                                        extraAllowedOrigins.split(",")
+                                )
                                 .map(String::trim)
                                 .filter(origin ->
                                         !origin.isEmpty()
@@ -62,21 +70,27 @@ public class SecurityConfig {
                                 .forEach(allowedOrigins::add);
                     }
 
-                    configuration.setAllowedOrigins(allowedOrigins);
+                    configuration.setAllowedOrigins(
+                            allowedOrigins
+                    );
 
-                    configuration.setAllowedMethods(Arrays.asList(
-                            "GET",
-                            "POST",
-                            "PUT",
-                            "PATCH",
-                            "DELETE",
-                            "OPTIONS"
-                    ));
+                    configuration.setAllowedMethods(
+                            Arrays.asList(
+                                    "GET",
+                                    "POST",
+                                    "PUT",
+                                    "PATCH",
+                                    "DELETE",
+                                    "OPTIONS"
+                            )
+                    );
 
-                    configuration.setAllowedHeaders(Arrays.asList(
-                            "Authorization",
-                            "Content-Type"
-                    ));
+                    configuration.setAllowedHeaders(
+                            Arrays.asList(
+                                    "Authorization",
+                                    "Content-Type"
+                            )
+                    );
 
                     return configuration;
                 }))
@@ -89,41 +103,140 @@ public class SecurityConfig {
 
                 .authorizeHttpRequests(auth -> auth
 
+                        /*
+                         * =====================================================
+                         * Endpoints públicos
+                         * =====================================================
+                         */
                         .requestMatchers(
                                 "/auth/login",
                                 "/auth/logout",
                                 "/usuarios",
                                 "/roles",
                                 "/estados-usuarios"
-                        ).permitAll()
+                        )
+                        .permitAll()
 
-                        .requestMatchers(HttpMethod.POST, "/cursos")
+                        /*
+                         * =====================================================
+                         * Gestión de cursos
+                         * Rol: DIRECTOR_ACADEMICO
+                         * =====================================================
+                         */
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/cursos"
+                        )
                         .hasRole("DIRECTOR_ACADEMICO")
 
-                        .requestMatchers(HttpMethod.POST, "/periodos-academicos")
+                        /*
+                         * Gestión de períodos académicos.
+                         * Cambios incorporados desde origin/main.
+                         */
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/periodos-academicos"
+                        )
                         .hasRole("DIRECTOR_ACADEMICO")
 
-                        .requestMatchers(HttpMethod.GET, "/periodos-academicos/todos")
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/periodos-academicos/todos"
+                        )
                         .hasRole("DIRECTOR_ACADEMICO")
 
-                        .requestMatchers(HttpMethod.PUT, "/periodos-academicos/*")
+                        .requestMatchers(
+                                HttpMethod.PUT,
+                                "/periodos-academicos/*"
+                        )
                         .hasRole("DIRECTOR_ACADEMICO")
 
-                        .requestMatchers(HttpMethod.GET, "/cursos")
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/cursos"
+                        )
                         .hasRole("DIRECTOR_ACADEMICO")
 
-                        .requestMatchers(HttpMethod.PATCH, "/cursos/*/desactivar")
+                        .requestMatchers(
+                                HttpMethod.PATCH,
+                                "/cursos/*/desactivar"
+                        )
                         .hasRole("DIRECTOR_ACADEMICO")
 
-                        .requestMatchers(HttpMethod.POST, "/encargados")
+                        /*
+                         * =====================================================
+                         * Gestión de encargados
+                         * Rol: ADMINISTRATIVO
+                         * =====================================================
+                         */
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/encargados"
+                        )
                         .hasRole("ADMINISTRATIVO")
 
-                        .requestMatchers(HttpMethod.GET, "/encargados/**")
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/encargados/**"
+                        )
                         .hasRole("ADMINISTRATIVO")
 
-                        .requestMatchers(HttpMethod.PUT, "/encargados/**")
+                        .requestMatchers(
+                                HttpMethod.PUT,
+                                "/encargados/**"
+                        )
                         .hasRole("ADMINISTRATIVO")
 
+                        /*
+                         * =====================================================
+                         * HU-012 - Confirmar matrícula
+                         * Rol: ADMINISTRATIVO
+                         *
+                         * Permite:
+                         * - consultar solicitudes pendientes;
+                         * - consultar historial;
+                         * - aprobar;
+                         * - rechazar.
+                         * =====================================================
+                         */
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/autorizaciones-matricula/**"
+                        )
+                        .hasRole("ADMINISTRATIVO")
+
+                        .requestMatchers(
+                                HttpMethod.PATCH,
+                                "/autorizaciones-matricula/**"
+                        )
+                        .hasRole("ADMINISTRATIVO")
+
+                        /*
+                         * =====================================================
+                         * HU-012 - Notificaciones del estudiante
+                         * Rol: ESTUDIANTE
+                         *
+                         * Permite:
+                         * - consultar sus propias notificaciones;
+                         * - marcar una notificación como leída.
+                         * =====================================================
+                         */
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/notificaciones-estudiante/**"
+                        )
+                        .hasRole("ESTUDIANTE")
+
+                        .requestMatchers(
+                                HttpMethod.PATCH,
+                                "/notificaciones-estudiante/**"
+                        )
+                        .hasRole("ESTUDIANTE")
+
+                        /*
+                         * Cualquier otro endpoint necesita
+                         * un usuario autenticado.
+                         */
                         .anyRequest()
                         .authenticated()
                 )
@@ -132,13 +245,15 @@ public class SecurityConfig {
                         jwtAuthenticationFilter,
                         UsernamePasswordAuthenticationFilter.class
                 );
-        return  http.build();
+
+        return http.build();
     }
 
     @Bean
     public AuthenticationManager authenticationManager(
             AuthenticationConfiguration config
     ) throws Exception {
+
         return config.getAuthenticationManager();
     }
 }

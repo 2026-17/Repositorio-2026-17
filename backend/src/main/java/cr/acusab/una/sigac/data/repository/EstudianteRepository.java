@@ -9,19 +9,33 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 import java.util.Optional;
 
-public interface EstudianteRepository extends JpaRepository<Estudiante, Long> {
+public interface EstudianteRepository
+        extends JpaRepository<Estudiante, Long> {
 
     boolean existsByIdTipoIdentificacion_IdAndNumeroIdentificacion(
             Integer idTipoIdentificacion,
             String numeroIdentificacion
     );
 
-    Optional<Estudiante> findByIdTipoIdentificacion_IdAndNumeroIdentificacion(
+    Optional<Estudiante>
+    findByIdTipoIdentificacion_IdAndNumeroIdentificacion(
             Integer idTipoIdentificacion,
             String numeroIdentificacion
     );
 
-    Optional<Estudiante> findByIdAndActivoTrue(Long id);
+    Optional<Estudiante> findByIdAndActivoTrue(
+            Long id
+    );
+
+    /*
+     * Permite identificar al estudiante correspondiente
+     * al usuario que inició sesión.
+     *
+     * El JWT utiliza la cédula como nombre de autenticación.
+     */
+    Optional<Estudiante> findByUsuario_Cedula(
+            String cedula
+    );
 
     // Busqueda por nombre, apellidos o numero de identificacion,
     // usada en la pantalla de Administracion Academica para ubicar
