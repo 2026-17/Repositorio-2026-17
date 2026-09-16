@@ -1,18 +1,28 @@
-import { BrowserRouter, Routes, Route, Outlet } from "react-router-dom";
+import {
+    BrowserRouter,
+    Routes,
+    Route,
+    Outlet,
+} from "react-router-dom";
 
 import Login from "./pages/Publico/login";
+
 import CreateUsers from "./pages/AdminSis/createUsers";
 import CreateStudent from "./pages/AdminSis/createStudent";
-import CrearCurso from "./pages/DirectorAcademico/CrearCurso";
-import DesactivarCurso from "./pages/DirectorAcademico/DesactivarCurso";
 import Estudiantes from "./pages/AdminSis/Estudiantes";
 import Encargados from "./pages/AdminSis/Encargados";
 import Matricula from "./pages/AdminSis/Matricula";
 import Profesores from "./pages/AdminSis/Profesores";
 import Reportes from "./pages/AdminSis/Reportes";
 
+import CrearCurso from "./pages/DirectorAcademico/CrearCurso";
+import DesactivarCurso from "./pages/DirectorAcademico/DesactivarCurso";
+
+import Notificaciones from "./pages/Estudiante/Notificaciones";
+
 import Header from "./components/Header";
 import Footer from "./components/Footer";
+
 import "./components/layout.css";
 
 function Layout() {
@@ -34,14 +44,27 @@ function App() {
         <BrowserRouter>
             <Routes>
 
-                {/* Rutas públicas */}
-                <Route path="/" element={<Login />} />
-                <Route path="/login" element={<Login />} />
+                {/* =====================================================
+                    Rutas públicas
+                   ===================================================== */}
+                <Route
+                    path="/"
+                    element={<Login />}
+                />
 
-                {/* Rutas con Layout general (header global) */}
+                <Route
+                    path="/login"
+                    element={<Login />}
+                />
+
+                {/* =====================================================
+                    Rutas internas con layout general
+                   ===================================================== */}
                 <Route element={<Layout />}>
 
-                    {/* Administrador */}
+                    {/* =================================================
+                        ADMINISTRADOR
+                       ================================================= */}
                     <Route
                         path="/admin/usuarios/crear"
                         element={<CreateUsers />}
@@ -52,30 +75,38 @@ function App() {
                         element={<CreateStudent />}
                     />
 
-                    {/* Director Académico - HU-028 */}
+                    {/* =================================================
+                        DIRECTOR ACADÉMICO
+                       ================================================= */}
+
+                    {/* HU-028 - Crear curso */}
                     <Route
                         path="/director-academico/cursos/crear"
                         element={<CrearCurso />}
                     />
 
-                    {/* Director Académico - HU-031 */}
+                    {/* HU-031 - Desactivar curso */}
                     <Route
                         path="/director-academico/cursos/desactivar"
                         element={<DesactivarCurso />}
                     />
 
-                    {/* Administración Académica */}
+                    {/* =================================================
+                        ADMINISTRATIVO
+                       ================================================= */}
+
                     <Route
                         path="/admin/administracion/estudiantes"
                         element={<Estudiantes />}
                     />
 
-                    {/* Administrativo - HU-023 Registrar encargados */}
+                    {/* HU-023 - Registrar encargados */}
                     <Route
                         path="/admin/administracion/encargados"
                         element={<Encargados />}
                     />
 
+                    {/* HU-012 - Confirmar matrícula */}
                     <Route
                         path="/admin/administracion/matricula"
                         element={<Matricula />}
@@ -89,6 +120,16 @@ function App() {
                     <Route
                         path="/admin/administracion/reportes"
                         element={<Reportes />}
+                    />
+
+                    {/* =================================================
+                        ESTUDIANTE
+                       ================================================= */}
+
+                    {/* HU-012 - Consultar notificaciones de matrícula */}
+                    <Route
+                        path="/estudiante/notificaciones"
+                        element={<Notificaciones />}
                     />
 
                 </Route>

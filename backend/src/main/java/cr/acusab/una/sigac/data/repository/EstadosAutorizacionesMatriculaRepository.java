@@ -1,0 +1,14 @@
+package cr.acusab.una.sigac.data.repository;
+
+import cr.acusab.una.sigac.data.entity.EstadosAutorizacionesMatricula;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.Optional;
+
+public interface EstadosAutorizacionesMatriculaRepository
+        extends JpaRepository<EstadosAutorizacionesMatricula, Integer> {
+
+    Optional<EstadosAutorizacionesMatricula> findByCodigoAndActivoTrue(
+            String codigo
+    );
+}

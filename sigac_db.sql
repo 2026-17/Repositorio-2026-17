@@ -1072,6 +1072,61 @@ CREATE TABLE IF NOT EXISTS alertas_academicas (
     ) ENGINE=InnoDB COMMENT='Alertas para seguimiento de estudiantes';
 
 -- =============================================================================
+-- 11.1 NOTIFICACIONES A ESTUDIANTES
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS notificaciones_estudiantes (
+                                                          id_notificacion      BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+                                                          id_estudiante        INT UNSIGNED NOT NULL,
+                                                          id_autorizacion      BIGINT UNSIGNED NULL,
+                                                          tipo                 VARCHAR(40) NOT NULL,
+                                                          asunto               VARCHAR(160) NOT NULL,
+                                                          mensaje              VARCHAR(1500) NOT NULL,
+                                                          leida                BOOLEAN NOT NULL DEFAULT FALSE,
+                                                          fecha_notificacion   DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+                                                          fecha_lectura        DATETIME(6) NULL,
+
+                                                          CONSTRAINT pk_notificaciones_estudiantes
+                                                              PRIMARY KEY (id_notificacion),
+
+                                                          CONSTRAINT uq_notificaciones_autorizacion
+                                                              UNIQUE (id_autorizacion),
+
+                                                          CONSTRAINT ck_notificaciones_tipo
+                                                              CHECK (
+                                                                  tipo IN (
+                                                                           'MATRICULA_APROBADA',
+                                                                           'MATRICULA_RECHAZADA'
+                                                                      )
+                                                                  ),
+
+                                                          CONSTRAINT ck_notificaciones_lectura
+                                                              CHECK (
+                                                                  leida = FALSE
+                                                                      OR fecha_lectura IS NOT NULL
+                                                                  ),
+
+                                                          CONSTRAINT fk_notificaciones_estudiante
+                                                              FOREIGN KEY (id_estudiante)
+                                                                  REFERENCES estudiantes (id_estudiante)
+                                                                  ON UPDATE RESTRICT
+                                                                  ON DELETE CASCADE,
+
+                                                          CONSTRAINT fk_notificaciones_autorizacion
+                                                              FOREIGN KEY (id_autorizacion)
+                                                                  REFERENCES autorizaciones_matricula (id_autorizacion)
+                                                                  ON UPDATE RESTRICT
+                                                                  ON DELETE CASCADE,
+
+                                                          INDEX idx_notificaciones_pendientes (
+                                                                                               id_estudiante,
+                                                                                               leida,
+                                                                                               fecha_notificacion
+                                                              )
+) ENGINE=InnoDB
+    COMMENT='Notificaciones internas dirigidas a estudiantes';
+
+-- =============================================================================
 -- 12. BITACORA DE CAMBIOS
 -- =============================================================================
 
