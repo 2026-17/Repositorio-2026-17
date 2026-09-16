@@ -56,8 +56,17 @@ public class RequisitosCursoService {
     @Transactional(readOnly = true)
     public List<RequisitosCursoResponseDTO.PlanDTO> listarPlanesVigentes() {
         return planRepository.findByVigenteTrueOrderByNombreAsc().stream()
-                .map(p -> new RequisitosCursoResponseDTO.PlanDTO(
-                        p.getId(), p.getCodigo(), p.getNombre(), p.getVersion()))
+                .map(p -> new RequisitosCursoResponseDTO.PlanDTO(p.getId(), p.getCodigo(), p.getNombre(), p.getVersion()))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<RequisitosCursoResponseDTO.CursoRequisitoDTO> listarCursosDelPlan(Long idPlanEstudio) {
+        obtenerPlan(idPlanEstudio);
+        return mallaRepository.findCursosActivosDePlan(idPlanEstudio).stream()
+                .map(m -> new RequisitosCursoResponseDTO.CursoRequisitoDTO(
+                        m.getIdCurso().getId(), m.getIdCurso().getCodigo(), m.getIdCurso().getNombre(),
+                        m.getNivel(), m.getOrdenEnNivel()))
                 .toList();
     }
 
@@ -70,8 +79,8 @@ public class RequisitosCursoService {
         RequisitosCursoResponseDTO response = construirRespuestaBase(plan, curso);
         response.setCursos(mallaRepository.findCursosActivosDePlan(plan.getId()).stream()
                 .map(m -> new RequisitosCursoResponseDTO.CursoRequisitoDTO(
-                        m.getIdCurso().getId(), m.getIdCurso().getCodigo(),
-                        m.getIdCurso().getNombre(), m.getNivel(), m.getOrdenEnNivel()))
+                        m.getIdCurso().getId(), m.getIdCurso().getCodigo(), m.getIdCurso().getNombre(),
+                        m.getNivel(), m.getOrdenEnNivel()))
                 .filter(c -> !c.getIdCurso().equals(curso.getId()))
                 .toList());
 
@@ -99,8 +108,7 @@ public class RequisitosCursoService {
         }
 
         Set<Long> cursosDelPlan = mallaRepository.findCursosActivosDePlan(plan.getId()).stream()
-                .map(m -> m.getIdCurso().getId())
-                .collect(Collectors.toSet());
+                .map(m -> m.getIdCurso().getId()).collect(Collectors.toSet());
         validarCursosDelPlan(prerrequisitos, cursosDelPlan);
         validarCursosDelPlan(correquisitos, cursosDelPlan);
         validarCiclos(plan.getId(), curso.getId(), prerrequisitos);
@@ -159,8 +167,7 @@ public class RequisitosCursoService {
         Map<Long, Set<Long>> grafo = new HashMap<>();
         for (RequisitosCurso r : requisitosRepository.findActivosPorPlanYTipo(idPlanEstudio, PRERREQUISITO)) {
             if (!r.getIdCurso().getId().equals(idCursoConfigurado)) {
-                grafo.computeIfAbsent(r.getIdCurso().getId(), k -> new HashSet<>())
-                        .add(r.getIdCursoRequerido().getId());
+                grafo.computeIfAbsent(r.getIdCurso().getId(), k -> new HashSet<>()).add(r.getIdCursoRequerido().getId());
             }
         }
         grafo.computeIfAbsent(idCursoConfigurado, k -> new HashSet<>()).addAll(nuevosPrerrequisitos);
@@ -174,8 +181,7 @@ public class RequisitosCursoService {
         }
     }
 
-    private boolean hayCiclo(Long nodo, Map<Long, Set<Long>> grafo,
-                             Set<Long> visitados, Set<Long> enRuta) {
+    private boolean hayCiclo(Long nodo, Map<Long, Set<Long>> grafo, Set<Long> visitados, Set<Long> enRuta) {
         if (enRuta.contains(nodo)) return true;
         if (visitados.contains(nodo)) return false;
         visitados.add(nodo);
