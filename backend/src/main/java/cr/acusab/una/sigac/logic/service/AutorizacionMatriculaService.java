@@ -1,15 +1,25 @@
 package cr.acusab.una.sigac.logic.service;
 
 import cr.acusab.una.sigac.data.entity.AutorizacionesMatricula;
+import cr.acusab.una.sigac.data.entity.DocumentosEstudiante;
 import cr.acusab.una.sigac.data.entity.EstadosAutorizacionesMatricula;
+import cr.acusab.una.sigac.data.entity.Estudiante;
+import cr.acusab.una.sigac.data.entity.MensualidadesEstudiante;
 import cr.acusab.una.sigac.data.entity.NotificacionEstudiante;
+import cr.acusab.una.sigac.data.entity.PeriodoAcademico;
 import cr.acusab.una.sigac.data.entity.Usuario;
 import cr.acusab.una.sigac.data.repository.AutorizacionesMatriculaRepository;
+import cr.acusab.una.sigac.data.repository.DocumentoEstudianteRepository;
 import cr.acusab.una.sigac.data.repository.EstadosAutorizacionesMatriculaRepository;
+import cr.acusab.una.sigac.data.repository.EstudianteRepository;
+import cr.acusab.una.sigac.data.repository.MensualidadEstudianteRepository;
 import cr.acusab.una.sigac.data.repository.NotificacionEstudianteRepository;
+import cr.acusab.una.sigac.data.repository.PeriodoAcademicoRepository;
 import cr.acusab.una.sigac.data.repository.UsuarioRepository;
 import cr.acusab.una.sigac.logic.exception.BusinessException;
+import cr.acusab.una.sigac.presentation.dto.request.ActualizarDocumentacionRequestDTO;
 import cr.acusab.una.sigac.presentation.dto.request.ConfirmarMatriculaRequestDTO;
+import cr.acusab.una.sigac.presentation.dto.request.IniciarPreaprobacionRequestDTO;
 import cr.acusab.una.sigac.presentation.dto.response.AutorizacionMatriculaResponseDTO;
 
 import org.springframework.security.core.Authentication;
@@ -18,6 +28,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 
 @Service
@@ -36,21 +47,190 @@ public class AutorizacionMatriculaService {
     private static final String NOTIFICACION_RECHAZADA =
             "MATRICULA_RECHAZADA";
 
+    private static final String TIPO_DOCUMENTO_COMPROBANTE_MATRICULA =
+            "COMPROBANTE_MATRICULA";
+
     private final AutorizacionesMatriculaRepository autorizacionRepository;
     private final EstadosAutorizacionesMatriculaRepository estadoRepository;
     private final UsuarioRepository usuarioRepository;
     private final NotificacionEstudianteRepository notificacionRepository;
+    private final EstudianteRepository estudianteRepository;
+    private final PeriodoAcademicoRepository periodoAcademicoRepository;
+    private final MensualidadEstudianteRepository mensualidadEstudianteRepository;
+    private final DocumentoEstudianteRepository documentoEstudianteRepository;
 
     public AutorizacionMatriculaService(
             AutorizacionesMatriculaRepository autorizacionRepository,
             EstadosAutorizacionesMatriculaRepository estadoRepository,
             UsuarioRepository usuarioRepository,
-            NotificacionEstudianteRepository notificacionRepository
+            NotificacionEstudianteRepository notificacionRepository,
+            EstudianteRepository estudianteRepository,
+            PeriodoAcademicoRepository periodoAcademicoRepository,
+            MensualidadEstudianteRepository mensualidadEstudianteRepository,
+            DocumentoEstudianteRepository documentoEstudianteRepository
     ) {
         this.autorizacionRepository = autorizacionRepository;
         this.estadoRepository = estadoRepository;
         this.usuarioRepository = usuarioRepository;
         this.notificacionRepository = notificacionRepository;
+        this.estudianteRepository = estudianteRepository;
+        this.periodoAcademicoRepository = periodoAcademicoRepository;
+        this.mensualidadEstudianteRepository = mensualidadEstudianteRepository;
+        this.documentoEstudianteRepository = documentoEstudianteRepository;
+    }
+
+    /*
+     * ============================================================
+     * Historia 1 - Iniciar/recalcular la preaprobacion de un
+     * estudiante para un periodo academico.
+     * ============================================================
+     *
+     * Es una operacion "upsert": si ya existe una autorizacion
+     * PENDIENTE para ese estudiante+periodo, se recalculan sus
+     * comprobaciones automaticas sobre la misma fila. Si ya fue
+     * procesada (AUTORIZADA/RECHAZADA), no se puede reabrir aqui.
+     *
+     * No crea matricula ni reserva cupos: solo dejar registrado el
+     * resultado de cada comprobacion para que el administrador
+     * decida despues con confirmar().
+     */
+    @Transactional
+    public AutorizacionMatriculaResponseDTO iniciarPreaprobacion(
+            IniciarPreaprobacionRequestDTO request
+    ) {
+
+        Estudiante estudiante =
+                estudianteRepository
+                        .findById(request.getIdEstudiante())
+                        .orElseThrow(() ->
+                                new BusinessException(
+                                        "El estudiante indicado no existe."
+                                )
+                        );
+
+        PeriodoAcademico periodo =
+                periodoAcademicoRepository
+                        .findById(request.getIdPeriodo())
+                        .orElseThrow(() ->
+                                new BusinessException(
+                                        "El período académico indicado no existe."
+                                )
+                        );
+
+        AutorizacionesMatricula autorizacion =
+                autorizacionRepository
+                        .findByIdEstudiante_IdAndIdPeriodo_Id(
+                                estudiante.getId(),
+                                periodo.getId()
+                        )
+                        .orElseGet(
+                                AutorizacionesMatricula::new
+                        );
+
+        if (autorizacion.getId() != null) {
+            validarEstadoPendiente(autorizacion);
+        } else {
+
+            EstadosAutorizacionesMatricula estadoPendiente =
+                    estadoRepository
+                            .findByCodigoAndActivoTrue(
+                                    ESTADO_PENDIENTE
+                            )
+                            .orElseThrow(() ->
+                                    new BusinessException(
+                                            "No se encontró el estado de autorización requerido."
+                                    )
+                            );
+
+            autorizacion.setIdEstudiante(estudiante);
+            autorizacion.setIdPeriodo(periodo);
+            autorizacion.setIdEstadoAutorizacion(estadoPendiente);
+        }
+
+        autorizacion.setEstudianteActivo(
+                Boolean.TRUE.equals(
+                        estudiante.getActivo()
+                )
+        );
+
+        autorizacion.setDatosCompletos(
+                tieneDatosCompletos(
+                        estudiante
+                )
+        );
+
+        autorizacion.setMensualidadesAlDia(
+                mensualidadesAlDia(
+                        estudiante.getId()
+                )
+        );
+
+        actualizarComprobanteMatricula(
+                autorizacion,
+                estudiante.getId()
+        );
+
+        AutorizacionesMatricula guardada =
+                autorizacionRepository.saveAndFlush(
+                        autorizacion
+                );
+
+        return mapearAResponse(
+                guardada
+        );
+    }
+
+    /*
+     * ============================================================
+     * Historia 1 - Registrar el resultado de la revisión manual
+     * de documentación (no se puede derivar automáticamente sin
+     * un catálogo fijo de documentos obligatorios).
+     * ============================================================
+     */
+    @Transactional
+    public AutorizacionMatriculaResponseDTO actualizarDocumentacion(
+            Long idAutorizacion,
+            ActualizarDocumentacionRequestDTO request
+    ) {
+
+        AutorizacionesMatricula autorizacion =
+                autorizacionRepository
+                        .findById(idAutorizacion)
+                        .orElseThrow(() ->
+                                new BusinessException(
+                                        "La solicitud de matrícula indicada no existe."
+                                )
+                        );
+
+        validarEstadoPendiente(
+                autorizacion
+        );
+
+        autorizacion.setDocumentacionCompleta(
+                Boolean.TRUE.equals(
+                        request.getDocumentacionCompleta()
+                )
+        );
+
+        String observaciones =
+                request.getObservaciones();
+
+        if (observaciones != null
+                && !observaciones.isBlank()) {
+
+            autorizacion.setObservaciones(
+                    observaciones.trim()
+            );
+        }
+
+        AutorizacionesMatricula guardada =
+                autorizacionRepository.saveAndFlush(
+                        autorizacion
+                );
+
+        return mapearAResponse(
+                guardada
+        );
     }
 
     /*
@@ -284,6 +464,122 @@ public class AutorizacionMatriculaService {
                     "No se puede aprobar la matrícula porque no existe un comprobante de matrícula."
             );
         }
+
+        if (!Boolean.TRUE.equals(
+                autorizacion.getEstudianteActivo()
+        )) {
+
+            throw new BusinessException(
+                    "No se puede aprobar la matrícula porque el estudiante no se encuentra activo."
+            );
+        }
+
+        if (!Boolean.TRUE.equals(
+                autorizacion.getDatosCompletos()
+        )) {
+
+            throw new BusinessException(
+                    "No se puede aprobar la matrícula porque los datos personales del estudiante no están completos."
+            );
+        }
+    }
+
+    /*
+     * ============================================================
+     * Datos personales y de contacto completos (Historia 1)
+     * ============================================================
+     */
+    private boolean tieneDatosCompletos(
+            Estudiante estudiante
+    ) {
+
+        return notBlank(estudiante.getNombres())
+                && notBlank(estudiante.getPrimerApellido())
+                && notBlank(estudiante.getNumeroIdentificacion())
+                && notBlank(estudiante.getTelefono())
+                && notBlank(estudiante.getCorreo())
+                && notBlank(estudiante.getDireccion())
+                && estudiante.getFechaNacimiento() != null;
+    }
+
+    private boolean notBlank(String valor) {
+        return valor != null && !valor.isBlank();
+    }
+
+    /*
+     * ============================================================
+     * Mensualidades al día (Historia 1)
+     * ============================================================
+     *
+     * "Al día" significa que no existe ninguna mensualidad sin
+     * pagar correspondiente a un mes ya vencido (anio/mes menor o
+     * igual al mes actual).
+     */
+    private boolean mensualidadesAlDia(
+            Long idEstudiante
+    ) {
+
+        LocalDate hoy = LocalDate.now();
+
+        return mensualidadEstudianteRepository
+                .findByIdEstudiante_IdOrderByAnioDescMesDesc(
+                        idEstudiante
+                )
+                .stream()
+                .filter(mensualidad ->
+                        esMesVencido(
+                                mensualidad,
+                                hoy
+                        )
+                )
+                .allMatch(mensualidad ->
+                        Boolean.TRUE.equals(
+                                mensualidad.getPagada()
+                        )
+                );
+    }
+
+    private boolean esMesVencido(
+            MensualidadesEstudiante mensualidad,
+            LocalDate hoy
+    ) {
+
+        int anio = mensualidad.getAnio();
+        int mes = mensualidad.getMes();
+
+        return anio < hoy.getYear()
+                || (anio == hoy.getYear()
+                        && mes <= hoy.getMonthValue());
+    }
+
+    /*
+     * ============================================================
+     * Pago de matrícula / comprobante (Historia 1)
+     * ============================================================
+     *
+     * Se toma el comprobante de matrícula vigente más reciente
+     * del estudiante, si existe.
+     */
+    private void actualizarComprobanteMatricula(
+            AutorizacionesMatricula autorizacion,
+            Long idEstudiante
+    ) {
+
+        DocumentosEstudiante comprobante =
+                documentoEstudianteRepository
+                        .findFirstByIdEstudiante_IdAndIdTipoDocumento_CodigoAndEsActualTrueOrderByCargadoEnDesc(
+                                idEstudiante,
+                                TIPO_DOCUMENTO_COMPROBANTE_MATRICULA
+                        )
+                        .orElse(null);
+
+        autorizacion.setIdDocumentoComprobanteMatricula(
+                comprobante
+        );
+
+        autorizacion.setPagoMatriculaConfirmado(
+                comprobante != null
+        );
     }
 
     /*
@@ -547,6 +843,25 @@ public class AutorizacionMatriculaService {
         response.setDocumentacionCompleta(
                 autorizacion.getDocumentacionCompleta()
         );
+
+        response.setEstudianteActivo(
+                autorizacion.getEstudianteActivo()
+        );
+
+        response.setDatosCompletos(
+                autorizacion.getDatosCompletos()
+        );
+
+        if (autorizacion.getIdEstadoAutorizacion() != null) {
+
+            response.setPuedeMatricular(
+                    ESTADO_AUTORIZADA.equalsIgnoreCase(
+                            autorizacion
+                                    .getIdEstadoAutorizacion()
+                                    .getCodigo()
+                    )
+            );
+        }
 
         if (autorizacion
                 .getIdDocumentoComprobanteMatricula() != null) {
