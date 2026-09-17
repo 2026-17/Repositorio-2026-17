@@ -95,6 +95,8 @@ function RequisitosCurso() {
                 body: JSON.stringify({
                     idPlanEstudio: Number(planId),
                     idCurso: Number(cursoId),
+                    edadMinima: configuracion.edadMinima ?? null,
+                    edadMaxima: configuracion.edadMaxima ?? null,
                     prerrequisitos: configuracion.prerrequisitos || [],
                     correquisitos: configuracion.correquisitos || [],
                 }),
@@ -114,7 +116,7 @@ function RequisitosCurso() {
             <div className="requisitos-curso">
                 <header className="requisitos-curso__header">
                     <h1>Configurar requisitos del curso</h1>
-                    <p>Define los cursos prerrequisito y correquisito para <strong>
+                    <p>Define los cursos prerrequisito, correquisito y restricción de edad para <strong>
                         {configuracion?.nombreCurso || "el curso seleccionado"}
                         {configuracion?.codigoCurso ? ` (${configuracion.codigoCurso})` : ""}
                     </strong></p>
@@ -144,6 +146,43 @@ function RequisitosCurso() {
 
                 {cargando ? <div className="requisitos-curso__cargando">Cargando configuración...</div> : configuracion ? (
                     <>
+                        <section className="requisitos-curso__edad">
+                            <h2>Restricción de edad</h2>
+                            <p>Opcional. Use solo números enteros. Deje un campo vacío si no existe ese límite.</p>
+                            <div className="requisitos-curso__selectores">
+                                <label>Edad mínima
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        max="150"
+                                        step="1"
+                                        value={configuracion.edadMinima ?? ""}
+                                        onChange={(e) => setConfiguracion({
+                                            ...configuracion,
+                                            edadMinima: e.target.value === "" ? null : Number(e.target.value)
+                                        })}
+                                        disabled={guardando}
+                                        placeholder="Ej. 10"
+                                    />
+                                </label>
+                                <label>Edad máxima
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        max="150"
+                                        step="1"
+                                        value={configuracion.edadMaxima ?? ""}
+                                        onChange={(e) => setConfiguracion({
+                                            ...configuracion,
+                                            edadMaxima: e.target.value === "" ? null : Number(e.target.value)
+                                        })}
+                                        disabled={guardando}
+                                        placeholder="Ej. 17"
+                                    />
+                                </label>
+                            </div>
+                        </section>
+
                         <div className="requisitos-curso__grid">
                             {[["pre", "Prerrequisitos", "Cursos que el estudiante debe haber aprobado antes"], ["co", "Correquisitos", "Cursos que deben cursarse en simultáneo"]].map(([tipo, titulo, descripcion]) => (
                                 <section key={tipo}>
