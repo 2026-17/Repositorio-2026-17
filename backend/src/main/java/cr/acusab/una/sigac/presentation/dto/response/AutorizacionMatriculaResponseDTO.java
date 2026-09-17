@@ -18,6 +18,9 @@ public class AutorizacionMatriculaResponseDTO {
     private Boolean mensualidadesAlDia;
     private Boolean pagoMatriculaConfirmado;
     private Boolean documentacionCompleta;
+    private Boolean estudianteActivo;
+    private Boolean datosCompletos;
+    private Boolean puedeMatricular;
 
     private Long idDocumentoComprobanteMatricula;
     private String comprobanteMatricula;
@@ -104,6 +107,30 @@ public class AutorizacionMatriculaResponseDTO {
 
     public void setDocumentacionCompleta(Boolean documentacionCompleta) {
         this.documentacionCompleta = documentacionCompleta;
+    }
+
+    public Boolean getEstudianteActivo() {
+        return estudianteActivo;
+    }
+
+    public void setEstudianteActivo(Boolean estudianteActivo) {
+        this.estudianteActivo = estudianteActivo;
+    }
+
+    public Boolean getDatosCompletos() {
+        return datosCompletos;
+    }
+
+    public void setDatosCompletos(Boolean datosCompletos) {
+        this.datosCompletos = datosCompletos;
+    }
+
+    public Boolean getPuedeMatricular() {
+        return puedeMatricular;
+    }
+
+    public void setPuedeMatricular(Boolean puedeMatricular) {
+        this.puedeMatricular = puedeMatricular;
     }
 
     public Long getIdDocumentoComprobanteMatricula() {

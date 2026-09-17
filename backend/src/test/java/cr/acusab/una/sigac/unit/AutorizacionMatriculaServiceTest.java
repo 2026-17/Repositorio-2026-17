@@ -4,20 +4,28 @@ import cr.acusab.una.sigac.data.entity.AutorizacionesMatricula;
 import cr.acusab.una.sigac.data.entity.DocumentosEstudiante;
 import cr.acusab.una.sigac.data.entity.Estudiante;
 import cr.acusab.una.sigac.data.entity.EstadosAutorizacionesMatricula;
+import cr.acusab.una.sigac.data.entity.MensualidadesEstudiante;
 import cr.acusab.una.sigac.data.entity.NotificacionEstudiante;
 import cr.acusab.una.sigac.data.entity.PeriodoAcademico;
 import cr.acusab.una.sigac.data.entity.Usuario;
 
 import cr.acusab.una.sigac.data.repository.AutorizacionesMatriculaRepository;
+import cr.acusab.una.sigac.data.repository.DocumentoEstudianteRepository;
 import cr.acusab.una.sigac.data.repository.EstadosAutorizacionesMatriculaRepository;
+import cr.acusab.una.sigac.data.repository.EstudianteRepository;
+import cr.acusab.una.sigac.data.repository.MensualidadEstudianteRepository;
 import cr.acusab.una.sigac.data.repository.NotificacionEstudianteRepository;
+import cr.acusab.una.sigac.data.repository.PeriodoAcademicoRepository;
 import cr.acusab.una.sigac.data.repository.UsuarioRepository;
 
 import cr.acusab.una.sigac.logic.exception.BusinessException;
 import cr.acusab.una.sigac.logic.service.AutorizacionMatriculaService;
 
 import cr.acusab.una.sigac.presentation.dto.request.ConfirmarMatriculaRequestDTO;
+import cr.acusab.una.sigac.presentation.dto.request.IniciarPreaprobacionRequestDTO;
 import cr.acusab.una.sigac.presentation.dto.response.AutorizacionMatriculaResponseDTO;
+
+import java.time.LocalDate;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -47,6 +55,14 @@ class AutorizacionMatriculaServiceTest {
 
     private NotificacionEstudianteRepository notificacionRepository;
 
+    private EstudianteRepository estudianteRepository;
+
+    private PeriodoAcademicoRepository periodoAcademicoRepository;
+
+    private MensualidadEstudianteRepository mensualidadEstudianteRepository;
+
+    private DocumentoEstudianteRepository documentoEstudianteRepository;
+
     private AutorizacionMatriculaService autorizacionMatriculaService;
 
     @BeforeEach
@@ -64,12 +80,28 @@ class AutorizacionMatriculaServiceTest {
         notificacionRepository =
                 mock(NotificacionEstudianteRepository.class);
 
+        estudianteRepository =
+                mock(EstudianteRepository.class);
+
+        periodoAcademicoRepository =
+                mock(PeriodoAcademicoRepository.class);
+
+        mensualidadEstudianteRepository =
+                mock(MensualidadEstudianteRepository.class);
+
+        documentoEstudianteRepository =
+                mock(DocumentoEstudianteRepository.class);
+
         autorizacionMatriculaService =
                 new AutorizacionMatriculaService(
                         autorizacionRepository,
                         estadoRepository,
                         usuarioRepository,
-                        notificacionRepository
+                        notificacionRepository,
+                        estudianteRepository,
+                        periodoAcademicoRepository,
+                        mensualidadEstudianteRepository,
+                        documentoEstudianteRepository
                 );
     }
 
@@ -863,6 +895,317 @@ class AutorizacionMatriculaServiceTest {
 
     /*
      * ============================================================
+     * Historia 1 - Nuevas comprobaciones (estudiante activo y
+     * datos completos)
+     * ============================================================
+     */
+
+    @Test
+    void noDebeAprobarSolicitudSiEstudianteNoEstaActivo() {
+
+        AutorizacionesMatricula autorizacion =
+                crearAutorizacionPendienteValida();
+
+        autorizacion.setEstudianteActivo(
+                false
+        );
+
+        when(
+                autorizacionRepository.findById(
+                        10L
+                )
+        ).thenReturn(
+                Optional.of(
+                        autorizacion
+                )
+        );
+
+        Usuario administrativo =
+                crearUsuarioAdministrativo();
+
+        when(
+                usuarioRepository.findByCedula(
+                        "888888888"
+                )
+        ).thenReturn(
+                Optional.of(
+                        administrativo
+                )
+        );
+
+        configurarUsuarioAutenticado();
+
+        ConfirmarMatriculaRequestDTO request =
+                new ConfirmarMatriculaRequestDTO();
+
+        request.setDecision(
+                "APROBAR"
+        );
+
+        BusinessException exception =
+                assertThrows(
+                        BusinessException.class,
+                        () ->
+                                autorizacionMatriculaService.confirmar(
+                                        10L,
+                                        request
+                                )
+                );
+
+        assertEquals(
+                "No se puede aprobar la matrícula porque el estudiante no se encuentra activo.",
+                exception.getMessage()
+        );
+
+        verify(
+                autorizacionRepository,
+                never()
+        ).saveAndFlush(
+                any(AutorizacionesMatricula.class)
+        );
+    }
+
+    @Test
+    void noDebeAprobarSolicitudSiDatosNoEstanCompletos() {
+
+        AutorizacionesMatricula autorizacion =
+                crearAutorizacionPendienteValida();
+
+        autorizacion.setDatosCompletos(
+                false
+        );
+
+        when(
+                autorizacionRepository.findById(
+                        10L
+                )
+        ).thenReturn(
+                Optional.of(
+                        autorizacion
+                )
+        );
+
+        Usuario administrativo =
+                crearUsuarioAdministrativo();
+
+        when(
+                usuarioRepository.findByCedula(
+                        "888888888"
+                )
+        ).thenReturn(
+                Optional.of(
+                        administrativo
+                )
+        );
+
+        configurarUsuarioAutenticado();
+
+        ConfirmarMatriculaRequestDTO request =
+                new ConfirmarMatriculaRequestDTO();
+
+        request.setDecision(
+                "APROBAR"
+        );
+
+        BusinessException exception =
+                assertThrows(
+                        BusinessException.class,
+                        () ->
+                                autorizacionMatriculaService.confirmar(
+                                        10L,
+                                        request
+                                )
+                );
+
+        assertEquals(
+                "No se puede aprobar la matrícula porque los datos personales del estudiante no están completos.",
+                exception.getMessage()
+        );
+
+        verify(
+                autorizacionRepository,
+                never()
+        ).saveAndFlush(
+                any(AutorizacionesMatricula.class)
+        );
+    }
+
+    /*
+     * ============================================================
+     * Historia 1 - Iniciar preaprobación
+     * ============================================================
+     */
+
+    @Test
+    void debeIniciarPreaprobacionCalculandoComprobacionesAutomaticas() {
+
+        Estudiante estudiante =
+                crearEstudianteConDatosCompletos();
+
+        PeriodoAcademico periodo =
+                new PeriodoAcademico();
+
+        periodo.setId(
+                30L
+        );
+
+        periodo.setCodigo(
+                "2026-02"
+        );
+
+        periodo.setNombre(
+                "Segundo período 2026"
+        );
+
+        when(
+                estudianteRepository.findById(
+                        20L
+                )
+        ).thenReturn(
+                Optional.of(
+                        estudiante
+                )
+        );
+
+        when(
+                periodoAcademicoRepository.findById(
+                        30L
+                )
+        ).thenReturn(
+                Optional.of(
+                        periodo
+                )
+        );
+
+        when(
+                autorizacionRepository
+                        .findByIdEstudiante_IdAndIdPeriodo_Id(
+                                20L,
+                                30L
+                        )
+        ).thenReturn(
+                Optional.empty()
+        );
+
+        when(
+                estadoRepository.findByCodigoAndActivoTrue(
+                        "PENDIENTE"
+                )
+        ).thenReturn(
+                Optional.of(
+                        crearEstado(
+                                "PENDIENTE"
+                        )
+                )
+        );
+
+        MensualidadesEstudiante mensualidadPagada =
+                new MensualidadesEstudiante();
+
+        mensualidadPagada.setAnio(
+                LocalDate.now().getYear()
+        );
+
+        mensualidadPagada.setMes(
+                (short) LocalDate.now().getMonthValue()
+        );
+
+        mensualidadPagada.setPagada(
+                true
+        );
+
+        when(
+                mensualidadEstudianteRepository
+                        .findByIdEstudiante_IdOrderByAnioDescMesDesc(
+                                20L
+                        )
+        ).thenReturn(
+                List.of(
+                        mensualidadPagada
+                )
+        );
+
+        DocumentosEstudiante comprobante =
+                new DocumentosEstudiante();
+
+        comprobante.setId(
+                40L
+        );
+
+        comprobante.setNombreOriginal(
+                "comprobante-matricula.pdf"
+        );
+
+        when(
+                documentoEstudianteRepository
+                        .findFirstByIdEstudiante_IdAndIdTipoDocumento_CodigoAndEsActualTrueOrderByCargadoEnDesc(
+                                20L,
+                                "COMPROBANTE_MATRICULA"
+                        )
+        ).thenReturn(
+                Optional.of(
+                        comprobante
+                )
+        );
+
+        when(
+                autorizacionRepository.saveAndFlush(
+                        any(AutorizacionesMatricula.class)
+                )
+        ).thenAnswer(
+                invocation ->
+                        invocation.getArgument(0)
+        );
+
+        IniciarPreaprobacionRequestDTO request =
+                new IniciarPreaprobacionRequestDTO();
+
+        request.setIdEstudiante(
+                20L
+        );
+
+        request.setIdPeriodo(
+                30L
+        );
+
+        AutorizacionMatriculaResponseDTO resultado =
+                autorizacionMatriculaService.iniciarPreaprobacion(
+                        request
+                );
+
+        assertTrue(
+                resultado.getEstudianteActivo()
+        );
+
+        assertTrue(
+                resultado.getDatosCompletos()
+        );
+
+        assertTrue(
+                resultado.getMensualidadesAlDia()
+        );
+
+        assertTrue(
+                resultado.getPagoMatriculaConfirmado()
+        );
+
+        assertEquals(
+                40L,
+                resultado.getIdDocumentoComprobanteMatricula()
+        );
+
+        assertEquals(
+                "PENDIENTE",
+                resultado.getEstado()
+        );
+
+        assertFalse(
+                resultado.getPuedeMatricular()
+        );
+    }
+
+    /*
+     * ============================================================
      * Métodos auxiliares
      * ============================================================
      */
@@ -952,6 +1295,14 @@ class AutorizacionMatriculaServiceTest {
                 true
         );
 
+        autorizacion.setEstudianteActivo(
+                true
+        );
+
+        autorizacion.setDatosCompletos(
+                true
+        );
+
         return autorizacion;
     }
 
@@ -978,6 +1329,58 @@ class AutorizacionMatriculaServiceTest {
         );
 
         return autorizacion;
+    }
+
+    private Estudiante crearEstudianteConDatosCompletos() {
+
+        Estudiante estudiante =
+                new Estudiante();
+
+        estudiante.setId(
+                20L
+        );
+
+        estudiante.setNombres(
+                "Ana"
+        );
+
+        estudiante.setPrimerApellido(
+                "Sánchez"
+        );
+
+        estudiante.setSegundoApellido(
+                "Mora"
+        );
+
+        estudiante.setNumeroIdentificacion(
+                "111110000"
+        );
+
+        estudiante.setTelefono(
+                "88880000"
+        );
+
+        estudiante.setCorreo(
+                "ana.sanchez@sigac.test"
+        );
+
+        estudiante.setDireccion(
+                "San José, Costa Rica"
+        );
+
+        estudiante.setFechaNacimiento(
+                LocalDate.of(
+                        2005,
+                        1,
+                        1
+                )
+        );
+
+        estudiante.setActivo(
+                true
+        );
+
+        return estudiante;
     }
 
     private EstadosAutorizacionesMatricula crearEstado(
