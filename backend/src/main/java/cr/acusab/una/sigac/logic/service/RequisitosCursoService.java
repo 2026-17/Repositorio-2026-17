@@ -113,6 +113,11 @@ public class RequisitosCursoService {
         validarCursosDelPlan(correquisitos, cursosDelPlan);
         validarCiclos(plan.getId(), curso.getId(), prerrequisitos);
 
+        validarRangoEdad(request.getEdadMinima(), request.getEdadMaxima());
+
+        curso.setEdadMinima(request.getEdadMinima());
+        curso.setEdadMaxima(request.getEdadMaxima());
+
         TiposRequisitosCurso tipoPre = obtenerTipo(PRERREQUISITO);
         TiposRequisitosCurso tipoCo = obtenerTipo(CORREQUISITO);
         Usuario usuario = obtenerUsuarioAutenticado();
@@ -153,6 +158,8 @@ public class RequisitosCursoService {
                     actualesPorClave.get(clave(idRequerido, CORREQUISITO)),
                     plan, curso, idRequerido, tipoCo, usuario, ahora);
         }
+
+        cursoRepository.save(curso);
 
         return consultar(plan.getId(), curso.getId());
     }
@@ -263,6 +270,13 @@ public class RequisitosCursoService {
         return false;
     }
 
+    private void validarRangoEdad(Integer edadMinima, Integer edadMaxima) {
+        if (edadMinima != null && edadMaxima != null && edadMinima > edadMaxima) {
+            throw new BusinessException(
+                    "La edad mínima no puede ser mayor que la edad máxima.");
+        }
+    }
+
     private void validarCursosDelPlan(Set<Long> seleccionados, Set<Long> cursosDelPlan) {
         if (!cursosDelPlan.containsAll(seleccionados)) {
             throw new BusinessException(
@@ -332,6 +346,8 @@ public class RequisitosCursoService {
         response.setIdCurso(curso.getId());
         response.setCodigoCurso(curso.getCodigo());
         response.setNombreCurso(curso.getNombre());
+        response.setEdadMinima(curso.getEdadMinima());
+        response.setEdadMaxima(curso.getEdadMaxima());
         return response;
     }
 }
