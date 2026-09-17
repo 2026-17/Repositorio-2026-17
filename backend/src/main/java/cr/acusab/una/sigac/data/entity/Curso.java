@@ -2,6 +2,8 @@ package cr.acusab.una.sigac.data.entity;
 
 import jakarta.persistence.*;
         import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
@@ -39,6 +41,16 @@ public class Curso {
 
     @Column(name = "creditos", precision = 4, scale = 1)
     private BigDecimal creditos;
+
+    @Min(0)
+    @Max(150)
+    @Column(name = "edad_minima")
+    private Integer edadMinima;
+
+    @Min(0)
+    @Max(150)
+    @Column(name = "edad_maxima")
+    private Integer edadMaxima;
 
     @NotNull
     @ColumnDefault("1")
