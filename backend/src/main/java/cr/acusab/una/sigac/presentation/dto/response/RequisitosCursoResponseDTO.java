@@ -9,6 +9,8 @@ public class RequisitosCursoResponseDTO {
     private Long idCurso;
     private String codigoCurso;
     private String nombreCurso;
+    private Integer edadMinima;
+    private Integer edadMaxima;
     private List<CursoRequisitoDTO> cursos = new ArrayList<>();
     private List<Long> prerrequisitos = new ArrayList<>();
     private List<Long> correquisitos = new ArrayList<>();
@@ -21,6 +23,10 @@ public class RequisitosCursoResponseDTO {
     public void setCodigoCurso(String codigoCurso) { this.codigoCurso = codigoCurso; }
     public String getNombreCurso() { return nombreCurso; }
     public void setNombreCurso(String nombreCurso) { this.nombreCurso = nombreCurso; }
+    public Integer getEdadMinima() { return edadMinima; }
+    public void setEdadMinima(Integer edadMinima) { this.edadMinima = edadMinima; }
+    public Integer getEdadMaxima() { return edadMaxima; }
+    public void setEdadMaxima(Integer edadMaxima) { this.edadMaxima = edadMaxima; }
     public List<CursoRequisitoDTO> getCursos() { return cursos; }
     public void setCursos(List<CursoRequisitoDTO> cursos) { this.cursos = cursos; }
     public List<Long> getPrerrequisitos() { return prerrequisitos; }
