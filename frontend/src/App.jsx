@@ -6,7 +6,7 @@ import {
 } from "react-router-dom";
 
 import Login from "./pages/Publico/login";
-
+import Notificaciones from "./pages/Estudiante/Notificaciones";
 import CreateUsers from "./pages/AdminSis/createUsers";
 import CreateStudent from "./pages/AdminSis/createStudent";
 
