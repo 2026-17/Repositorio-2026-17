@@ -6,6 +6,7 @@ import CreateStudent from "./pages/AdminSis/createStudent";
 import CrearCurso from "./pages/DirectorAcademico/CrearCurso";
 import DesactivarCurso from "./pages/DirectorAcademico/DesactivarCurso";
 import Estudiantes from "./pages/AdminSis/Estudiantes";
+import AsignarInstrumento from "./pages/AdminSis/AsignarInstrumento";
 import Matricula from "./pages/AdminSis/Matricula";
 import Profesores from "./pages/AdminSis/Profesores";
 import Reportes from "./pages/AdminSis/Reportes";
@@ -67,6 +68,12 @@ function App() {
                     <Route
                         path="/admin/administracion/estudiantes"
                         element={<Estudiantes />}
+                    />
+
+                    {/* Administración Académica - HU-026 */}
+                    <Route
+                        path="/admin/administracion/estudiantes/instrumentos"
+                        element={<AsignarInstrumento />}
                     />
 
                     <Route
