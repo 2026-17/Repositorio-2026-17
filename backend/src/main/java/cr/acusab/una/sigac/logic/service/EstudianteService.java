@@ -5,8 +5,9 @@ import cr.acusab.una.sigac.data.repository.*;
 import cr.acusab.una.sigac.logic.exception.BusinessException;
 import cr.acusab.una.sigac.logic.exception.DuplicateResourceException;
 import cr.acusab.una.sigac.presentation.dto.request.EstudianteCreateRequest;
-import cr.acusab.una.sigac.presentation.dto.response.EstudianteResponse;
 import cr.acusab.una.sigac.presentation.dto.request.EstudianteUpdateRequest;
+import cr.acusab.una.sigac.presentation.dto.response.EstudianteListadoResponse;
+import cr.acusab.una.sigac.presentation.dto.response.EstudianteResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -75,6 +76,33 @@ public class EstudianteService {
         this.roleRepository = roleRepository;
         this.estadoUsuarioRepository = estadoUsuarioRepository;
         this.passwordEncoder = passwordEncoder;
+    }
+
+    @Transactional(readOnly = true)
+    public List<EstudianteListadoResponse> listar(String busqueda) {
+        String termino = normalizarNullable(busqueda);
+        return estudianteRepository.buscarParaListado(termino).stream()
+                .map(this::respuestaListado)
+                .toList();
+    }
+
+    private EstudianteListadoResponse respuestaListado(Estudiante estudiante) {
+        int edad = calcularEdad(estudiante.getFechaNacimiento());
+        String nombreCompleto = String.join(" ", List.of(
+                normalizar(estudiante.getNombres()),
+                normalizar(estudiante.getPrimerApellido()),
+                normalizarNullable(estudiante.getSegundoApellido()) == null ? "" : normalizar(estudiante.getSegundoApellido())
+        )).trim().replaceAll("\\s+", " ");
+        String instrumento = estudianteInstrumentoRepository.buscarPrincipalPorEstudiante(estudiante.getId())
+                .map(relacion -> relacion.getInstrumento().getNombre())
+                .orElse("Sin asignar");
+        String centroEducativo = estudiante.getIdCentroEducativo() == null
+                ? "No aplica"
+                : estudiante.getIdCentroEducativo().getNombre();
+        return new EstudianteListadoResponse(
+                estudiante.getId(), nombreCompleto, estudiante.getNumeroIdentificacion(), edad,
+                estudiante.getNivelEscolar(), instrumento, centroEducativo, Boolean.TRUE.equals(estudiante.getActivo())
+        );
     }
 
     @Transactional
@@ -178,10 +206,8 @@ public class EstudianteService {
     public EstudianteResponse obtener(Long id) {
         Estudiante estudiante = estudianteRepository.findById(id)
                 .orElseThrow(() -> new BusinessException("El estudiante indicado no existe"));
-        Integer instrumentoId = estudianteInstrumentoRepository.findAll().stream()
-                .filter(x -> x.getEstudiante() != null && Objects.equals(x.getEstudiante().getId(), id)
-                        && Boolean.TRUE.equals(x.getEsPrincipal()))
-                .map(x -> x.getInstrumento().getId()).findFirst().orElse(null);
+        Integer instrumentoId = estudianteInstrumentoRepository.buscarPrincipalPorEstudiante(id)
+                .map(x -> x.getInstrumento().getId()).orElse(null);
         return respuesta(estudiante, instrumentoId, calcularEdad(estudiante.getFechaNacimiento()));
     }
 
