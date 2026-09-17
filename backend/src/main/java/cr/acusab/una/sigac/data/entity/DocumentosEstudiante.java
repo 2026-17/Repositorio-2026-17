@@ -91,7 +91,7 @@ public class DocumentosEstudiante {
     // mappedBy, Hibernate asume una relacion unidireccional con tabla
     // intermedia propia, que no existe en el esquema real, y falla al
     // intentar borrar un documento (ej. al eliminar un pago).
-    @OneToMany(mappedBy = "documentosEstudiantes")
+    @OneToMany(mappedBy = "idDocumentoEstudiante")
     private Set<AutorizacionesMatricula> autorizacionesMatriculas = new LinkedHashSet<>();
 
     @OneToMany(mappedBy = "idDocumentoComprobante")
