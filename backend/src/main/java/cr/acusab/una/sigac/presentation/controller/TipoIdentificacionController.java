@@ -1,6 +1,7 @@
 package cr.acusab.una.sigac.presentation.controller;
 
 import cr.acusab.una.sigac.data.entity.TipoIdentificacion;
+import cr.acusab.una.sigac.data.entity.TiposIdentificacion;
 import cr.acusab.una.sigac.data.repository.TipoIdentificacionRepository;
 import cr.acusab.una.sigac.presentation.dto.response.TipoIdentificacionResponse;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -24,12 +25,12 @@ public class TipoIdentificacionController {
     @GetMapping
     public List<TipoIdentificacionResponse> listar() {
         return tipoIdentificacionRepository.findAll().stream()
-                .filter(TipoIdentificacion::getActivo)
+                .filter(TiposIdentificacion::getActivo)
                 .map(this::toResponse)
                 .toList();
     }
 
-    private TipoIdentificacionResponse toResponse(TipoIdentificacion tipo) {
+    private TipoIdentificacionResponse toResponse(TiposIdentificacion tipo) {
         return new TipoIdentificacionResponse(tipo.getId(), tipo.getCodigo(), tipo.getNombre());
     }
 }
