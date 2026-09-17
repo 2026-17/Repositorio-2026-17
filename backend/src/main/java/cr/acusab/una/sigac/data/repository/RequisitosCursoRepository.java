@@ -14,6 +14,11 @@ public interface RequisitosCursoRepository extends JpaRepository<RequisitosCurso
             Long idCurso
     );
 
+    List<RequisitosCurso> findByIdPlanEstudio_IdAndIdCurso_Id(
+            Long idPlanEstudio,
+            Long idCurso
+    );
+
     @Query("""
             SELECT r
             FROM RequisitosCurso r
