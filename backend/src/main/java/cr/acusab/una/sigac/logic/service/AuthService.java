@@ -47,7 +47,7 @@ public class AuthService {
 
         String token = jwtService.generarToken(loginRequest.getCedula(), rol.getCodigo());
 
-        return new LoginResponse(token, jwtServiceExpiration(), rol.getCodigo(), usuario.getNombre(), usuario.getCorreo());
+        return new LoginResponse(token, jwtService.getExpirationMillis(), rol.getCodigo(), usuario.getNombre(), usuario.getCorreo());
     }
 
     public void logout(String token) {

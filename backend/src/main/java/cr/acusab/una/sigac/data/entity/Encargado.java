@@ -21,7 +21,7 @@ public class Encargado {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "id_tipo_identificacion")
-    private TiposIdentificacion idTipoIdentificacion;
+    private TipoIdentificacion idTipoIdentificacion;
 
     @Size(max = 40)
     @Column(name = "numero_identificacion", length = 40)

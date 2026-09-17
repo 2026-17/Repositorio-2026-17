@@ -120,7 +120,7 @@ public class EstudianteService {
 
         CentrosEducativo centro = obtenerCentro(request.idCentroEducativo(), edad);
         Instrumento instrumento = instrumentoRepository.findByIdAndActivoTrue(request.idInstrumento()).orElseThrow(() -> new BusinessException("El instrumento indicado no existe o está inactivo"));
-        TiposIdentificacion tipo = tipoIdentificacionRepository.findByIdAndActivoTrue(request.idTipoIdentificacion()).orElseThrow(() -> new BusinessException("El tipo de identificación indicado no existe o está inactivo"));
+        TipoIdentificacion tipo = tipoIdentificacionRepository.findByIdAndActivoTrue(request.idTipoIdentificacion()).orElseThrow(() -> new BusinessException("El tipo de identificación indicado no existe o está inactivo"));
         TiposDocumento tipoPoliza = tipoDocumentoRepository.findByCodigoAndActivoTrue("POLIZA").orElseThrow(() -> new BusinessException("No está configurado el tipo de documento POLIZA activo"));
 
         Usuario usuario = crearUsuarioEstudiante(request, identificacion);
@@ -195,7 +195,7 @@ public class EstudianteService {
         int edad = calcularEdad(request.fechaNacimiento());
         CentrosEducativo centro = obtenerCentro(request.idCentroEducativo(), edad);
         Instrumento instrumento = instrumentoRepository.findByIdAndActivoTrue(request.idInstrumento()).orElseThrow(() -> new BusinessException("El instrumento indicado no existe o está inactivo"));
-        TiposIdentificacion tipo = tipoIdentificacionRepository.findByIdAndActivoTrue(request.idTipoIdentificacion()).orElseThrow(() -> new BusinessException("El tipo de identificación indicado no existe o está inactivo"));
+        TipoIdentificacion tipo = tipoIdentificacionRepository.findByIdAndActivoTrue(request.idTipoIdentificacion()).orElseThrow(() -> new BusinessException("El tipo de identificación indicado no existe o está inactivo"));
         aplicarDatos(estudiante, tipo, identificacion, request.nombres(), request.primerApellido(), request.segundoApellido(), request.fechaNacimiento(), request.genero(), request.direccion(), request.telefono(), request.correo(), request.nivelEscolar(), centro, request.condicionesRelevantes());
         estudiante.setActualizadoEn(Instant.now());
         estudianteRepository.save(estudiante);
@@ -205,7 +205,7 @@ public class EstudianteService {
         return respuesta(estudiante, instrumento.getId(), edad);
     }
 
-    private void aplicarDatos(Estudiante e, TiposIdentificacion tipo, String identificacion, String nombres, String primerApellido, String segundoApellido, LocalDate nacimiento, String genero, String direccion, String telefono, String correo, String nivel, CentrosEducativo centro, String condiciones) {
+    private void aplicarDatos(Estudiante e, TipoIdentificacion tipo, String identificacion, String nombres, String primerApellido, String segundoApellido, LocalDate nacimiento, String genero, String direccion, String telefono, String correo, String nivel, CentrosEducativo centro, String condiciones) {
         e.setIdTipoIdentificacion(tipo);
         e.setNumeroIdentificacion(identificacion);
         e.setNombres(normalizar(nombres));
