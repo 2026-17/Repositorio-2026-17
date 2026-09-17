@@ -1647,6 +1647,8 @@ BEGIN
                                                                      'descripcion', OLD.descripcion,
                                                                      'horas_totales', OLD.horas_totales,
                                                                      'creditos', OLD.creditos,
+                                                                     'edad_minima', OLD.edad_minima,
+                                                                     'edad_maxima', OLD.edad_maxima,
                                                                      'activo', OLD.activo
                                                              ),
                                                              JSON_OBJECT(
@@ -1655,6 +1657,8 @@ BEGIN
                                                                      'descripcion', NEW.descripcion,
                                                                      'horas_totales', NEW.horas_totales,
                                                                      'creditos', NEW.creditos,
+                                                                     'edad_minima', NEW.edad_minima,
+                                                                     'edad_maxima', NEW.edad_maxima,
                                                                      'activo', NEW.activo
                                                              ));
                                                         END$$
