@@ -1,7 +1,9 @@
 package cr.acusab.una.sigac.presentation.controller;
 
 import cr.acusab.una.sigac.logic.service.AutorizacionMatriculaService;
+import cr.acusab.una.sigac.presentation.dto.request.ActualizarDocumentacionRequestDTO;
 import cr.acusab.una.sigac.presentation.dto.request.ConfirmarMatriculaRequestDTO;
+import cr.acusab.una.sigac.presentation.dto.request.IniciarPreaprobacionRequestDTO;
 import cr.acusab.una.sigac.presentation.dto.response.AutorizacionMatriculaResponseDTO;
 
 import jakarta.validation.Valid;
@@ -22,6 +24,42 @@ public class AutorizacionMatriculaController {
     ) {
         this.autorizacionMatriculaService =
                 autorizacionMatriculaService;
+    }
+
+    /*
+     * Historia 1 - Iniciar o recalcular la preaprobación de un
+     * estudiante para un período académico (no genera matrícula
+     * ni reserva cupos).
+     */
+    @PostMapping
+    public ResponseEntity<AutorizacionMatriculaResponseDTO>
+    iniciarPreaprobacion(
+            @Valid @RequestBody IniciarPreaprobacionRequestDTO request
+    ) {
+
+        return ResponseEntity.ok(
+                autorizacionMatriculaService
+                        .iniciarPreaprobacion(request)
+        );
+    }
+
+    /*
+     * Historia 1 - Registrar el resultado de la revisión manual
+     * de documentación de una preaprobación pendiente.
+     */
+    @PatchMapping("/{idAutorizacion}/documentacion")
+    public ResponseEntity<AutorizacionMatriculaResponseDTO>
+    actualizarDocumentacion(
+            @PathVariable Long idAutorizacion,
+            @Valid @RequestBody ActualizarDocumentacionRequestDTO request
+    ) {
+
+        return ResponseEntity.ok(
+                autorizacionMatriculaService.actualizarDocumentacion(
+                        idAutorizacion,
+                        request
+                )
+        );
     }
 
     /*

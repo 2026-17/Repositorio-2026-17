@@ -206,6 +206,12 @@ public class SecurityConfig {
                         .hasRole("ADMINISTRATIVO")
 
                         .requestMatchers(
+                                HttpMethod.POST,
+                                "/autorizaciones-matricula"
+                        )
+                        .hasRole("ADMINISTRATIVO")
+
+                        .requestMatchers(
                                 HttpMethod.PATCH,
                                 "/autorizaciones-matricula/**"
                         )

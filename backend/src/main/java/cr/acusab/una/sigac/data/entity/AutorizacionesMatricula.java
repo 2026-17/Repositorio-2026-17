@@ -85,6 +85,22 @@ public class AutorizacionesMatricula {
     )
     private Boolean documentacionCompleta = false;
 
+    @NotNull
+    @ColumnDefault("0")
+    @Column(
+            name = "estudiante_activo",
+            nullable = false
+    )
+    private Boolean estudianteActivo = false;
+
+    @NotNull
+    @ColumnDefault("0")
+    @Column(
+            name = "datos_completos",
+            nullable = false
+    )
+    private Boolean datosCompletos = false;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(
             name = "id_usuario_revisa"
@@ -132,6 +148,14 @@ public class AutorizacionesMatricula {
 
         if (documentacionCompleta == null) {
             documentacionCompleta = false;
+        }
+
+        if (estudianteActivo == null) {
+            estudianteActivo = false;
+        }
+
+        if (datosCompletos == null) {
+            datosCompletos = false;
         }
 
         if (creadoEn == null) {
