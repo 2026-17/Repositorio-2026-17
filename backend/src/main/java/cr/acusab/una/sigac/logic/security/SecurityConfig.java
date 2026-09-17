@@ -115,6 +115,15 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PATCH, "/cursos/*/desactivar")
                         .hasRole("DIRECTOR_ACADEMICO")
 
+                        .requestMatchers(HttpMethod.GET, "/requisitos-cursos/**")
+                        .hasRole("DIRECTOR_ACADEMICO")
+
+                        .requestMatchers(HttpMethod.GET, "/requisitos-cursos")
+                        .hasRole("DIRECTOR_ACADEMICO")
+
+                        .requestMatchers(HttpMethod.PUT, "/requisitos-cursos")
+                        .hasRole("DIRECTOR_ACADEMICO")
+
                         .requestMatchers(HttpMethod.POST, "/encargados")
                         .hasRole("ADMINISTRATIVO")
 
@@ -132,7 +141,7 @@ public class SecurityConfig {
                         jwtAuthenticationFilter,
                         UsernamePasswordAuthenticationFilter.class
                 );
-        return  http.build();
+        return http.build();
     }
 
     @Bean
