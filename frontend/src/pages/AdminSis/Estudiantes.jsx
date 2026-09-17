@@ -30,10 +30,6 @@ function Estudiantes() {
     }, []);
 
     useEffect(() => {
-        cargarEstudiantes();
-    }, [cargarEstudiantes]);
-
-    useEffect(() => {
         const temporizador = setTimeout(() => cargarEstudiantes(busqueda), 300);
         return () => clearTimeout(temporizador);
     }, [busqueda, cargarEstudiantes]);
