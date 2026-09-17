@@ -1,6 +1,5 @@
 package cr.acusab.una.sigac.presentation.controller;
 
-
 import cr.acusab.una.sigac.logic.service.AuthService;
 import cr.acusab.una.sigac.presentation.dto.request.LoginRequest;
 import cr.acusab.una.sigac.presentation.dto.response.LoginResponse;
@@ -9,7 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/auth")
+@RequestMapping({"/auth"})
 public class AuthController {
 
     private final AuthService authService;
@@ -19,7 +18,7 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request){
+    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
         LoginResponse response = authService.login(request);
         return ResponseEntity.ok(response);
     }
