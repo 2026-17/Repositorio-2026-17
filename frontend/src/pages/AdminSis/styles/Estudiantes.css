@@ -157,6 +157,15 @@
     color: var(--morado-01);
 }
 
+.input-error {
+    border-color: var(--rojo-01) !important;
+}
+
+.input-error:focus {
+    border-color: var(--rojo-01) !important;
+    box-shadow: 0 0 0 1px var(--rojo-01);
+}
+
 .full {
     width: 100%;
     justify-content: center;
