@@ -23,19 +23,7 @@ public interface EstudianteRepository
             String numeroIdentificacion
     );
 
-    Optional<Estudiante> findByIdAndActivoTrue(
-            Long id
-    );
-
-    /*
-     * Permite identificar al estudiante correspondiente
-     * al usuario que inició sesión.
-     *
-     * El JWT utiliza la cédula como nombre de autenticación.
-     */
-    Optional<Estudiante> findByUsuario_Cedula(
-            String cedula
-    );
+    Optional<Estudiante> findByIdAndActivoTrue(Long id);
 
     // Busqueda por nombre, apellidos o numero de identificacion,
     // usada en la pantalla de Administracion Academica para ubicar

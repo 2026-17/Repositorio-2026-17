@@ -18,9 +18,6 @@ import BecasPagos from "./pages/Administrativa/Estudiantes.jsx";
 import Matricula from "./pages/Administrativa/Matricula.jsx";
 import Profesores from "./pages/Administrativa/Profesores.jsx";
 import Reportes from "./pages/Administrativa/Reportes.jsx";
-
-import Notificaciones from "./pages/Estudiante/Notificaciones";
-
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 
@@ -114,7 +111,6 @@ function App() {
                         element={<BecasPagos />}
                     />
 
-                    {/* HU-012 - Confirmar matrícula */}
                     <Route
                         path="/admin/administracion/matricula"
                         element={<Matricula />}

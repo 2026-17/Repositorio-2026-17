@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/becas")
+@RequestMapping("/becas")
 public class BecaController {
 
     private final BecaService becaService;
@@ -27,7 +27,7 @@ public class BecaController {
      * HU-015 - Asignar una beca a un estudiante.
      */
     @PostMapping
-    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    @PreAuthorize("hasRole('ADMINISTRATIVO')")
     public ResponseEntity<BecaResponse> asignar(@Valid @RequestBody BecaAsignarRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(becaService.asignar(request));
     }
@@ -36,7 +36,7 @@ public class BecaController {
      * HU-015 - Catálogo de tipos de beca disponibles.
      */
     @GetMapping("/tipos-becas")
-    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    @PreAuthorize("hasRole('ADMINISTRATIVO')")
     public ResponseEntity<List<TipoBecaResponse>> tiposBecas() {
         return ResponseEntity.ok(becaService.listarTiposBeca());
     }
@@ -45,7 +45,7 @@ public class BecaController {
      * HU-015 - Obtener el detalle de una beca asignada.
      */
     @GetMapping("/{idBeca}")
-    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    @PreAuthorize("hasRole('ADMINISTRATIVO')")
     public ResponseEntity<BecaResponse> obtener(@PathVariable Long idBeca) {
         return ResponseEntity.ok(becaService.obtener(idBeca));
     }
@@ -55,7 +55,7 @@ public class BecaController {
      * de beca aplicado y el monto actualizado a pagar).
      */
     @GetMapping("/estudiante/{idEstudiante}")
-    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    @PreAuthorize("hasRole('ADMINISTRATIVO')")
     public ResponseEntity<List<BecaResponse>> listarPorEstudiante(@PathVariable Long idEstudiante) {
         return ResponseEntity.ok(becaService.listarPorEstudiante(idEstudiante));
     }
@@ -64,7 +64,7 @@ public class BecaController {
      * HU-015 - Modificar una beca previamente asignada.
      */
     @PutMapping("/{idBeca}")
-    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    @PreAuthorize("hasRole('ADMINISTRATIVO')")
     public ResponseEntity<BecaResponse> actualizar(
             @PathVariable Long idBeca,
             @Valid @RequestBody BecaActualizarRequest request) {
@@ -75,7 +75,7 @@ public class BecaController {
      * HU-015 - Eliminar una beca asignada a un estudiante.
      */
     @DeleteMapping("/{idBeca}")
-    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    @PreAuthorize("hasRole('ADMINISTRATIVO')")
     public ResponseEntity<Void> eliminar(@PathVariable Long idBeca) {
         becaService.eliminar(idBeca);
         return ResponseEntity.noContent().build();

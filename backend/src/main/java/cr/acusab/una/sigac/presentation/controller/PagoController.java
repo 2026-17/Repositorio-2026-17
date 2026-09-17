@@ -18,7 +18,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/pagos")
+@RequestMapping("/pagos")
 public class PagoController {
 
     private final PagoService pagoService;
