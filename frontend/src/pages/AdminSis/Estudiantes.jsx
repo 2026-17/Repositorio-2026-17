@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Edit3, Plus, Search, UserRound } from "lucide-react";
 import "./styles/admin_Sis.css";
+import "./styles/Estudiantes.css";
 
 function Estudiantes() {
     const [estudiantes, setEstudiantes] = useState([]);
@@ -14,17 +15,11 @@ function Estudiantes() {
             setCargando(true);
             setError("");
             const token = localStorage.getItem("token");
-            const params = termino.trim()
-                ? `?busqueda=${encodeURIComponent(termino.trim())}`
-                : "";
+            const params = termino.trim() ? `?busqueda=${encodeURIComponent(termino.trim())}` : "";
             const response = await fetch(`/api/estudiantes${params}`, {
                 headers: token ? { Authorization: `Bearer ${token}` } : {},
             });
-
-            if (!response.ok) {
-                throw new Error("No fue posible cargar los estudiantes.");
-            }
-
+            if (!response.ok) throw new Error("No fue posible cargar los estudiantes.");
             setEstudiantes(await response.json());
         } catch (e) {
             setError(e.message);
@@ -39,9 +34,7 @@ function Estudiantes() {
     }, [cargarEstudiantes]);
 
     useEffect(() => {
-        const temporizador = setTimeout(() => {
-            cargarEstudiantes(busqueda);
-        }, 300);
+        const temporizador = setTimeout(() => cargarEstudiantes(busqueda), 300);
         return () => clearTimeout(temporizador);
     }, [busqueda, cargarEstudiantes]);
 
@@ -52,11 +45,7 @@ function Estudiantes() {
                 <p>Registra, consulta y actualiza la información de los estudiantes</p>
             </div>
 
-            {error && (
-                <div className="banner banner-danger" role="alert">
-                    {error}
-                </div>
-            )}
+            {error && <div className="banner banner-danger" role="alert">{error}</div>}
 
             <section className="card students-card">
                 <div className="card-header-row">
@@ -107,15 +96,10 @@ function Estudiantes() {
                                 <tr>
                                     <td colSpan="8" className="students-empty">
                                         <UserRound size={24} />
-                                        <span>
-                                            {busqueda.trim()
-                                                ? "No se encontraron estudiantes."
-                                                : "No hay estudiantes registrados."}
-                                        </span>
+                                        <span>{busqueda.trim() ? "No se encontraron estudiantes." : "No hay estudiantes registrados."}</span>
                                     </td>
                                 </tr>
                             )}
-
                             {estudiantes.map((estudiante) => (
                                 <tr key={estudiante.id}>
                                     <td className="student-name">{estudiante.nombreCompleto}</td>
@@ -124,11 +108,7 @@ function Estudiantes() {
                                     <td>{estudiante.nivelEscolar}</td>
                                     <td>{estudiante.instrumento}</td>
                                     <td>{estudiante.centroEducativo}</td>
-                                    <td>
-                                        <span className={`student-status ${estudiante.activo ? "active" : "inactive"}`}>
-                                            {estudiante.activo ? "Activo" : "Inactivo"}
-                                        </span>
-                                    </td>
+                                    <td><span className={`student-status ${estudiante.activo ? "active" : "inactive"}`}>{estudiante.activo ? "Activo" : "Inactivo"}</span></td>
                                     <td>
                                         <div className="students-actions">
                                             <Link
