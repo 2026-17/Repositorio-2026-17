@@ -23,7 +23,10 @@ public interface EstudianteRepository
             String numeroIdentificacion
     );
 
+
+
     Optional<Estudiante> findByIdAndActivoTrue(Long id);
+    Optional<Estudiante> findByUsuario_Cedula(String cedula);
 
     // Busqueda por nombre, apellidos o numero de identificacion,
     // usada en la pantalla de Administracion Academica para ubicar

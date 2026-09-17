@@ -142,8 +142,7 @@ public class NotificacionEstudianteService {
         String cedula =
                 authentication.getName();
 
-        return estudianteRepository
-                .findByUsuario_Cedula(
+        return estudianteRepository.findByUsuario_Cedula(
                         cedula
                 )
                 .orElseThrow(() ->
