@@ -115,25 +115,17 @@ public class EstudianteService {
         validarPdf(politica);
         int edad = calcularEdad(request.fechaNacimiento());
         boolean menor = edad < 18;
-        if (menor) {
-            validarEncargados(request.encargados());
-        } else if (request.encargados() != null && !request.encargados().isEmpty()) {
-            throw new BusinessException("Los encargados solo se registran para menores de edad");
-        }
+        if (menor) validarEncargados(request.encargados());
+        else if (request.encargados() != null && !request.encargados().isEmpty()) throw new BusinessException("Los encargados solo se registran para menores de edad");
 
         CentrosEducativo centro = obtenerCentro(request.idCentroEducativo(), edad);
-        Instrumento instrumento = instrumentoRepository.findByIdAndActivoTrue(request.idInstrumento())
-                .orElseThrow(() -> new BusinessException("El instrumento indicado no existe o está inactivo"));
-        TiposIdentificacion tipo = tipoIdentificacionRepository.findByIdAndActivoTrue(request.idTipoIdentificacion())
-                .orElseThrow(() -> new BusinessException("El tipo de identificación indicado no existe o está inactivo"));
-        TiposDocumento tipoPoliza = tipoDocumentoRepository.findByCodigoAndActivoTrue("POLIZA")
-                .orElseThrow(() -> new BusinessException("No está configurado el tipo de documento POLIZA activo"));
+        Instrumento instrumento = instrumentoRepository.findByIdAndActivoTrue(request.idInstrumento()).orElseThrow(() -> new BusinessException("El instrumento indicado no existe o está inactivo"));
+        TiposIdentificacion tipo = tipoIdentificacionRepository.findByIdAndActivoTrue(request.idTipoIdentificacion()).orElseThrow(() -> new BusinessException("El tipo de identificación indicado no existe o está inactivo"));
+        TiposDocumento tipoPoliza = tipoDocumentoRepository.findByCodigoAndActivoTrue("POLIZA").orElseThrow(() -> new BusinessException("No está configurado el tipo de documento POLIZA activo"));
 
         Usuario usuario = crearUsuarioEstudiante(request, identificacion);
-
         Estudiante estudiante = new Estudiante();
-        aplicarDatos(estudiante, tipo, identificacion, request.nombres(), request.primerApellido(), request.segundoApellido(), request.fechaNacimiento(),
-                request.genero(), request.direccion(), request.telefono(), request.correo(), request.nivelEscolar(), centro, request.condicionesRelevantes());
+        aplicarDatos(estudiante, tipo, identificacion, request.nombres(), request.primerApellido(), request.segundoApellido(), request.fechaNacimiento(), request.genero(), request.direccion(), request.telefono(), request.correo(), request.nivelEscolar(), centro, request.condicionesRelevantes());
         estudiante.setUsuario(usuario);
         estudiante.setFechaIngreso(LocalDate.now());
         estudiante.setActivo(true);
@@ -141,7 +133,6 @@ public class EstudianteService {
         estudiante.setCreadoEn(ahora);
         estudiante.setActualizadoEn(ahora);
         estudiante = estudianteRepository.save(estudiante);
-
         crearRelacionInstrumento(estudiante, instrumento);
 
         if (menor) {
@@ -159,34 +150,20 @@ public class EstudianteService {
                 estudianteEncargadoRepository.save(relacion);
             }
         }
-
         guardarPolitica(estudiante, politica, tipoPoliza);
         return respuesta(estudiante, instrumento.getId(), edad);
     }
 
     private Usuario crearUsuarioEstudiante(EstudianteCreateRequest request, String identificacion) {
-        if (usuarioRepository.findByCedula(identificacion).isPresent()) {
-            throw new DuplicateResourceException("Ya existe un usuario con esa identificación");
-        }
-
+        if (usuarioRepository.findByCedula(identificacion).isPresent()) throw new DuplicateResourceException("Ya existe un usuario con esa identificación");
         String correo = normalizarNullable(request.correo());
-        if (correo == null) {
-            correo = identificacion + "@estudiante.sigac.local";
-        } else if (usuarioRepository.findByCorreo(correo).isPresent()) {
-            throw new DuplicateResourceException("El correo ya está registrado");
-        }
-
-        Role rol = roleRepository.findByCodigoIgnoreCase("ESTUDIANTE")
-                .orElseThrow(() -> new BusinessException("No está configurado el rol ESTUDIANTE"));
-        EstadosUsuario estado = estadoUsuarioRepository.findAll().stream()
-                .filter(x -> "ACTIVO".equalsIgnoreCase(x.getCodigo()))
-                .findFirst()
-                .orElseThrow(() -> new BusinessException("No está configurado el estado ACTIVO de usuario"));
-
+        if (correo == null) correo = identificacion + "@estudiante.sigac.local";
+        else if (usuarioRepository.findByCorreo(correo).isPresent()) throw new DuplicateResourceException("El correo ya está registrado");
+        Role rol = roleRepository.findByCodigoIgnoreCase("ESTUDIANTE").orElseThrow(() -> new BusinessException("No está configurado el rol ESTUDIANTE"));
+        EstadosUsuario estado = estadoUsuarioRepository.findAll().stream().filter(x -> "ACTIVO".equalsIgnoreCase(x.getCodigo())).findFirst().orElseThrow(() -> new BusinessException("No está configurado el estado ACTIVO de usuario"));
         Usuario usuario = new Usuario();
         usuario.setCedula(identificacion);
-        usuario.setNombre(normalizar(request.nombres()) + " " + normalizar(request.primerApellido())
-                + (normalizarNullable(request.segundoApellido()) == null ? "" : " " + normalizar(request.segundoApellido())));
+        usuario.setNombre(normalizar(request.nombres()) + " " + normalizar(request.primerApellido()) + (normalizarNullable(request.segundoApellido()) == null ? "" : " " + normalizar(request.segundoApellido())));
         usuario.setCorreo(correo);
         usuario.setHashContrasena(passwordEncoder.encode(CONTRASENA_TEMPORAL));
         usuario.setIdRol(rol);
@@ -198,53 +175,37 @@ public class EstudianteService {
         Instant ahora = Instant.now();
         usuario.setCreadoEn(ahora);
         usuario.setActualizadoEn(ahora);
-
         return usuarioRepository.save(usuario);
     }
 
     @Transactional(readOnly = true)
     public EstudianteResponse obtener(Long id) {
-        Estudiante estudiante = estudianteRepository.findById(id)
-                .orElseThrow(() -> new BusinessException("El estudiante indicado no existe"));
-        Integer instrumentoId = estudianteInstrumentoRepository.buscarPrincipalPorEstudiante(id)
-                .map(x -> x.getInstrumento().getId()).orElse(null);
+        Estudiante estudiante = estudianteRepository.findById(id).orElseThrow(() -> new BusinessException("El estudiante indicado no existe"));
+        Integer instrumentoId = estudianteInstrumentoRepository.buscarPrincipalPorEstudiante(id).map(x -> x.getInstrumento().getId()).orElse(null);
         return respuesta(estudiante, instrumentoId, calcularEdad(estudiante.getFechaNacimiento()));
     }
 
     @Transactional
     public EstudianteResponse actualizar(Long id, EstudianteUpdateRequest request) {
-        Estudiante estudiante = estudianteRepository.findById(id)
-                .orElseThrow(() -> new BusinessException("El estudiante indicado no existe"));
+        Estudiante estudiante = estudianteRepository.findById(id).orElseThrow(() -> new BusinessException("El estudiante indicado no existe"));
         String identificacion = normalizar(request.numeroIdentificacion());
         var existente = estudianteRepository.findByIdTipoIdentificacion_IdAndNumeroIdentificacion(request.idTipoIdentificacion(), identificacion);
-        if (existente.isPresent() && !Objects.equals(existente.get().getId(), id)) {
-            throw new DuplicateResourceException("Ya existe un estudiante con esa identificación");
-        }
+        if (existente.isPresent() && !Objects.equals(existente.get().getId(), id)) throw new DuplicateResourceException("Ya existe un estudiante con esa identificación");
         validarGenero(request.genero());
         int edad = calcularEdad(request.fechaNacimiento());
         CentrosEducativo centro = obtenerCentro(request.idCentroEducativo(), edad);
-        Instrumento instrumento = instrumentoRepository.findByIdAndActivoTrue(request.idInstrumento())
-                .orElseThrow(() -> new BusinessException("El instrumento indicado no existe o está inactivo"));
-        TiposIdentificacion tipo = tipoIdentificacionRepository.findByIdAndActivoTrue(request.idTipoIdentificacion())
-                .orElseThrow(() -> new BusinessException("El tipo de identificación indicado no existe o está inactivo"));
-
-        aplicarDatos(estudiante, tipo, identificacion, request.nombres(), request.primerApellido(), request.segundoApellido(), request.fechaNacimiento(),
-                request.genero(), request.direccion(), request.telefono(), request.correo(), request.nivelEscolar(), centro, request.condicionesRelevantes());
+        Instrumento instrumento = instrumentoRepository.findByIdAndActivoTrue(request.idInstrumento()).orElseThrow(() -> new BusinessException("El instrumento indicado no existe o está inactivo"));
+        TiposIdentificacion tipo = tipoIdentificacionRepository.findByIdAndActivoTrue(request.idTipoIdentificacion()).orElseThrow(() -> new BusinessException("El tipo de identificación indicado no existe o está inactivo"));
+        aplicarDatos(estudiante, tipo, identificacion, request.nombres(), request.primerApellido(), request.segundoApellido(), request.fechaNacimiento(), request.genero(), request.direccion(), request.telefono(), request.correo(), request.nivelEscolar(), centro, request.condicionesRelevantes());
         estudiante.setActualizadoEn(Instant.now());
         estudianteRepository.save(estudiante);
-
-        var principales = estudianteInstrumentoRepository.findAll().stream()
-                .filter(x -> x.getEstudiante() != null && Objects.equals(x.getEstudiante().getId(), id)
-                        && Boolean.TRUE.equals(x.getEsPrincipal())).toList();
+        var principales = estudianteInstrumentoRepository.findAll().stream().filter(x -> x.getEstudiante() != null && Objects.equals(x.getEstudiante().getId(), id) && Boolean.TRUE.equals(x.getEsPrincipal())).toList();
         if (principales.isEmpty()) crearRelacionInstrumento(estudiante, instrumento);
         else { principales.get(0).setInstrumento(instrumento); estudianteInstrumentoRepository.save(principales.get(0)); }
         return respuesta(estudiante, instrumento.getId(), edad);
     }
 
-    private void aplicarDatos(Estudiante e, TiposIdentificacion tipo, String identificacion, String nombres,
-                              String primerApellido, String segundoApellido, LocalDate nacimiento, String genero,
-                              String direccion, String telefono, String correo, String nivel, CentrosEducativo centro,
-                              String condiciones) {
+    private void aplicarDatos(Estudiante e, TiposIdentificacion tipo, String identificacion, String nombres, String primerApellido, String segundoApellido, LocalDate nacimiento, String genero, String direccion, String telefono, String correo, String nivel, CentrosEducativo centro, String condiciones) {
         e.setIdTipoIdentificacion(tipo);
         e.setNumeroIdentificacion(identificacion);
         e.setNombres(normalizar(nombres));
@@ -270,10 +231,7 @@ public class EstudianteService {
     }
 
     private EstudianteResponse respuesta(Estudiante e, Integer instrumentoId, int edad) {
-        return new EstudianteResponse(e.getId(), e.getNumeroIdentificacion(), e.getNombres(), e.getPrimerApellido(),
-                e.getSegundoApellido(), e.getFechaNacimiento(), edad, e.getGenero(), e.getDireccion(), e.getTelefono(),
-                e.getCorreo(), e.getNivelEscolar(), e.getIdCentroEducativo() == null ? null : e.getIdCentroEducativo().getId(),
-                instrumentoId, edad < 18);
+        return new EstudianteResponse(e.getId(), e.getIdTipoIdentificacion() == null ? null : e.getIdTipoIdentificacion().getId(), e.getNumeroIdentificacion(), e.getNombres(), e.getPrimerApellido(), e.getSegundoApellido(), e.getFechaNacimiento(), edad, e.getGenero(), e.getDireccion(), e.getTelefono(), e.getCorreo(), e.getNivelEscolar(), e.getIdCentroEducativo() == null ? null : e.getIdCentroEducativo().getId(), e.getCondicionesRelevantes(), instrumentoId, edad < 18);
     }
 
     private int calcularEdad(LocalDate nacimiento) {
@@ -287,8 +245,7 @@ public class EstudianteService {
         if (requiereCentroEducativo(edad) && id == null) throw new BusinessException("Debe indicar el centro educativo para esta edad");
         if (!requiereCentroEducativo(edad) && id != null) throw new BusinessException("El centro educativo no corresponde para esta edad");
         if (id == null) return null;
-        return centroEducativoRepository.findById(id).filter(c -> Boolean.TRUE.equals(c.getActivo()))
-                .orElseThrow(() -> new BusinessException("El centro educativo indicado no existe o está inactivo"));
+        return centroEducativoRepository.findById(id).filter(c -> Boolean.TRUE.equals(c.getActivo())).orElseThrow(() -> new BusinessException("El centro educativo indicado no existe o está inactivo"));
     }
 
     private Encargado obtenerOCrearEncargado(EstudianteCreateRequest.EncargadoRequest data) {
@@ -298,10 +255,7 @@ public class EstudianteService {
             if (existente.isPresent()) return existente.get();
         }
         Encargado encargado = new Encargado();
-        if (data.idTipoIdentificacion() != null) {
-            encargado.setIdTipoIdentificacion(tipoIdentificacionRepository.findByIdAndActivoTrue(data.idTipoIdentificacion())
-                    .orElseThrow(() -> new BusinessException("El tipo de identificación del encargado no existe o está inactivo")));
-        }
+        if (data.idTipoIdentificacion() != null) encargado.setIdTipoIdentificacion(tipoIdentificacionRepository.findByIdAndActivoTrue(data.idTipoIdentificacion()).orElseThrow(() -> new BusinessException("El tipo de identificación del encargado no existe o está inactivo")));
         encargado.setNumeroIdentificacion(identificacion);
         encargado.setNombres(normalizar(data.nombres()));
         encargado.setPrimerApellido(normalizar(data.primerApellido()));
@@ -320,14 +274,10 @@ public class EstudianteService {
         long emergencias = encargados.stream().filter(EstudianteCreateRequest.EncargadoRequest::contactoEmergencia).count();
         if (principales != 1) throw new BusinessException("Debe existir exactamente un responsable principal");
         if (emergencias > 2) throw new BusinessException("No puede haber más de dos contactos de emergencia");
-        for (var encargado : encargados) {
-            if (!PARENTESCOS.contains(normalizar(encargado.parentesco()).toUpperCase(Locale.ROOT))) throw new BusinessException("El parentesco no es válido");
-        }
+        for (var encargado : encargados) if (!PARENTESCOS.contains(normalizar(encargado.parentesco()).toUpperCase(Locale.ROOT))) throw new BusinessException("El parentesco no es válido");
     }
 
-    private void validarGenero(String genero) {
-        if (!GENEROS.contains(normalizar(genero).toUpperCase(Locale.ROOT))) throw new BusinessException("El género seleccionado no es válido");
-    }
+    private void validarGenero(String genero) { if (!GENEROS.contains(normalizar(genero).toUpperCase(Locale.ROOT))) throw new BusinessException("El género seleccionado no es válido"); }
 
     private void validarPdf(MultipartFile file) {
         if (file == null || file.isEmpty()) throw new BusinessException("La póliza en PDF es obligatoria");
