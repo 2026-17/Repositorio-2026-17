@@ -8,6 +8,7 @@ import cr.acusab.una.sigac.presentation.dto.request.BecaAsignarRequest;
 import cr.acusab.una.sigac.presentation.dto.request.EstudianteCreateRequest;
 import cr.acusab.una.sigac.presentation.dto.response.BecaResponse;
 import cr.acusab.una.sigac.presentation.dto.response.EstudianteBusquedaResponse;
+import cr.acusab.una.sigac.presentation.dto.response.EstudianteListadoResponse;
 import cr.acusab.una.sigac.presentation.dto.response.EstudianteResponse;
 import cr.acusab.una.sigac.presentation.dto.request.EstudianteUpdateRequest;
 import org.springframework.beans.factory.annotation.Value;
@@ -214,6 +215,42 @@ public class EstudianteService {
                 e.getPrimerApellido(),
                 e.getSegundoApellido() != null ? e.getSegundoApellido() : ""
         ).trim().replaceAll("\\s+", " ");
+    }
+
+    @Transactional(readOnly = true)
+    public List<EstudianteListadoResponse> listado(String texto, Boolean activo) {
+        String normalizado = normalizarNullable(texto);
+        return estudianteRepository.findAll().stream()
+                .filter(e -> activo == null || Objects.equals(e.getActivo(), activo))
+                .filter(e -> normalizado == null
+                        || normalizado.length() < 2
+                        || nombreCompleto(e).toLowerCase(Locale.ROOT).contains(normalizado.toLowerCase(Locale.ROOT))
+                        || e.getNumeroIdentificacion().toLowerCase(Locale.ROOT).contains(normalizado.toLowerCase(Locale.ROOT)))
+                .sorted((a, b) -> nombreCompleto(a).compareToIgnoreCase(nombreCompleto(b)))
+                .map(e -> {
+                    Integer instrumentoId = estudianteInstrumentoRepository
+                            .findByIdEstudiante_IdAndEsPrincipalTrueAndFechaFinIsNull(e.getId())
+                            .map(x -> x.getInstrumento().getId())
+                            .orElse(null);
+                    String instrumento = instrumentoId == null
+                            ? null
+                            : instrumentoRepository.findById(instrumentoId).map(Instrumento::getNombre).orElse(null);
+                    String centro = e.getIdCentroEducativo() == null
+                            ? null
+                            : e.getIdCentroEducativo().getNombre();
+
+                    return new EstudianteListadoResponse(
+                            e.getId(),
+                            nombreCompleto(e),
+                            e.getNumeroIdentificacion(),
+                            calcularEdad(e.getFechaNacimiento()),
+                            e.getNivelEscolar(),
+                            instrumento,
+                            centro,
+                            Boolean.TRUE.equals(e.getActivo())
+                    );
+                })
+                .toList();
     }
 
     @Transactional(readOnly = true)
