@@ -12,7 +12,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/registro/catalogos")
-@PreAuthorize("hasRole('ADMINISTRADOR')")
+@PreAuthorize("hasRole('ADMINISTRATIVO')")
 public class RegistroCatalogoController {
     private final TipoIdentificacionRepository tipos;
     private final CentroEducativoRepository centros;
