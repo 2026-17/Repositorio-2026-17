@@ -1,3 +1,5 @@
+@import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap");
+
 :root {
     --morado: #662483;
     --verde: #2fac66;
@@ -10,9 +12,21 @@
     --suave: #777777;
     --borde: #d8d5cf;
     --fondo: #f7f5f0;
-}
 
-@import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap");
+    /*
+     * Alias utilizados por las pantallas nuevas del SIGAC.
+     * Mantienen la misma identidad visual existente.
+     */
+    --primary-purple: var(--morado);
+    --primary-purple-dark: #4b1a61;
+    --primary-red: var(--rojo);
+    --primary-red-dark: #94121b;
+    --green-active: var(--verde);
+    --white: var(--blanco);
+    --neutral-text: var(--texto);
+    --border-color: var(--borde);
+    --font-family: "Montserrat", sans-serif;
+}
 
 * {
     box-sizing: border-box;
