@@ -218,10 +218,10 @@ public class EstudianteService {
     }
 
     @Transactional(readOnly = true)
-    public List<EstudianteListadoResponse> listado(String texto) {
+    public List<EstudianteListadoResponse> listado(String texto, Boolean activo) {
         String normalizado = normalizarNullable(texto);
         List<Estudiante> estudiantes = estudianteRepository.findAll().stream()
-                .filter(Estudiante::getActivo)
+                .filter(e -> activo == null || Objects.equals(e.getActivo(), activo))
                 .filter(e -> normalizado == null
                         || normalizado.length() < 2
                         || nombreCompleto(e).toLowerCase(Locale.ROOT).contains(normalizado.toLowerCase(Locale.ROOT))
