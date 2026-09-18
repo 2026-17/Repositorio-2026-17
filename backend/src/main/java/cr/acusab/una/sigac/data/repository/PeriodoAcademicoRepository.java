@@ -12,4 +12,10 @@ public interface PeriodoAcademicoRepository
     List<PeriodoAcademico> findByEstadoInOrderByFechaInicioDesc(
             Collection<String> estados
     );
+
+    boolean existsByCodigo(String codigo);
+
+    boolean existsByNombre(String nombre);
+
+    boolean existsByNombreAndIdNot(String nombre, Long id);
 }

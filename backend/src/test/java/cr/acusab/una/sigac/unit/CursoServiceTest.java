@@ -7,7 +7,6 @@ import cr.acusab.una.sigac.data.entity.PeriodoAcademico;
 import cr.acusab.una.sigac.data.entity.PlanEstudio;
 import cr.acusab.una.sigac.data.entity.Profesor;
 import cr.acusab.una.sigac.data.entity.Programa;
-import cr.acusab.una.sigac.data.entity.TipoIdentificacion;
 import cr.acusab.una.sigac.data.entity.Usuario;
 import cr.acusab.una.sigac.data.repository.CursoRepository;
 import cr.acusab.una.sigac.data.repository.GrupoRepository;

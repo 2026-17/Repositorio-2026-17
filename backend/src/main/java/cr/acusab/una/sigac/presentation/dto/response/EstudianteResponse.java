@@ -4,7 +4,6 @@ import java.time.LocalDate;
 
 public record EstudianteResponse(
         Long id,
-        Integer idTipoIdentificacion,
         String numeroIdentificacion,
         String nombres,
         String primerApellido,
@@ -17,7 +16,8 @@ public record EstudianteResponse(
         String correo,
         String nivelEscolar,
         Long idCentroEducativo,
-        String condicionesRelevantes,
         Integer idInstrumento,
-        boolean menor
+        boolean menor,
+        // Presente solo cuando se asignó una beca durante el registro.
+        BecaResponse beca
 ) {}

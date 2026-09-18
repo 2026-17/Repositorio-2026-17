@@ -1,7 +1,7 @@
 package cr.acusab.una.sigac.logic.service;
 
 import cr.acusab.una.sigac.data.entity.Profesor;
-import cr.acusab.una.sigac.data.entity.TipoIdentificacion;
+import cr.acusab.una.sigac.data.entity.TiposIdentificacion;
 import cr.acusab.una.sigac.data.entity.Usuario;
 import cr.acusab.una.sigac.data.repository.ProfesorRepository;
 import cr.acusab.una.sigac.data.repository.TipoIdentificacionRepository;
@@ -47,7 +47,7 @@ public class ProfesorService {
         Usuario usuario = usuarioRepository.findById(usuarioCreado.getId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "No se pudo recuperar el usuario recien creado"));
 
-        TipoIdentificacion tipo = tipoIdentificacionRepository.findById(request.getIdTipoIdentificacion())
+        TiposIdentificacion tipo = tipoIdentificacionRepository.findById(request.getIdTipoIdentificacion())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Tipo de identificacion no existe"));
 
         profesorRepository.findByIdTipoIdentificacion_IdAndNumeroIdentificacion(
@@ -57,7 +57,6 @@ public class ProfesorService {
                 });
 
         Instant now = Instant.now();
-
         Profesor profesor = new Profesor();
         profesor.setIdUsuario(usuario);
         profesor.setIdTipoIdentificacion(tipo);
@@ -98,7 +97,7 @@ public class ProfesorService {
     public ProfesorResponse modificar(Long id, ProfesorUpdateRequest request) {
         Profesor profesor = buscarOFallar(id);
 
-        TipoIdentificacion tipo = tipoIdentificacionRepository.findById(request.getIdTipoIdentificacion())
+        TiposIdentificacion tipo = tipoIdentificacionRepository.findById(request.getIdTipoIdentificacion())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Tipo de identificacion no existe"));
 
         boolean cambioIdentificacion =
@@ -168,7 +167,7 @@ public class ProfesorService {
     }
 
     private ProfesorResponse toResponse(Profesor p) {
-        TipoIdentificacion tipo = p.getIdTipoIdentificacion();
+        TiposIdentificacion tipo = p.getIdTipoIdentificacion();
         return new ProfesorResponse(
                 p.getId(),
                 new TipoIdentificacionResponse(tipo.getId(), tipo.getCodigo(), tipo.getNombre()),

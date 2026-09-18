@@ -50,6 +50,7 @@ public class AuthService {
         return new LoginResponse(token, jwtService.getExpirationMillis(), rol.getCodigo(), usuario.getNombre(), usuario.getCorreo());
     }
 
+
     public void logout(String token) {
         JWTClaimsSet claims = jwtService.validarYObtenerClaims(token);
         String jti = claims.getJWTID();

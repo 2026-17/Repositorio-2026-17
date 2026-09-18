@@ -32,7 +32,7 @@ public class Estudiante {
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "id_tipo_identificacion", nullable = false)
-    private TipoIdentificacion idTipoIdentificacion;
+    private TiposIdentificacion idTipoIdentificacion;
 
     @Size(max = 40)
     @NotNull
