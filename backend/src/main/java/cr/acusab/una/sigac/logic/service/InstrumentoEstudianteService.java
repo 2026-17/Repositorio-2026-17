@@ -18,17 +18,17 @@ import java.util.List;
 /*
  * HU-026 - Registrar instrumentos que aprende el estudiante.
  *
- * Como administrador, quiero asignar un instrumento (para
+ * Como administrador, quiero asignar uno o mas instrumentos (para
  * aprendizaje) a un estudiante para mantener registrado el
  * instrumento asociado a su expediente académico.
  *
  * Reglas clave de la HU:
- * - Un estudiante puede tener uno o más instrumentos asignados.
- * - Solo puede haber un instrumento "principal" vigente a la vez.
- * - Si el estudiante cambia de instrumento principal, la
- *   asignación anterior se cierra (fecha_fin) pero NO se borra:
- *   así se conserva el historial completo.
+ * - Un estudiante puede tener uno o más instrumentos vigentes
+ *   al mismo tiempo; no existe un instrumento "principal".
  * - Cada asignación queda con su propia fecha de inicio.
+ * - Un instrumento vigente se puede deshabilitar (finalizar):
+ *   se le registra fecha_fin (la fecha en que se deshabilita) y
+ *   se conserva en el historial, no se borra.
  */
 @Service
 public class InstrumentoEstudianteService {
@@ -50,13 +50,9 @@ public class InstrumentoEstudianteService {
     /*
      * HU-026 - Asignar un instrumento al estudiante.
      *
-     * Si esPrincipal = true y ya existe un instrumento principal
-     * vigente, ese registro se cierra (fecha_fin = hoy) y se crea
-     * uno nuevo como principal, conservando el historial.
-     *
-     * Si esPrincipal = false, el instrumento simplemente se agrega
-     * a la lista de instrumentos vigentes del estudiante (la HU
-     * permite asignar uno o más instrumentos).
+     * El instrumento se agrega a la lista de instrumentos vigentes
+     * del estudiante. La HU permite tener varios instrumentos
+     * vigentes a la vez.
      */
     @Transactional
     public InstrumentoEstudianteResponse asignar(Long idEstudiante, InstrumentoEstudianteRequest request) {
@@ -77,33 +73,38 @@ public class InstrumentoEstudianteService {
                             "El estudiante ya tiene asignado ese instrumento actualmente.");
                 });
 
-        boolean esPrincipal = request.getEsPrincipal() == null || request.getEsPrincipal();
-
-        // 4. Si el instrumento nuevo es principal, cerrar el
-        // instrumento principal anterior (si existe) conservando
-        // su historial, tal como pide la HU al "cambiar de instrumento".
-        if (esPrincipal) {
-            cerrarInstrumentoPrincipalVigente(idEstudiante);
-        }
-
-        // 5. Registrar la nueva asignación con su fecha de inicio.
+        // 4. Registrar la nueva asignación con su fecha de inicio.
         EstudiantesInstrumento asignacion = crearAsignacion(
-                estudiante, instrumento, esPrincipal, request.getObservaciones());
+                estudiante, instrumento, request.getObservaciones());
 
         return mapearAResponse(estudianteInstrumentoRepository.save(asignacion));
     }
 
     /*
-     * HU-026 - Cambiar el instrumento principal del estudiante.
+     * HU-026 - Deshabilitar (finalizar) una asignación de instrumento
+     * vigente del estudiante.
      *
-     * Es un caso particular de "asignar" donde siempre se fija
-     * esPrincipal = true, independientemente de lo que envíe el
-     * cliente: expresa la intención explícita de "cambio".
+     * Registra fecha_fin = hoy y conserva el registro en el
+     * historial; no se elimina.
      */
     @Transactional
-    public InstrumentoEstudianteResponse cambiarPrincipal(Long idEstudiante, InstrumentoEstudianteRequest request) {
-        request.setEsPrincipal(true);
-        return asignar(idEstudiante, request);
+    public InstrumentoEstudianteResponse deshabilitar(Long idEstudiante, Long idEstudianteInstrumento) {
+        obtenerEstudiante(idEstudiante);
+
+        EstudiantesInstrumento asignacion = estudianteInstrumentoRepository
+                .findById(idEstudianteInstrumento)
+                .orElseThrow(() -> new BusinessException("La asignación de instrumento indicada no existe."));
+
+        if (!asignacion.getEstudiante().getId().equals(idEstudiante)) {
+            throw new BusinessException("La asignación indicada no pertenece a este estudiante.");
+        }
+
+        if (asignacion.getFechaFin() != null) {
+            throw new BusinessException("Ese instrumento ya se encuentra finalizado.");
+        }
+
+        asignacion.setFechaFin(LocalDate.now());
+        return mapearAResponse(estudianteInstrumentoRepository.save(asignacion));
     }
 
     /*
@@ -139,23 +140,13 @@ public class InstrumentoEstudianteService {
 
     // --- Métodos de apoyo ---
 
-    private void cerrarInstrumentoPrincipalVigente(Long idEstudiante) {
-        estudianteInstrumentoRepository
-                .findByIdEstudiante_IdAndEsPrincipalTrueAndFechaFinIsNull(idEstudiante)
-                .ifPresent(anterior -> {
-                    anterior.setFechaFin(LocalDate.now());
-                    estudianteInstrumentoRepository.save(anterior);
-                });
-    }
-
     private EstudiantesInstrumento crearAsignacion(
-            Estudiante estudiante, Instrumento instrumento, boolean esPrincipal, String observaciones) {
+            Estudiante estudiante, Instrumento instrumento, String observaciones) {
 
         EstudiantesInstrumento asignacion = new EstudiantesInstrumento();
         asignacion.setEstudiante(estudiante);
         asignacion.setInstrumento(instrumento);
         asignacion.setFechaInicio(LocalDate.now());
-        asignacion.setEsPrincipal(esPrincipal);
         asignacion.setObservaciones(observaciones);
         return asignacion;
     }
@@ -188,7 +179,6 @@ public class InstrumentoEstudianteService {
                 instrumento.getNombre(),
                 asignacion.getFechaInicio(),
                 asignacion.getFechaFin(),
-                Boolean.TRUE.equals(asignacion.getEsPrincipal()),
                 asignacion.getFechaFin() == null,
                 asignacion.getObservaciones()
         );

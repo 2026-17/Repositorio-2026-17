@@ -24,3 +24,8 @@
     text-transform: uppercase;
     letter-spacing: 0.3px;
 }
+
+.btn-sm {
+    padding: 4px 12px;
+    font-size: 12.5px;
+}

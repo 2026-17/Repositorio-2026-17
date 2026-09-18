@@ -222,7 +222,7 @@ public class EstudianteService {
                 .orElseThrow(() -> new BusinessException("El estudiante indicado no existe"));
         Integer instrumentoId = estudianteInstrumentoRepository.findAll().stream()
                 .filter(x -> x.getEstudiante() != null && Objects.equals(x.getEstudiante().getId(), id)
-                        && Boolean.TRUE.equals(x.getEsPrincipal()))
+                        && x.getFechaFin() == null)
                 .map(x -> x.getInstrumento().getId()).findFirst().orElse(null);
         return respuesta(estudiante, instrumentoId, calcularEdad(estudiante.getFechaNacimiento()), null);
     }
@@ -249,11 +249,11 @@ public class EstudianteService {
         estudiante.setActualizadoEn(Instant.now());
         estudianteRepository.save(estudiante);
 
-        var principales = estudianteInstrumentoRepository.findAll().stream()
+        var vigentes = estudianteInstrumentoRepository.findAll().stream()
                 .filter(x -> x.getEstudiante() != null && Objects.equals(x.getEstudiante().getId(), id)
-                        && Boolean.TRUE.equals(x.getEsPrincipal())).toList();
-        if (principales.isEmpty()) crearRelacionInstrumento(estudiante, instrumento);
-        else { principales.get(0).setInstrumento(instrumento); estudianteInstrumentoRepository.save(principales.get(0)); }
+                        && x.getFechaFin() == null).toList();
+        if (vigentes.isEmpty()) crearRelacionInstrumento(estudiante, instrumento);
+        else { vigentes.get(0).setInstrumento(instrumento); estudianteInstrumentoRepository.save(vigentes.get(0)); }
         return respuesta(estudiante, instrumento.getId(), edad, null);
     }
 
@@ -281,7 +281,6 @@ public class EstudianteService {
         relacion.setEstudiante(estudiante);
         relacion.setInstrumento(instrumento);
         relacion.setFechaInicio(LocalDate.now());
-        relacion.setEsPrincipal(true);
         estudianteInstrumentoRepository.save(relacion);
     }
 
