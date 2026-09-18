@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Edit3, Plus, Search, UserRound } from "lucide-react";
+import { Edit3, Plus, UserRound } from "lucide-react";
 import "./styles/admin_Sis.css";
 import "./styles/Estudiantes.css";
 
@@ -20,8 +20,8 @@ function Estudiantes() {
             const params = new URLSearchParams();
             if (termino.trim()) params.set("texto", termino.trim());
             if (filtroActivo) params.set("activo", filtroActivo);
-            const query = params.toString() ? `?${params.toString()}` : "";
 
+            const query = params.toString() ? `?${params.toString()}` : "";
             const response = await fetch(`/api/estudiantes/listado${query}`, {
                 headers: token ? { Authorization: `Bearer ${token}` } : {},
             });
@@ -40,12 +40,11 @@ function Estudiantes() {
     }, [filtroActivo]);
 
     useEffect(() => {
-        const temporizador = setTimeout(
-            () => cargarEstudiantes(busqueda),
-            300
-        );
+        const temporizador = setTimeout(() => cargarEstudiantes(busqueda), 300);
+        return () => clearTimeout(temporizador);
+    }, [busqueda, cargarEstudiantes]);
 
-        return (
+    return (
         <div className="container">
             <div className="page-title">
                 <h1>Estudiantes</h1>
