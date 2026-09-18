@@ -36,14 +36,15 @@ public class EstudianteController {
 
     @GetMapping
     public ResponseEntity<List<EstudianteBusquedaResponse>> buscar(
-            @RequestParam(required = false) String texto) {
+            @RequestParam(required = false) String texto,
+            @RequestParam(required = false) Boolean activo) {
         return ResponseEntity.ok(estudianteService.buscar(texto));
     }
 
     @GetMapping("/listado")
     public ResponseEntity<List<EstudianteListadoResponse>> listado(
             @RequestParam(required = false) String texto) {
-        return ResponseEntity.ok(estudianteService.listado(texto));
+        return ResponseEntity.ok(estudianteService.listado(texto, activo));
     }
 
     @GetMapping("/{id}")
