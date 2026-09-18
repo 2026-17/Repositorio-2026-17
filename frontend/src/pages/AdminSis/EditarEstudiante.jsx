@@ -29,8 +29,9 @@ const initialForm = {
     idCentroEducativo: "", condicionesRelevantes: "", idInstrumento: "",
 };
 
-function EditarEstudiante() {
-    const { id } = useParams();
+function EditarEstudiante({ studentId, onCancel, onSuccess } = {}) {
+    const { id: routeId } = useParams();
+    const id = studentId ?? routeId;
     const navigate = useNavigate();
     const [types, setTypes] = useState([]);
     const [centers, setCenters] = useState([]);
@@ -118,7 +119,8 @@ function EditarEstudiante() {
             });
             const body = await response.json().catch(() => ({}));
             if (!response.ok) throw new Error(body.message || "No fue posible actualizar el estudiante.");
-            navigate("/admin/administracion/estudiantes");
+            if (onSuccess) onSuccess();
+            else navigate("/admin/administracion/estudiantes");
         } catch (e) {
             setError(e.message);
             window.scrollTo({ top: 0, behavior: "smooth" });
@@ -171,7 +173,7 @@ function EditarEstudiante() {
                     <Field label="Centro educativo" required={requiereCentro} error={errors.idCentroEducativo} errorKey="idCentroEducativo"><select id="cmbCentroEducativo" className={`input ${errors.idCentroEducativo ? "input-error" : ""}`} value={form.idCentroEducativo} onChange={e => setField("idCentroEducativo", e.target.value)} disabled={!requiereCentro}><option value="">{requiereCentro ? "Seleccione una opción" : "No aplica para esta edad"}</option>{centers.map(center => <option key={center.id} value={center.id}>{center.nombre}</option>)}</select></Field>
                 </section>
                 <div className="actions-row">
-                    <Link className="btn btn-secondary" to="/admin/administracion/estudiantes"><ArrowLeft size={16} /> Cancelar</Link>
+                    {onCancel ? <button type="button" className="btn btn-secondary" onClick={onCancel}><ArrowLeft size={16} /> Cancelar</button> : <Link className="btn btn-secondary" to="/admin/administracion/estudiantes"><ArrowLeft size={16} /> Cancelar</Link>}
                     <button id="btnGuardarCambios" className="btn btn-primary" type="submit" disabled={saving}><Save size={16} /> {saving ? "Guardando..." : "Guardar cambios"}</button>
                 </div>
             </form>
