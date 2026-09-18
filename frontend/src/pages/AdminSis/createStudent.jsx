@@ -35,7 +35,7 @@ const initialForm = {
   idCentroEducativo: "", condicionesRelevantes: "", idInstrumento: "", encargados: [],
 };
 
-export default function CreateStudent() {
+export default function CreateStudent({ onCancel, onSuccess } = {}) {
   const [types, setTypes] = useState([]);
   const [centers, setCenters] = useState([]);
   const [instruments, setInstruments] = useState([]);
@@ -174,7 +174,8 @@ export default function CreateStudent() {
       });
       const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(body.message || "No fue posible registrar el estudiante.");
-      setSuccessId(body.id);
+      if (onSuccess) onSuccess(body.id);
+      else setSuccessId(body.id);
     } catch (e) {
       setError(e.message);
     } finally {
@@ -326,7 +327,7 @@ export default function CreateStudent() {
         </section>
 
         <div className="actions-row">
-          <button className="btn btn-secondary" type="button" onClick={reset}>Cancelar</button>
+          <button className="btn btn-secondary" type="button" onClick={onCancel || reset}>Cancelar</button>
           <button className="btn btn-primary" type="submit" disabled={saving || catalogLoading}>{saving ? "Guardando..." : "Guardar estudiante"}</button>
         </div>
       </form>
