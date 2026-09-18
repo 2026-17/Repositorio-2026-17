@@ -3,6 +3,7 @@ package cr.acusab.una.sigac.presentation.controller;
 import cr.acusab.una.sigac.logic.service.EstudianteService;
 import cr.acusab.una.sigac.presentation.dto.request.EstudianteCreateRequest;
 import cr.acusab.una.sigac.presentation.dto.response.EstudianteBusquedaResponse;
+import cr.acusab.una.sigac.presentation.dto.response.EstudianteListadoResponse;
 import cr.acusab.una.sigac.presentation.dto.response.EstudianteResponse;
 import cr.acusab.una.sigac.presentation.dto.request.EstudianteUpdateRequest;
 import jakarta.validation.Valid;
@@ -36,6 +37,14 @@ public class EstudianteController {
     @PreAuthorize("hasRole('ADMINISTRATIVO')")
     public ResponseEntity<List<EstudianteBusquedaResponse>> buscar(@RequestParam(required = false) String texto) {
         return ResponseEntity.ok(estudianteService.buscar(texto));
+    }
+
+    @GetMapping("/listado")
+    @PreAuthorize("hasRole('ADMINISTRATIVO')")
+    public ResponseEntity<List<EstudianteListadoResponse>> listado(
+            @RequestParam(required = false) String texto,
+            @RequestParam(required = false) Boolean activo) {
+        return ResponseEntity.ok(estudianteService.listado(texto, activo));
     }
 
     @GetMapping("/{id}")
