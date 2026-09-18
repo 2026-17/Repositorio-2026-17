@@ -8,6 +8,10 @@ import java.util.Optional;
 
 public interface EstudianteInstrumentoRepository extends JpaRepository<EstudiantesInstrumento, Long> {
 
+
+    // HU-015 - Cantidad de instrumentos vigentes de un estudiante,
+    // usada para calcular el monto de la mensualidad.
+    long countByIdEstudiante_IdAndFechaFinIsNull(Long idEstudiante);
     /*
      * HU-026 - Historial completo de instrumentos del estudiante,
      * del mas reciente al mas antiguo.

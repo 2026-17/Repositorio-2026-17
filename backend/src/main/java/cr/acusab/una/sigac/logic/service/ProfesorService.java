@@ -57,7 +57,6 @@ public class ProfesorService {
                 });
 
         Instant now = Instant.now();
-
         Profesor profesor = new Profesor();
         profesor.setIdUsuario(usuario);
         profesor.setIdTipoIdentificacion(tipo);

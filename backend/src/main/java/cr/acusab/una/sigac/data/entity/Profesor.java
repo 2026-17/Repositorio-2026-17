@@ -28,6 +28,7 @@ public class Profesor {
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "id_tipo_identificacion", nullable = false)
+
     private TiposIdentificacion idTipoIdentificacion;
 
     @NotNull

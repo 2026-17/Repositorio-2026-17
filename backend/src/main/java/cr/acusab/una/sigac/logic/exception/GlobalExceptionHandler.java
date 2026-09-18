@@ -2,15 +2,41 @@ package cr.acusab.una.sigac.logic.exception;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<Map<String, Object>> manejarResponseStatusException(
+            ResponseStatusException ex
+    ) {
+
+        Map<String, Object> respuesta = new LinkedHashMap<>();
+
+        respuesta.put(
+                "status",
+                ex.getStatusCode().value()
+        );
+
+        respuesta.put(
+                "message",
+                ex.getReason() != null
+                        ? ex.getReason()
+                        : "La solicitud no pudo ser procesada."
+        );
+
+        return ResponseEntity
+                .status(ex.getStatusCode())
+                .body(respuesta);
+    }
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, Object>> manejarIllegalArgumentException(
@@ -19,8 +45,15 @@ public class GlobalExceptionHandler {
 
         Map<String, Object> respuesta = new LinkedHashMap<>();
 
-        respuesta.put("status", HttpStatus.BAD_REQUEST.value());
-        respuesta.put("message", ex.getMessage());
+        respuesta.put(
+                "status",
+                HttpStatus.BAD_REQUEST.value()
+        );
+
+        respuesta.put(
+                "message",
+                ex.getMessage()
+        );
 
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
@@ -34,8 +67,15 @@ public class GlobalExceptionHandler {
 
         Map<String, Object> respuesta = new LinkedHashMap<>();
 
-        respuesta.put("status", HttpStatus.INTERNAL_SERVER_ERROR.value());
-        respuesta.put("message", ex.getMessage());
+        respuesta.put(
+                "status",
+                HttpStatus.INTERNAL_SERVER_ERROR.value()
+        );
+
+        respuesta.put(
+                "message",
+                ex.getMessage()
+        );
 
         return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -56,8 +96,37 @@ public class GlobalExceptionHandler {
 
         Map<String, Object> respuesta = new LinkedHashMap<>();
 
-        respuesta.put("status", HttpStatus.BAD_REQUEST.value());
-        respuesta.put("message", mensaje);
+        respuesta.put(
+                "status",
+                HttpStatus.BAD_REQUEST.value()
+        );
+
+        respuesta.put(
+                "message",
+                mensaje
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(respuesta);
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<Map<String, Object>> manejarJsonInvalido(
+            HttpMessageNotReadableException ex
+    ) {
+
+        Map<String, Object> respuesta = new LinkedHashMap<>();
+
+        respuesta.put(
+                "status",
+                HttpStatus.BAD_REQUEST.value()
+        );
+
+        respuesta.put(
+                "message",
+                "El cuerpo de la solicitud no es válido."
+        );
 
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
