@@ -1,56 +1,110 @@
-import { useCallback, useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import { Edit3, Plus, Search, UserRound } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Edit3, Plus } from "lucide-react";
+import { API_URL } from "../../config/api.js";
+import CreateStudent from "./createStudent";
+import EditarEstudiante from "./EditarEstudiante";
 import "./styles/admin_Sis.css";
+import "../Administrativa/Profesores.css";
 import "./styles/Estudiantes.css";
 
 function Estudiantes() {
     const [estudiantes, setEstudiantes] = useState([]);
     const [busqueda, setBusqueda] = useState("");
+    const [filtroActivo, setFiltroActivo] = useState("true");
     const [cargando, setCargando] = useState(true);
     const [error, setError] = useState("");
+    const [exito, setExito] = useState("");
+    const [formAbierto, setFormAbierto] = useState(false);
+    const [editingId, setEditingId] = useState(null);
+    const [recargar, setRecargar] = useState(0);
 
-    const cargarEstudiantes = useCallback(async (termino = "") => {
+    const getHeaders = useCallback(() => {
+        const token = localStorage.getItem("token");
+        return token ? { Authorization: `Bearer ${token}` } : {};
+    }, []);
+
+    const cargarEstudiantes = useCallback(async () => {
+        setCargando(true);
+        setError("");
         try {
-            setCargando(true);
-            setError("");
+            const params = new URLSearchParams();
+            if (filtroActivo) params.set("activo", filtroActivo);
 
-            const token = localStorage.getItem("token");
-            const query = termino.trim()
-                ? `?texto=${encodeURIComponent(termino.trim())}`
-                : "";
+            const response = await fetch(
+                `${API_URL}/estudiantes/listado${params.toString() ? `?${params.toString()}` : ""}`,
+                { headers: getHeaders() }
+            );
 
-            const response = await fetch(`/api/estudiantes/listado${query}`, {
-                headers: token ? { Authorization: `Bearer ${token}` } : {},
-            });
-
-            if (!response.ok) {
-                throw new Error("No fue posible cargar los estudiantes.");
-            }
-
+            if (!response.ok) throw new Error("No se pudo cargar la lista de estudiantes.");
             setEstudiantes(await response.json());
         } catch (e) {
             setError(e.message);
-            setEstudiantes([]);
         } finally {
             setCargando(false);
         }
-    }, []);
+    }, [filtroActivo, getHeaders, recargar]);
 
     useEffect(() => {
-        const temporizador = setTimeout(
-            () => cargarEstudiantes(busqueda),
-            300
-        );
+        cargarEstudiantes();
+    }, [cargarEstudiantes]);
 
-        return () => clearTimeout(temporizador);
-    }, [busqueda, cargarEstudiantes]);
+    const estudiantesFiltrados = useMemo(() => {
+        const texto = busqueda.trim().toLowerCase();
+        if (!texto) return estudiantes;
+
+        return estudiantes.filter((e) =>
+            (e.nombreCompleto || "").toLowerCase().includes(texto) ||
+            (e.numeroIdentificacion || "").toLowerCase().includes(texto)
+        );
+    }, [estudiantes, busqueda]);
+
+    function abrirNuevo() {
+        setEditingId(null);
+        setError("");
+        setExito("");
+        setFormAbierto(true);
+        requestAnimationFrame(() =>
+            document.getElementById("form-estudiante")?.scrollIntoView({
+                behavior: "smooth",
+                block: "start",
+            })
+        );
+    }
+
+    function abrirEditar(estudiante) {
+        setEditingId(estudiante.id);
+        setError("");
+        setExito("");
+        setFormAbierto(true);
+        requestAnimationFrame(() =>
+            document.getElementById("form-estudiante")?.scrollIntoView({
+                behavior: "smooth",
+                block: "start",
+            })
+        );
+    }
+
+    function cerrarFormulario() {
+        setFormAbierto(false);
+        setEditingId(null);
+        setError("");
+    }
+
+    function formularioGuardado() {
+        setFormAbierto(false);
+        setEditingId(null);
+        setExito(editingId
+            ? "Información del estudiante actualizada correctamente."
+            : "Estudiante registrado correctamente.");
+        setRecargar((n) => n + 1);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+    }
 
     return (
         <div className="content">
             <div className="page-title">
                 <h1>Estudiantes</h1>
-                <p>Registra, consulta y actualiza la información de los estudiantes</p>
+                <p>Registre, consulte y administre la información académica y de contacto de los estudiantes.</p>
             </div>
 
             {error && (
@@ -59,115 +113,116 @@ function Estudiantes() {
                 </div>
             )}
 
-            <section className="card students-card">
-                <div className="card-header-row">
-                    <div>
-                        <h2 className="card-title">Estudiantes registrados</h2>
-                        <p className="card-subtitle">
-                            Total de resultados: {estudiantes.length}
-                        </p>
-                    </div>
-
-                    <Link
-                        className="btn btn-primary"
-                        to="/admin/estudiantes/crear"
-                    >
-                        <Plus size={16} />
-                        Nuevo estudiante
-                    </Link>
+            {exito && (
+                <div className="banner banner-success" role="alert">
+                    {exito}
                 </div>
+            )}
 
-                <div className="students-search-row">
-                    <div className="students-search">
-                        <Search size={17} aria-hidden="true" />
-                        <input
-                            id="txtBuscarEstudiante"
-                            className="input students-search-input"
-                            type="search"
-                            value={busqueda}
-                            onChange={(e) => setBusqueda(e.target.value)}
-                            placeholder="Buscar por nombre o cédula"
-                            aria-label="Buscar por nombre o cédula"
+            {formAbierto && (
+                <section id="form-estudiante">
+                    {editingId ? (
+                        <EditarEstudiante
+                            studentId={editingId}
+                            onCancel={cerrarFormulario}
+                            onSuccess={formularioGuardado}
                         />
-                    </div>
+                    ) : (
+                        <CreateStudent
+                            onCancel={cerrarFormulario}
+                            onSuccess={formularioGuardado}
+                        />
+                    )}
+                </section>
+            )}
 
-                    <span className="students-count">
-                        {cargando
-                            ? "Cargando..."
-                            : `${estudiantes.length} resultados`}
-                    </span>
+            <div className="page-toolbar">
+                <div className="page-toolbar__filters">
+                    <input
+                        id="txtBuscarEstudiante"
+                        className="search-input"
+                        type="search"
+                        value={busqueda}
+                        onChange={(e) => setBusqueda(e.target.value)}
+                        placeholder="Buscar por nombre, identificac."
+                        aria-label="Buscar por nombre o identificación"
+                    />
+                    <select
+                        id="cmbEstadoEstudiante"
+                        className="filter-select"
+                        value={filtroActivo}
+                        onChange={(e) => setFiltroActivo(e.target.value)}
+                        aria-label="Filtrar por estado"
+                    >
+                        <option value="true">Activos</option>
+                        <option value="false">Inactivos</option>
+                        <option value="">Todos</option>
+                    </select>
                 </div>
 
-                <div className="students-table-wrap">
-                    <table className="students-table">
-                        <thead>
+                <button type="button" className="btn btn--primary" onClick={abrirNuevo}>
+                    <Plus size={16} />
+                    + Nuevo estudiante
+                </button>
+            </div>
+
+            <div className="table-wrap">
+                <table className="table">
+                    <thead>
+                        <tr>
+                            <th>Identificación</th>
+                            <th>Nombre</th>
+                            <th>Edad</th>
+                            <th>Nivel escolar</th>
+                            <th>Instrumento</th>
+                            <th>Centro educativo</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {cargando ? (
                             <tr>
-                                <th>Nombre completo</th>
-                                <th>Cédula</th>
-                                <th>Edad</th>
-                                <th>Nivel escolar</th>
-                                <th>Instrumento</th>
-                                <th>Centro educativo</th>
-                                <th>Estado</th>
-                                <th>Acciones</th>
+                                <td className="empty" colSpan={8}>Cargando estudiantes...</td>
                             </tr>
-                        </thead>
-
-                        <tbody>
-                            {!cargando && estudiantes.length === 0 && (
-                                <tr>
-                                    <td colSpan="8" className="students-empty">
-                                        <UserRound size={24} />
-                                        <span>
-                                            {busqueda.trim()
-                                                ? "No se encontraron estudiantes."
-                                                : "No hay estudiantes registrados."}
-                                        </span>
-                                    </td>
-                                </tr>
-                            )}
-
-                            {estudiantes.map((estudiante) => (
-                                <tr key={estudiante.id}>
-                                    <td className="student-name">
-                                        {estudiante.nombreCompleto}
-                                    </td>
-                                    <td>{estudiante.numeroIdentificacion}</td>
-                                    <td>{estudiante.edad}</td>
-                                    <td>{estudiante.nivelEscolar || "—"}</td>
-                                    <td>{estudiante.instrumento || "—"}</td>
-                                    <td>{estudiante.centroEducativo || "—"}</td>
+                        ) : estudiantesFiltrados.length === 0 ? (
+                            <tr>
+                                <td className="empty" colSpan={8}>
+                                    No hay estudiantes que coincidan con la búsqueda.
+                                </td>
+                            </tr>
+                        ) : (
+                            estudiantesFiltrados.map((e) => (
+                                <tr key={e.id}>
+                                    <td>{e.numeroIdentificacion || "—"}</td>
+                                    <td>{e.nombreCompleto}</td>
+                                    <td>{e.edad}</td>
+                                    <td>{e.nivelEscolar || "—"}</td>
+                                    <td>{e.instrumento || "—"}</td>
+                                    <td>{e.centroEducativo || "—"}</td>
                                     <td>
-                                        <span
-                                            className={
-                                                `student-status ${estudiante.activo
-                                                    ? "active"
-                                                    : "inactive"}`
-                                            }
-                                        >
-                                            {estudiante.activo
-                                                ? "Activo"
-                                                : "Inactivo"}
+                                        <span className={`badge ${e.activo ? "badge-activo" : "badge-inactivo"}`}>
+                                            {e.activo ? "Activo" : "Inactivo"}
                                         </span>
                                     </td>
                                     <td>
-                                        <div className="students-actions">
-                                            <Link
-                                                to={`/admin/administracion/estudiantes/${estudiante.id}/editar`}
-                                                className="icon-btn"
-                                                title={`Editar ${estudiante.nombreCompleto}`}
-                                                aria-label={`Editar ${estudiante.nombreCompleto}`}
+                                        <div className="row-actions">
+                                            <button
+                                                type="button"
+                                                className="btn btn--secondary btn-sm"
+                                                onClick={() => abrirEditar(e)}
                                             >
-                                                <Edit3 size={15} />
-                                            </Link>
+                                                <Edit3 size={14} />
+                                                Editar
+                                            </button>
                                         </div>
                                     </td>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </section>
+                            ))
+                        )}
+                    </tbody>
+                </table>
+            </div>
         </div>
     );
 }
