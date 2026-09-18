@@ -162,7 +162,7 @@ function Estudiantes() {
 
                 <button type="button" className="btn btn--primary" onClick={abrirNuevo}>
                     <Plus size={16} />
-                    + Nuevo estudiante
+                    Nuevo estudiante
                 </button>
             </div>
 
