@@ -7,7 +7,6 @@ import "../pages/AdminSis/styles/admin_Sis.css";
 
 const SUBNAV_POR_ROL = {
     [ROLES.ADMINISTRADOR]: [
-        { to: "/admin/administracion/estudiantes", label: "Estudiantes" },
         { to: "/admin/usuarios/crear", label: "Crear usuario" },
     ],
     [ROLES.DIRECTOR_ACADEMICO]: [
@@ -15,6 +14,7 @@ const SUBNAV_POR_ROL = {
         { to: "/director-academico/cursos/desactivar", label: "Desactivar curso" },
     ],
     [ROLES.ADMINISTRATIVO]: [
+        { to: "/admin/administracion/estudiantes", label: "Estudiantes" },
         { to: "/admin/administracion/matricula", label: "Matricula" },
         { to: "/admin/administracion/profesores", label: "Profesores" },
         { to: "/admin/administracion/reportes", label: "Reportes" },
