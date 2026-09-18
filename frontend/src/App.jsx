@@ -104,7 +104,17 @@ function App() {
 
                     <Route
                         path="/admin/administracion/estudiantes"
+                        element={<Estudiantes />}
+                    />
+
+                    <Route
+                        path="/admin/administracion/estudiantes/crear"
                         element={<CreateStudent />}
+                    />
+
+                    <Route
+                        path="/admin/administracion/estudiantes/:id/editar"
+                        element={<EditarEstudiante />}
                     />
 
                     {/* Administrativo - HU-015 Asignar beca y registrar pago */}
