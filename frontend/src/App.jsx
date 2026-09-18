@@ -9,6 +9,8 @@ import Login from "./pages/Publico/login";
 import Notificaciones from "./pages/Estudiante/Notificaciones";
 import CreateUsers from "./pages/AdminSis/createUsers";
 import CreateStudent from "./pages/AdminSis/createStudent";
+import Estudiantes from "./pages/AdminSis/Estudiantes";
+import EditarEstudiante from "./pages/AdminSis/EditarEstudiante";
 
 import CrearCurso from "./pages/DirectorAcademico/CrearCurso";
 import DesactivarCurso from "./pages/DirectorAcademico/DesactivarCurso";
