@@ -13,13 +13,17 @@ import Estudiantes from "./pages/AdminSis/Estudiantes";
 import EditarEstudiante from "./pages/AdminSis/EditarEstudiante";
 
 import CrearCurso from "./pages/DirectorAcademico/CrearCurso";
+import ModificarCurso from "./pages/DirectorAcademico/ModificarCurso";
 import DesactivarCurso from "./pages/DirectorAcademico/DesactivarCurso";
+import AsignarInstrumento from "./pages/Administrativa/AsignarInstrumento";
 import CrearPeriodoAcademico from "./pages/DirectorAcademico/CrearPeriodoAcademico";
 import ModificarPeriodoAcademico from "./pages/DirectorAcademico/ModificarPeriodoAcademico";
+
 import BecasPagos from "./pages/Administrativa/Estudiantes.jsx";
 import Matricula from "./pages/Administrativa/Matricula.jsx";
 import Profesores from "./pages/Administrativa/Profesores.jsx";
 import Reportes from "./pages/Administrativa/Reportes.jsx";
+
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 
@@ -80,6 +84,12 @@ function App() {
                         element={<CrearCurso />}
                     />
 
+                    {/* HU-030 - Modificar curso */}
+                    <Route
+                        path="/director-academico/cursos/modificar"
+                        element={<ModificarCurso />}
+                    />
+
                     {/* HU-031 - Desactivar curso */}
                     <Route
                         path="/director-academico/cursos/desactivar"
@@ -121,6 +131,12 @@ function App() {
                     <Route
                         path="/admin/administracion/becas-pagos"
                         element={<BecasPagos />}
+                    />
+
+                    {/* Administración Académica - HU-026 */}
+                    <Route
+                        path="/admin/administracion/estudiantes/instrumentos"
+                        element={<AsignarInstrumento />}
                     />
 
                     <Route

@@ -48,17 +48,28 @@ const SUBNAV_POR_ROL = {
             ],
         },
         {
-            to: "/director-academico/cursos/crear",
-            label: "Crear curso",
-        },
-        {
-            to: "/director-academico/cursos/desactivar",
-            label: "Desactivar curso",
+            label: "Cursos",
+            children: [
+                {
+                    to: "/director-academico/cursos/crear",
+                    label: "Crear",
+                },
+                {
+                    to: "/director-academico/cursos/modificar",
+                    label: "Modificar",
+                },
+                {
+                    to: "/director-academico/cursos/desactivar",
+                    label: "Desactivar",
+                },
+            ],
         },
     ],
 
     [ROLES.ADMINISTRATIVO]: [
         { to: "/admin/administracion/estudiantes", label: "Estudiantes" },
+        { to: "/admin/administracion/estudiantes/instrumentos", label: "Asignar instrumento" },
+        { to: "/admin/administracion/estudiantes", label: "Registrar estudiante" },
         { to: "/admin/administracion/becas-pagos", label: "Becas y pagos" },
         { to: "/admin/administracion/matricula", label: "Matricula" },
         { to: "/admin/administracion/profesores", label: "Profesores" },
