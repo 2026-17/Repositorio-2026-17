@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import { API_URL } from "../../config/api";
 import "../../index.css";
 import "./CreateStudent.css";
 
@@ -7,7 +6,6 @@ const MAX_PDF = 50 * 1024 * 1024;
 const GENEROS = ["MASCULINO", "FEMENINO", "OTRO"];
 const PARENTESCOS = ["MADRE", "PADRE", "TUTOR", "FAMILIAR", "OTRO"];
 const NIVELES = ["Preescolar", "Primaria", "Secundaria", "Universitaria", "Ninguno"];
-const PORCENTAJES_BECA = [25, 50, 75, 100];
 
 const emptyGuardian = () => ({
   idTipoIdentificacion: "", numeroIdentificacion: "", nombres: "", primerApellido: "",
@@ -31,30 +29,21 @@ function todayISO() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-function formatoColones(valor) {
-  if (valor === null || valor === undefined) return "—";
-  return `₡${Number(valor).toLocaleString("es-CR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
-
 const initialForm = {
   idTipoIdentificacion: "", numeroIdentificacion: "", nombres: "", primerApellido: "", segundoApellido: "",
   fechaNacimiento: "", genero: "", telefono: "", correo: "", direccion: "", nivelEscolar: "",
   idCentroEducativo: "", condicionesRelevantes: "", idInstrumento: "", encargados: [],
 };
 
-export default function CreateStudent() {
+export default function CreateStudent({ onCancel, onSuccess } = {}) {
   const [types, setTypes] = useState([]);
   const [centers, setCenters] = useState([]);
   const [instruments, setInstruments] = useState([]);
-  const [periodos, setPeriodos] = useState([]);
-  const [tiposBeca, setTiposBeca] = useState([]);
   const [policy, setPolicy] = useState(null);
   const [form, setForm] = useState(initialForm);
-  const [tieneBeca, setTieneBeca] = useState(false);
-  const [becaForm, setBecaForm] = useState({ idPeriodo: "", idTipoBeca: "", porcentaje: "" });
   const [errors, setErrors] = useState({});
   const [error, setError] = useState("");
-  const [resultado, setResultado] = useState(null);
+  const [successId, setSuccessId] = useState("");
   const [saving, setSaving] = useState(false);
   const [catalogLoading, setCatalogLoading] = useState(true);
 
@@ -70,10 +59,8 @@ export default function CreateStudent() {
       fetch(`/api/registro/catalogos/tipos-identificacion`, { headers }).then(async r => r.ok ? r.json() : Promise.reject()),
       fetch(`/api/registro/catalogos/centros-educativos`, { headers }).then(async r => r.ok ? r.json() : Promise.reject()),
       fetch(`/api/registro/catalogos/instrumentos`, { headers }).then(async r => r.ok ? r.json() : Promise.reject()),
-      fetch(`${API_URL}/periodos-academicos`, { headers }).then(async r => r.ok ? r.json() : Promise.reject()),
-      fetch(`/api/becas/tipos-becas`, { headers }).then(async r => r.ok ? r.json() : Promise.reject()),
-    ]).then(([t, c, i, p, tb]) => {
-      setTypes(t); setCenters(c); setInstruments(i); setPeriodos(p); setTiposBeca(tb);
+    ]).then(([t, c, i]) => {
+      setTypes(t); setCenters(c); setInstruments(i);
     }).catch(() => setError("No fue posible cargar los catálogos. Verifique que el backend esté disponible."))
       .finally(() => setCatalogLoading(false));
   }, []);
@@ -106,8 +93,7 @@ export default function CreateStudent() {
   };
 
   const reset = () => {
-    setForm(initialForm); setPolicy(null); setErrors({}); setError(""); setResultado(null);
-    setTieneBeca(false); setBecaForm({ idPeriodo: "", idTipoBeca: "", porcentaje: "" });
+    setForm(initialForm); setPolicy(null); setErrors({}); setError(""); setSuccessId("");
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -143,12 +129,6 @@ export default function CreateStudent() {
       nextErrors.guardians = "Un menor debe tener uno o dos encargados.";
     }
 
-    if (tieneBeca) {
-      if (!becaForm.idPeriodo) nextErrors.becaIdPeriodo = "Seleccione el período académico de la beca.";
-      if (!becaForm.idTipoBeca) nextErrors.becaIdTipoBeca = "Seleccione el tipo de beca.";
-      if (!becaForm.porcentaje) nextErrors.becaPorcentaje = "Seleccione el porcentaje de la beca.";
-    }
-
     if (menor) {
       form.encargados.forEach((g, index) => {
         if (!g.nombres.trim()) nextErrors[`guardian-${index}-nombres`] = "Ingrese los nombres.";
@@ -178,11 +158,6 @@ export default function CreateStudent() {
         ...g,
         idTipoIdentificacion: g.idTipoIdentificacion ? Number(g.idTipoIdentificacion) : null,
       })) : [],
-      beca: tieneBeca ? {
-        idPeriodo: Number(becaForm.idPeriodo),
-        idTipoBeca: Number(becaForm.idTipoBeca),
-        porcentaje: Number(becaForm.porcentaje),
-      } : null,
     };
 
     const data = new FormData();
@@ -199,7 +174,8 @@ export default function CreateStudent() {
       });
       const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(body.message || "No fue posible registrar el estudiante.");
-      setResultado(body);
+      if (onSuccess) onSuccess(body.id);
+      else setSuccessId(body.id);
     } catch (e) {
       setError(e.message);
     } finally {
@@ -207,23 +183,14 @@ export default function CreateStudent() {
     }
   };
 
-  if (resultado) {
+  if (successId) {
     return (
       <main className="confirm-wrap">
         <section className="confirm-card">
           <div className="confirm-icon">✓</div>
           <h1>Estudiante registrado</h1>
           <p>El estudiante quedó registrado con estado activo y ya está disponible para matrícula y gestión académica.</p>
-          <div className="confirm-id"><small>ID asignado</small><strong>{resultado.id}</strong></div>
-          {resultado.beca && (
-            <div className="confirm-id">
-              <small>Beca asignada</small>
-              <strong>{resultado.beca.nombreTipoBeca} — {Number(resultado.beca.porcentaje)}%</strong>
-              <p style={{ margin: "8px 0 0", fontSize: 13 }}>
-                Descuento: {formatoColones(resultado.beca.montoDescuento)} · Monto a pagar: {formatoColones(resultado.beca.montoAPagar)}
-              </p>
-            </div>
-          )}
+          <div className="confirm-id"><small>ID asignado</small><strong>{successId}</strong></div>
           <button className="btn btn-primary full" type="button" onClick={reset}>Registrar otro estudiante</button>
         </section>
       </main>
@@ -309,48 +276,6 @@ export default function CreateStudent() {
           ) : edad !== null ? <div className="banner banner-info">Por la edad indicada no se solicita centro educativo.</div> : null}
         </section>
 
-        <section className="card">
-          <h2 className="card-title">Beca</h2>
-          <p className="card-subtitle">Opcional.</p>
-          <div className="check-row">
-            <label>
-              <input
-                type="checkbox"
-                checked={tieneBeca}
-                onChange={e => {
-                  setTieneBeca(e.target.checked);
-                  setErrors(err => ({ ...err, becaIdPeriodo: "", becaIdTipoBeca: "", becaPorcentaje: "" }));
-                }}
-              /> El estudiante posee beca
-            </label>
-          </div>
-
-          {!tieneBeca ? (
-            <p className="hint">Beca: 0% — no se asignará ninguna beca en este registro.</p>
-          ) : (
-            <div className="grid-2">
-              <Field label="Período académico" required error={errors.becaIdPeriodo} errorKey="becaIdPeriodo">
-                <select className={`input ${errors.becaIdPeriodo ? "input-error" : ""}`} value={becaForm.idPeriodo} onChange={e => { setBecaForm(f => ({ ...f, idPeriodo: e.target.value })); setErrors(err => ({ ...err, becaIdPeriodo: "" })); }}>
-                  <option value="">Seleccione un período</option>
-                  {periodos.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
-                </select>
-              </Field>
-              <Field label="Tipo de beca" required error={errors.becaIdTipoBeca} errorKey="becaIdTipoBeca">
-                <select className={`input ${errors.becaIdTipoBeca ? "input-error" : ""}`} value={becaForm.idTipoBeca} onChange={e => { setBecaForm(f => ({ ...f, idTipoBeca: e.target.value })); setErrors(err => ({ ...err, becaIdTipoBeca: "" })); }}>
-                  <option value="">Seleccione</option>
-                  {tiposBeca.map(t => <option key={t.id} value={t.id}>{t.nombre}</option>)}
-                </select>
-              </Field>
-              <Field label="Porcentaje" required error={errors.becaPorcentaje} errorKey="becaPorcentaje">
-                <select className={`input ${errors.becaPorcentaje ? "input-error" : ""}`} value={becaForm.porcentaje} onChange={e => { setBecaForm(f => ({ ...f, porcentaje: e.target.value })); setErrors(err => ({ ...err, becaPorcentaje: "" })); }}>
-                  <option value="">Seleccione</option>
-                  {PORCENTAJES_BECA.map(p => <option key={p} value={p}>{p}%</option>)}
-                </select>
-              </Field>
-            </div>
-          )}
-        </section>
-
         {menor && (
           <section className="card card-accent-warning">
             <div className="card-header"><div><h2 className="card-title">Encargados</h2><p className="card-subtitle">Requerido para menores de edad · máximo 2</p></div><span className="pill">{form.encargados.length}/2</span></div>
@@ -402,7 +327,7 @@ export default function CreateStudent() {
         </section>
 
         <div className="actions-row">
-          <button className="btn btn-secondary" type="button" onClick={reset}>Cancelar</button>
+          <button className="btn btn-secondary" type="button" onClick={onCancel || reset}>Cancelar</button>
           <button className="btn btn-primary" type="submit" disabled={saving || catalogLoading}>{saving ? "Guardando..." : "Guardar estudiante"}</button>
         </div>
       </form>
