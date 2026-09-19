@@ -13,6 +13,7 @@ import CreateStudent from "./pages/AdminSis/createStudent";
 import CrearCurso from "./pages/DirectorAcademico/CrearCurso";
 import ModificarCurso from "./pages/DirectorAcademico/ModificarCurso";
 import DesactivarCurso from "./pages/DirectorAcademico/DesactivarCurso";
+import AsignarInstrumento from "./pages/Administrativa/AsignarInstrumento";
 import CrearPeriodoAcademico from "./pages/DirectorAcademico/CrearPeriodoAcademico";
 import ModificarPeriodoAcademico from "./pages/DirectorAcademico/ModificarPeriodoAcademico";
 
@@ -118,6 +119,12 @@ function App() {
                     <Route
                         path="/admin/administracion/becas-pagos"
                         element={<BecasPagos />}
+                    />
+
+                    {/* Administración Académica - HU-026 */}
+                    <Route
+                        path="/admin/administracion/estudiantes/instrumentos"
+                        element={<AsignarInstrumento />}
                     />
 
                     <Route
