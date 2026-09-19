@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 
 import acusabIcon from "../../assets/acusabIcon.png";
 import slide1 from "../../assets/slideshow/slide1.jpg";
-import slide2 from "../../assets/slideshow/slide2.jpeg";
+import slide2 from "../../assets/slideshow/slide2.jpg";
 import slide3 from "../../assets/slideshow/slide3.jpg";
 
 import { API_URL } from "../../config/api";
