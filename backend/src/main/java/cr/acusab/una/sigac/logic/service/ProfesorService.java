@@ -1,9 +1,13 @@
 package cr.acusab.una.sigac.logic.service;
 
 import cr.acusab.una.sigac.data.entity.Profesor;
+import cr.acusab.una.sigac.data.entity.Role;
+import cr.acusab.una.sigac.data.entity.EstadosUsuario;
 import cr.acusab.una.sigac.data.entity.TiposIdentificacion;
 import cr.acusab.una.sigac.data.entity.Usuario;
+import cr.acusab.una.sigac.data.repository.EstadoUsuarioRepository;
 import cr.acusab.una.sigac.data.repository.ProfesorRepository;
+import cr.acusab.una.sigac.data.repository.RoleRepository;
 import cr.acusab.una.sigac.data.repository.TipoIdentificacionRepository;
 import cr.acusab.una.sigac.data.repository.UsuarioRepository;
 import cr.acusab.una.sigac.presentation.dto.request.ProfesorCreateRequest;
@@ -26,23 +30,46 @@ import java.util.List;
 @Service
 public class ProfesorService {
 
+    // Codigos fijos del catalogo (ver seed en sigac_db.sql): un profesor
+    // siempre se crea con el rol PROFESOR y la cuenta arranca ACTIVA.
+    private static final String CODIGO_ROL_PROFESOR = "PROFESOR";
+    private static final String CODIGO_ESTADO_USUARIO_ACTIVO = "ACTIVO";
+
     private final ProfesorRepository profesorRepository;
     private final TipoIdentificacionRepository tipoIdentificacionRepository;
     private final UsuarioRepository usuarioRepository;
-    private UsuarioService usuarioService;
+    private final RoleRepository roleRepository;
+    private final EstadoUsuarioRepository estadoUsuarioRepository;
+    private final UsuarioService usuarioService;
 
     public ProfesorService(
             ProfesorRepository profesorRepository,
             TipoIdentificacionRepository tipoIdentificacionRepository,
-            UsuarioRepository usuarioRepository
+            UsuarioRepository usuarioRepository,
+            RoleRepository roleRepository,
+            EstadoUsuarioRepository estadoUsuarioRepository,
+            UsuarioService usuarioService
     ) {
         this.profesorRepository = profesorRepository;
         this.tipoIdentificacionRepository = tipoIdentificacionRepository;
         this.usuarioRepository = usuarioRepository;
+        this.roleRepository = roleRepository;
+        this.estadoUsuarioRepository = estadoUsuarioRepository;
+        this.usuarioService = usuarioService;
     }
 
     @Transactional
     public ProfesorResponse registrar(ProfesorCreateRequest request, UsuarioCreateRequest usuarioRequest) {
+        Role rolProfesor = roleRepository.findByCodigoIgnoreCase(CODIGO_ROL_PROFESOR)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "No existe el rol PROFESOR en el catalogo"));
+        EstadosUsuario estadoActivo = estadoUsuarioRepository.findByCodigoIgnoreCase(CODIGO_ESTADO_USUARIO_ACTIVO)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "No existe el estado ACTIVO en el catalogo"));
+
+        // El profesor siempre se crea con rol PROFESOR y estado ACTIVO,
+        // sin importar lo que venga (o no) en el request.
+        usuarioRequest.setIdRol(rolProfesor.getId());
+        usuarioRequest.setIdEstadoUsuario(estadoActivo.getId());
+
         UsuarioResponse usuarioCreado = usuarioService.crearUsuario(usuarioRequest);
         Usuario usuario = usuarioRepository.findById(usuarioCreado.getId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "No se pudo recuperar el usuario recien creado"));

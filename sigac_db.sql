@@ -150,6 +150,16 @@ CREATE TABLE IF NOT EXISTS tipos_identificacion (
     CONSTRAINT uq_tipos_identificacion_nombre UNIQUE (nombre)
     ) ENGINE=InnoDB COMMENT='Opciones de identificacion para listas del frontend';
 
+CREATE TABLE IF NOT EXISTS grados_academicos (
+                                                 id_grado_academico      SMALLINT UNSIGNED NOT NULL AUTO_INCREMENT,
+                                                 codigo                  VARCHAR(30) NOT NULL,
+                                                 nombre                  VARCHAR(60) NOT NULL,
+                                                 activo                  BOOLEAN NOT NULL DEFAULT TRUE,
+                                                 CONSTRAINT pk_grados_academicos PRIMARY KEY (id_grado_academico),
+                                                 CONSTRAINT uq_grados_academicos_codigo UNIQUE (codigo),
+                                                 CONSTRAINT uq_grados_academicos_nombre UNIQUE (nombre)
+) ENGINE=InnoDB COMMENT='Catalogo de grados academicos para el formulario de profesores';
+
 CREATE TABLE IF NOT EXISTS centros_educativos (
                                                   id_centro_educativo     INT UNSIGNED NOT NULL AUTO_INCREMENT,
                                                   codigo                  VARCHAR(30) NULL,
@@ -1191,6 +1201,14 @@ INSERT IGNORE INTO instrumentos (codigo, nombre) VALUES
 ('SAXOFON', 'Saxofon'),
 ('TROMPETA', 'Trompeta'),
 ('PERCUSION', 'Percusion');
+
+INSERT IGNORE INTO grados_academicos (codigo, nombre) VALUES
+('TECNICO', 'Tecnico'),
+('DIPLOMADO', 'Diplomado'),
+('BACHILLERATO_UNIV', 'Bachillerato universitario'),
+('LICENCIATURA', 'Licenciatura'),
+('MAESTRIA', 'Maestria'),
+('DOCTORADO', 'Doctorado');
 
 INSERT IGNORE INTO tipos_requisitos_cursos (codigo, nombre, descripcion) VALUES
 ('PRERREQUISITO', 'Prerrequisito', 'Debe aprobarse antes de llevar el curso'),

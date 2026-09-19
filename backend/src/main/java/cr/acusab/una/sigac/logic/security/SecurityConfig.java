@@ -121,17 +121,54 @@ public class SecurityConfig {
                          * =====================================================
                          * Gestión de cursos
                          * Rol: DIRECTOR_ACADEMICO
+                         *
+                         * HU-028 - Crear curso
+                         * HU-030 - Consultar y modificar curso
+                         * HU-031 - Listar y desactivar curso
                          * =====================================================
                          */
+
+                        // HU-028 - Crear curso.
                         .requestMatchers(
                                 HttpMethod.POST,
                                 "/cursos"
                         )
                         .hasRole("DIRECTOR_ACADEMICO")
 
+                        // HU-031 - Listar cursos activos.
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/cursos"
+                        )
+                        .hasRole("DIRECTOR_ACADEMICO")
+
+                        // HU-030 - Consultar un curso para cargar
+                        // el formulario de modificación.
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/cursos/*"
+                        )
+                        .hasRole("DIRECTOR_ACADEMICO")
+
+                        // HU-030 - Guardar la modificación del curso.
+                        .requestMatchers(
+                                HttpMethod.PUT,
+                                "/cursos/*"
+                        )
+                        .hasRole("DIRECTOR_ACADEMICO")
+
+                        // HU-031 - Desactivar lógicamente un curso.
+                        .requestMatchers(
+                                HttpMethod.PATCH,
+                                "/cursos/*/desactivar"
+                        )
+                        .hasRole("DIRECTOR_ACADEMICO")
+
                         /*
-                         * Gestión de períodos académicos.
-                         * Cambios incorporados desde origin/main.
+                         * =====================================================
+                         * Gestión de períodos académicos
+                         * Rol: DIRECTOR_ACADEMICO
+                         * =====================================================
                          */
                         .requestMatchers(
                                 HttpMethod.POST,
@@ -148,18 +185,6 @@ public class SecurityConfig {
                         .requestMatchers(
                                 HttpMethod.PUT,
                                 "/periodos-academicos/*"
-                        )
-                        .hasRole("DIRECTOR_ACADEMICO")
-
-                        .requestMatchers(
-                                HttpMethod.GET,
-                                "/cursos"
-                        )
-                        .hasRole("DIRECTOR_ACADEMICO")
-
-                        .requestMatchers(
-                                HttpMethod.PATCH,
-                                "/cursos/*/desactivar"
                         )
                         .hasRole("DIRECTOR_ACADEMICO")
 

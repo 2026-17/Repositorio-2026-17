@@ -49,6 +49,21 @@
     color: var(--neutral-dark);
 }
 
+.card-subtitle {
+    margin: 8px 0 12px;
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--neutral-dark);
+    border-top: 1px solid var(--border-color, #e5e5e5);
+    padding-top: 16px;
+}
+
+.field-hint {
+    margin: -4px 0 12px;
+    font-size: 12px;
+    color: var(--neutral-medium, #6b7280);
+}
+
 .grid-2 {
     display: grid;
     grid-template-columns: 1fr 1fr;
