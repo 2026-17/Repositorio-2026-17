@@ -29,34 +29,55 @@ public class ProfesorService {
     private final ProfesorRepository profesorRepository;
     private final TipoIdentificacionRepository tipoIdentificacionRepository;
     private final UsuarioRepository usuarioRepository;
-    private UsuarioService usuarioService;
+    private final UsuarioService usuarioService;
 
     public ProfesorService(
             ProfesorRepository profesorRepository,
             TipoIdentificacionRepository tipoIdentificacionRepository,
-            UsuarioRepository usuarioRepository
+            UsuarioRepository usuarioRepository,
+            UsuarioService usuarioService
     ) {
         this.profesorRepository = profesorRepository;
         this.tipoIdentificacionRepository = tipoIdentificacionRepository;
         this.usuarioRepository = usuarioRepository;
+        this.usuarioService = usuarioService;
     }
 
     @Transactional
-    public ProfesorResponse registrar(ProfesorCreateRequest request, UsuarioCreateRequest usuarioRequest) {
+    public ProfesorResponse registrar(
+            ProfesorCreateRequest request,
+            UsuarioCreateRequest usuarioRequest
+    ) {
+
         UsuarioResponse usuarioCreado = usuarioService.crearUsuario(usuarioRequest);
+
         Usuario usuario = usuarioRepository.findById(usuarioCreado.getId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "No se pudo recuperar el usuario recien creado"));
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.INTERNAL_SERVER_ERROR,
+                        "No se pudo recuperar el usuario recien creado"
+                ));
 
-        TiposIdentificacion tipo = tipoIdentificacionRepository.findById(request.getIdTipoIdentificacion())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Tipo de identificacion no existe"));
+        TiposIdentificacion tipo = tipoIdentificacionRepository
+                .findById(request.getIdTipoIdentificacion())
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Tipo de identificacion no existe"
+                ));
 
-        profesorRepository.findByIdTipoIdentificacion_IdAndNumeroIdentificacion(
-                        request.getIdTipoIdentificacion(), request.getNumeroIdentificacion())
+        profesorRepository
+                .findByIdTipoIdentificacion_IdAndNumeroIdentificacion(
+                        request.getIdTipoIdentificacion(),
+                        request.getNumeroIdentificacion()
+                )
                 .ifPresent(p -> {
-                    throw new ResponseStatusException(HttpStatus.CONFLICT, "Ya existe un profesor registrado con esa identificacion");
+                    throw new ResponseStatusException(
+                            HttpStatus.CONFLICT,
+                            "Ya existe un profesor registrado con esa identificacion"
+                    );
                 });
 
         Instant now = Instant.now();
+
         Profesor profesor = new Profesor();
         profesor.setIdUsuario(usuario);
         profesor.setIdTipoIdentificacion(tipo);
@@ -70,22 +91,33 @@ public class ProfesorService {
         profesor.setGradoAcademico(request.getGradoAcademico());
         profesor.setEspecialidad(request.getEspecialidad());
         profesor.setEmpleador(request.getEmpleador());
-        profesor.setFechaIngreso(request.getFechaIngreso() != null ? request.getFechaIngreso() : LocalDate.now());
+
+        profesor.setFechaIngreso(
+                request.getFechaIngreso() != null
+                        ? request.getFechaIngreso()
+                        : LocalDate.now()
+        );
+
         profesor.setActivo(true);
         profesor.setIdUsuarioUltimaModificacion(usuarioActual());
         profesor.setCreadoEn(now);
         profesor.setActualizadoEn(now);
 
         Profesor guardado = profesorRepository.save(profesor);
+
         return toResponse(guardado);
     }
 
     @Transactional(readOnly = true)
     public List<ProfesorResponse> listar(Boolean activo) {
+
         List<Profesor> profesores = activo != null
                 ? profesorRepository.findByActivo(activo)
                 : profesorRepository.findAll();
-        return profesores.stream().map(this::toResponse).toList();
+
+        return profesores.stream()
+                .map(this::toResponse)
+                .toList();
     }
 
     @Transactional(readOnly = true)
@@ -94,21 +126,39 @@ public class ProfesorService {
     }
 
     @Transactional
-    public ProfesorResponse modificar(Long id, ProfesorUpdateRequest request) {
+    public ProfesorResponse modificar(
+            Long id,
+            ProfesorUpdateRequest request
+    ) {
+
         Profesor profesor = buscarOFallar(id);
 
-        TiposIdentificacion tipo = tipoIdentificacionRepository.findById(request.getIdTipoIdentificacion())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Tipo de identificacion no existe"));
+        TiposIdentificacion tipo = tipoIdentificacionRepository
+                .findById(request.getIdTipoIdentificacion())
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Tipo de identificacion no existe"
+                ));
 
         boolean cambioIdentificacion =
-                !request.getIdTipoIdentificacion().equals(profesor.getIdTipoIdentificacion().getId())
-                        || !request.getNumeroIdentificacion().equals(profesor.getNumeroIdentificacion());
+                !request.getIdTipoIdentificacion()
+                        .equals(profesor.getIdTipoIdentificacion().getId())
+                        ||
+                        !request.getNumeroIdentificacion()
+                                .equals(profesor.getNumeroIdentificacion());
 
         if (cambioIdentificacion) {
-            profesorRepository.findByIdTipoIdentificacion_IdAndNumeroIdentificacion(
-                            request.getIdTipoIdentificacion(), request.getNumeroIdentificacion())
+
+            profesorRepository
+                    .findByIdTipoIdentificacion_IdAndNumeroIdentificacion(
+                            request.getIdTipoIdentificacion(),
+                            request.getNumeroIdentificacion()
+                    )
                     .ifPresent(p -> {
-                        throw new ResponseStatusException(HttpStatus.CONFLICT, "Ya existe otro profesor con esa identificacion");
+                        throw new ResponseStatusException(
+                                HttpStatus.CONFLICT,
+                                "Ya existe otro profesor con esa identificacion"
+                        );
                     });
         }
 
@@ -123,69 +173,103 @@ public class ProfesorService {
         profesor.setGradoAcademico(request.getGradoAcademico());
         profesor.setEspecialidad(request.getEspecialidad());
         profesor.setEmpleador(request.getEmpleador());
+
         if (request.getFechaIngreso() != null) {
             profesor.setFechaIngreso(request.getFechaIngreso());
         }
+
         profesor.setFechaSalida(request.getFechaSalida());
         profesor.setIdUsuarioUltimaModificacion(usuarioActual());
         profesor.setActualizadoEn(Instant.now());
 
-        return toResponse(profesorRepository.save(profesor));
+        Profesor guardado = profesorRepository.save(profesor);
+
+        return toResponse(guardado);
     }
 
-    // Baja logica: conserva el historial institucional (no se borra de la BD)
+    // Baja logica: conserva el historial institucional
+    // y no elimina el registro de la base de datos.
     @Transactional
     public ProfesorResponse darDeBaja(Long id) {
+
         Profesor profesor = buscarOFallar(id);
+
         profesor.setActivo(false);
         profesor.setFechaSalida(LocalDate.now());
         profesor.setIdUsuarioUltimaModificacion(usuarioActual());
         profesor.setActualizadoEn(Instant.now());
-        return toResponse(profesorRepository.save(profesor));
+
+        Profesor guardado = profesorRepository.save(profesor);
+
+        return toResponse(guardado);
     }
 
-    // Eliminacion fisica, pedida explicitamente en los criterios de aceptacion
+    // Eliminacion fisica solicitada en los criterios de aceptacion.
     @Transactional
     public void eliminar(Long id) {
+
         Profesor profesor = buscarOFallar(id);
+
         profesorRepository.delete(profesor);
     }
 
     private Profesor buscarOFallar(Long id) {
+
         return profesorRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Profesor no encontrado"));
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Profesor no encontrado"
+                ));
     }
 
-    // Resuelve el usuario autenticado (username = cedula, ver UsuarioDetailsService)
-    // para completar id_usuario_ultima_modificacion, usado por los triggers de bitacora.
+    /*
+     * Obtiene el usuario autenticado.
+     *
+     * El username corresponde a la cedula del usuario.
+     * Se utiliza para registrar el usuario responsable
+     * de la ultima modificacion del profesor.
+     */
     private Usuario usuarioActual() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+
+        Authentication auth =
+                SecurityContextHolder.getContext().getAuthentication();
+
         if (auth == null || !auth.isAuthenticated()) {
             return null;
         }
-        return usuarioRepository.findByCedula(auth.getName()).orElse(null);
+
+        return usuarioRepository
+                .findByCedula(auth.getName())
+                .orElse(null);
     }
 
-    private ProfesorResponse toResponse(Profesor p) {
-        TiposIdentificacion tipo = p.getIdTipoIdentificacion();
+    private ProfesorResponse toResponse(Profesor profesor) {
+
+        TiposIdentificacion tipo =
+                profesor.getIdTipoIdentificacion();
+
         return new ProfesorResponse(
-                p.getId(),
-                new TipoIdentificacionResponse(tipo.getId(), tipo.getCodigo(), tipo.getNombre()),
-                p.getNumeroIdentificacion(),
-                p.getNombres(),
-                p.getPrimerApellido(),
-                p.getSegundoApellido(),
-                p.getTelefono(),
-                p.getCorreo(),
-                p.getDireccion(),
-                p.getGradoAcademico(),
-                p.getEspecialidad(),
-                p.getEmpleador(),
-                p.getFechaIngreso(),
-                p.getFechaSalida(),
-                p.getActivo(),
-                p.getCreadoEn(),
-                p.getActualizadoEn()
+                profesor.getId(),
+                new TipoIdentificacionResponse(
+                        tipo.getId(),
+                        tipo.getCodigo(),
+                        tipo.getNombre()
+                ),
+                profesor.getNumeroIdentificacion(),
+                profesor.getNombres(),
+                profesor.getPrimerApellido(),
+                profesor.getSegundoApellido(),
+                profesor.getTelefono(),
+                profesor.getCorreo(),
+                profesor.getDireccion(),
+                profesor.getGradoAcademico(),
+                profesor.getEspecialidad(),
+                profesor.getEmpleador(),
+                profesor.getFechaIngreso(),
+                profesor.getFechaSalida(),
+                profesor.getActivo(),
+                profesor.getCreadoEn(),
+                profesor.getActualizadoEn()
         );
     }
 }
