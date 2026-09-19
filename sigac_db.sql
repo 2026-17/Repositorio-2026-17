@@ -460,6 +460,8 @@ CREATE TABLE IF NOT EXISTS cursos (
     descripcion                     TEXT NULL,
     horas_totales                   SMALLINT UNSIGNED NULL,
     creditos                        DECIMAL(4,1) NULL,
+    edad_minima                     TINYINT UNSIGNED NULL,
+    edad_maxima                     TINYINT UNSIGNED NULL,
     activo                          BOOLEAN NOT NULL DEFAULT TRUE,
     id_usuario_ultima_modificacion  INT UNSIGNED NULL,
     creado_en                       DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
@@ -471,6 +473,12 @@ CREATE TABLE IF NOT EXISTS cursos (
     CHECK (horas_totales IS NULL OR horas_totales > 0),
     CONSTRAINT ck_cursos_creditos
     CHECK (creditos IS NULL OR creditos >= 0),
+    CONSTRAINT ck_cursos_edad
+    CHECK (
+        (edad_minima IS NULL OR edad_minima <= 150)
+        AND (edad_maxima IS NULL OR edad_maxima <= 150)
+        AND (edad_minima IS NULL OR edad_maxima IS NULL OR edad_minima <= edad_maxima)
+    ),
     CONSTRAINT fk_cursos_usuario_modifica
     FOREIGN KEY (id_usuario_ultima_modificacion)
     REFERENCES usuarios (id_usuario)
@@ -1712,6 +1720,8 @@ BEGIN
                                                                      'descripcion', OLD.descripcion,
                                                                      'horas_totales', OLD.horas_totales,
                                                                      'creditos', OLD.creditos,
+                                                                     'edad_minima', OLD.edad_minima,
+                                                                     'edad_maxima', OLD.edad_maxima,
                                                                      'activo', OLD.activo
                                                              ),
                                                              JSON_OBJECT(
@@ -1720,6 +1730,8 @@ BEGIN
                                                                      'descripcion', NEW.descripcion,
                                                                      'horas_totales', NEW.horas_totales,
                                                                      'creditos', NEW.creditos,
+                                                                     'edad_minima', NEW.edad_minima,
+                                                                     'edad_maxima', NEW.edad_maxima,
                                                                      'activo', NEW.activo
                                                              ));
                                                         END$$
