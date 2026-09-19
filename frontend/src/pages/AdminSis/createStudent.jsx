@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import "../../index.css";
-import "./CreateStudent.css";
+import "./styles/CreateStudent.css";
 
 const MAX_PDF = 50 * 1024 * 1024;
 const GENEROS = ["MASCULINO", "FEMENINO", "OTRO"];
