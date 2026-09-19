@@ -1,3 +1,4 @@
+import RequisitosCursoOpcionales from "./RequisitosCursoOpcionales";
 import { useEffect, useState } from "react";
 import { API_URL } from "../../config/api";
 import "./crearCurso.css";
@@ -5,6 +6,7 @@ import "./crearCurso.css";
 function CrearCurso() {
 
     const token = localStorage.getItem("token");
+    const [revisionRequisitos, setRevisionRequisitos] = useState(0);
 
     const [form, setForm] = useState({
         codigo: "",
@@ -111,6 +113,7 @@ function CrearCurso() {
         setForm((prev) => ({
             ...prev,
             [name]: value,
+            ...(name === "idPrograma" ? { requisitos: undefined } : {}),
         }));
 
         // Limpiar el error del campo que el usuario está corrigiendo.
@@ -188,6 +191,7 @@ function CrearCurso() {
             nivel: Number(form.nivel),
             cupos: Number(form.cupos),
             idPeriodo: Number(form.idPeriodo),
+            requisitos: form.requisitos,
         };
 
         setGuardando(true);
@@ -234,6 +238,7 @@ function CrearCurso() {
                 `El curso ${data.codigo || payload.codigo} fue creado correctamente y agregado a la malla curricular.`
             );
 
+            setRevisionRequisitos(n => n + 1);
             setForm({
                 codigo: "",
                 nombre: "",
@@ -259,6 +264,7 @@ function CrearCurso() {
     }
 
     function limpiarFormulario() {
+        setRevisionRequisitos(n => n + 1);
 
         setForm({
             codigo: "",
@@ -588,6 +594,12 @@ function CrearCurso() {
                         * Campos obligatorios
                     </p>
 
+                    <RequisitosCursoOpcionales
+                        key={form.idPrograma + ':' + revisionRequisitos}
+                        idPrograma={form.idPrograma} value={form.requisitos}
+                        onChange={requisitos => setForm(prev => ({ ...prev, requisitos }))}
+                        disabled={guardando || cargandoCatalogos}
+                    />
                     <div className="curso-form__actions">
 
                         <button

@@ -1,3 +1,4 @@
+import RequisitosCursoOpcionales from "./RequisitosCursoOpcionales";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
     ArrowLeft,
@@ -39,12 +40,14 @@ function normalizarForm(form) {
         horasTotales: Number(form.horasTotales),
         idPrograma: Number(form.idPrograma),
         nivel: Number(form.nivel),
+        requisitos: form.requisitos,
     };
 }
 
 function ModificarCurso() {
 
     const token = localStorage.getItem("token");
+    const [revisionRequisitos, setRevisionRequisitos] = useState(0);
 
     const editorRef = useRef(null);
 
@@ -241,7 +244,8 @@ function ModificarCurso() {
             actual.descripcion !== inicial.descripcion ||
             actual.horasTotales !== inicial.horasTotales ||
             actual.idPrograma !== inicial.idPrograma ||
-            actual.nivel !== inicial.nivel
+            actual.nivel !== inicial.nivel ||
+            JSON.stringify(actual.requisitos) !== JSON.stringify(inicial.requisitos)
         );
 
     }, [form, formInicial]);
@@ -292,6 +296,7 @@ function ModificarCurso() {
             cambios.push("Nivel académico");
         }
 
+        if (JSON.stringify(actual.requisitos) !== JSON.stringify(inicial.requisitos)) cambios.push("Requisitos del curso");
         return cambios;
 
     }, [form, formInicial]);
@@ -343,6 +348,7 @@ function ModificarCurso() {
             const siguienteForm =
                 construirFormDesdeCurso(data);
 
+            setRevisionRequisitos(n => n + 1);
             setForm(siguienteForm);
             setFormInicial(siguienteForm);
 
@@ -386,6 +392,7 @@ function ModificarCurso() {
         setForm((prev) => ({
             ...prev,
             [name]: value,
+            ...(name === "idPrograma" ? { requisitos: undefined } : {}),
         }));
 
         setErrores((prev) => {
@@ -552,6 +559,7 @@ function ModificarCurso() {
             const siguienteForm =
                 construirFormDesdeCurso(data);
 
+            setRevisionRequisitos(n => n + 1);
             setForm(siguienteForm);
             setFormInicial(siguienteForm);
 
@@ -637,6 +645,7 @@ function ModificarCurso() {
     }
 
     function restaurarValores() {
+        setRevisionRequisitos(n => n + 1);
 
         if (!formInicial) {
             return;
@@ -1181,6 +1190,13 @@ function ModificarCurso() {
                                         : "No hay cambios pendientes."}
                                 </div>
 
+                                <RequisitosCursoOpcionales
+                                    key={cursoSeleccionado.idCurso + ':' + form.idPrograma + ':' + revisionRequisitos}
+                                    idCurso={cursoSeleccionado.idCurso} idPrograma={form.idPrograma}
+                                    value={form.requisitos}
+                                    onChange={requisitos => setForm(prev => ({ ...prev, requisitos }))}
+                                    disabled={guardando || cargandoCurso}
+                                />
                                 <div className="modificar-curso__actions">
 
                                     <button

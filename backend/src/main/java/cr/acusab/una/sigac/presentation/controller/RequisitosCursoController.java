@@ -19,6 +19,13 @@ public class RequisitosCursoController {
         this.service = service;
     }
 
+    @GetMapping("/opciones")
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('DIRECTOR_ACADEMICO')")
+    public ResponseEntity<RequisitosCursoResponseDTO> opcionesRequisitos(
+            @RequestParam Long idPrograma, @RequestParam(required = false) Long idCurso) {
+        return ResponseEntity.ok(service.opcionesRequisitos(idPrograma, idCurso));
+    }
+
     @GetMapping("/planes")
     public ResponseEntity<List<RequisitosCursoResponseDTO.PlanDTO>> listarPlanes() {
         return ResponseEntity.ok(service.listarPlanesVigentes());

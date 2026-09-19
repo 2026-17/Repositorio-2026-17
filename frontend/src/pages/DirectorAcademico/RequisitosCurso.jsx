@@ -1,3 +1,4 @@
+import CamposRequisitosCurso from "./CamposRequisitosCurso";
 import { useEffect, useState } from "react";
 import { API_URL } from "../../config/api";
 import "./requisitosCurso.css";
@@ -76,15 +77,6 @@ function RequisitosCurso() {
         } finally { setCargando(false); }
     }
 
-    function alternar(id, tipo) {
-        setConfiguracion((prev) => {
-            if (!prev) return prev;
-            const campo = tipo === "pre" ? "prerrequisitos" : "correquisitos";
-            const actual = prev[campo] || [];
-            return { ...prev, [campo]: actual.includes(id) ? actual.filter((x) => x !== id) : [...actual, id] };
-        });
-    }
-
     async function guardarConfiguracion() {
         if (!configuracion) return;
         setGuardando(true); setError(""); setMensajeExito("");
@@ -146,63 +138,7 @@ function RequisitosCurso() {
 
                 {cargando ? <div className="requisitos-curso__cargando">Cargando configuración...</div> : configuracion ? (
                     <>
-                        <section className="requisitos-curso__edad">
-                            <h2>Restricción de edad</h2>
-                            <p>Opcional. Use solo números enteros. Deje un campo vacío si no existe ese límite.</p>
-                            <div className="requisitos-curso__selectores">
-                                <label>Edad mínima
-                                    <input
-                                        type="number"
-                                        min="0"
-                                        max="150"
-                                        step="1"
-                                        value={configuracion.edadMinima ?? ""}
-                                        onChange={(e) => setConfiguracion({
-                                            ...configuracion,
-                                            edadMinima: e.target.value === "" ? null : Number(e.target.value)
-                                        })}
-                                        disabled={guardando}
-                                        placeholder="Ej. 10"
-                                    />
-                                </label>
-                                <label>Edad máxima
-                                    <input
-                                        type="number"
-                                        min="0"
-                                        max="150"
-                                        step="1"
-                                        value={configuracion.edadMaxima ?? ""}
-                                        onChange={(e) => setConfiguracion({
-                                            ...configuracion,
-                                            edadMaxima: e.target.value === "" ? null : Number(e.target.value)
-                                        })}
-                                        disabled={guardando}
-                                        placeholder="Ej. 17"
-                                    />
-                                </label>
-                            </div>
-                        </section>
-
-                        <div className="requisitos-curso__grid">
-                            {[["pre", "Prerrequisitos", "Cursos que el estudiante debe haber aprobado antes"], ["co", "Correquisitos", "Cursos que deben cursarse en simultáneo"]].map(([tipo, titulo, descripcion]) => (
-                                <section key={tipo}>
-                                    <h2>{titulo}</h2><p>{descripcion}</p>
-                                    <div className="requisitos-curso__lista">
-                                        {configuracion.cursos.map((curso) => {
-                                            const campo = tipo === "pre" ? "prerrequisitos" : "correquisitos";
-                                            return <label className="requisito-card" key={`${tipo}-${curso.idCurso}`}>
-                                                <input type="checkbox"
-                                                    checked={(configuracion[campo] || []).includes(curso.idCurso)}
-                                                    onChange={() => alternar(curso.idCurso, tipo)}
-                                                    disabled={guardando} />
-                                                <span><strong>{curso.nombre}</strong><small>{curso.codigo} · Nivel {curso.nivel}</small></span>
-                                            </label>;
-                                        })}
-                                        {configuracion.cursos.length === 0 && <div className="requisitos-curso__vacio">No hay otros cursos disponibles en este plan.</div>}
-                                    </div>
-                                </section>
-                            ))}
-                        </div>
+                        <CamposRequisitosCurso configuracion={configuracion} setConfiguracion={setConfiguracion} guardando={guardando} />
                         <div className="requisitos-curso__acciones">
                             <button type="button" className="btn-secundario" onClick={() => cargarConfiguracion(planId, cursoId)} disabled={guardando}>Cancelar</button>
                             <button type="button" className="btn-principal" onClick={guardarConfiguracion} disabled={guardando}>{guardando ? "Guardando..." : "Guardar configuración"}</button>

@@ -164,6 +164,51 @@ public class RequisitosCursoService {
         return consultar(plan.getId(), curso.getId());
     }
 
+    @Transactional
+    public void guardarConfiguracion(Long idPlan, Long idCurso,
+            cr.acusab.una.sigac.presentation.dto.request.ConfiguracionRequisitosCursoRequest actual) {
+        var request = new RequisitosCursoRequestDTO();
+        request.setIdPlanEstudio(idPlan);
+        request.setIdCurso(idCurso);
+        request.setPrerrequisitos(actual.getPrerrequisitos());
+        request.setCorrequisitos(actual.getCorrequisitos());
+        request.setEdadMinima(actual.getEdadMinima());
+        request.setEdadMaxima(actual.getEdadMaxima());
+        guardar(request);
+    }
+
+    @Transactional(readOnly = true)
+    public RequisitosCursoResponseDTO opcionesRequisitos(Long idPrograma, Long idCurso) {
+        PlanEstudio plan = null;
+        if (idCurso != null) {
+            var mallas = mallaRepository.findByIdCursoAndActivoTrue(idCurso);
+            if (mallas.size() != 1) throw new BusinessException("El curso debe tener una ubicación activa en la malla.");
+            var actual = obtenerPlan(mallas.get(0).getIdPlanEstudio());
+            if (actual.getIdPrograma().equals(idPrograma)) plan = actual;
+        }
+        if (plan == null) {
+            plan = planRepository.findFirstByIdProgramaAndVigenteTrueOrderByFechaVigenciaDesdeDesc(idPrograma)
+                    .orElseThrow(() -> new BusinessException("El programa no tiene un plan de estudio vigente."));
+        }
+        var response = new RequisitosCursoResponseDTO();
+        response.setIdPlanEstudio(plan.getId());
+        response.setCursos(construirCursosDelPlan(plan.getId()).stream()
+                .filter(c -> !c.getIdCurso().equals(idCurso)).toList());
+        if (idCurso != null) {
+            Curso curso = obtenerCurso(idCurso);
+            response.setEdadMinima(curso.getEdadMinima());
+            response.setEdadMaxima(curso.getEdadMaxima());
+            for (var requisito : requisitosRepository.findConfiguracionActiva(plan.getId(), idCurso)) {
+                if (PRERREQUISITO.equals(requisito.getIdTipoRequisito().getCodigo())) {
+                    response.getPrerrequisitos().add(requisito.getIdCursoRequerido().getId());
+                } else if (CORREQUISITO.equals(requisito.getIdTipoRequisito().getCodigo())) {
+                    response.getCorrequisitos().add(requisito.getIdCursoRequerido().getId());
+                }
+            }
+        }
+        return response;
+    }
+
     private void guardarOReactivarRelacion(RequisitosCurso existente,
                                             PlanEstudio plan,
                                             Curso curso,
