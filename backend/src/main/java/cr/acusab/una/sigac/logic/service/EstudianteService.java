@@ -230,8 +230,10 @@ public class EstudianteService {
                 .toList();
 
         return estudiantes.stream().map(e -> {
-            Integer instrumentoId = estudianteInstrumentoRepository.findByIdEstudiante_IdAndEsPrincipalTrueAndFechaFinIsNull(e.getId())
+            Integer instrumentoId = estudianteInstrumentoRepository.findByIdEstudiante_IdAndFechaFinIsNull(e.getId())
+                    .stream()
                     .map(x -> x.getInstrumento().getId())
+                    .findFirst()
                     .orElse(null);
             String instrumento = instrumentoId == null
                     ? null
