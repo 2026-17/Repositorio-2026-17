@@ -7,6 +7,7 @@ import slide2 from "../../assets/slideshow/slide2.jpeg";
 import slide3 from "../../assets/slideshow/slide3.jpg";
 
 import { API_URL } from "../../config/api";
+import { useDialog } from "../../components/dialog/useDialog";
 
 import "./publico.css";
 
@@ -35,14 +36,12 @@ const RUTAS_POR_ROL = {
 
 function Login() {
     const navigate = useNavigate();
+    const dialog = useDialog();
 
     const [form, setForm] = useState({
         cedula: "",
         contrasena: "",
     });
-
-    const [error, setError] =
-        useState("");
 
     const [cargando, setCargando] =
         useState(false);
@@ -50,7 +49,6 @@ function Login() {
     async function handleSubmit(event) {
         event.preventDefault();
 
-        setError("");
         setCargando(true);
 
         try {
@@ -69,8 +67,9 @@ function Login() {
             );
 
             if (!response.ok) {
-                setError(
-                    "Credenciales inválidas"
+                dialog.error(
+                    "La cédula o la contraseña son incorrectas.",
+                    { titulo: "No se pudo iniciar sesión" }
                 );
                 return;
             }
@@ -124,13 +123,15 @@ function Login() {
                     }
                 );
             } else {
-                alert(
-                    "Login exitoso. Aún no hay una página asignada para este rol."
+                dialog.aviso(
+                    "Aún no hay una página asignada para este rol.",
+                    { titulo: "Inicio de sesión exitoso" }
                 );
             }
         } catch {
-            setError(
-                "No se pudo conectar con el servidor"
+            dialog.error(
+                "No se pudo conectar con el servidor. Intente de nuevo en unos momentos.",
+                { titulo: "Sin conexión" }
             );
         } finally {
             setCargando(false);
@@ -263,15 +264,6 @@ function Login() {
                                 </button>
                             </div>
                         </form>
-
-                        {error && (
-                            <p
-                                className="error-message"
-                                role="alert"
-                            >
-                                {error}
-                            </p>
-                        )}
                     </div>
                 </section>
 

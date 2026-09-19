@@ -3,15 +3,16 @@ import { API_URL } from "../../config/api";
 import CamposRequisitosCurso from "./CamposRequisitosCurso";
 import "./requisitosCurso.css";
 
+import { useDialog } from "../../components/dialog/useDialog";
+
 export default function RequisitosCursoOpcionales({ idPrograma, idCurso, value, onChange, disabled }) {
+    const dialog = useDialog();
     const [abierto, setAbierto] = useState(false);
     const [datos, setDatos] = useState(null);
     const [cargando, setCargando] = useState(false);
-    const [error, setError] = useState("");
 
     async function cargar() {
         setCargando(true);
-        setError("");
         try {
             const params = new URLSearchParams({ idPrograma });
             if (idCurso) params.set("idCurso", idCurso);
@@ -22,7 +23,7 @@ export default function RequisitosCursoOpcionales({ idPrograma, idCurso, value, 
             if (!response.ok) throw new Error(body.message || "No fue posible consultar los requisitos.");
             setDatos(body);
         } catch (e) {
-            setError(e.message);
+            dialog.error(e.message);
         } finally {
             setCargando(false);
         }
@@ -54,9 +55,6 @@ export default function RequisitosCursoOpcionales({ idPrograma, idCurso, value, 
             {!idPrograma && <p>Seleccione primero el programa académico.</p>}
             {abierto && <>
                 {cargando && <div className="requisitos-curso__cargando" role="status">Cargando configuración...</div>}
-                {error && <div className="requisitos-curso__mensaje requisitos-curso__mensaje--error" role="alert">
-                    <p>{error}</p><button type="button" className="btn-secundario" onClick={cargar} disabled={disabled || cargando}>Reintentar</button>
-                </div>}
                 {configuracion && <>
                     <CamposRequisitosCurso configuracion={configuracion} guardando={disabled || cargando}
                         setConfiguracion={next => onChange({
@@ -65,11 +63,11 @@ export default function RequisitosCursoOpcionales({ idPrograma, idCurso, value, 
                             edadMinima: next.edadMinima ?? null,
                             edadMaxima: next.edadMaxima ?? null,
                         })} />
-                    <div className="requisitos-curso__acciones">
+                    <div className="requisitos-curso__pie">
+                        <p className="requisitos-curso__nota">La configuración se aplica al guardar el curso.</p>
                         <button type="button" className="btn-secundario" disabled={disabled || !value}
                             onClick={() => onChange(undefined)}>Deshacer cambios en requisitos</button>
                     </div>
-                    <p className="requisitos-curso__nota">La configuración se aplica al guardar el curso.</p>
                 </>}
             </>}
         </section>

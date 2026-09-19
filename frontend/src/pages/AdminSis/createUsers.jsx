@@ -1,11 +1,12 @@
 import { useEffect, useState, useCallback } from "react";
 import { API_URL } from "../../config/api";
+import { useDialog } from "../../components/dialog/useDialog";
 
 function CreateUsers() {
 
+    const dialog = useDialog();
     const [roles, setRoles] = useState([]);
     const [estados, setEstados] = useState([]);
-    const [error, setError] = useState("");
     const [form, setForm] = useState({
         cedula: "",
         nombre: "",
@@ -25,7 +26,6 @@ function CreateUsers() {
     useEffect(() => {
         async function cargarCatalogos() {
             try {
-                setError("");
                 const [rolesRes, estadosRes] = await Promise.all([
                     fetch(`${API_URL}/roles`, { headers: getHeaders() }),
                     fetch(`${API_URL}/estados-usuarios`, { headers: getHeaders() }),
@@ -43,12 +43,12 @@ function CreateUsers() {
                 setRoles(rolesData);
                 setEstados(estadosData);
             } catch (e) {
-                setError(e.message);
+                dialog.error(e.message);
             }
         }
 
         cargarCatalogos();
-    }, [getHeaders]);
+    }, [getHeaders, dialog]);
 
 
     async function handleSubmit(e) {
@@ -63,19 +63,25 @@ function CreateUsers() {
             idEstadoUsuario: Number(form.idEstadoUsuario),
         };
 
-        const response = await fetch(`${API_URL}/usuarios`, {
-            method: "POST",
-            headers: getHeaders(),
-            body: JSON.stringify(payload),
+        let response;
 
-        });
-
-        if (!response.ok) {
-            alert("Error al crear usuario");
+        try {
+            response = await fetch(`${API_URL}/usuarios`, {
+                method: "POST",
+                headers: getHeaders(),
+                body: JSON.stringify(payload),
+            });
+        } catch {
+            dialog.error("No se pudo conectar con el servidor.");
             return;
         }
 
-        alert("Usuario creado");
+        if (!response.ok) {
+            dialog.error("No fue posible crear el usuario. Verifique los datos e intente de nuevo.");
+            return;
+        }
+
+        dialog.exito("El usuario fue creado correctamente.");
         setForm({
             cedula: "",
             nombre: "",
@@ -89,7 +95,6 @@ function CreateUsers() {
     return (
         <div className="container">
             <h2>Crear usuario</h2>
-            {error && <p>{error}</p>}
 
             <form onSubmit={handleSubmit}>
                 <label>Cédula</label>

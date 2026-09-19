@@ -7,13 +7,14 @@ import "./styles/admin_Sis.css";
 import "../Administrativa/Profesores.css";
 import "./styles/Estudiantes.css";
 
+import { useDialog } from "../../components/dialog/useDialog";
+
 function Estudiantes() {
+    const dialog = useDialog();
     const [estudiantes, setEstudiantes] = useState([]);
     const [busqueda, setBusqueda] = useState("");
     const [filtroActivo, setFiltroActivo] = useState("true");
     const [cargando, setCargando] = useState(true);
-    const [error, setError] = useState("");
-    const [exito, setExito] = useState("");
     const [formAbierto, setFormAbierto] = useState(false);
     const [editingId, setEditingId] = useState(null);
     const [recargar, setRecargar] = useState(0);
@@ -25,7 +26,6 @@ function Estudiantes() {
 
     const cargarEstudiantes = useCallback(async () => {
         setCargando(true);
-        setError("");
         try {
             const params = new URLSearchParams();
             if (filtroActivo) params.set("activo", filtroActivo);
@@ -38,11 +38,11 @@ function Estudiantes() {
             if (!response.ok) throw new Error("No se pudo cargar la lista de estudiantes.");
             setEstudiantes(await response.json());
         } catch (e) {
-            setError(e.message);
+            dialog.error(e.message);
         } finally {
             setCargando(false);
         }
-    }, [filtroActivo, getHeaders, recargar]);
+    }, [filtroActivo, getHeaders, recargar, dialog]);
 
     useEffect(() => {
         cargarEstudiantes();
@@ -60,8 +60,6 @@ function Estudiantes() {
 
     function abrirNuevo() {
         setEditingId(null);
-        setError("");
-        setExito("");
         setFormAbierto(true);
         requestAnimationFrame(() =>
             document.getElementById("form-estudiante")?.scrollIntoView({
@@ -73,8 +71,6 @@ function Estudiantes() {
 
     function abrirEditar(estudiante) {
         setEditingId(estudiante.id);
-        setError("");
-        setExito("");
         setFormAbierto(true);
         requestAnimationFrame(() =>
             document.getElementById("form-estudiante")?.scrollIntoView({
@@ -87,13 +83,12 @@ function Estudiantes() {
     function cerrarFormulario() {
         setFormAbierto(false);
         setEditingId(null);
-        setError("");
     }
 
     function formularioGuardado() {
         setFormAbierto(false);
         setEditingId(null);
-        setExito(editingId
+        dialog.exito(editingId
             ? "Información del estudiante actualizada correctamente."
             : "Estudiante registrado correctamente.");
         setRecargar((n) => n + 1);
@@ -106,18 +101,6 @@ function Estudiantes() {
                 <h1>Estudiantes</h1>
                 <p>Registre, consulte y administre la información académica y de contacto de los estudiantes.</p>
             </div>
-
-            {error && (
-                <div className="banner banner-danger" role="alert">
-                    {error}
-                </div>
-            )}
-
-            {exito && (
-                <div className="banner banner-success" role="alert">
-                    {exito}
-                </div>
-            )}
 
             {formAbierto && (
                 <section id="form-estudiante">

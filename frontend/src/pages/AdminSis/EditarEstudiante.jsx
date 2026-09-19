@@ -4,6 +4,8 @@ import { ArrowLeft, Save } from "lucide-react";
 import "./styles/admin_Sis.css";
 import "./styles/Estudiantes.css";
 
+import { useDialog } from "../../components/dialog/useDialog";
+
 const GENEROS = ["MASCULINO", "FEMENINO", "OTRO"];
 const NIVELES = ["Preescolar", "Primaria", "Secundaria", "Universitaria", "Ninguno"];
 
@@ -30,6 +32,7 @@ const initialForm = {
 };
 
 function EditarEstudiante({ studentId, onCancel, onSuccess } = {}) {
+    const dialog = useDialog();
     const { id: routeId } = useParams();
     const id = studentId ?? routeId;
     const navigate = useNavigate();
@@ -38,7 +41,6 @@ function EditarEstudiante({ studentId, onCancel, onSuccess } = {}) {
     const [instruments, setInstruments] = useState([]);
     const [form, setForm] = useState(initialForm);
     const [errors, setErrors] = useState({});
-    const [error, setError] = useState("");
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
 
@@ -70,13 +72,13 @@ function EditarEstudiante({ studentId, onCancel, onSuccess } = {}) {
                 setCenters(centerData);
                 setInstruments(instrumentData);
             } catch (e) {
-                setError(e.message);
+                dialog.error(e.message);
             } finally {
                 setLoading(false);
             }
         }
         cargar();
-    }, [id]);
+    }, [id, dialog]);
 
     useEffect(() => {
         if (edad !== null && edad >= 18) setForm(current => ({ ...current, idCentroEducativo: "" }));
@@ -85,7 +87,6 @@ function EditarEstudiante({ studentId, onCancel, onSuccess } = {}) {
     function setField(name, value) {
         setForm(current => ({ ...current, [name]: value }));
         setErrors(current => ({ ...current, [name]: "" }));
-        setError("");
     }
 
     async function submit(event) {
@@ -101,8 +102,8 @@ function EditarEstudiante({ studentId, onCancel, onSuccess } = {}) {
         if (requiereCentro && !form.idCentroEducativo) nextErrors.idCentroEducativo = "Seleccione el centro educativo.";
         if (form.correo && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.correo)) nextErrors.correo = "Ingrese un correo electrónico válido.";
         setErrors(nextErrors);
-        setError("");
         if (Object.keys(nextErrors).length > 0) {
+            dialog.validacion(nextErrors);
             const firstError = Object.keys(nextErrors)[0];
             requestAnimationFrame(() => document.querySelector(`[data-error-field="${firstError}"]`)?.scrollIntoView({ behavior: "smooth", block: "center" }));
             return;
@@ -122,7 +123,7 @@ function EditarEstudiante({ studentId, onCancel, onSuccess } = {}) {
             if (onSuccess) onSuccess();
             else navigate("/admin/administracion/estudiantes");
         } catch (e) {
-            setError(e.message);
+            dialog.error(e.message);
             window.scrollTo({ top: 0, behavior: "smooth" });
         } finally {
             setSaving(false);
@@ -130,12 +131,11 @@ function EditarEstudiante({ studentId, onCancel, onSuccess } = {}) {
     }
 
     if (loading) return <main className="content"><div className="banner banner-info">Cargando estudiante...</div></main>;
-    if (error && !form.numeroIdentificacion) return <main className="content"><div className="banner banner-danger" role="alert">{error}</div><Link className="btn btn-secondary" to="/admin/administracion/estudiantes"><ArrowLeft size={16} /> Volver a estudiantes</Link></main>;
+    if (!form.numeroIdentificacion) return <main className="content"><Link className="btn btn-secondary" to="/admin/administracion/estudiantes"><ArrowLeft size={16} /> Volver a estudiantes</Link></main>;
 
     return (
         <main className="content">
             <div className="page-title"><h1>Editar estudiante</h1><p>Actualiza la información personal y académica del estudiante.</p></div>
-            {error && <div className="banner banner-danger" role="alert">{error}</div>}
             <form onSubmit={submit} noValidate>
                 <section className="card">
                     <h2 className="card-title">Datos personales</h2>

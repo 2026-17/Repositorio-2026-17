@@ -3,6 +3,8 @@ import { API_URL } from "../../config/api";
 import "../../index.css";
 import "./styles/CreateStudent.css";
 
+import { useDialog } from "../../components/dialog/useDialog";
+
 const MAX_PDF = 50 * 1024 * 1024;
 const GENEROS = ["MASCULINO", "FEMENINO", "OTRO"];
 const PARENTESCOS = ["MADRE", "PADRE", "TUTOR", "FAMILIAR", "OTRO"];
@@ -43,6 +45,7 @@ const initialForm = {
 };
 
 export default function CreateStudent({ onCancel, onSuccess } = {}) {
+    const dialog = useDialog();
   const [types, setTypes] = useState([]);
   const [centers, setCenters] = useState([]);
   const [instruments, setInstruments] = useState([]);
@@ -53,8 +56,6 @@ export default function CreateStudent({ onCancel, onSuccess } = {}) {
   const [tieneBeca, setTieneBeca] = useState(false);
   const [becaForm, setBecaForm] = useState({ idPeriodo: "", idTipoBeca: "", porcentaje: "" });
   const [errors, setErrors] = useState({});
-  const [error, setError] = useState("");
-  const [resultado, setResultado] = useState(null);
   const [saving, setSaving] = useState(false);
   const [catalogLoading, setCatalogLoading] = useState(true);
 
@@ -73,9 +74,9 @@ export default function CreateStudent({ onCancel, onSuccess } = {}) {
       fetch(`/api/becas/tipos-becas`, { headers }).then(async r => r.ok ? r.json() : Promise.reject()),
     ]).then(([t, c, i, p, tb]) => {
       setTypes(t); setCenters(c); setInstruments(i); setPeriodos(p); setTiposBeca(tb);
-    }).catch(() => setError("No fue posible cargar los catálogos. Verifique que el backend esté disponible."))
+    }).catch(() => dialog.error("No fue posible cargar los catálogos. Verifique que el backend esté disponible."))
       .finally(() => setCatalogLoading(false));
-  }, []);
+  }, [dialog]);
 
   const setField = (name, value) => {
     setForm(f => {
@@ -88,7 +89,6 @@ export default function CreateStudent({ onCancel, onSuccess } = {}) {
       return next;
     });
     setErrors(e => ({ ...e, [name]: "" }));
-    setError("");
   };
 
   const addGuardian = () => {
@@ -100,7 +100,6 @@ export default function CreateStudent({ onCancel, onSuccess } = {}) {
       ...f, encargados: f.encargados.map((g, i) => i === index ? { ...g, [name]: value } : g),
     }));
     setErrors(e => ({ ...e, [`guardian-${index}-${name}`]: "" }));
-    setError("");
   };
 
   const removeGuardian = index => {
@@ -109,14 +108,13 @@ export default function CreateStudent({ onCancel, onSuccess } = {}) {
   };
 
   const reset = () => {
-    setForm(initialForm); setPolicy(null); setErrors({}); setError(""); setResultado(null);
+    setForm(initialForm); setPolicy(null); setErrors({});
     setTieneBeca(false); setBecaForm({ idPeriodo: "", idTipoBeca: "", porcentaje: "" });
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const submit = async event => {
     event.preventDefault();
-    setError("");
     const nextErrors = {};
     const required = [
       ["idTipoIdentificacion", "Seleccione el tipo de identificación."],
@@ -167,6 +165,7 @@ export default function CreateStudent({ onCancel, onSuccess } = {}) {
 
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) {
+      dialog.validacion(nextErrors);
       const firstError = Object.keys(nextErrors)[0];
       requestAnimationFrame(() => document.querySelector(`[data-error-field="${firstError}"]`)?.scrollIntoView({ behavior: "smooth", block: "center" }));
       return;
@@ -203,36 +202,26 @@ export default function CreateStudent({ onCancel, onSuccess } = {}) {
       const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(body.message || "No fue posible registrar el estudiante.");
       if (onSuccess) onSuccess(body.id);
-      else setResultado(body);
+      else {
+        const detalle = [`ID asignado: ${body.id}`];
+        if (body.beca) {
+          detalle.push(
+            `Beca: ${body.beca.nombreTipoBeca} — ${Number(body.beca.porcentaje)}%`,
+            `Descuento: ${formatoColones(body.beca.montoDescuento)} · Monto a pagar: ${formatoColones(body.beca.montoAPagar)}`,
+          );
+        }
+        await dialog.exito(
+          "El estudiante quedó registrado con estado activo y ya está disponible para matrícula y gestión académica.",
+          { titulo: "Estudiante registrado", lista: detalle },
+        );
+        reset();
+      }
     } catch (e) {
-      setError(e.message);
+      dialog.error(e.message);
     } finally {
       setSaving(false);
     }
   };
-
-  if (resultado) {
-    return (
-      <main className="confirm-wrap">
-        <section className="confirm-card">
-          <div className="confirm-icon">✓</div>
-          <h1>Estudiante registrado</h1>
-          <p>El estudiante quedó registrado con estado activo y ya está disponible para matrícula y gestión académica.</p>
-          <div className="confirm-id"><small>ID asignado</small><strong>{resultado.id}</strong></div>
-          {resultado.beca && (
-            <div className="confirm-id">
-              <small>Beca asignada</small>
-              <strong>{resultado.beca.nombreTipoBeca} — {Number(resultado.beca.porcentaje)}%</strong>
-              <p style={{ margin: "8px 0 0", fontSize: 13 }}>
-                Descuento: {formatoColones(resultado.beca.montoDescuento)} · Monto a pagar: {formatoColones(resultado.beca.montoAPagar)}
-              </p>
-            </div>
-          )}
-          <button className="btn btn-primary full" type="button" onClick={reset}>Registrar otro estudiante</button>
-        </section>
-      </main>
-    );
-  }
 
   return (
     <main className="content">
@@ -241,7 +230,6 @@ export default function CreateStudent({ onCancel, onSuccess } = {}) {
         <p>Datos personales, académicos, de contacto y documentación requerida.</p>
       </div>
 
-      {error && <div className="banner banner-warning" role="alert">⚠ {error}</div>}
       {catalogLoading && <div className="banner banner-info">Cargando catálogos...</div>}
 
       <form onSubmit={submit} noValidate>

@@ -3,7 +3,10 @@ import { useEffect, useState } from "react";
 import { API_URL } from "../../config/api";
 import "./crearCurso.css";
 
+import { useDialog } from "../../components/dialog/useDialog";
+
 function CrearCurso() {
+    const dialog = useDialog();
 
     const token = localStorage.getItem("token");
     const [revisionRequisitos, setRevisionRequisitos] = useState(0);
@@ -25,8 +28,6 @@ function CrearCurso() {
     const [cargandoCatalogos, setCargandoCatalogos] = useState(true);
     const [guardando, setGuardando] = useState(false);
 
-    const [error, setError] = useState("");
-    const [mensajeExito, setMensajeExito] = useState("");
     const [errores, setErrores] = useState({});
 
 
@@ -35,7 +36,6 @@ function CrearCurso() {
         async function cargarCatalogos() {
 
             setCargandoCatalogos(true);
-            setError("");
 
             try {
 
@@ -91,7 +91,7 @@ function CrearCurso() {
 
             } catch (e) {
 
-                setError(
+                dialog.error(
                     e.message ||
                     "No fue posible cargar la información necesaria."
                 );
@@ -104,7 +104,7 @@ function CrearCurso() {
 
         cargarCatalogos();
 
-    }, [token]);
+    }, [token, dialog]);
 
     function handleChange(e) {
 
@@ -126,8 +126,6 @@ function CrearCurso() {
             delete siguiente[name];
             return siguiente;
         });
-        setError("");
-        setMensajeExito("");
     }
 
     function validarFormulario() {
@@ -172,12 +170,11 @@ function CrearCurso() {
 
         e.preventDefault();
 
-        setError("");
-        setMensajeExito("");
         const erroresValidacion = validarFormulario();
 
         if (Object.keys(erroresValidacion).length > 0) {
             setErrores(erroresValidacion);
+            dialog.validacion(erroresValidacion);
             return;
         }
 
@@ -234,7 +231,7 @@ function CrearCurso() {
                 );
             }
 
-            setMensajeExito(
+            dialog.exito(
                 `El curso ${data.codigo || payload.codigo} fue creado correctamente y agregado a la malla curricular.`
             );
 
@@ -252,7 +249,7 @@ function CrearCurso() {
 
         } catch (e) {
 
-            setError(
+            dialog.error(
                 e.message ||
                 "Ocurrió un error al crear el curso."
             );
@@ -277,8 +274,6 @@ function CrearCurso() {
             idPeriodo: "",
         });
 
-        setError("");
-        setMensajeExito("");
         setErrores({});
     }
 
@@ -304,24 +299,6 @@ function CrearCurso() {
                         role="status"
                     >
                         Cargando información académica...
-                    </div>
-                )}
-
-                {error && (
-                    <div
-                        className="curso-message curso-message--error"
-                        role="alert"
-                    >
-                        {error}
-                    </div>
-                )}
-
-                {mensajeExito && (
-                    <div
-                        className="curso-message curso-message--success"
-                        role="status"
-                    >
-                        {mensajeExito}
                     </div>
                 )}
 

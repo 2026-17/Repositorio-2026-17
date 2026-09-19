@@ -1,25 +1,25 @@
 import { useEffect, useMemo, useState } from "react";
-import { Search, Users, GraduationCap, UserRound, AlertTriangle, Music2 } from "lucide-react";
+import { Search, Users, GraduationCap, UserRound, Music2 } from "lucide-react";
 import { API_URL } from "../../config/api";
 import "./desactivarCurso.css";
 
 
+import { useDialog } from "../../components/dialog/useDialog";
+
 const PAGE_SIZE = 5;
 
 function DesactivarCurso() {
+    const dialog = useDialog();
 
     const token = localStorage.getItem("token");
 
     const [cursos, setCursos] = useState([]);
     const [cargando, setCargando] = useState(true);
-    const [error, setError] = useState("");
-    const [mensajeExito, setMensajeExito] = useState("");
 
     const [busqueda, setBusqueda] = useState("");
     const [categoria, setCategoria] = useState("Todas");
     const [pagina, setPagina] = useState(1);
 
-    const [cursoAConfirmar, setCursoAConfirmar] = useState(null);
     const [desactivando, setDesactivando] = useState(false);
 
     useEffect(() => {
@@ -30,7 +30,6 @@ function DesactivarCurso() {
     async function cargarCursos() {
 
         setCargando(true);
-        setError("");
 
         try {
 
@@ -63,7 +62,7 @@ function DesactivarCurso() {
 
         } catch (e) {
 
-            setError(
+            dialog.error(
                 e.message ||
                 "Ocurrió un error al cargar los cursos."
             );
@@ -124,20 +123,27 @@ function DesactivarCurso() {
         setPagina(1);
     }
 
-    function cancelarDesactivacion() {
-        setCursoAConfirmar(null);
-    }
+    async function desactivarCurso(curso) {
 
-    async function confirmarDesactivacion() {
+        const confirmado = await dialog.confirmar(
+            `${curso.nombre} (${curso.codigo}) dejará de aparecer en la oferta académica vigente. Su información histórica no será eliminada.`,
+            {
+                titulo: "¿Desactivar este curso?",
+                textoAceptar: "Sí, desactivar",
+                peligro: true,
+            }
+        );
+
+        if (!confirmado) {
+            return;
+        }
 
         setDesactivando(true);
-        setError("");
-        setMensajeExito("");
 
         try {
 
             const response = await fetch(
-                `${API_URL}/cursos/${cursoAConfirmar.idCurso}/desactivar`,
+                `${API_URL}/cursos/${curso.idCurso}/desactivar`,
                 {
                     method: "PATCH",
                     headers: {
@@ -173,27 +179,21 @@ function DesactivarCurso() {
                 );
             }
 
-            setMensajeExito(
-                `"${cursoAConfirmar.nombre}" fue desactivado. Su información histórica se conserva.`
+            dialog.exito(
+                `"${curso.nombre}" fue desactivado. Su información histórica se conserva.`
             );
 
             // Se quita de la lista localmente para no recargar todo.
             setCursos((prev) =>
-                prev.filter((c) => c.idCurso !== cursoAConfirmar.idCurso)
+                prev.filter((c) => c.idCurso !== curso.idCurso)
             );
-
-            setCursoAConfirmar(null);
-
-            setTimeout(() => setMensajeExito(""), 4000);
 
         } catch (e) {
 
-            setError(
+            dialog.error(
                 e.message ||
                 "Ocurrió un error al desactivar el curso."
             );
-
-            setCursoAConfirmar(null);
 
         } finally {
 
@@ -213,21 +213,6 @@ function DesactivarCurso() {
                         eliminar su información histórica.
                     </p>
                 </header>
-
-                {error && (
-                    <div
-                        className="desactivar-curso__toast desactivar-curso__toast--error"
-                        role="alert"
-                    >
-                        {error}
-                    </div>
-                )}
-
-                {mensajeExito && (
-                    <div className="desactivar-curso__toast" role="status">
-                        {mensajeExito}
-                    </div>
-                )}
 
                 <div className="desactivar-curso__filtros">
                     <div className="desactivar-curso__buscar">
@@ -299,7 +284,8 @@ function DesactivarCurso() {
                             </div>
                             <button
                                 className="btn-desactivar"
-                                onClick={() => setCursoAConfirmar(curso)}
+                                onClick={() => desactivarCurso(curso)}
+                                disabled={desactivando}
                             >
                                 Desactivar
                             </button>
@@ -325,47 +311,6 @@ function DesactivarCurso() {
                         >
                             Siguiente
                         </button>
-                    </div>
-                )}
-
-                {cursoAConfirmar && (
-                    <div
-                        className="modal-overlay"
-                        role="dialog"
-                        aria-modal="true"
-                    >
-                        <div className="modal">
-                            <AlertTriangle
-                                size={22}
-                                className="modal__icono"
-                            />
-                            <h2>¿Desactivar este curso?</h2>
-                            <p>
-                                <strong>{cursoAConfirmar.nombre}</strong>
-                                {" "}({cursoAConfirmar.codigo}) dejará de
-                                aparecer en la oferta académica vigente.
-                                Su información histórica no será
-                                eliminada.
-                            </p>
-                            <div className="modal__acciones">
-                                <button
-                                    className="btn-secundario"
-                                    onClick={cancelarDesactivacion}
-                                    disabled={desactivando}
-                                >
-                                    Cancelar
-                                </button>
-                                <button
-                                    className="btn-desactivar"
-                                    onClick={confirmarDesactivacion}
-                                    disabled={desactivando}
-                                >
-                                    {desactivando
-                                        ? "Desactivando..."
-                                        : "Sí, desactivar"}
-                                </button>
-                            </div>
-                        </div>
                     </div>
                 )}
 

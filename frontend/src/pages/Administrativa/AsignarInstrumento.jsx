@@ -3,6 +3,8 @@ import "../AdminSis/styles/admin_Sis.css";
 import "./AsignarInstrumento.css";
 import { API_URL } from "../../config/api.js";
 
+import { useDialog } from "../../components/dialog/useDialog";
+
 const initialForm = { idInstrumento: "", observaciones: "" };
 
 function formatDate(iso) {
@@ -12,6 +14,7 @@ function formatDate(iso) {
 }
 
 export default function AsignarInstrumento() {
+    const dialog = useDialog();
     const [numeroIdentificacion, setNumeroIdentificacion] = useState("");
     const [idEstudiante, setIdEstudiante] = useState(null);
     const [estudianteActivo, setEstudianteActivo] = useState(null);
@@ -20,8 +23,6 @@ export default function AsignarInstrumento() {
     const [historial, setHistorial] = useState([]);
     const [form, setForm] = useState(initialForm);
     const [errors, setErrors] = useState({});
-    const [error, setError] = useState("");
-    const [success, setSuccess] = useState("");
     const [catalogLoading, setCatalogLoading] = useState(true);
     const [buscando, setBuscando] = useState(false);
     const [saving, setSaving] = useState(false);
@@ -39,9 +40,9 @@ export default function AsignarInstrumento() {
         fetch(`/api/registro/catalogos/instrumentos`, { headers: authHeaders() })
             .then(r => (r.ok ? r.json() : Promise.reject()))
             .then(setInstrumentos)
-            .catch(() => setError("No fue posible cargar el catálogo de instrumentos."))
+            .catch(() => dialog.error("No fue posible cargar el catálogo de instrumentos."))
             .finally(() => setCatalogLoading(false));
-    }, [authHeaders]);
+    }, [authHeaders, dialog]);
 
     const cargarInstrumentosEstudiante = useCallback(async id => {
         const vigentesRes = await fetch(`${API_URL}/estudiantes/${id}/instrumentos/actual`, { headers: authHeaders() });
@@ -60,11 +61,11 @@ export default function AsignarInstrumento() {
 
     const buscarEstudiante = async event => {
         event.preventDefault();
-        setError("");
-        setSuccess("");
         const texto = numeroIdentificacion.trim();
         if (!texto) {
-            setErrors({ numeroIdentificacion: "Ingrese el número de identificación del estudiante." });
+            const errores = { numeroIdentificacion: "Ingrese el número de identificación del estudiante." };
+            setErrors(errores);
+            dialog.validacion(errores);
             return;
         }
         setErrors({});
@@ -92,7 +93,7 @@ export default function AsignarInstrumento() {
             setEstudianteActivo(null);
             setVigentes([]);
             setHistorial([]);
-            setError(e.message);
+            dialog.error(e.message);
         } finally {
             setBuscando(false);
         }
@@ -105,10 +106,9 @@ export default function AsignarInstrumento() {
 
     const asignar = async event => {
         event.preventDefault();
-        setError("");
-        setSuccess("");
         if (!form.idInstrumento) {
             setErrors(e => ({ ...e, idInstrumento: "Seleccione un instrumento." }));
+            dialog.validacion(["Seleccione un instrumento."]);
             return;
         }
 
@@ -128,17 +128,15 @@ export default function AsignarInstrumento() {
             if (!response.ok) throw new Error(body.message || "No fue posible asignar el instrumento.");
             await cargarInstrumentosEstudiante(idEstudiante);
             setForm(initialForm);
-            setSuccess(`Instrumento "${body.nombreInstrumento}" asignado correctamente el ${formatDate(body.fechaInicio)}.`);
+            dialog.exito(`Instrumento "${body.nombreInstrumento}" asignado correctamente el ${formatDate(body.fechaInicio)}.`);
         } catch (e) {
-            setError(e.message);
+            dialog.error(e.message);
         } finally {
             setSaving(false);
         }
     };
 
     const deshabilitar = async idEstudianteInstrumento => {
-        setError("");
-        setSuccess("");
         setDeshabilitandoId(idEstudianteInstrumento);
         try {
             const response = await fetch(
@@ -148,9 +146,9 @@ export default function AsignarInstrumento() {
             const body = await response.json().catch(() => ({}));
             if (!response.ok) throw new Error(body.message || "No fue posible deshabilitar el instrumento.");
             await cargarInstrumentosEstudiante(idEstudiante);
-            setSuccess(`Instrumento "${body.nombreInstrumento}" finalizado el ${formatDate(body.fechaFin)}.`);
+            dialog.exito(`Instrumento "${body.nombreInstrumento}" finalizado el ${formatDate(body.fechaFin)}.`);
         } catch (e) {
-            setError(e.message);
+            dialog.error(e.message);
         } finally {
             setDeshabilitandoId(null);
         }
@@ -162,9 +160,6 @@ export default function AsignarInstrumento() {
                 <h1>Asignar instrumento</h1>
                 <p>Registre o cambie el instrumento musical asociado al expediente académico del estudiante.</p>
             </div>
-
-            {error && <div className="banner banner-danger" role="alert">⚠ {error}</div>}
-            {success && <div className="banner banner-success" role="status">✓ {success}</div>}
 
             <section className="card">
                 <h2 className="card-title">Estudiante</h2>

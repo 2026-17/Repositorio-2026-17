@@ -3,7 +3,10 @@ import { useEffect, useState } from "react";
 import { API_URL } from "../../config/api";
 import "./requisitosCurso.css";
 
+import { useDialog } from "../../components/dialog/useDialog";
+
 function RequisitosCurso() {
+    const dialog = useDialog();
     const token = localStorage.getItem("token");
     const [planes, setPlanes] = useState([]);
     const [cursos, setCursos] = useState([]);
@@ -12,8 +15,6 @@ function RequisitosCurso() {
     const [configuracion, setConfiguracion] = useState(null);
     const [cargando, setCargando] = useState(true);
     const [guardando, setGuardando] = useState(false);
-    const [error, setError] = useState("");
-    const [mensajeExito, setMensajeExito] = useState("");
 
     useEffect(() => { cargarPlanes(); }, []);
 
@@ -39,13 +40,12 @@ function RequisitosCurso() {
             setPlanes(data);
             if (data.length) setPlanId(String(data[0].idPlanEstudio));
         } catch (e) {
-            setError(e.message || "Ocurrió un error al cargar los planes de estudio.");
+            dialog.error(e.message || "Ocurrió un error al cargar los planes de estudio.");
         } finally { setCargando(false); }
     }
 
     async function cargarCursos(idPlan) {
         setCargando(true);
-        setError("");
         setConfiguracion(null);
         setCursoId("");
         try {
@@ -57,13 +57,12 @@ function RequisitosCurso() {
             setCursos(data);
             if (data.length) setCursoId(String(data[0].idCurso));
         } catch (e) {
-            setError(e.message || "Ocurrió un error al cargar los cursos.");
+            dialog.error(e.message || "Ocurrió un error al cargar los cursos.");
         } finally { setCargando(false); }
     }
 
     async function cargarConfiguracion(idPlan, idCurso) {
         setCargando(true);
-        setError("");
         try {
             const response = await fetch(`${API_URL}/requisitos-cursos?idPlanEstudio=${idPlan}&idCurso=${idCurso}`, {
                 headers: { Authorization: `Bearer ${token}` },
@@ -72,14 +71,14 @@ function RequisitosCurso() {
             if (!response.ok) throw new Error(data.message || "No fue posible cargar la configuración.");
             setConfiguracion(data);
         } catch (e) {
-            setError(e.message || "No fue posible cargar la configuración del curso.");
+            dialog.error(e.message || "No fue posible cargar la configuración del curso.");
             setConfiguracion(null);
         } finally { setCargando(false); }
     }
 
     async function guardarConfiguracion() {
         if (!configuracion) return;
-        setGuardando(true); setError(""); setMensajeExito("");
+        setGuardando(true);
         try {
             const response = await fetch(`${API_URL}/requisitos-cursos`, {
                 method: "PUT",
@@ -96,10 +95,9 @@ function RequisitosCurso() {
             const data = await response.json().catch(() => ({}));
             if (!response.ok) throw new Error(data.message || "No fue posible guardar la configuración.");
             setConfiguracion(data);
-            setMensajeExito("La configuración de prerrequisitos y correquisitos se guardó correctamente.");
-            setTimeout(() => setMensajeExito(""), 4000);
+            dialog.exito("La configuración de prerrequisitos y correquisitos se guardó correctamente.");
         } catch (e) {
-            setError(e.message || "Ocurrió un error al guardar la configuración.");
+            dialog.error(e.message || "Ocurrió un error al guardar la configuración.");
         } finally { setGuardando(false); }
     }
 
@@ -132,9 +130,6 @@ function RequisitosCurso() {
                         </select>
                     </label>
                 </div>
-
-                {error && <div className="requisitos-curso__mensaje requisitos-curso__mensaje--error" role="alert">{error}</div>}
-                {mensajeExito && <div className="requisitos-curso__mensaje" role="status">{mensajeExito}</div>}
 
                 {cargando ? <div className="requisitos-curso__cargando">Cargando configuración...</div> : configuracion ? (
                     <>

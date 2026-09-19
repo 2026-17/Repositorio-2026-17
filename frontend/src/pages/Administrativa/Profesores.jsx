@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { API_URL } from "../../config/api.js";
 import "./Profesores.css";
 
+import { useDialog } from "../../components/dialog/useDialog";
+
 const initialForm = {
     idTipoIdentificacion: "",
     numeroIdentificacion: "",
@@ -24,13 +26,12 @@ function nombreCompleto(p) {
 }
 
 function Profesores() {
+    const dialog = useDialog();
     const [profesores, setProfesores] = useState([]);
     const [tipos, setTipos] = useState([]);
     const [gradosAcademicos, setGradosAcademicos] = useState([]);
     const [instrumentos, setInstrumentos] = useState([]);
     const [cargando, setCargando] = useState(true);
-    const [error, setError] = useState("");
-    const [exito, setExito] = useState("");
 
     const [filtroActivo, setFiltroActivo] = useState("true");
     const [busqueda, setBusqueda] = useState("");
@@ -58,11 +59,11 @@ function Profesores() {
                 if (!response.ok) throw new Error("No se pudo cargar el catálogo de tipos de identificación");
                 setTipos(await response.json());
             } catch (e) {
-                setError(e.message);
+                dialog.error(e.message);
             }
         }
         cargarTipos();
-    }, [getHeaders]);
+    }, [getHeaders, dialog]);
 
     useEffect(() => {
         async function cargarGradosAcademicos() {
@@ -71,11 +72,11 @@ function Profesores() {
                 if (!response.ok) throw new Error("No se pudo cargar el catálogo de grados académicos");
                 setGradosAcademicos(await response.json());
             } catch (e) {
-                setError(e.message);
+                dialog.error(e.message);
             }
         }
         cargarGradosAcademicos();
-    }, [getHeaders]);
+    }, [getHeaders, dialog]);
 
     useEffect(() => {
         async function cargarInstrumentos() {
@@ -84,11 +85,11 @@ function Profesores() {
                 if (!response.ok) throw new Error("No se pudo cargar el catálogo de especialidades");
                 setInstrumentos(await response.json());
             } catch (e) {
-                setError(e.message);
+                dialog.error(e.message);
             }
         }
         cargarInstrumentos();
-    }, [getHeaders]);
+    }, [getHeaders, dialog]);
 
     useEffect(() => {
         let cancelado = false;
@@ -102,7 +103,7 @@ function Profesores() {
                 const data = await response.json();
                 if (!cancelado) setProfesores(data);
             } catch (e) {
-                if (!cancelado) setError(e.message);
+                if (!cancelado) dialog.error(e.message);
             } finally {
                 if (!cancelado) setCargando(false);
             }
@@ -110,7 +111,7 @@ function Profesores() {
 
         cargarProfesores();
         return () => { cancelado = true; };
-    }, [filtroActivo, getHeaders, recargar]);
+    }, [filtroActivo, getHeaders, recargar, dialog]);
 
     const profesoresFiltrados = useMemo(() => {
         const texto = busqueda.trim().toLowerCase();
@@ -131,7 +132,6 @@ function Profesores() {
         setEditingId(null);
         setForm(initialForm);
         setErrores({});
-        setExito("");
         setFormAbierto(true);
         requestAnimationFrame(() => formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
     }
@@ -154,7 +154,6 @@ function Profesores() {
             fechaSalida: p.fechaSalida || "",
         });
         setErrores({});
-        setExito("");
         setFormAbierto(true);
         requestAnimationFrame(() => formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
     }
@@ -182,13 +181,15 @@ function Profesores() {
             }
         }
         setErrores(nuevosErrores);
-        return Object.keys(nuevosErrores).length === 0;
+        if (Object.keys(nuevosErrores).length > 0) {
+            dialog.validacion(nuevosErrores);
+            return false;
+        }
+        return true;
     }
 
     async function handleSubmit(e) {
         e.preventDefault();
-        setError("");
-        setExito("");
         if (!validar()) return;
 
         const payloadBase = {
@@ -240,42 +241,46 @@ function Profesores() {
                 throw new Error(mensaje);
             }
 
-            setExito(editingId ? "Información del profesor actualizada correctamente." : "Profesor registrado correctamente.");
+            dialog.exito(editingId ? "Información del profesor actualizada correctamente." : "Profesor registrado correctamente.");
             cerrarFormulario();
             setRecargar((n) => n + 1);
         } catch (e) {
-            setError(e.message);
+            dialog.error(e.message);
         } finally {
             setGuardando(false);
         }
     }
 
     async function darDeBaja(p) {
-        if (!window.confirm(`¿Dar de baja a ${nombreCompleto(p)}? Se conservará su historial, pero quedará inactivo.`)) return;
-        setError("");
-        setExito("");
+        const confirmado = await dialog.confirmar(
+            `¿Dar de baja a ${nombreCompleto(p)}? Se conservará su historial, pero quedará inactivo.`,
+            { titulo: "Dar de baja profesor", textoAceptar: "Dar de baja" }
+        );
+        if (!confirmado) return;
         try {
             const response = await fetch(`${API_URL}/profesores/${p.id}/baja`, { method: "PATCH", headers: getHeaders() });
             if (!response.ok) throw new Error("No fue posible dar de baja al profesor.");
-            setExito("Profesor dado de baja correctamente.");
+            dialog.exito("Profesor dado de baja correctamente.");
             setRecargar((n) => n + 1);
         } catch (e) {
-            setError(e.message);
+            dialog.error(e.message);
         }
     }
 
     async function eliminar(p) {
-        if (!window.confirm(`¿Eliminar permanentemente a ${nombreCompleto(p)}? Esta acción no se puede deshacer.`)) return;
-        setError("");
-        setExito("");
+        const confirmado = await dialog.confirmar(
+            `¿Eliminar permanentemente a ${nombreCompleto(p)}? Esta acción no se puede deshacer.`,
+            { titulo: "Eliminar profesor", textoAceptar: "Eliminar", peligro: true }
+        );
+        if (!confirmado) return;
         try {
             const response = await fetch(`${API_URL}/profesores/${p.id}`, { method: "DELETE", headers: getHeaders() });
             if (!response.ok) throw new Error("No fue posible eliminar al profesor.");
-            setExito("Profesor eliminado correctamente.");
+            dialog.exito("Profesor eliminado correctamente.");
             if (editingId === p.id) cerrarFormulario();
             setRecargar((n) => n + 1);
         } catch (e) {
-            setError(e.message);
+            dialog.error(e.message);
         }
     }
 
@@ -285,9 +290,6 @@ function Profesores() {
                 <h1>Profesores</h1>
                 <p>Registre, consulte y administre la información académica y de contacto de los profesores.</p>
             </div>
-
-            {error && <div className="banner banner-danger" role="alert">{error}</div>}
-            {exito && <div className="banner banner-success" role="status">{exito}</div>}
 
             <div className="page-toolbar">
                 <div className="page-toolbar__filters">
