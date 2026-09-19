@@ -25,6 +25,12 @@ public interface EstudianteInstrumentoRepository extends JpaRepository<Estudiant
     List<EstudiantesInstrumento> findByIdEstudiante_IdAndFechaFinIsNull(Long idEstudiante);
 
     /*
+     * HU-026 - Instrumento principal vigente del estudiante, si existe.
+     * Solo puede haber uno a la vez (es_principal = true y sin fecha_fin).
+     */
+    Optional<EstudiantesInstrumento> findByIdEstudiante_IdAndEsPrincipalTrueAndFechaFinIsNull(Long idEstudiante);
+
+    /*
      * HU-026 - Evita asignar dos veces el mismo instrumento vigente
      * (misma pareja estudiante-instrumento sin fecha_fin).
      */
