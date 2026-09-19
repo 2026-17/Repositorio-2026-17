@@ -48,12 +48,21 @@ const SUBNAV_POR_ROL = {
             ],
         },
         {
-            to: "/director-academico/cursos/crear",
-            label: "Crear curso",
-        },
-        {
-            to: "/director-academico/cursos/desactivar",
-            label: "Desactivar curso",
+            label: "Cursos",
+            children: [
+                {
+                    to: "/director-academico/cursos/crear",
+                    label: "Crear",
+                },
+                {
+                    to: "/director-academico/cursos/modificar",
+                    label: "Modificar",
+                },
+                {
+                    to: "/director-academico/cursos/desactivar",
+                    label: "Desactivar",
+                },
+            ],
         },
     ],
 
