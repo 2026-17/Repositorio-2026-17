@@ -4,6 +4,8 @@ import { API_URL } from "../../config/api";
 import "./crearCurso.css";
 import "./desactivarCurso.css";
 
+import { useDialog } from "../../components/dialog/useDialog";
+
 const ESTADOS = [
     { value: "PLANIFICADO", label: "Planificado" },
     { value: "MATRICULA", label: "Matrícula" },
@@ -17,13 +19,12 @@ const ETIQUETAS_ESTADO = Object.fromEntries(
 );
 
 function ModificarPeriodoAcademico() {
+    const dialog = useDialog();
 
     const token = localStorage.getItem("token");
 
     const [periodos, setPeriodos] = useState([]);
     const [cargando, setCargando] = useState(true);
-    const [error, setError] = useState("");
-    const [mensajeExito, setMensajeExito] = useState("");
 
     const [busqueda, setBusqueda] = useState("");
 
@@ -40,7 +41,6 @@ function ModificarPeriodoAcademico() {
     async function cargarPeriodos() {
 
         setCargando(true);
-        setError("");
 
         try {
 
@@ -73,7 +73,7 @@ function ModificarPeriodoAcademico() {
 
         } catch (e) {
 
-            setError(
+            dialog.error(
                 e.message ||
                 "Ocurrió un error al cargar los períodos académicos."
             );
@@ -106,8 +106,6 @@ function ModificarPeriodoAcademico() {
             estado: periodo.estado || "PLANIFICADO",
         });
         setErrores({});
-        setError("");
-        setMensajeExito("");
     }
 
     function cancelarEdicion() {
@@ -134,8 +132,6 @@ function ModificarPeriodoAcademico() {
             delete siguiente[name];
             return siguiente;
         });
-        setError("");
-        setMensajeExito("");
     }
 
     function validarFormulario() {
@@ -177,12 +173,11 @@ function ModificarPeriodoAcademico() {
 
         e.preventDefault();
 
-        setError("");
-        setMensajeExito("");
         const erroresValidacion = validarFormulario();
 
         if (Object.keys(erroresValidacion).length > 0) {
             setErrores(erroresValidacion);
+            dialog.validacion(erroresValidacion);
             return;
         }
 
@@ -243,7 +238,7 @@ function ModificarPeriodoAcademico() {
                 prev.map((p) => (p.id === data.id ? data : p))
             );
 
-            setMensajeExito(
+            dialog.exito(
                 `El período "${data.nombre}" fue modificado correctamente.`
             );
 
@@ -252,7 +247,7 @@ function ModificarPeriodoAcademico() {
 
         } catch (e) {
 
-            setError(
+            dialog.error(
                 e.message ||
                 "Ocurrió un error al modificar el período académico."
             );
@@ -280,23 +275,7 @@ function ModificarPeriodoAcademico() {
                     </div>
                 </div>
 
-                {error && (
-                    <div
-                        className="curso-message curso-message--error"
-                        role="alert"
-                    >
-                        {error}
-                    </div>
-                )}
 
-                {mensajeExito && (
-                    <div
-                        className="curso-message curso-message--success"
-                        role="status"
-                    >
-                        {mensajeExito}
-                    </div>
-                )}
 
                 {!periodoEnEdicion && (
                     <>

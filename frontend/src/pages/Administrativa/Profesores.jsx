@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { API_URL } from "../../config/api.js";
 import "./Profesores.css";
 
+import { useDialog } from "../../components/dialog/useDialog";
+
 const initialForm = {
     idTipoIdentificacion: "",
     numeroIdentificacion: "",
@@ -16,6 +18,7 @@ const initialForm = {
     empleador: "",
     fechaIngreso: "",
     fechaSalida: "",
+    contrasena: "",
 };
 
 function nombreCompleto(p) {
@@ -23,11 +26,12 @@ function nombreCompleto(p) {
 }
 
 function Profesores() {
+    const dialog = useDialog();
     const [profesores, setProfesores] = useState([]);
     const [tipos, setTipos] = useState([]);
+    const [gradosAcademicos, setGradosAcademicos] = useState([]);
+    const [instrumentos, setInstrumentos] = useState([]);
     const [cargando, setCargando] = useState(true);
-    const [error, setError] = useState("");
-    const [exito, setExito] = useState("");
 
     const [filtroActivo, setFiltroActivo] = useState("true");
     const [busqueda, setBusqueda] = useState("");
@@ -55,11 +59,37 @@ function Profesores() {
                 if (!response.ok) throw new Error("No se pudo cargar el catálogo de tipos de identificación");
                 setTipos(await response.json());
             } catch (e) {
-                setError(e.message);
+                dialog.error(e.message);
             }
         }
         cargarTipos();
-    }, [getHeaders]);
+    }, [getHeaders, dialog]);
+
+    useEffect(() => {
+        async function cargarGradosAcademicos() {
+            try {
+                const response = await fetch(`${API_URL}/grados-academicos`, { headers: getHeaders() });
+                if (!response.ok) throw new Error("No se pudo cargar el catálogo de grados académicos");
+                setGradosAcademicos(await response.json());
+            } catch (e) {
+                dialog.error(e.message);
+            }
+        }
+        cargarGradosAcademicos();
+    }, [getHeaders, dialog]);
+
+    useEffect(() => {
+        async function cargarInstrumentos() {
+            try {
+                const response = await fetch(`${API_URL}/instrumentos`, { headers: getHeaders() });
+                if (!response.ok) throw new Error("No se pudo cargar el catálogo de especialidades");
+                setInstrumentos(await response.json());
+            } catch (e) {
+                dialog.error(e.message);
+            }
+        }
+        cargarInstrumentos();
+    }, [getHeaders, dialog]);
 
     useEffect(() => {
         let cancelado = false;
@@ -73,7 +103,7 @@ function Profesores() {
                 const data = await response.json();
                 if (!cancelado) setProfesores(data);
             } catch (e) {
-                if (!cancelado) setError(e.message);
+                if (!cancelado) dialog.error(e.message);
             } finally {
                 if (!cancelado) setCargando(false);
             }
@@ -81,7 +111,7 @@ function Profesores() {
 
         cargarProfesores();
         return () => { cancelado = true; };
-    }, [filtroActivo, getHeaders, recargar]);
+    }, [filtroActivo, getHeaders, recargar, dialog]);
 
     const profesoresFiltrados = useMemo(() => {
         const texto = busqueda.trim().toLowerCase();
@@ -102,7 +132,6 @@ function Profesores() {
         setEditingId(null);
         setForm(initialForm);
         setErrores({});
-        setExito("");
         setFormAbierto(true);
         requestAnimationFrame(() => formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
     }
@@ -125,7 +154,6 @@ function Profesores() {
             fechaSalida: p.fechaSalida || "",
         });
         setErrores({});
-        setExito("");
         setFormAbierto(true);
         requestAnimationFrame(() => formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
     }
@@ -146,14 +174,22 @@ function Profesores() {
         if (form.correo && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.correo)) {
             nuevosErrores.correo = "Ingrese un correo electrónico válido.";
         }
+        if (!editingId) {
+            if (!form.correo.trim()) nuevosErrores.correo = "El correo es obligatorio para crear la cuenta de usuario.";
+            if (!form.contrasena || form.contrasena.length < 8) {
+                nuevosErrores.contrasena = "Ingrese una contraseña de al menos 8 caracteres.";
+            }
+        }
         setErrores(nuevosErrores);
-        return Object.keys(nuevosErrores).length === 0;
+        if (Object.keys(nuevosErrores).length > 0) {
+            dialog.validacion(nuevosErrores);
+            return false;
+        }
+        return true;
     }
 
     async function handleSubmit(e) {
         e.preventDefault();
-        setError("");
-        setExito("");
         if (!validar()) return;
 
         const payloadBase = {
@@ -173,7 +209,22 @@ function Profesores() {
 
         const payload = editingId
             ? { ...payloadBase, fechaSalida: form.fechaSalida || null }
-            : payloadBase;
+            : {
+                profesor: payloadBase,
+                usuario: {
+                    cedula: payloadBase.numeroIdentificacion,
+                    nombre: [form.nombres.trim(), form.primerApellido.trim(), form.segundoApellido.trim()]
+                        .filter(Boolean)
+                        .join(" "),
+                    correo: payloadBase.correo,
+                    contrasena: form.contrasena,
+                    // El backend siempre fija el rol PROFESOR y el estado ACTIVO
+                    // (ver ProfesorService.registrar), pero UsuarioCreateRequest
+                    // los exige con @NotNull, así que mandamos un valor cualquiera.
+                    idRol: 1,
+                    idEstadoUsuario: 1,
+                },
+            };
 
         const url = editingId ? `${API_URL}/profesores/${editingId}` : `${API_URL}/profesores`;
         const method = editingId ? "PUT" : "POST";
@@ -190,42 +241,46 @@ function Profesores() {
                 throw new Error(mensaje);
             }
 
-            setExito(editingId ? "Información del profesor actualizada correctamente." : "Profesor registrado correctamente.");
+            dialog.exito(editingId ? "Información del profesor actualizada correctamente." : "Profesor registrado correctamente.");
             cerrarFormulario();
             setRecargar((n) => n + 1);
         } catch (e) {
-            setError(e.message);
+            dialog.error(e.message);
         } finally {
             setGuardando(false);
         }
     }
 
     async function darDeBaja(p) {
-        if (!window.confirm(`¿Dar de baja a ${nombreCompleto(p)}? Se conservará su historial, pero quedará inactivo.`)) return;
-        setError("");
-        setExito("");
+        const confirmado = await dialog.confirmar(
+            `¿Dar de baja a ${nombreCompleto(p)}? Se conservará su historial, pero quedará inactivo.`,
+            { titulo: "Dar de baja profesor", textoAceptar: "Dar de baja" }
+        );
+        if (!confirmado) return;
         try {
             const response = await fetch(`${API_URL}/profesores/${p.id}/baja`, { method: "PATCH", headers: getHeaders() });
             if (!response.ok) throw new Error("No fue posible dar de baja al profesor.");
-            setExito("Profesor dado de baja correctamente.");
+            dialog.exito("Profesor dado de baja correctamente.");
             setRecargar((n) => n + 1);
         } catch (e) {
-            setError(e.message);
+            dialog.error(e.message);
         }
     }
 
     async function eliminar(p) {
-        if (!window.confirm(`¿Eliminar permanentemente a ${nombreCompleto(p)}? Esta acción no se puede deshacer.`)) return;
-        setError("");
-        setExito("");
+        const confirmado = await dialog.confirmar(
+            `¿Eliminar permanentemente a ${nombreCompleto(p)}? Esta acción no se puede deshacer.`,
+            { titulo: "Eliminar profesor", textoAceptar: "Eliminar", peligro: true }
+        );
+        if (!confirmado) return;
         try {
             const response = await fetch(`${API_URL}/profesores/${p.id}`, { method: "DELETE", headers: getHeaders() });
             if (!response.ok) throw new Error("No fue posible eliminar al profesor.");
-            setExito("Profesor eliminado correctamente.");
+            dialog.exito("Profesor eliminado correctamente.");
             if (editingId === p.id) cerrarFormulario();
             setRecargar((n) => n + 1);
         } catch (e) {
-            setError(e.message);
+            dialog.error(e.message);
         }
     }
 
@@ -235,9 +290,6 @@ function Profesores() {
                 <h1>Profesores</h1>
                 <p>Registre, consulte y administre la información académica y de contacto de los profesores.</p>
             </div>
-
-            {error && <div className="banner banner-danger" role="alert">{error}</div>}
-            {exito && <div className="banner banner-success" role="status">{exito}</div>}
 
             <div className="page-toolbar">
                 <div className="page-toolbar__filters">
@@ -365,23 +417,29 @@ function Profesores() {
                         <div className="grid-3">
                             <div className="field">
                                 <label className="field-label">Grado académico</label>
-                                <input
+                                <select
                                     className="input"
-                                    maxLength={120}
-                                    placeholder="Licenciatura, Maestría..."
                                     value={form.gradoAcademico}
                                     onChange={(e) => setField("gradoAcademico", e.target.value)}
-                                />
+                                >
+                                    <option value="">Seleccione una opción</option>
+                                    {gradosAcademicos.map((g) => (
+                                        <option key={g.id} value={g.nombre}>{g.nombre}</option>
+                                    ))}
+                                </select>
                             </div>
                             <div className="field">
                                 <label className="field-label">Especialidad</label>
-                                <input
+                                <select
                                     className="input"
-                                    maxLength={180}
-                                    placeholder="Piano, Canto, Teoría musical..."
                                     value={form.especialidad}
                                     onChange={(e) => setField("especialidad", e.target.value)}
-                                />
+                                >
+                                    <option value="">Seleccione una opción</option>
+                                    {instrumentos.map((i) => (
+                                        <option key={i.id} value={i.nombre}>{i.nombre}</option>
+                                    ))}
+                                </select>
                             </div>
                             <div className="field">
                                 <label className="field-label">Grupo profesional / Empleador</label>
@@ -418,6 +476,29 @@ function Profesores() {
                             )}
                         </div>
 
+                        {!editingId && (
+                            <>
+                                <h3 className="card-subtitle">Cuenta de usuario</h3>
+                                <div className="grid-2">
+                                    <div className="field">
+                                        <label className="field-label">Contraseña temporal <span className="required">*</span></label>
+                                        <input
+                                            className={`input ${errores.contrasena ? "input-error" : ""}`}
+                                            type="password"
+                                            minLength={8}
+                                            placeholder="Mínimo 8 caracteres"
+                                            value={form.contrasena}
+                                            onChange={(e) => setField("contrasena", e.target.value)}
+                                        />
+                                        {errores.contrasena && <p className="field-error">{errores.contrasena}</p>}
+                                    </div>
+                                </div>
+                                <p className="field-hint">
+                                    Se creará automáticamente con rol Profesor y estado Activo.
+                                </p>
+                            </>
+                        )}
+
                         <div className="form-actions">
                             <button type="button" className="btn btn--secondary" onClick={cerrarFormulario}>Cancelar</button>
                             <button type="submit" className="btn btn--primary" disabled={guardando}>
@@ -431,54 +512,54 @@ function Profesores() {
             <div className="table-wrap">
                 <table className="table">
                     <thead>
-                        <tr>
-                            <th>Identificación</th>
-                            <th>Nombre</th>
-                            <th>Contacto</th>
-                            <th>Grado académico</th>
-                            <th>Especialidad</th>
-                            <th>Grupo profesional</th>
-                            <th>Estado</th>
-                            <th>Acciones</th>
-                        </tr>
+                    <tr>
+                        <th>Identificación</th>
+                        <th>Nombre</th>
+                        <th>Contacto</th>
+                        <th>Grado académico</th>
+                        <th>Especialidad</th>
+                        <th>Grupo profesional</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
                     </thead>
                     <tbody>
-                        {cargando ? (
-                            <tr><td className="empty" colSpan={8}>Cargando profesores...</td></tr>
-                        ) : profesoresFiltrados.length === 0 ? (
-                            <tr><td className="empty" colSpan={8}>No hay profesores que coincidan con la búsqueda.</td></tr>
-                        ) : (
-                            profesoresFiltrados.map((p) => (
-                                <tr key={p.id}>
-                                    <td>{p.tipoIdentificacion?.codigo || ""} {p.numeroIdentificacion}</td>
-                                    <td>{nombreCompleto(p)}</td>
-                                    <td>{p.telefono || "—"}<br />{p.correo || ""}</td>
-                                    <td>{p.gradoAcademico || "—"}</td>
-                                    <td>{p.especialidad || "—"}</td>
-                                    <td>{p.empleador || "—"}</td>
-                                    <td>
+                    {cargando ? (
+                        <tr><td className="empty" colSpan={8}>Cargando profesores...</td></tr>
+                    ) : profesoresFiltrados.length === 0 ? (
+                        <tr><td className="empty" colSpan={8}>No hay profesores que coincidan con la búsqueda.</td></tr>
+                    ) : (
+                        profesoresFiltrados.map((p) => (
+                            <tr key={p.id}>
+                                <td>{p.tipoIdentificacion?.codigo + ": " || " "} {p.numeroIdentificacion}</td>
+                                <td>{nombreCompleto(p)}</td>
+                                <td>{p.telefono || "—"}<br />{p.correo || ""}</td>
+                                <td>{p.gradoAcademico || "—"}</td>
+                                <td>{p.especialidad || "—"}</td>
+                                <td>{p.empleador || "—"}</td>
+                                <td>
                                         <span className={`badge ${p.activo ? "badge-activo" : "badge-inactivo"}`}>
                                             {p.activo ? "Activo" : "Inactivo"}
                                         </span>
-                                    </td>
-                                    <td>
-                                        <div className="row-actions">
-                                            <button type="button" className="btn btn--secondary btn-sm" onClick={() => abrirEditar(p)}>
-                                                Editar
+                                </td>
+                                <td>
+                                    <div className="row-actions">
+                                        <button type="button" className="btn btn--secondary btn-sm" onClick={() => abrirEditar(p)}>
+                                            Editar
+                                        </button>
+                                        {p.activo && (
+                                            <button type="button" className="btn btn--secondary btn-sm" onClick={() => darDeBaja(p)}>
+                                                Dar de baja
                                             </button>
-                                            {p.activo && (
-                                                <button type="button" className="btn btn--secondary btn-sm" onClick={() => darDeBaja(p)}>
-                                                    Dar de baja
-                                                </button>
-                                            )}
-                                            <button type="button" className="btn btn--danger btn-sm" onClick={() => eliminar(p)}>
-                                                Eliminar
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))
-                        )}
+                                        )}
+                                        <button type="button" className="btn btn--danger btn-sm" onClick={() => eliminar(p)}>
+                                            Eliminar
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        ))
+                    )}
                     </tbody>
                 </table>
             </div>

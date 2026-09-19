@@ -2,6 +2,8 @@ import { useState } from "react";
 import { API_URL } from "../../config/api";
 import "./crearCurso.css";
 
+import { useDialog } from "../../components/dialog/useDialog";
+
 const ESTADOS = [
     { value: "PLANIFICADO", label: "Planificado" },
     { value: "MATRICULA", label: "Matrícula" },
@@ -10,6 +12,7 @@ const ESTADOS = [
 ];
 
 function CrearPeriodoAcademico() {
+    const dialog = useDialog();
 
     const token = localStorage.getItem("token");
 
@@ -24,8 +27,6 @@ function CrearPeriodoAcademico() {
 
     const [guardando, setGuardando] = useState(false);
 
-    const [error, setError] = useState("");
-    const [mensajeExito, setMensajeExito] = useState("");
     const [errores, setErrores] = useState({});
 
     function handleChange(e) {
@@ -47,8 +48,6 @@ function CrearPeriodoAcademico() {
             delete siguiente[name];
             return siguiente;
         });
-        setError("");
-        setMensajeExito("");
     }
 
     function validarFormulario() {
@@ -90,12 +89,11 @@ function CrearPeriodoAcademico() {
 
         e.preventDefault();
 
-        setError("");
-        setMensajeExito("");
         const erroresValidacion = validarFormulario();
 
         if (Object.keys(erroresValidacion).length > 0) {
             setErrores(erroresValidacion);
+            dialog.validacion(erroresValidacion);
             return;
         }
 
@@ -149,7 +147,7 @@ function CrearPeriodoAcademico() {
                 );
             }
 
-            setMensajeExito(
+            dialog.exito(
                 `El período "${data.nombre || payload.nombre}" fue creado correctamente.`
             );
 
@@ -164,7 +162,7 @@ function CrearPeriodoAcademico() {
 
         } catch (e) {
 
-            setError(
+            dialog.error(
                 e.message ||
                 "Ocurrió un error al crear el período académico."
             );
@@ -186,8 +184,6 @@ function CrearPeriodoAcademico() {
             estado: "PLANIFICADO",
         });
 
-        setError("");
-        setMensajeExito("");
         setErrores({});
     }
 
@@ -208,23 +204,7 @@ function CrearPeriodoAcademico() {
                     </div>
                 </div>
 
-                {error && (
-                    <div
-                        className="curso-message curso-message--error"
-                        role="alert"
-                    >
-                        {error}
-                    </div>
-                )}
 
-                {mensajeExito && (
-                    <div
-                        className="curso-message curso-message--success"
-                        role="status"
-                    >
-                        {mensajeExito}
-                    </div>
-                )}
 
                 <form
                     className="curso-form"

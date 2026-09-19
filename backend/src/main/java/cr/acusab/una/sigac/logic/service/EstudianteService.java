@@ -9,6 +9,7 @@ import cr.acusab.una.sigac.presentation.dto.request.EstudianteCreateRequest;
 import cr.acusab.una.sigac.presentation.dto.response.BecaResponse;
 import cr.acusab.una.sigac.presentation.dto.response.EstudianteBusquedaResponse;
 import cr.acusab.una.sigac.presentation.dto.response.EstudianteResponse;
+import cr.acusab.una.sigac.presentation.dto.response.EstudianteListadoResponse;
 import cr.acusab.una.sigac.presentation.dto.request.EstudianteUpdateRequest;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
@@ -217,12 +218,48 @@ public class EstudianteService {
     }
 
     @Transactional(readOnly = true)
+    public List<EstudianteListadoResponse> listado(String texto, Boolean activo) {
+        String normalizado = normalizarNullable(texto);
+        List<Estudiante> estudiantes = estudianteRepository.findAll().stream()
+                .filter(e -> activo == null || Objects.equals(e.getActivo(), activo))
+                .filter(e -> normalizado == null
+                        || normalizado.length() < 2
+                        || nombreCompleto(e).toLowerCase(Locale.ROOT).contains(normalizado.toLowerCase(Locale.ROOT))
+                        || e.getNumeroIdentificacion().toLowerCase(Locale.ROOT).contains(normalizado.toLowerCase(Locale.ROOT)))
+                .sorted((a, b) -> nombreCompleto(a).compareToIgnoreCase(nombreCompleto(b)))
+                .toList();
+
+        return estudiantes.stream().map(e -> {
+            Integer instrumentoId = estudianteInstrumentoRepository.findByIdEstudiante_IdAndFechaFinIsNull(e.getId())
+                    .stream()
+                    .map(x -> x.getInstrumento().getId())
+                    .findFirst()
+                    .orElse(null);
+            String instrumento = instrumentoId == null
+                    ? null
+                    : instrumentoRepository.findById(instrumentoId).map(Instrumento::getNombre).orElse(null);
+            String centro = e.getIdCentroEducativo() == null ? null : e.getIdCentroEducativo().getNombre();
+
+            return new EstudianteListadoResponse(
+                    e.getId(),
+                    nombreCompleto(e),
+                    e.getNumeroIdentificacion(),
+                    calcularEdad(e.getFechaNacimiento()),
+                    e.getNivelEscolar(),
+                    instrumento,
+                    centro,
+                    Boolean.TRUE.equals(e.getActivo())
+            );
+        }).toList();
+    }
+
+    @Transactional(readOnly = true)
     public EstudianteResponse obtener(Long id) {
         Estudiante estudiante = estudianteRepository.findById(id)
                 .orElseThrow(() -> new BusinessException("El estudiante indicado no existe"));
         Integer instrumentoId = estudianteInstrumentoRepository.findAll().stream()
                 .filter(x -> x.getEstudiante() != null && Objects.equals(x.getEstudiante().getId(), id)
-                        && Boolean.TRUE.equals(x.getEsPrincipal()))
+                        && x.getFechaFin() == null)
                 .map(x -> x.getInstrumento().getId()).findFirst().orElse(null);
         return respuesta(estudiante, instrumentoId, calcularEdad(estudiante.getFechaNacimiento()), null);
     }
@@ -249,11 +286,11 @@ public class EstudianteService {
         estudiante.setActualizadoEn(Instant.now());
         estudianteRepository.save(estudiante);
 
-        var principales = estudianteInstrumentoRepository.findAll().stream()
+        var vigentes = estudianteInstrumentoRepository.findAll().stream()
                 .filter(x -> x.getEstudiante() != null && Objects.equals(x.getEstudiante().getId(), id)
-                        && Boolean.TRUE.equals(x.getEsPrincipal())).toList();
-        if (principales.isEmpty()) crearRelacionInstrumento(estudiante, instrumento);
-        else { principales.get(0).setInstrumento(instrumento); estudianteInstrumentoRepository.save(principales.get(0)); }
+                        && x.getFechaFin() == null).toList();
+        if (vigentes.isEmpty()) crearRelacionInstrumento(estudiante, instrumento);
+        else { vigentes.get(0).setInstrumento(instrumento); estudianteInstrumentoRepository.save(vigentes.get(0)); }
         return respuesta(estudiante, instrumento.getId(), edad, null);
     }
 
@@ -281,7 +318,6 @@ public class EstudianteService {
         relacion.setEstudiante(estudiante);
         relacion.setInstrumento(instrumento);
         relacion.setFechaInicio(LocalDate.now());
-        relacion.setEsPrincipal(true);
         estudianteInstrumentoRepository.save(relacion);
     }
 

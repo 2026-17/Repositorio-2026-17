@@ -1,10 +1,15 @@
+import RequisitosCursoOpcionales from "./RequisitosCursoOpcionales";
 import { useEffect, useState } from "react";
 import { API_URL } from "../../config/api";
 import "./crearCurso.css";
 
+import { useDialog } from "../../components/dialog/useDialog";
+
 function CrearCurso() {
+    const dialog = useDialog();
 
     const token = localStorage.getItem("token");
+    const [revisionRequisitos, setRevisionRequisitos] = useState(0);
 
     const [form, setForm] = useState({
         codigo: "",
@@ -23,8 +28,6 @@ function CrearCurso() {
     const [cargandoCatalogos, setCargandoCatalogos] = useState(true);
     const [guardando, setGuardando] = useState(false);
 
-    const [error, setError] = useState("");
-    const [mensajeExito, setMensajeExito] = useState("");
     const [errores, setErrores] = useState({});
 
 
@@ -33,7 +36,6 @@ function CrearCurso() {
         async function cargarCatalogos() {
 
             setCargandoCatalogos(true);
-            setError("");
 
             try {
 
@@ -89,7 +91,7 @@ function CrearCurso() {
 
             } catch (e) {
 
-                setError(
+                dialog.error(
                     e.message ||
                     "No fue posible cargar la información necesaria."
                 );
@@ -102,7 +104,7 @@ function CrearCurso() {
 
         cargarCatalogos();
 
-    }, [token]);
+    }, [token, dialog]);
 
     function handleChange(e) {
 
@@ -111,6 +113,7 @@ function CrearCurso() {
         setForm((prev) => ({
             ...prev,
             [name]: value,
+            ...(name === "idPrograma" ? { requisitos: undefined } : {}),
         }));
 
         // Limpiar el error del campo que el usuario está corrigiendo.
@@ -123,8 +126,6 @@ function CrearCurso() {
             delete siguiente[name];
             return siguiente;
         });
-        setError("");
-        setMensajeExito("");
     }
 
     function validarFormulario() {
@@ -169,12 +170,11 @@ function CrearCurso() {
 
         e.preventDefault();
 
-        setError("");
-        setMensajeExito("");
         const erroresValidacion = validarFormulario();
 
         if (Object.keys(erroresValidacion).length > 0) {
             setErrores(erroresValidacion);
+            dialog.validacion(erroresValidacion);
             return;
         }
 
@@ -188,6 +188,7 @@ function CrearCurso() {
             nivel: Number(form.nivel),
             cupos: Number(form.cupos),
             idPeriodo: Number(form.idPeriodo),
+            requisitos: form.requisitos,
         };
 
         setGuardando(true);
@@ -230,10 +231,11 @@ function CrearCurso() {
                 );
             }
 
-            setMensajeExito(
+            dialog.exito(
                 `El curso ${data.codigo || payload.codigo} fue creado correctamente y agregado a la malla curricular.`
             );
 
+            setRevisionRequisitos(n => n + 1);
             setForm({
                 codigo: "",
                 nombre: "",
@@ -247,7 +249,7 @@ function CrearCurso() {
 
         } catch (e) {
 
-            setError(
+            dialog.error(
                 e.message ||
                 "Ocurrió un error al crear el curso."
             );
@@ -259,6 +261,7 @@ function CrearCurso() {
     }
 
     function limpiarFormulario() {
+        setRevisionRequisitos(n => n + 1);
 
         setForm({
             codigo: "",
@@ -271,8 +274,6 @@ function CrearCurso() {
             idPeriodo: "",
         });
 
-        setError("");
-        setMensajeExito("");
         setErrores({});
     }
 
@@ -298,24 +299,6 @@ function CrearCurso() {
                         role="status"
                     >
                         Cargando información académica...
-                    </div>
-                )}
-
-                {error && (
-                    <div
-                        className="curso-message curso-message--error"
-                        role="alert"
-                    >
-                        {error}
-                    </div>
-                )}
-
-                {mensajeExito && (
-                    <div
-                        className="curso-message curso-message--success"
-                        role="status"
-                    >
-                        {mensajeExito}
                     </div>
                 )}
 
@@ -588,6 +571,12 @@ function CrearCurso() {
                         * Campos obligatorios
                     </p>
 
+                    <RequisitosCursoOpcionales
+                        key={form.idPrograma + ':' + revisionRequisitos}
+                        idPrograma={form.idPrograma} value={form.requisitos}
+                        onChange={requisitos => setForm(prev => ({ ...prev, requisitos }))}
+                        disabled={guardando || cargandoCatalogos}
+                    />
                     <div className="curso-form__actions">
 
                         <button
