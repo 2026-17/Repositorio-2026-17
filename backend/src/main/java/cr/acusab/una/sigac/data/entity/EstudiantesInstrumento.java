@@ -40,11 +40,6 @@ public class EstudiantesInstrumento {
     @Column(name = "fecha_fin")
     private LocalDate fechaFin;
 
-    @NotNull
-    @ColumnDefault("0")
-    @Column(name = "es_principal", nullable = false)
-    private Boolean esPrincipal = false;
-
     @Size(max = 500)
     @Column(name = "observaciones", length = 500)
     private String observaciones;

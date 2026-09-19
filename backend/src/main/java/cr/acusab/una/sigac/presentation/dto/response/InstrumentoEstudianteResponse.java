@@ -14,7 +14,6 @@ public record InstrumentoEstudianteResponse(
         String nombreInstrumento,
         LocalDate fechaInicio,
         LocalDate fechaFin,
-        boolean esPrincipal,
         boolean vigente,
         String observaciones
 ) {}

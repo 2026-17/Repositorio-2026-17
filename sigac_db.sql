@@ -150,6 +150,16 @@ CREATE TABLE IF NOT EXISTS tipos_identificacion (
     CONSTRAINT uq_tipos_identificacion_nombre UNIQUE (nombre)
     ) ENGINE=InnoDB COMMENT='Opciones de identificacion para listas del frontend';
 
+CREATE TABLE IF NOT EXISTS grados_academicos (
+                                                 id_grado_academico      SMALLINT UNSIGNED NOT NULL AUTO_INCREMENT,
+                                                 codigo                  VARCHAR(30) NOT NULL,
+                                                 nombre                  VARCHAR(60) NOT NULL,
+                                                 activo                  BOOLEAN NOT NULL DEFAULT TRUE,
+                                                 CONSTRAINT pk_grados_academicos PRIMARY KEY (id_grado_academico),
+                                                 CONSTRAINT uq_grados_academicos_codigo UNIQUE (codigo),
+                                                 CONSTRAINT uq_grados_academicos_nombre UNIQUE (nombre)
+) ENGINE=InnoDB COMMENT='Catalogo de grados academicos para el formulario de profesores';
+
 CREATE TABLE IF NOT EXISTS centros_educativos (
                                                   id_centro_educativo     INT UNSIGNED NOT NULL AUTO_INCREMENT,
                                                   codigo                  VARCHAR(30) NULL,
@@ -1086,6 +1096,61 @@ CREATE TABLE IF NOT EXISTS alertas_academicas (
     ) ENGINE=InnoDB COMMENT='Alertas para seguimiento de estudiantes';
 
 -- =============================================================================
+-- 11.1 NOTIFICACIONES A ESTUDIANTES
+-- =============================================================================
+
+CREATE TABLE IF NOT EXISTS notificaciones_estudiantes (
+                                                          id_notificacion      BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+                                                          id_estudiante        INT UNSIGNED NOT NULL,
+                                                          id_autorizacion      BIGINT UNSIGNED NULL,
+                                                          tipo                 VARCHAR(40) NOT NULL,
+                                                          asunto               VARCHAR(160) NOT NULL,
+                                                          mensaje              VARCHAR(1500) NOT NULL,
+                                                          leida                BOOLEAN NOT NULL DEFAULT FALSE,
+                                                          fecha_notificacion   DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+                                                          fecha_lectura        DATETIME(6) NULL,
+
+                                                          CONSTRAINT pk_notificaciones_estudiantes
+                                                              PRIMARY KEY (id_notificacion),
+
+                                                          CONSTRAINT uq_notificaciones_autorizacion
+                                                              UNIQUE (id_autorizacion),
+
+                                                          CONSTRAINT ck_notificaciones_tipo
+                                                              CHECK (
+                                                                  tipo IN (
+                                                                           'MATRICULA_APROBADA',
+                                                                           'MATRICULA_RECHAZADA'
+                                                                      )
+                                                                  ),
+
+                                                          CONSTRAINT ck_notificaciones_lectura
+                                                              CHECK (
+                                                                  leida = FALSE
+                                                                      OR fecha_lectura IS NOT NULL
+                                                                  ),
+
+                                                          CONSTRAINT fk_notificaciones_estudiante
+                                                              FOREIGN KEY (id_estudiante)
+                                                                  REFERENCES estudiantes (id_estudiante)
+                                                                  ON UPDATE RESTRICT
+                                                                  ON DELETE CASCADE,
+
+                                                          CONSTRAINT fk_notificaciones_autorizacion
+                                                              FOREIGN KEY (id_autorizacion)
+                                                                  REFERENCES autorizaciones_matricula (id_autorizacion)
+                                                                  ON UPDATE RESTRICT
+                                                                  ON DELETE CASCADE,
+
+                                                          INDEX idx_notificaciones_pendientes (
+                                                                                               id_estudiante,
+                                                                                               leida,
+                                                                                               fecha_notificacion
+                                                              )
+) ENGINE=InnoDB
+    COMMENT='Notificaciones internas dirigidas a estudiantes';
+
+-- =============================================================================
 -- 12. BITACORA DE CAMBIOS
 -- =============================================================================
 
@@ -1144,6 +1209,14 @@ INSERT IGNORE INTO instrumentos (codigo, nombre) VALUES
 ('SAXOFON', 'Saxofon'),
 ('TROMPETA', 'Trompeta'),
 ('PERCUSION', 'Percusion');
+
+INSERT IGNORE INTO grados_academicos (codigo, nombre) VALUES
+('TECNICO', 'Tecnico'),
+('DIPLOMADO', 'Diplomado'),
+('BACHILLERATO_UNIV', 'Bachillerato universitario'),
+('LICENCIATURA', 'Licenciatura'),
+('MAESTRIA', 'Maestria'),
+('DOCTORADO', 'Doctorado');
 
 INSERT IGNORE INTO tipos_requisitos_cursos (codigo, nombre, descripcion) VALUES
 ('PRERREQUISITO', 'Prerrequisito', 'Debe aprobarse antes de llevar el curso'),

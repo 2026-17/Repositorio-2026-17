@@ -12,7 +12,6 @@ import cr.acusab.una.sigac.presentation.dto.request.InstrumentoEstudianteRequest
 import cr.acusab.una.sigac.presentation.dto.response.InstrumentoEstudianteResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -20,7 +19,6 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 /*
@@ -30,9 +28,9 @@ import static org.mockito.Mockito.*;
  * - Validar que el estudiante exista.
  * - Validar que se haya seleccionado un instrumento (activo).
  * - Registrar la fecha de asignación.
- * - Conservar el historial al cambiar de instrumento principal.
- * - Permitir varios instrumentos vigentes a la vez.
- * - Consultar el instrumento vigente y el historial completo.
+ * - Permitir varios instrumentos vigentes a la vez (no hay "principal").
+ * - Deshabilitar (finalizar) un instrumento vigente conservando el historial.
+ * - Consultar los instrumentos vigentes y el historial completo.
  */
 class InstrumentoEstudianteServiceTest {
 
@@ -98,15 +96,12 @@ class InstrumentoEstudianteServiceTest {
     }
 
     @Test
-    void asignar_debeCrearLaPrimeraAsignacionComoPrincipalConFechaDeHoy() {
+    void asignar_debeCrearLaAsignacionVigenteConFechaDeHoy() {
         when(estudianteRepository.findById(1L)).thenReturn(Optional.of(estudiante(1L)));
         when(instrumentoRepository.findByIdAndActivoTrue(5))
                 .thenReturn(Optional.of(instrumento(5, "PIA", "Piano")));
         when(estudianteInstrumentoRepository
                 .findByIdEstudiante_IdAndIdInstrumento_IdAndFechaFinIsNull(1L, 5))
-                .thenReturn(Optional.empty());
-        when(estudianteInstrumentoRepository
-                .findByIdEstudiante_IdAndEsPrincipalTrueAndFechaFinIsNull(1L))
                 .thenReturn(Optional.empty());
         when(estudianteInstrumentoRepository.save(any(EstudiantesInstrumento.class)))
                 .thenAnswer(inv -> inv.getArgument(0));
@@ -119,49 +114,11 @@ class InstrumentoEstudianteServiceTest {
         assertEquals(1L, response.idEstudiante());
         assertEquals(5, response.idInstrumento());
         assertEquals(LocalDate.now(), response.fechaInicio());
-        assertTrue(response.esPrincipal());
         assertTrue(response.vigente());
     }
 
     @Test
-    void asignar_alCambiarDeInstrumentoPrincipal_debeCerrarElAnteriorSinBorrarlo() {
-        when(estudianteRepository.findById(1L)).thenReturn(Optional.of(estudiante(1L)));
-        when(instrumentoRepository.findByIdAndActivoTrue(9))
-                .thenReturn(Optional.of(instrumento(9, "VIO", "Violín")));
-        when(estudianteInstrumentoRepository
-                .findByIdEstudiante_IdAndIdInstrumento_IdAndFechaFinIsNull(1L, 9))
-                .thenReturn(Optional.empty());
-
-        EstudiantesInstrumento anterior = new EstudiantesInstrumento();
-        anterior.setEstudiante(estudiante(1L));
-        anterior.setInstrumento(instrumento(5, "PIA", "Piano"));
-        anterior.setFechaInicio(LocalDate.now().minusMonths(6));
-        anterior.setEsPrincipal(true);
-
-        when(estudianteInstrumentoRepository
-                .findByIdEstudiante_IdAndEsPrincipalTrueAndFechaFinIsNull(1L))
-                .thenReturn(Optional.of(anterior));
-        when(estudianteInstrumentoRepository.save(any(EstudiantesInstrumento.class)))
-                .thenAnswer(inv -> inv.getArgument(0));
-
-        InstrumentoEstudianteRequest request = new InstrumentoEstudianteRequest();
-        request.setIdInstrumento(9);
-
-        service.cambiarPrincipal(1L, request);
-
-        // El registro anterior se cierra (fecha_fin = hoy) pero se sigue guardando,
-        // nunca se elimina: así se conserva el historial pedido por la HU.
-        assertEquals(LocalDate.now(), anterior.getFechaFin());
-
-        ArgumentCaptor<EstudiantesInstrumento> captor =
-                ArgumentCaptor.forClass(EstudiantesInstrumento.class);
-        verify(estudianteInstrumentoRepository, times(2)).save(captor.capture());
-        verify(estudianteInstrumentoRepository, never()).delete(any());
-        verify(estudianteInstrumentoRepository, never()).deleteById(any());
-    }
-
-    @Test
-    void asignar_debePermitirVariosInstrumentosVigentesSiNoEsPrincipal() {
+    void asignar_debePermitirVariosInstrumentosVigentesALaVez() {
         when(estudianteRepository.findById(1L)).thenReturn(Optional.of(estudiante(1L)));
         when(instrumentoRepository.findByIdAndActivoTrue(7))
                 .thenReturn(Optional.of(instrumento(7, "GUI", "Guitarra")));
@@ -173,14 +130,13 @@ class InstrumentoEstudianteServiceTest {
 
         InstrumentoEstudianteRequest request = new InstrumentoEstudianteRequest();
         request.setIdInstrumento(7);
-        request.setEsPrincipal(false);
 
         InstrumentoEstudianteResponse response = service.asignar(1L, request);
 
-        assertFalse(response.esPrincipal());
-        // No debe tocar ni buscar el instrumento principal vigente.
-        verify(estudianteInstrumentoRepository, never())
-                .findByIdEstudiante_IdAndEsPrincipalTrueAndFechaFinIsNull(any());
+        assertTrue(response.vigente());
+        // Ya no existe el concepto de instrumento principal: no debe
+        // buscarse ni cerrarse ningún registro anterior al asignar.
+        verify(estudianteInstrumentoRepository, times(1)).save(any());
     }
 
     @Test
@@ -200,6 +156,62 @@ class InstrumentoEstudianteServiceTest {
     }
 
     @Test
+    void deshabilitar_debeRegistrarFechaFinConLaFechaDeHoyYConservarElRegistro() {
+        when(estudianteRepository.findById(1L)).thenReturn(Optional.of(estudiante(1L)));
+
+        EstudiantesInstrumento asignacion = new EstudiantesInstrumento();
+        asignacion.setId(10L);
+        asignacion.setEstudiante(estudiante(1L));
+        asignacion.setInstrumento(instrumento(5, "PIA", "Piano"));
+        asignacion.setFechaInicio(LocalDate.now().minusMonths(3));
+
+        when(estudianteInstrumentoRepository.findById(10L)).thenReturn(Optional.of(asignacion));
+        when(estudianteInstrumentoRepository.save(any(EstudiantesInstrumento.class)))
+                .thenAnswer(inv -> inv.getArgument(0));
+
+        InstrumentoEstudianteResponse response = service.deshabilitar(1L, 10L);
+
+        assertEquals(LocalDate.now(), asignacion.getFechaFin());
+        assertFalse(response.vigente());
+        verify(estudianteInstrumentoRepository, times(1)).save(asignacion);
+        verify(estudianteInstrumentoRepository, never()).delete(any());
+        verify(estudianteInstrumentoRepository, never()).deleteById(any());
+    }
+
+    @Test
+    void deshabilitar_debeRechazarSiLaAsignacionYaEstaFinalizada() {
+        when(estudianteRepository.findById(1L)).thenReturn(Optional.of(estudiante(1L)));
+
+        EstudiantesInstrumento asignacion = new EstudiantesInstrumento();
+        asignacion.setId(10L);
+        asignacion.setEstudiante(estudiante(1L));
+        asignacion.setInstrumento(instrumento(5, "PIA", "Piano"));
+        asignacion.setFechaInicio(LocalDate.now().minusMonths(3));
+        asignacion.setFechaFin(LocalDate.now().minusDays(1));
+
+        when(estudianteInstrumentoRepository.findById(10L)).thenReturn(Optional.of(asignacion));
+
+        assertThrows(BusinessException.class, () -> service.deshabilitar(1L, 10L));
+        verify(estudianteInstrumentoRepository, never()).save(any());
+    }
+
+    @Test
+    void deshabilitar_debeRechazarSiLaAsignacionNoPerteneceAlEstudiante() {
+        when(estudianteRepository.findById(1L)).thenReturn(Optional.of(estudiante(1L)));
+
+        EstudiantesInstrumento asignacion = new EstudiantesInstrumento();
+        asignacion.setId(10L);
+        asignacion.setEstudiante(estudiante(2L));
+        asignacion.setInstrumento(instrumento(5, "PIA", "Piano"));
+        asignacion.setFechaInicio(LocalDate.now().minusMonths(3));
+
+        when(estudianteInstrumentoRepository.findById(10L)).thenReturn(Optional.of(asignacion));
+
+        assertThrows(BusinessException.class, () -> service.deshabilitar(1L, 10L));
+        verify(estudianteInstrumentoRepository, never()).save(any());
+    }
+
+    @Test
     void listarVigentes_debeRetornarSoloLosInstrumentosSinFechaFin() {
         when(estudianteRepository.findById(1L)).thenReturn(Optional.of(estudiante(1L)));
 
@@ -207,7 +219,6 @@ class InstrumentoEstudianteServiceTest {
         vigente.setEstudiante(estudiante(1L));
         vigente.setInstrumento(instrumento(5, "PIA", "Piano"));
         vigente.setFechaInicio(LocalDate.now());
-        vigente.setEsPrincipal(true);
 
         when(estudianteInstrumentoRepository.findByIdEstudiante_IdAndFechaFinIsNull(1L))
                 .thenReturn(List.of(vigente));
