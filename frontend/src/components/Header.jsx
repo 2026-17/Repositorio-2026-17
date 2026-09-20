@@ -64,15 +64,21 @@ const SUBNAV_POR_ROL = {
                 },
             ],
         },
+        {
+            to: "/director-academico/profesores",
+            label: "Profesores",
+        },
+        {
+            to: "/director-academico/estudiantes/instrumentos",
+            label: "Asignar instrumento",
+        },
     ],
 
     [ROLES.ADMINISTRATIVO]: [
         { to: "/admin/administracion/estudiantes", label: "Estudiantes" },
-        { to: "/admin/administracion/estudiantes/instrumentos", label: "Asignar instrumento" },
         { to: "/admin/administracion/estudiantes", label: "Registrar estudiante" },
         { to: "/admin/administracion/becas-pagos", label: "Becas y pagos" },
         { to: "/admin/administracion/matricula", label: "Matricula" },
-        { to: "/admin/administracion/profesores", label: "Profesores" },
         { to: "/admin/administracion/reportes", label: "Reportes" },
     ],
 

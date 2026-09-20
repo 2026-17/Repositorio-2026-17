@@ -33,6 +33,10 @@ public class EstudiantesInstrumento {
     @JoinColumn(name = "id_instrumento", nullable = false)
     private Instrumento idInstrumento;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_profesor")
+    private Profesor idProfesor;
+
     @NotNull
     @Column(name = "fecha_inicio", nullable = false)
     private LocalDate fechaInicio;
@@ -72,4 +76,7 @@ public class EstudiantesInstrumento {
 
     public void setInstrumento(Instrumento instrumento) { this.idInstrumento = instrumento; }
     public Instrumento getInstrumento() { return this.idInstrumento; }
+
+    public void setProfesor(Profesor profesor) { this.idProfesor = profesor; }
+    public Profesor getProfesor() { return this.idProfesor; }
 }

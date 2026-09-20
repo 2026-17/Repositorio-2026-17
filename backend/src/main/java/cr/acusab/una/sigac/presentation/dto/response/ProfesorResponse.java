@@ -25,6 +25,7 @@ public class ProfesorResponse {
     private String gradoAcademico;
     private String especialidad;
     private String empleador;
+    private String clasePuesto;
     private LocalDate fechaIngreso;
     private LocalDate fechaSalida;
     private Boolean activo;

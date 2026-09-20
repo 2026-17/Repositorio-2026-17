@@ -58,6 +58,9 @@ public class ProfesorCreateRequest {
     @Size(max = 180)
     private String empleador;
 
+    @Size(max = 255)
+    private String clasePuesto;
+
     // Opcional: si no se envia, el servicio usa la fecha actual
     private LocalDate fechaIngreso;
 }

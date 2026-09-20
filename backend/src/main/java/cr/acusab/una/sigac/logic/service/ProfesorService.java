@@ -3,9 +3,11 @@ package cr.acusab.una.sigac.logic.service;
 import cr.acusab.una.sigac.data.entity.Profesor;
 import cr.acusab.una.sigac.data.entity.Role;
 import cr.acusab.una.sigac.data.entity.EstadosUsuario;
+import cr.acusab.una.sigac.data.entity.Instrumento;
 import cr.acusab.una.sigac.data.entity.TiposIdentificacion;
 import cr.acusab.una.sigac.data.entity.Usuario;
 import cr.acusab.una.sigac.data.repository.EstadoUsuarioRepository;
+import cr.acusab.una.sigac.data.repository.InstrumentoRepository;
 import cr.acusab.una.sigac.data.repository.ProfesorRepository;
 import cr.acusab.una.sigac.data.repository.RoleRepository;
 import cr.acusab.una.sigac.data.repository.TipoIdentificacionRepository;
@@ -41,6 +43,7 @@ public class ProfesorService {
     private final RoleRepository roleRepository;
     private final EstadoUsuarioRepository estadoUsuarioRepository;
     private final UsuarioService usuarioService;
+    private final InstrumentoRepository instrumentoRepository;
 
     public ProfesorService(
             ProfesorRepository profesorRepository,
@@ -48,7 +51,8 @@ public class ProfesorService {
             UsuarioRepository usuarioRepository,
             RoleRepository roleRepository,
             EstadoUsuarioRepository estadoUsuarioRepository,
-            UsuarioService usuarioService
+            UsuarioService usuarioService,
+            InstrumentoRepository instrumentoRepository
     ) {
         this.profesorRepository = profesorRepository;
         this.tipoIdentificacionRepository = tipoIdentificacionRepository;
@@ -56,6 +60,7 @@ public class ProfesorService {
         this.roleRepository = roleRepository;
         this.estadoUsuarioRepository = estadoUsuarioRepository;
         this.usuarioService = usuarioService;
+        this.instrumentoRepository = instrumentoRepository;
     }
 
     @Transactional
@@ -97,6 +102,7 @@ public class ProfesorService {
         profesor.setGradoAcademico(request.getGradoAcademico());
         profesor.setEspecialidad(request.getEspecialidad());
         profesor.setEmpleador(request.getEmpleador());
+        profesor.setClasePuesto(request.getClasePuesto());
         profesor.setFechaIngreso(request.getFechaIngreso() != null ? request.getFechaIngreso() : LocalDate.now());
         profesor.setActivo(true);
         profesor.setIdUsuarioUltimaModificacion(usuarioActual());
@@ -113,6 +119,20 @@ public class ProfesorService {
                 ? profesorRepository.findByActivo(activo)
                 : profesorRepository.findAll();
         return profesores.stream().map(this::toResponse).toList();
+    }
+
+    // HU-026 - Profesores activos cuya especialidad incluye el instrumento
+    // indicado (usado para elegir profesor al asignar un instrumento).
+    @Transactional(readOnly = true)
+    public List<ProfesorResponse> listarPorInstrumento(Integer idInstrumento) {
+        Instrumento instrumento = instrumentoRepository.findById(idInstrumento)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Instrumento no encontrado"));
+
+        return profesorRepository
+                .findByActivoTrueAndEspecialidadContainingIgnoreCase(instrumento.getNombre())
+                .stream()
+                .map(this::toResponse)
+                .toList();
     }
 
     @Transactional(readOnly = true)
@@ -150,10 +170,12 @@ public class ProfesorService {
         profesor.setGradoAcademico(request.getGradoAcademico());
         profesor.setEspecialidad(request.getEspecialidad());
         profesor.setEmpleador(request.getEmpleador());
+        profesor.setClasePuesto(request.getClasePuesto());
         if (request.getFechaIngreso() != null) {
             profesor.setFechaIngreso(request.getFechaIngreso());
         }
-        profesor.setFechaSalida(request.getFechaSalida());
+        // fecha_salida ya no se edita desde el formulario: la controlan
+        // exclusivamente darDeBaja (la fija) y reactivar (la vacia).
         profesor.setIdUsuarioUltimaModificacion(usuarioActual());
         profesor.setActualizadoEn(Instant.now());
 
@@ -166,6 +188,17 @@ public class ProfesorService {
         Profesor profesor = buscarOFallar(id);
         profesor.setActivo(false);
         profesor.setFechaSalida(LocalDate.now());
+        profesor.setIdUsuarioUltimaModificacion(usuarioActual());
+        profesor.setActualizadoEn(Instant.now());
+        return toResponse(profesorRepository.save(profesor));
+    }
+
+    // Reactivacion: permite que un profesor vuelva a impartir cursos
+    @Transactional
+    public ProfesorResponse reactivar(Long id) {
+        Profesor profesor = buscarOFallar(id);
+        profesor.setActivo(true);
+        profesor.setFechaSalida(null);
         profesor.setIdUsuarioUltimaModificacion(usuarioActual());
         profesor.setActualizadoEn(Instant.now());
         return toResponse(profesorRepository.save(profesor));
@@ -208,6 +241,7 @@ public class ProfesorService {
                 p.getGradoAcademico(),
                 p.getEspecialidad(),
                 p.getEmpleador(),
+                p.getClasePuesto(),
                 p.getFechaIngreso(),
                 p.getFechaSalida(),
                 p.getActivo(),

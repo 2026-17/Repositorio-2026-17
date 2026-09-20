@@ -33,7 +33,7 @@ public class EstudianteController {
      * Academica para ubicar al estudiante antes de ver su beca o pagos.
      */
     @GetMapping
-    @PreAuthorize("hasRole('ADMINISTRATIVO')")
+    @PreAuthorize("hasAnyRole('ADMINISTRATIVO', 'DIRECTOR_ACADEMICO')")
     public ResponseEntity<List<EstudianteBusquedaResponse>> buscar(@RequestParam(required = false) String texto) {
         return ResponseEntity.ok(estudianteService.buscar(texto));
     }

@@ -17,6 +17,9 @@ public class InstrumentoEstudianteRequest {
     @Positive(message = "El instrumento seleccionado no es válido.")
     private Integer idInstrumento;
 
+    @Positive(message = "El profesor seleccionado no es válido.")
+    private Long idProfesor;
+
     @Size(max = 500, message = "Las observaciones no pueden superar los 500 caracteres.")
     private String observaciones;
 
@@ -26,6 +29,14 @@ public class InstrumentoEstudianteRequest {
 
     public void setIdInstrumento(Integer idInstrumento) {
         this.idInstrumento = idInstrumento;
+    }
+
+    public Long getIdProfesor() {
+        return idProfesor;
+    }
+
+    public void setIdProfesor(Long idProfesor) {
+        this.idProfesor = idProfesor;
     }
 
     public String getObservaciones() {

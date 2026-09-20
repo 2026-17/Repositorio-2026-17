@@ -13,4 +13,10 @@ public interface ProfesorRepository extends JpaRepository<Profesor, Long> {
             Integer idTipoIdentificacion, String numeroIdentificacion);
 
     List<Profesor> findByActivo(Boolean activo);
+
+    // HU-026 - Profesores activos habilitados para dar cierto instrumento
+    // (su campo especialidad, texto separado por comas, contiene el nombre
+    // del instrumento). Se usa para el selector de profesor al asignar
+    // un instrumento a un estudiante.
+    List<Profesor> findByActivoTrueAndEspecialidadContainingIgnoreCase(String especialidad);
 }

@@ -6,6 +6,7 @@ import cr.acusab.una.sigac.data.entity.Instrumento;
 import cr.acusab.una.sigac.data.repository.EstudianteInstrumentoRepository;
 import cr.acusab.una.sigac.data.repository.EstudianteRepository;
 import cr.acusab.una.sigac.data.repository.InstrumentoRepository;
+import cr.acusab.una.sigac.data.repository.ProfesorRepository;
 import cr.acusab.una.sigac.logic.exception.BusinessException;
 import cr.acusab.una.sigac.logic.service.InstrumentoEstudianteService;
 import cr.acusab.una.sigac.presentation.dto.request.InstrumentoEstudianteRequest;
@@ -37,6 +38,7 @@ class InstrumentoEstudianteServiceTest {
     private EstudianteRepository estudianteRepository;
     private InstrumentoRepository instrumentoRepository;
     private EstudianteInstrumentoRepository estudianteInstrumentoRepository;
+    private ProfesorRepository profesorRepository;
 
     private InstrumentoEstudianteService service;
 
@@ -45,11 +47,13 @@ class InstrumentoEstudianteServiceTest {
         estudianteRepository = mock(EstudianteRepository.class);
         instrumentoRepository = mock(InstrumentoRepository.class);
         estudianteInstrumentoRepository = mock(EstudianteInstrumentoRepository.class);
+        profesorRepository = mock(ProfesorRepository.class);
 
         service = new InstrumentoEstudianteService(
                 estudianteRepository,
                 instrumentoRepository,
-                estudianteInstrumentoRepository
+                estudianteInstrumentoRepository,
+                profesorRepository
         );
     }
 

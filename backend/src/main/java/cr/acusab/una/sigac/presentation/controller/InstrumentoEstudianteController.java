@@ -41,7 +41,7 @@ public class InstrumentoEstudianteController {
      * puede tener varios instrumentos vigentes al mismo tiempo.
      */
     @PostMapping
-    @PreAuthorize("hasRole('ADMINISTRATIVO')")
+    @PreAuthorize("hasAnyRole('ADMINISTRATIVO', 'DIRECTOR_ACADEMICO')")
     public ResponseEntity<InstrumentoEstudianteResponse> asignar(
             @PathVariable Long idEstudiante,
             @Valid @RequestBody InstrumentoEstudianteRequest request) {
@@ -60,7 +60,7 @@ public class InstrumentoEstudianteController {
      * deshabilita y conserva el registro en el historial.
      */
     @PutMapping("/{idEstudianteInstrumento}/deshabilitar")
-    @PreAuthorize("hasRole('ADMINISTRATIVO')")
+    @PreAuthorize("hasAnyRole('ADMINISTRATIVO', 'DIRECTOR_ACADEMICO')")
     public ResponseEntity<InstrumentoEstudianteResponse> deshabilitar(
             @PathVariable Long idEstudiante,
             @PathVariable Long idEstudianteInstrumento) {

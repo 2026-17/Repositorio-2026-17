@@ -124,6 +124,12 @@
     border-color: var(--primary-purple);
 }
 
+.input:disabled {
+    background: var(--neutral-light, #f1f1f1);
+    color: #8a8a8a;
+    cursor: not-allowed;
+}
+
 .input.input-error {
     border-color: var(--primary-red);
 }
@@ -249,6 +255,25 @@ textarea.input {
     font-family: var(--font-family);
     font-size: 13.5px;
     min-width: 220px;
+}
+
+.especialidades-checklist {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+    padding: 10px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--white);
+}
+
+.especialidad-chip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13.5px;
+    color: var(--neutral-text);
+    cursor: pointer;
 }
 
 .filter-select {

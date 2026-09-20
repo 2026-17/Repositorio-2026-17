@@ -18,9 +18,9 @@ public record EstudianteUpdateRequest(
         @NotBlank @Size(max = 30) String genero,
         @NotBlank @Size(max = 500) String direccion,
         @Size(max = 30) String telefono,
-        @Email @Size(max = 254) String correo,
+        @NotBlank @Email @Size(max = 254) String correo,
         @NotBlank @Size(max = 80) String nivelEscolar,
-        Long idCentroEducativo,
+        @Size(max = 180) String centroEducativo,
         String condicionesRelevantes,
         @NotNull Integer idInstrumento
 ) {}

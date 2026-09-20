@@ -15,7 +15,7 @@ public record EstudianteResponse(
         String telefono,
         String correo,
         String nivelEscolar,
-        Long idCentroEducativo,
+        String centroEducativo,
         Integer idInstrumento,
         boolean menor,
         // Presente solo cuando se asignó una beca durante el registro.
