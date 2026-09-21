@@ -86,14 +86,23 @@ function seleccionar(d) {
 
     form.find('select').first().select(String(d.instrumento.id))
 
-    form.find('select').eq(1)
-        .should('not.be.disabled')
-        .find('option')
-        .not('[value=""]')
-        .first()
-        .then(($option) => {
-            form.find('select').eq(1).select($option.val())
-        })
+    form.find('select').then(($selects) => {
+        if ($selects.length < 2) {
+            return
+        }
+
+        const profesorSelect = cy.wrap($selects.eq(1))
+
+        profesorSelect
+            .should('not.be.disabled')
+            .find('option')
+            .not('[value=""]')
+            .then(($options) => {
+                if ($options.length > 0) {
+                    profesorSelect.select($options.first().val())
+                }
+            })
+    })
 }
 
 function limpiar(idEstudiante, idAsignacion) {
