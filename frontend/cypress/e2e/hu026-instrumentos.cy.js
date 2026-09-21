@@ -2,9 +2,9 @@
 // Ruta: /director-academico/estudiantes/instrumentos
 // Usa los comandos de login ya existentes en la rama.
 
-const DIRECTOR_CEDULA = Cypress.env('DIRECTOR_CEDULA')
-const DIRECTOR_PASSWORD = Cypress.env('DIRECTOR_PASSWORD')
-const BUSQUEDA_ESTUDIANTE = Cypress.env('INSTRUMENTO_ESTUDIANTE_BUSQUEDA') || 'Isaac'
+const DIRECTOR_CEDULA = '987654321'
+const DIRECTOR_PASSWORD = '12345678'
+const BUSQUEDA_ESTUDIANTE = 'Isaac'
 
 function obtenerIdentificacionEstudiante() {
     return cy.window()
