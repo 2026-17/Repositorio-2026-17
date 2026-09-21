@@ -82,27 +82,12 @@ function buscar(d) {
 }
 
 function seleccionar(d) {
-    const form = cy.contains('h2', 'Asignar instrumento').closest('section')
-
-    form.find('select').first().select(String(d.instrumento.id))
-
-    form.find('select').then(($selects) => {
-        if ($selects.length < 2) {
-            return
-        }
-
-        const profesorSelect = cy.wrap($selects.eq(1))
-
-        profesorSelect
-            .should('not.be.disabled')
-            .find('option')
-            .not('[value=""]')
-            .then(($options) => {
-                if ($options.length > 0) {
-                    profesorSelect.select($options.first().val())
-                }
-            })
-    })
+    cy.contains('h2', 'Asignar instrumento')
+        .closest('section')
+        .find('select')
+        .first()
+        .should('not.be.disabled')
+        .select(String(d.instrumento.id))
 }
 
 function limpiar(idEstudiante, idAsignacion) {
