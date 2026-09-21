@@ -75,11 +75,44 @@ const SUBNAV_POR_ROL = {
     ],
 
     [ROLES.ADMINISTRATIVO]: [
-        { to: "/admin/administracion/estudiantes", label: "Estudiantes" },
-        { to: "/admin/administracion/estudiantes", label: "Registrar estudiante" },
-        { to: "/admin/administracion/becas-pagos", label: "Becas y pagos" },
-        { to: "/admin/administracion/matricula", label: "Matricula" },
-        { to: "/admin/administracion/reportes", label: "Reportes" },
+        {
+            label: "Estudiantes",
+            children: [
+                {
+                    to: "/admin/administracion/estudiantes",
+                    label: "Consultar",
+                },
+                {
+                    to: "/admin/administracion/estudiantes/crear",
+                    label: "Registrar",
+                },
+                {
+                    to: "/admin/administracion/estudiantes/instrumentos",
+                    label: "Asignar instrumento",
+                },
+            ],
+        },
+        {
+            label: "Matrícula y pagos",
+            children: [
+                {
+                    to: "/admin/administracion/matricula",
+                    label: "Matrícula",
+                },
+                {
+                    to: "/admin/administracion/becas-pagos",
+                    label: "Becas y pagos",
+                },
+            ],
+        },
+        {
+            to: "/admin/administracion/profesores",
+            label: "Profesores",
+        },
+        {
+            to: "/admin/administracion/reportes",
+            label: "Reportes",
+        },
     ],
 
     [ROLES.PROFESOR]: [],
@@ -444,7 +477,10 @@ function Header({ titulo = "" }) {
                                         enlace.children.some(
                                             (hijo) =>
                                                 location.pathname ===
-                                                hijo.to
+                                                    hijo.to ||
+                                                location.pathname.startsWith(
+                                                    `${hijo.to}/`
+                                                )
                                         );
 
                                     const abierto =
@@ -526,6 +562,7 @@ function Header({ titulo = "" }) {
                                                                 to={
                                                                     hijo.to
                                                                 }
+                                                                end
                                                                 className={({
                                                                                 isActive,
                                                                             }) =>
@@ -562,6 +599,7 @@ function Header({ titulo = "" }) {
                                         to={
                                             enlace.to
                                         }
+                                        end
                                         className={({
                                                         isActive,
                                                     }) =>

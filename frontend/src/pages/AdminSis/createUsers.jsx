@@ -63,27 +63,31 @@ function CreateUsers() {
             idEstadoUsuario: Number(form.idEstadoUsuario),
         };
 
-        const response = await fetch(`${API_URL}/usuarios`, {
-            method: "POST",
-            headers: getHeaders(),
-            body: JSON.stringify(payload),
+        try {
+            const response = await fetch(`${API_URL}/usuarios`, {
+                method: "POST",
+                headers: getHeaders(),
+                body: JSON.stringify(payload),
+            });
 
-        });
+            if (!response.ok) {
+                const body = await response.json().catch(() => ({}));
+                alert(body.message || "Error al crear usuario");
+                return;
+            }
 
-        if (!response.ok) {
-            alert("Error al crear usuario");
-            return;
+            alert("Usuario creado");
+            setForm({
+                cedula: "",
+                nombre: "",
+                correo: "",
+                contrasena: "",
+                idRol: "",
+                idEstadoUsuario: "",
+            });
+        } catch {
+            alert("No se pudo conectar con el servidor");
         }
-
-        alert("Usuario creado");
-        setForm({
-            cedula: "",
-            nombre: "",
-            correo: "",
-            contrasena: "",
-            idRol: "",
-            idEstadoUsuario: "",
-        });
     }
 
     return (

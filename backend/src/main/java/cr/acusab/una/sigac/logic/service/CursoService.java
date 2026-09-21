@@ -35,6 +35,7 @@ import java.util.stream.Collectors;
 @Service
 public class CursoService {
 
+    private final RequisitosCursoService requisitosCursoService;
     private final CursoRepository cursoRepository;
     private final PlanEstudioRepository planEstudioRepository;
     private final MallaCurricularRepository mallaCurricularRepository;
@@ -52,8 +53,10 @@ public class CursoService {
             ProgramaRepository programaRepository,
             PeriodoAcademicoRepository periodoAcademicoRepository,
             UsuarioRepository usuarioRepository,
-            ProfesorRepository profesorRepository
+            ProfesorRepository profesorRepository,
+            RequisitosCursoService requisitosCursoService
     ) {
+        this.requisitosCursoService = requisitosCursoService;
         this.cursoRepository = cursoRepository;
         this.planEstudioRepository = planEstudioRepository;
         this.mallaCurricularRepository = mallaCurricularRepository;
@@ -325,6 +328,9 @@ public class CursoService {
                 grupoRepository.save(grupo);
 
         // 11. Construir la respuesta para el frontend.
+        if (request.getRequisitos() != null) {
+            requisitosCursoService.guardarConfiguracion(plan.getId(), cursoGuardado.getId(), request.getRequisitos());
+        }
         return mapearAResponse(
                 cursoGuardado,
                 mallaGuardada,
@@ -705,6 +711,9 @@ public class CursoService {
          * los cambios correspondientes.
          */
 
+        if (request.getRequisitos() != null) {
+            requisitosCursoService.guardarConfiguracion(planDestino.getId(), cursoGuardado.getId(), request.getRequisitos());
+        }
         // 14. Devolver los datos actualizados.
         return mapearAEdicionResponse(
                 cursoGuardado,

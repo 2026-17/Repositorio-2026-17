@@ -1,16 +1,17 @@
+import RequisitosCursoOpcionales from "./RequisitosCursoOpcionales";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
     ArrowLeft,
-    CheckCircle2,
     Edit3,
     GraduationCap,
     Music2,
     Search,
-    XCircle,
 } from "lucide-react";
 
 import { API_URL } from "../../config/api";
 import "./modificarCurso.css";
+
+import { useDialog } from "../../components/dialog/useDialog";
 
 function construirFormDesdeCurso(curso) {
     return {
@@ -39,12 +40,15 @@ function normalizarForm(form) {
         horasTotales: Number(form.horasTotales),
         idPrograma: Number(form.idPrograma),
         nivel: Number(form.nivel),
+        requisitos: form.requisitos,
     };
 }
 
 function ModificarCurso() {
+    const dialog = useDialog();
 
     const token = localStorage.getItem("token");
+    const [revisionRequisitos, setRevisionRequisitos] = useState(0);
 
     const editorRef = useRef(null);
 
@@ -79,20 +83,8 @@ function ModificarCurso() {
     const [guardando, setGuardando] =
         useState(false);
 
-    const [error, setError] = useState("");
-    const [mensajeExito, setMensajeExito] =
-        useState("");
-
-    /*
-     * Puede ser:
-     * - null
-     * - "guardar"
-     * - "cancelar"
-     */
-    const [modalAccion, setModalAccion] =
-        useState(null);
-
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/immutability
         cargarCatalogos();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
@@ -116,7 +108,6 @@ function ModificarCurso() {
     async function cargarCatalogos() {
 
         setCargandoCatalogos(true);
-        setError("");
 
         try {
 
@@ -189,7 +180,7 @@ function ModificarCurso() {
 
         } catch (e) {
 
-            setError(
+            dialog.error(
                 e.message ||
                 "No fue posible cargar la información necesaria."
             );
@@ -199,6 +190,7 @@ function ModificarCurso() {
             setCargandoCatalogos(false);
         }
     }
+
 
     const cursosFiltrados = useMemo(() => {
 
@@ -241,7 +233,8 @@ function ModificarCurso() {
             actual.descripcion !== inicial.descripcion ||
             actual.horasTotales !== inicial.horasTotales ||
             actual.idPrograma !== inicial.idPrograma ||
-            actual.nivel !== inicial.nivel
+            actual.nivel !== inicial.nivel ||
+            JSON.stringify(actual.requisitos) !== JSON.stringify(inicial.requisitos)
         );
 
     }, [form, formInicial]);
@@ -292,6 +285,7 @@ function ModificarCurso() {
             cambios.push("Nivel académico");
         }
 
+        if (JSON.stringify(actual.requisitos) !== JSON.stringify(inicial.requisitos)) cambios.push("Requisitos del curso");
         return cambios;
 
     }, [form, formInicial]);
@@ -300,8 +294,6 @@ function ModificarCurso() {
 
         setCursoSeleccionado(curso);
         setCargandoCurso(true);
-        setError("");
-        setMensajeExito("");
         setErrores({});
 
         try {
@@ -343,6 +335,7 @@ function ModificarCurso() {
             const siguienteForm =
                 construirFormDesdeCurso(data);
 
+            setRevisionRequisitos(n => n + 1);
             setForm(siguienteForm);
             setFormInicial(siguienteForm);
 
@@ -367,7 +360,7 @@ function ModificarCurso() {
             setCursoSeleccionado(null);
             setFormInicial(null);
 
-            setError(
+            dialog.error(
                 e.message ||
                 "Ocurrió un error al cargar el curso."
             );
@@ -386,6 +379,7 @@ function ModificarCurso() {
         setForm((prev) => ({
             ...prev,
             [name]: value,
+            ...(name === "idPrograma" ? { requisitos: undefined } : {}),
         }));
 
         setErrores((prev) => {
@@ -402,9 +396,6 @@ function ModificarCurso() {
 
             return siguientes;
         });
-
-        setError("");
-        setMensajeExito("");
     }
 
     function validarFormulario() {
@@ -450,12 +441,9 @@ function ModificarCurso() {
         return siguientesErrores;
     }
 
-    function solicitarGuardado(e) {
+    async function solicitarGuardado(e) {
 
         e.preventDefault();
-
-        setError("");
-        setMensajeExito("");
 
         const erroresValidacion =
             validarFormulario();
@@ -469,18 +457,35 @@ function ModificarCurso() {
                 erroresValidacion
             );
 
+            dialog.validacion(
+                erroresValidacion
+            );
+
             return;
         }
 
         if (!hayCambios) {
-            setError(
+            dialog.error(
                 "No hay cambios pendientes por guardar."
             );
             return;
         }
 
         setErrores({});
-        setModalAccion("guardar");
+
+        const confirmado = await dialog.confirmar(
+            `Se actualizará el curso ${form.nombre} (${form.codigo}).\n\nEsta operación no elimina ni modifica matrículas históricas registradas para el curso.\n\nCampos que cambiarán:`,
+            {
+                titulo: "Confirmar modificación",
+                textoAceptar: "Confirmar cambios",
+                textoCancelar: "Revisar",
+                lista: camposModificados,
+            }
+        );
+
+        if (confirmado) {
+            await confirmarGuardado();
+        }
     }
 
     async function confirmarGuardado() {
@@ -490,8 +495,6 @@ function ModificarCurso() {
         }
 
         setGuardando(true);
-        setError("");
-        setMensajeExito("");
 
         const payload =
             normalizarForm(form);
@@ -552,6 +555,7 @@ function ModificarCurso() {
             const siguienteForm =
                 construirFormDesdeCurso(data);
 
+            setRevisionRequisitos(n => n + 1);
             setForm(siguienteForm);
             setFormInicial(siguienteForm);
 
@@ -582,17 +586,13 @@ function ModificarCurso() {
                 )
             );
 
-            setModalAccion(null);
-
-            setMensajeExito(
+            dialog.exito(
                 `El curso ${data.codigo || form.codigo} fue modificado correctamente. Los cambios quedaron registrados sin alterar la información histórica de matrícula.`
             );
 
         } catch (e) {
 
-            setModalAccion(null);
-
-            setError(
+            dialog.error(
                 e.message ||
                 "Ocurrió un error al modificar el curso."
             );
@@ -603,10 +603,23 @@ function ModificarCurso() {
         }
     }
 
-    function solicitarCancelar() {
+    async function solicitarCancelar() {
 
         if (hayCambios) {
-            setModalAccion("cancelar");
+            const descartar = await dialog.confirmar(
+                "Hay cambios que todavía no se han guardado. Si continúa, esos cambios se perderán.",
+                {
+                    titulo: "¿Descartar cambios?",
+                    textoAceptar: "Descartar cambios",
+                    textoCancelar: "Continuar editando",
+                    peligro: true,
+                }
+            );
+
+            if (descartar) {
+                cerrarEdicion();
+            }
+
             return;
         }
 
@@ -628,15 +641,10 @@ function ModificarCurso() {
 
         setFormInicial(null);
         setErrores({});
-        setModalAccion(null);
-        setError("");
-    }
-
-    function descartarCambios() {
-        cerrarEdicion();
     }
 
     function restaurarValores() {
+        setRevisionRequisitos(n => n + 1);
 
         if (!formInicial) {
             return;
@@ -647,8 +655,6 @@ function ModificarCurso() {
         });
 
         setErrores({});
-        setError("");
-        setMensajeExito("");
     }
 
     return (
@@ -666,35 +672,6 @@ function ModificarCurso() {
                         los datos permitidos de la malla curricular.
                     </p>
                 </header>
-
-                {error && (
-                    <div
-                        className="modificar-curso__message modificar-curso__message--error"
-                        role="alert"
-                    >
-                        <XCircle
-                            size={18}
-                            aria-hidden="true"
-                        />
-                        <span>{error}</span>
-                    </div>
-                )}
-
-                {mensajeExito && (
-                    <div
-                        className="modificar-curso__message modificar-curso__message--success"
-                        role="status"
-                        aria-live="polite"
-                    >
-                        <CheckCircle2
-                            size={18}
-                            aria-hidden="true"
-                        />
-                        <span>
-                            {mensajeExito}
-                        </span>
-                    </div>
-                )}
 
                 {!cursoSeleccionado && (
                     <section
@@ -1181,6 +1158,13 @@ function ModificarCurso() {
                                         : "No hay cambios pendientes."}
                                 </div>
 
+                                <RequisitosCursoOpcionales
+                                    key={cursoSeleccionado.idCurso + ':' + form.idPrograma + ':' + revisionRequisitos}
+                                    idCurso={cursoSeleccionado.idCurso} idPrograma={form.idPrograma}
+                                    value={form.requisitos}
+                                    onChange={requisitos => setForm(prev => ({ ...prev, requisitos }))}
+                                    disabled={guardando || cargandoCurso}
+                                />
                                 <div className="modificar-curso__actions">
 
                                     <button
@@ -1228,145 +1212,6 @@ function ModificarCurso() {
                             </form>
                         )}
                     </section>
-                )}
-
-                {modalAccion === "guardar" && (
-                    <div
-                        className="modificar-modal-overlay"
-                        role="presentation"
-                    >
-                        <div
-                            className="modificar-modal"
-                            role="dialog"
-                            aria-modal="true"
-                            aria-labelledby="confirmar-modificacion-titulo"
-                        >
-                            <Edit3
-                                size={24}
-                                className="modificar-modal__icon"
-                                aria-hidden="true"
-                            />
-
-                            <h2 id="confirmar-modificacion-titulo">
-                                Confirmar modificación
-                            </h2>
-
-                            <p>
-                                Se actualizará el curso{" "}
-                                <strong>
-                                    {form.nombre}
-                                </strong>{" "}
-                                ({form.codigo}).
-                            </p>
-
-                            <div className="modificar-modal__changes">
-                                <span>
-                                    Campos que cambiarán:
-                                </span>
-
-                                <ul>
-                                    {camposModificados.map(
-                                        (campo) => (
-                                            <li key={campo}>
-                                                {campo}
-                                            </li>
-                                        )
-                                    )}
-                                </ul>
-                            </div>
-
-                            <p className="modificar-modal__history">
-                                Esta operación no elimina ni modifica
-                                matrículas históricas registradas para el
-                                curso.
-                            </p>
-
-                            <div className="modificar-modal__actions">
-                                <button
-                                    type="button"
-                                    className="btn modificar-curso__secondary"
-                                    onClick={() =>
-                                        setModalAccion(
-                                            null
-                                        )
-                                    }
-                                    disabled={
-                                        guardando
-                                    }
-                                >
-                                    Revisar
-                                </button>
-
-                                <button
-                                    type="button"
-                                    className="btn btn--primary"
-                                    onClick={
-                                        confirmarGuardado
-                                    }
-                                    disabled={
-                                        guardando
-                                    }
-                                >
-                                    {guardando
-                                        ? "Guardando..."
-                                        : "Confirmar cambios"}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {modalAccion === "cancelar" && (
-                    <div
-                        className="modificar-modal-overlay"
-                        role="presentation"
-                    >
-                        <div
-                            className="modificar-modal"
-                            role="dialog"
-                            aria-modal="true"
-                            aria-labelledby="descartar-cambios-titulo"
-                        >
-                            <XCircle
-                                size={24}
-                                className="modificar-modal__icon modificar-modal__icon--danger"
-                                aria-hidden="true"
-                            />
-
-                            <h2 id="descartar-cambios-titulo">
-                                ¿Descartar cambios?
-                            </h2>
-
-                            <p>
-                                Hay cambios que todavía no se han guardado.
-                                Si continúa, esos cambios se perderán.
-                            </p>
-
-                            <div className="modificar-modal__actions">
-                                <button
-                                    type="button"
-                                    className="btn modificar-curso__secondary"
-                                    onClick={() =>
-                                        setModalAccion(
-                                            null
-                                        )
-                                    }
-                                >
-                                    Continuar editando
-                                </button>
-
-                                <button
-                                    type="button"
-                                    className="btn modificar-curso__danger"
-                                    onClick={
-                                        descartarCambios
-                                    }
-                                >
-                                    Descartar cambios
-                                </button>
-                            </div>
-                        </div>
-                    </div>
                 )}
 
             </div>

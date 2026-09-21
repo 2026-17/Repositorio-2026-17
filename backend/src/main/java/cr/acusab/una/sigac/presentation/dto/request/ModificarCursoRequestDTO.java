@@ -16,6 +16,12 @@ import jakarta.validation.constraints.Size;
  * identificador académico del curso.
  */
 public class ModificarCursoRequestDTO {
+    // Omitir este apartado conserva los requisitos existentes.
+    @jakarta.validation.Valid
+    private ConfiguracionRequisitosCursoRequest requisitos;
+    public ConfiguracionRequisitosCursoRequest getRequisitos() { return requisitos; }
+    public void setRequisitos(ConfiguracionRequisitosCursoRequest value) { requisitos = value; }
+
 
     @NotBlank(message = "El nombre del curso es obligatorio.")
     @Size(

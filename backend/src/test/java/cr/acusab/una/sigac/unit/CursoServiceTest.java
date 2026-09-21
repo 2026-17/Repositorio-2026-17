@@ -48,6 +48,7 @@ class CursoServiceTest {
     private UsuarioRepository usuarioRepository;
     private ProfesorRepository profesorRepository;
 
+    private cr.acusab.una.sigac.logic.service.RequisitosCursoService requisitosService;
     private CursoService cursoService;
 
     @BeforeEach
@@ -63,6 +64,7 @@ class CursoServiceTest {
         usuarioRepository = mock(UsuarioRepository.class);
         profesorRepository = mock(ProfesorRepository.class);
 
+        requisitosService = mock(cr.acusab.una.sigac.logic.service.RequisitosCursoService.class);
         cursoService = new CursoService(
                 cursoRepository,
                 planEstudioRepository,
@@ -71,7 +73,8 @@ class CursoServiceTest {
                 programaRepository,
                 periodoAcademicoRepository,
                 usuarioRepository,
-                profesorRepository
+                profesorRepository,
+                requisitosService
         );
     }
 
@@ -87,9 +90,23 @@ class CursoServiceTest {
      */
 
     @Test
-    void crearCursoCorrectamente() {
+    void crearCursoCorrectamente() { verificarCreacion(null); }
 
+    @Test
+    void crearConPrerrequisitos() { verificarCreacion(List.of(20L)); }
+
+    @Test
+    void crearSinPrerrequisitosExplicitos() { verificarCreacion(List.of()); }
+
+    private void verificarCreacion(List<Long> prerrequisitos) {
         CursoRequestDTO request = crearRequestValido();
+        var requisitos = new cr.acusab.una.sigac.presentation.dto.request.ConfiguracionRequisitosCursoRequest();
+        if (prerrequisitos != null) {
+            requisitos.setPrerrequisitos(prerrequisitos);
+            requisitos.setCorrequisitos(List.of(21L));
+            requisitos.setEdadMinima(10);
+            request.setRequisitos(requisitos);
+        }
 
         when(cursoRepository.existsByCodigo("CUR-101"))
                 .thenReturn(false);
@@ -162,6 +179,8 @@ class CursoServiceTest {
         CursoResponseDTO respuesta =
                 cursoService.crear(request);
 
+        if (prerrequisitos == null) verifyNoInteractions(requisitosService);
+        else verify(requisitosService).guardarConfiguracion(50L, 100L, requisitos);
         assertNotNull(respuesta);
         assertEquals(100L, respuesta.getIdCurso());
         assertEquals("CUR-101", respuesta.getCodigo());

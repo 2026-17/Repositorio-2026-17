@@ -9,15 +9,12 @@ import cr.acusab.una.sigac.data.entity.Usuario;
 import cr.acusab.una.sigac.data.repository.EstadoUsuarioRepository;
 import cr.acusab.una.sigac.data.repository.InstrumentoRepository;
 import cr.acusab.una.sigac.data.repository.ProfesorRepository;
-import cr.acusab.una.sigac.data.repository.RoleRepository;
 import cr.acusab.una.sigac.data.repository.TipoIdentificacionRepository;
 import cr.acusab.una.sigac.data.repository.UsuarioRepository;
 import cr.acusab.una.sigac.presentation.dto.request.ProfesorCreateRequest;
 import cr.acusab.una.sigac.presentation.dto.request.ProfesorUpdateRequest;
-import cr.acusab.una.sigac.presentation.dto.request.UsuarioCreateRequest;
 import cr.acusab.una.sigac.presentation.dto.response.ProfesorResponse;
 import cr.acusab.una.sigac.presentation.dto.response.TipoIdentificacionResponse;
-import cr.acusab.una.sigac.presentation.dto.response.UsuarioResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -31,11 +28,6 @@ import java.util.List;
 
 @Service
 public class ProfesorService {
-
-    // Codigos fijos del catalogo (ver seed en sigac_db.sql): un profesor
-    // siempre se crea con el rol PROFESOR y la cuenta arranca ACTIVA.
-    private static final String CODIGO_ROL_PROFESOR = "PROFESOR";
-    private static final String CODIGO_ESTADO_USUARIO_ACTIVO = "ACTIVO";
 
     private final ProfesorRepository profesorRepository;
     private final TipoIdentificacionRepository tipoIdentificacionRepository;
@@ -64,21 +56,7 @@ public class ProfesorService {
     }
 
     @Transactional
-    public ProfesorResponse registrar(ProfesorCreateRequest request, UsuarioCreateRequest usuarioRequest) {
-        Role rolProfesor = roleRepository.findByCodigoIgnoreCase(CODIGO_ROL_PROFESOR)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "No existe el rol PROFESOR en el catalogo"));
-        EstadosUsuario estadoActivo = estadoUsuarioRepository.findByCodigoIgnoreCase(CODIGO_ESTADO_USUARIO_ACTIVO)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "No existe el estado ACTIVO en el catalogo"));
-
-        // El profesor siempre se crea con rol PROFESOR y estado ACTIVO,
-        // sin importar lo que venga (o no) en el request.
-        usuarioRequest.setIdRol(rolProfesor.getId());
-        usuarioRequest.setIdEstadoUsuario(estadoActivo.getId());
-
-        UsuarioResponse usuarioCreado = usuarioService.crearUsuario(usuarioRequest);
-        Usuario usuario = usuarioRepository.findById(usuarioCreado.getId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "No se pudo recuperar el usuario recien creado"));
-
+    public ProfesorResponse registrar(ProfesorCreateRequest request) {
         TiposIdentificacion tipo = tipoIdentificacionRepository.findById(request.getIdTipoIdentificacion())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Tipo de identificacion no existe"));
 
@@ -88,9 +66,9 @@ public class ProfesorService {
                     throw new ResponseStatusException(HttpStatus.CONFLICT, "Ya existe un profesor registrado con esa identificacion");
                 });
 
+        // La cuenta de usuario (id_usuario) es opcional y se vincula por separado (HU-034).
         Instant now = Instant.now();
         Profesor profesor = new Profesor();
-        profesor.setIdUsuario(usuario);
         profesor.setIdTipoIdentificacion(tipo);
         profesor.setNumeroIdentificacion(request.getNumeroIdentificacion());
         profesor.setNombres(request.getNombres());

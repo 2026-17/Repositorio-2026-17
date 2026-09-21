@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { API_URL } from "../../config/api";
 
+import { useDialog } from "../../components/dialog/useDialog";
+
 function formatearFecha(fecha) {
     if (!fecha) {
         return "No registrada";
@@ -19,17 +21,15 @@ function formatearFecha(fecha) {
 }
 
 function Notificaciones() {
+    const dialog = useDialog();
     const token = localStorage.getItem("token");
 
     const [notificaciones, setNotificaciones] = useState([]);
     const [cargando, setCargando] = useState(true);
     const [procesandoId, setProcesandoId] = useState(null);
 
-    const [error, setError] = useState("");
-
     const cargarNotificaciones = useCallback(async () => {
         setCargando(true);
-        setError("");
 
         try {
             const response = await fetch(
@@ -74,14 +74,14 @@ function Notificaciones() {
         } catch (errorConsulta) {
             setNotificaciones([]);
 
-            setError(
+            dialog.error(
                 errorConsulta.message ||
                 "Ocurrió un error al consultar las notificaciones."
             );
         } finally {
             setCargando(false);
         }
-    }, [token]);
+    }, [token, dialog]);
 
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -96,7 +96,6 @@ function Notificaciones() {
             return;
         }
 
-        setError("");
         setProcesandoId(
             notificacion.idNotificacion
         );
@@ -148,7 +147,7 @@ function Notificaciones() {
                 )
             );
         } catch (errorActualizacion) {
-            setError(
+            dialog.error(
                 errorActualizacion.message ||
                 "Ocurrió un error al actualizar la notificación."
             );
@@ -200,20 +199,6 @@ function Notificaciones() {
                         : "Actualizar notificaciones"}
                 </button>
             </div>
-
-            {error && (
-                <div
-                    role="alert"
-                    style={{
-                        marginBottom: "1rem",
-                        padding: "0.85rem",
-                        border: "1px solid #c62828",
-                        borderRadius: "6px",
-                    }}
-                >
-                    {error}
-                </div>
-            )}
 
             {cargando ? (
                 <p>Cargando notificaciones...</p>

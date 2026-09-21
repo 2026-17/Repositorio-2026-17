@@ -64,4 +64,12 @@ public interface MallaCurricularRepository
             Long idPlanEstudio,
             Long idCurso
     );
+
+    /*
+     * HU-032 - Cursos activos de un plan de estudio, ordenados por
+     * nivel y por posicion dentro del nivel.
+     */
+    List<MallaCurricular> findByIdPlanEstudioAndActivoTrueOrderByNivelAscOrdenEnNivelAsc(
+            Long idPlanEstudio
+    );
 }

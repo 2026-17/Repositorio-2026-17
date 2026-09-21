@@ -9,6 +9,8 @@ import Login from "./pages/Publico/login";
 import Notificaciones from "./pages/Estudiante/Notificaciones";
 import CreateUsers from "./pages/AdminSis/createUsers";
 import CreateStudent from "./pages/AdminSis/createStudent";
+import Estudiantes from "./pages/AdminSis/Estudiantes";
+import EditarEstudiante from "./pages/AdminSis/EditarEstudiante";
 
 import CrearCurso from "./pages/DirectorAcademico/CrearCurso";
 import ModificarCurso from "./pages/DirectorAcademico/ModificarCurso";
@@ -121,7 +123,17 @@ function App() {
 
                     <Route
                         path="/admin/administracion/estudiantes"
+                        element={<Estudiantes />}
+                    />
+
+                    <Route
+                        path="/admin/administracion/estudiantes/crear"
                         element={<CreateStudent />}
+                    />
+
+                    <Route
+                        path="/admin/administracion/estudiantes/:id/editar"
+                        element={<EditarEstudiante />}
                     />
 
                     {/* Administrativo - HU-015 Asignar beca y registrar pago */}

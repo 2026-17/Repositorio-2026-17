@@ -6,13 +6,14 @@ import {
     Receipt,
     CheckCircle2,
     Clock,
-    AlertTriangle,
     X,
     Eye,
     Trash2,
 } from "lucide-react";
 import { API_URL } from "../../config/api";
 import "../AdminSis/styles/admin_Sis.css";
+
+import { useDialog } from "../../components/dialog/useDialog";
 
 const MESES = [
     "", "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
@@ -45,6 +46,7 @@ function mesesDelPeriodo(periodo) {
 }
 
 function Estudiantes() {
+    const dialog = useDialog();
 
     const token = localStorage.getItem("token");
     const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
@@ -53,12 +55,10 @@ function Estudiantes() {
     const [texto, setTexto] = useState("");
     const [resultados, setResultados] = useState([]);
     const [buscando, setBuscando] = useState(false);
-    const [errorBusqueda, setErrorBusqueda] = useState("");
 
     // --- Estudiante seleccionado ---
     const [estudiante, setEstudiante] = useState(null);
     const [cargandoPerfil, setCargandoPerfil] = useState(false);
-    const [errorPerfil, setErrorPerfil] = useState("");
 
     // --- Períodos académicos ---
     const [periodos, setPeriodos] = useState([]);
@@ -68,20 +68,17 @@ function Estudiantes() {
     const [mesSeleccionado, setMesSeleccionado] = useState("");
     const [estadoMes, setEstadoMes] = useState(null);
     const [cargandoEstadoMes, setCargandoEstadoMes] = useState(false);
-    const [errorEstadoMes, setErrorEstadoMes] = useState("");
 
     // --- Formulario "Registrar pago" ---
     const [fechaPago, setFechaPago] = useState(todayISO());
     const [comprobante, setComprobante] = useState(null);
     const [erroresPago, setErroresPago] = useState({});
     const [guardandoPago, setGuardandoPago] = useState(false);
-    const [errorPago, setErrorPago] = useState("");
 
     // --- Ver / eliminar el pago ya registrado ---
     const [confirmarEliminarPago, setConfirmarEliminarPago] = useState(false);
     const [eliminandoPago, setEliminandoPago] = useState(false);
     const [abriendoComprobante, setAbriendoComprobante] = useState(false);
-    const [errorAccionPago, setErrorAccionPago] = useState("");
 
     // Catálogo de períodos académicos, se carga una sola vez.
     useEffect(() => {
@@ -97,7 +94,6 @@ function Estudiantes() {
         const consulta = texto.trim();
         if (consulta.length < 2) {
             setResultados([]);
-            setErrorBusqueda("");
             return;
         }
 
@@ -110,10 +106,9 @@ function Estudiantes() {
                 if (!response.ok) throw new Error();
                 const data = await response.json();
                 setResultados(data);
-                setErrorBusqueda("");
             } catch {
                 setResultados([]);
-                setErrorBusqueda("No fue posible buscar estudiantes.");
+                dialog.error("No fue posible buscar estudiantes.");
             } finally {
                 setBuscando(false);
             }
@@ -130,14 +125,12 @@ function Estudiantes() {
         setFechaPago(todayISO());
         setComprobante(null);
         setErroresPago({});
-        setErrorPago("");
     }
 
     async function seleccionarEstudiante(idEstudiante) {
         setTexto("");
         setResultados([]);
         setEstudiante(null);
-        setErrorPerfil("");
         setCargandoPerfil(true);
         limpiarSeleccion();
 
@@ -147,7 +140,7 @@ function Estudiantes() {
             const data = await response.json();
             setEstudiante(data);
         } catch {
-            setErrorPerfil("No fue posible cargar la información del estudiante.");
+            dialog.error("No fue posible cargar la información del estudiante.");
         } finally {
             setCargandoPerfil(false);
         }
@@ -171,13 +164,10 @@ function Estudiantes() {
 
         setCargandoEstadoMes(true);
         setEstadoMes(null);
-        setErrorEstadoMes("");
-        setErrorPago("");
         setErroresPago({});
         setComprobante(null);
         setFechaPago(todayISO());
         setConfirmarEliminarPago(false);
-        setErrorAccionPago("");
 
         try {
             const params = new URLSearchParams({ idPeriodo, anio, mes });
@@ -193,7 +183,7 @@ function Estudiantes() {
             setEstadoMes(body);
         } catch (e) {
             setEstadoMes(null);
-            setErrorEstadoMes(e.message || "Ocurrió un error al consultar el estado de pago.");
+            dialog.error(e.message || "Ocurrió un error al consultar el estado de pago.");
         } finally {
             setCargandoEstadoMes(false);
         }
@@ -206,7 +196,6 @@ function Estudiantes() {
 
     async function registrarPago(evento) {
         evento.preventDefault();
-        setErrorPago("");
 
         const nuevosErrores = {};
         if (!fechaPago) nuevosErrores.fechaPago = "Ingrese la fecha de pago.";
@@ -214,7 +203,10 @@ function Estudiantes() {
         if (!comprobante) nuevosErrores.comprobante = "Debe adjuntar el comprobante de pago.";
 
         setErroresPago(nuevosErrores);
-        if (Object.keys(nuevosErrores).length > 0) return;
+        if (Object.keys(nuevosErrores).length > 0) {
+            dialog.validacion(nuevosErrores);
+            return;
+        }
 
         const [anio, mes] = mesSeleccionado.split("-");
         const payload = {
@@ -252,14 +244,13 @@ function Estudiantes() {
             }));
             setComprobante(null);
         } catch (e) {
-            setErrorPago(e.message || "Ocurrió un error al registrar el pago.");
+            dialog.error(e.message || "Ocurrió un error al registrar el pago.");
         } finally {
             setGuardandoPago(false);
         }
     }
 
     async function verComprobante() {
-        setErrorAccionPago("");
         setAbriendoComprobante(true);
         try {
             const response = await fetch(`${API_URL}/pagos/${estadoMes.idMensualidad}/comprobante`, {
@@ -276,14 +267,13 @@ function Estudiantes() {
             const url = URL.createObjectURL(blob);
             window.open(url, "_blank", "noopener,noreferrer");
         } catch (e) {
-            setErrorAccionPago(e.message || "No fue posible abrir el comprobante.");
+            dialog.error(e.message || "No fue posible abrir el comprobante.");
         } finally {
             setAbriendoComprobante(false);
         }
     }
 
     async function eliminarPagoAhora() {
-        setErrorAccionPago("");
         try {
             setEliminandoPago(true);
             const response = await fetch(`${API_URL}/pagos/${estadoMes.idMensualidad}`, {
@@ -300,7 +290,7 @@ function Estudiantes() {
             setConfirmarEliminarPago(false);
             await consultarEstadoMes();
         } catch (e) {
-            setErrorAccionPago(e.message || "No fue posible eliminar el pago.");
+            dialog.error(e.message || "No fue posible eliminar el pago.");
         } finally {
             setEliminandoPago(false);
         }
@@ -332,10 +322,7 @@ function Estudiantes() {
                     {texto.trim().length >= 2 && (
                         <div className="search-results">
                             {buscando && <div className="search-results__empty">Buscando...</div>}
-                            {!buscando && errorBusqueda && (
-                                <div className="search-results__empty">{errorBusqueda}</div>
-                            )}
-                            {!buscando && !errorBusqueda && resultados.length === 0 && (
+                            {!buscando && resultados.length === 0 && (
                                 <div className="search-results__empty">Sin coincidencias.</div>
                             )}
                             {!buscando && resultados.map((r) => (
@@ -355,7 +342,6 @@ function Estudiantes() {
             </section>
 
             {cargandoPerfil && <div className="banner banner-warning">Cargando estudiante...</div>}
-            {errorPerfil && <div className="banner banner-danger" role="alert">{errorPerfil}</div>}
 
             {estudiante && !cargandoPerfil && (
                 <>
@@ -415,10 +401,6 @@ function Estudiantes() {
 
                         {cargandoEstadoMes && <p className="hint">Consultando estado de pago...</p>}
 
-                        {!cargandoEstadoMes && errorEstadoMes && (
-                            <div className="banner banner-danger" role="alert"><AlertTriangle size={16} /> {errorEstadoMes}</div>
-                        )}
-
                         {!cargandoEstadoMes && estadoMes && (
                             <>
                                 <div className={`banner ${estadoMes.sinPagosPendientes || estadoMes.pagada ? "banner-success" : "banner-warning"}`}>
@@ -437,8 +419,6 @@ function Estudiantes() {
                                             <strong>{formatoColones(estadoMes.monto)}</strong>
                                         </div>
                                         <p className="hint">Fecha de pago: {estadoMes.fechaPago}</p>
-
-                                        {errorAccionPago && <p className="error">{errorAccionPago}</p>}
 
                                         {confirmarEliminarPago ? (
                                             <div className="banner banner-warning" style={{ marginTop: 12, marginBottom: 0 }}>
@@ -476,7 +456,6 @@ function Estudiantes() {
                                         </div>
 
                                         <form onSubmit={registrarPago} noValidate>
-                                            {errorPago && <div className="banner banner-danger" role="alert"><AlertTriangle size={16} /> {errorPago}</div>}
 
                                             <div className="field">
                                                 <label className="field-label">Fecha de pago <span className="required">*</span></label>

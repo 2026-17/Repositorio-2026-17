@@ -7,6 +7,12 @@ import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 
 public class CursoRequestDTO {
+    // Omitir este apartado conserva los requisitos existentes.
+    @jakarta.validation.Valid
+    private ConfiguracionRequisitosCursoRequest requisitos;
+    public ConfiguracionRequisitosCursoRequest getRequisitos() { return requisitos; }
+    public void setRequisitos(ConfiguracionRequisitosCursoRequest value) { requisitos = value; }
+
 
     // --- Datos del curso ---
 
