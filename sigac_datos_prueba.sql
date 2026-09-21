@@ -23,12 +23,17 @@
 
  COMO USARLO
  -----------
-   1. Registre un estudiante y su usuario con rol ESTUDIANTE desde el sistema.
-   2. Cambie el valor de @numero_identificacion_estudiante (mas abajo) por
-      el numero de identificacion de ese estudiante.
-   3. Ejecute este archivo.
-   4. Desde Administrativo, inicie y apruebe la solicitud de matricula del
+   1. Ejecute este archivo: crea los planes, cursos y grupos de prueba.
+   2. Registre un estudiante desde el sistema (Administrativo > Estudiantes >
+      Registrar) y elija sus planes en el formulario: ya aparecen los de prueba.
+      Eso tambien crea su usuario con rol ESTUDIANTE.
+   3. Desde Administrativo, inicie y apruebe la solicitud de matricula del
       estudiante para el periodo. Despues el estudiante ya puede matricular.
+
+   Alternativa para un estudiante YA registrado: cambie el valor de
+   @numero_identificacion_estudiante (mas abajo) por su numero de
+   identificacion y ejecute el archivo; lo inscribe a los planes de Guitarra
+   y Teoria.
 ===============================================================================
 */
 

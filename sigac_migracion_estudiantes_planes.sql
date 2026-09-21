@@ -57,9 +57,13 @@ CREATE TABLE IF NOT EXISTS estudiantes_planes_estudio (
 -- =============================================================================
 -- SECCION 2 (OPCIONAL): inscribir estudiantes en planes
 --
--- Sin inscripcion, el estudiante NO ve cursos para matricular. Elija UNA de las
--- opciones, reemplace el valor entre < > y ejecute solo esa sentencia.
--- Antes, consulte los codigos de plan y los estudiantes disponibles:
+-- Los estudiantes NUEVOS eligen sus planes en el formulario de registro (es
+-- obligatorio) y pueden cambiarlos al editar al estudiante. Esta seccion sirve
+-- para los estudiantes YA registrados antes de ese cambio, que no tienen plan:
+-- sin inscripcion, el estudiante NO ve cursos para matricular.
+--
+-- Elija UNA de las opciones, reemplace el valor entre < > y ejecute solo esa
+-- sentencia. Antes, consulte los codigos de plan y los estudiantes disponibles:
 -- =============================================================================
 
 -- SELECT id_plan_estudio, codigo, nombre, vigente FROM planes_estudio;

@@ -14,4 +14,12 @@ public interface EstudiantePlanEstudioRepository
     List<EstudiantePlanEstudio> findByIdEstudianteAndActivoTrue(
             Long idEstudiante
     );
+
+    /*
+     * Todas las inscripciones del estudiante, activas o no. Se usa al
+     * editar sus planes para reactivar en lugar de duplicar.
+     */
+    List<EstudiantePlanEstudio> findByIdEstudiante(
+            Long idEstudiante
+    );
 }

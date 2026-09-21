@@ -155,7 +155,9 @@ El script crea la base `sigac_db`, utiliza `utf8mb4_0900_ai_ci` y no elimina inf
 | `sigac_datos_prueba.sql` | **Solo desarrollo.** Carga programas, planes, cursos, malla, requisitos, un período en matrícula, profesores y grupos con horario para probar la matrícula del estudiante. Antes de ejecutarlo, cambie en el archivo el número de identificación del estudiante que se inscribirá a los planes. Es idempotente. |
 
 > [!NOTE]
-> Un estudiante solo puede matricular cursos de los planes en los que está inscrito (`estudiantes_planes_estudio`). El estudiante debe además estar autorizado por el personal administrativo para el período en matrícula.
+> Un estudiante solo puede matricular cursos de los planes en los que está inscrito (`estudiantes_planes_estudio`). Los planes se eligen al registrar o editar el estudiante y son obligatorios. El estudiante debe además estar autorizado por el personal administrativo para el período en matrícula.
+>
+> Los estudiantes registrados antes de este cambio no tienen plan: hay que editarlos y elegirlo, o inscribirlos por SQL (`sigac_migracion_estudiantes_planes.sql`, sección 2).
 
 ### 3. Configurar y ejecutar el backend
 

@@ -287,6 +287,21 @@ public class SecurityConfig {
                         .hasRole("ESTUDIANTE")
 
                         /*
+                         * =====================================================
+                         * Planes de estudio vigentes
+                         * Roles: ADMINISTRATIVO y DIRECTOR_ACADEMICO
+                         *
+                         * Opciones del selector de planes al registrar y
+                         * editar estudiantes.
+                         * =====================================================
+                         */
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/planes-estudio"
+                        )
+                        .hasAnyRole("ADMINISTRATIVO", "DIRECTOR_ACADEMICO")
+
+                        /*
                          * Cualquier otro endpoint necesita
                          * un usuario autenticado.
                          */
