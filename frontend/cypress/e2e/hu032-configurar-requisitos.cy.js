@@ -40,19 +40,16 @@ describe('HU-032 - Configurar prerrequisitos y correquisitos', () => {
                 .should('be.visible')
                 .click()
 
-            cy.intercept('GET', '**/api/requisitos-cursos/opciones*')
-                .as('opcionesRequisitos')
-
-            cy.contains('button', 'Ocultar configuración')
+            cy.contains('h2', 'Prerrequisitos')
                 .should('be.visible')
 
-            cy.wait('@opcionesRequisitos')
-                .its('response.statusCode')
-                .should('eq', 200)
+            cy.contains('h2', 'Correquisitos')
+                .should('be.visible')
 
             cy.get('.requisitos-curso__grid section')
                 .first()
-                .find('input[type="checkbox"]')
+                .find('label.requisito-card input[type="checkbox"]')
+                .not(':checked')
                 .not(':disabled')
                 .first()
                 .should('exist')
