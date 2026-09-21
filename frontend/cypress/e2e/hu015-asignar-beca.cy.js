@@ -1,13 +1,11 @@
 // HU-015 - Asignar beca
 // Ruta: /admin/administracion/becas-pagos
 //
-// La implementación actual de la HU-015 expone la operación de becas
-// mediante la API. Estas pruebas usan la sesión obtenida mediante la UI
-// y validan asignación, cálculo, modificación y rechazo de porcentajes > 100.
+// Las pruebas usan la sesión obtenida mediante la UI y validan
+// asignación, cálculo, modificación y rechazo de porcentajes inválidos.
 
 const ADMIN_CEDULA = '456456456'
 const ADMIN_PASSWORD = '12345678'
-const ESTUDIANTE_BUSQUEDA = 'Isaac'
 
 function obtenerToken() {
     return cy.window()
@@ -19,12 +17,11 @@ function obtenerDatosBase() {
     return obtenerToken().then((token) => {
         return cy.request({
             method: 'GET',
-            url: `/api/estudiantes?texto=${encodeURIComponent(ESTUDIANTE_BUSQUEDA)}`,
+            url: '/api/estudiantes/listado?activo=true',
             headers: {
                 Authorization: `Bearer ${token}`,
             },
         }).then((estudiantesResponse) => {
-
             expect(estudiantesResponse.status).to.eq(200)
             expect(estudiantesResponse.body)
                 .to.be.an('array')
@@ -37,7 +34,6 @@ function obtenerDatosBase() {
                     Authorization: `Bearer ${token}`,
                 },
             }).then((tiposResponse) => {
-
                 expect(tiposResponse.status).to.eq(200)
                 expect(tiposResponse.body)
                     .to.be.an('array')
@@ -50,7 +46,6 @@ function obtenerDatosBase() {
                         Authorization: `Bearer ${token}`,
                     },
                 }).then((periodosResponse) => {
-
                     expect(periodosResponse.status).to.eq(200)
                     expect(periodosResponse.body)
                         .to.be.an('array')
@@ -58,13 +53,57 @@ function obtenerDatosBase() {
 
                     return {
                         token,
-                        estudiante: estudiantesResponse.body[0],
+                        estudiantes: estudiantesResponse.body,
                         tipoBeca: tiposResponse.body[0],
                         periodos: periodosResponse.body,
                     }
                 })
             })
         })
+    })
+}
+
+function buscarEstudianteConPeriodoDisponible(token, estudiantes, periodos, indice = 0) {
+    if (indice >= estudiantes.length) {
+        throw new Error(
+            'No se encontró un estudiante activo con un período disponible para asignar una beca.'
+        )
+    }
+
+    const estudiante = estudiantes[indice]
+
+    return cy.request({
+        method: 'GET',
+        url: `/api/becas/estudiante/${estudiante.id}`,
+        headers: {
+            Authorization: `Bearer ${token}`,
+        },
+    }).then((becasResponse) => {
+        expect(becasResponse.status).to.eq(200)
+
+        const periodosUsados = new Set(
+            becasResponse.body
+                .filter((beca) => beca.activa === true)
+                .map((beca) => String(beca.idPeriodo))
+        )
+
+        const periodoDisponible = periodos.find(
+            (periodo) => !periodosUsados.has(String(periodo.id))
+        )
+
+        if (periodoDisponible) {
+            return {
+                estudiante,
+                periodo: periodoDisponible,
+            }
+        }
+
+        return buscarEstudianteConPeriodoDisponible(
+            token,
+            estudiantes,
+            periodos,
+            indice + 1
+        )
     })
 }
 
@@ -84,66 +123,48 @@ describe('HU-015 - Asignar beca', () => {
         obtenerDatosBase().then(({ tipoBeca, periodos }) => {
             expect(tipoBeca.id).to.exist
             expect(tipoBeca.nombre).to.be.a('string')
-
             expect(periodos.length).to.be.greaterThan(0)
             expect(periodos[0]).to.have.property('id')
         })
     })
 
     it('Debe rechazar un porcentaje de beca mayor a 100%', () => {
-        obtenerDatosBase().then(({ token, estudiante, tipoBeca, periodos }) => {
+        obtenerDatosBase().then(({ token, estudiantes, tipoBeca, periodos }) => {
+            buscarEstudianteConPeriodoDisponible(
+                token,
+                estudiantes,
+                periodos
+            ).then(({ estudiante, periodo }) => {
 
-            cy.request({
-                method: 'POST',
-                url: '/api/becas',
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-                failOnStatusCode: false,
-                body: {
-                    idEstudiante: estudiante.id,
-                    idTipoBeca: tipoBeca.id,
-                    idPeriodo: periodos[0].id,
-                    porcentaje: 101,
-                    fechaInicio: new Date().toISOString().slice(0, 10),
-                    motivo: 'Cypress HU-015 - porcentaje inválido',
-                },
-            }).then((response) => {
-                expect(response.status).to.be.oneOf([400, 422])
+                cy.request({
+                    method: 'POST',
+                    url: '/api/becas',
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                    failOnStatusCode: false,
+                    body: {
+                        idEstudiante: estudiante.id,
+                        idTipoBeca: tipoBeca.id,
+                        idPeriodo: periodo.id,
+                        porcentaje: 101,
+                        fechaInicio: new Date().toISOString().slice(0, 10),
+                        motivo: 'Cypress HU-015 - porcentaje inválido',
+                    },
+                }).then((response) => {
+                    expect(response.status).to.be.oneOf([400, 422])
+                })
             })
         })
     })
 
     it('Debe asignar una beca y calcular correctamente el descuento', () => {
-        obtenerDatosBase().then(({ token, estudiante, tipoBeca, periodos }) => {
-
-            cy.request({
-                method: 'GET',
-                url: `/api/becas/estudiante/${estudiante.id}`,
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-            }).then((existentesResponse) => {
-
-                expect(existentesResponse.status).to.eq(200)
-
-                const periodosUsados = new Set(
-                    existentesResponse.body.map(
-                        (beca) => String(beca.idPeriodo)
-                    )
-                )
-
-                const periodoDisponible = periodos.find(
-                    (periodo) =>
-                        !periodosUsados.has(String(periodo.id))
-                )
-
-                if (!periodoDisponible) {
-                    cy.log(
-                        'No existe un período sin beca para el estudiante de prueba.'
-                    )
-                    return
-                }
+        obtenerDatosBase().then(({ token, estudiantes, tipoBeca, periodos }) => {
+            buscarEstudianteConPeriodoDisponible(
+                token,
+                estudiantes,
+                periodos
+            ).then(({ estudiante, periodo }) => {
 
                 cy.request({
                     method: 'POST',
@@ -154,36 +175,27 @@ describe('HU-015 - Asignar beca', () => {
                     body: {
                         idEstudiante: estudiante.id,
                         idTipoBeca: tipoBeca.id,
-                        idPeriodo: periodoDisponible.id,
+                        idPeriodo: periodo.id,
                         porcentaje: 25,
                         fechaInicio: new Date().toISOString().slice(0, 10),
                         motivo: 'Cypress HU-015',
                     },
                 }).then((response) => {
-
                     expect(response.status).to.eq(201)
 
                     const beca = response.body
-
                     expect(Number(beca.porcentaje)).to.eq(25)
 
-                    const mensualidad =
-                        Number(beca.montoMensualidadBase)
+                    const mensualidad = Number(beca.montoMensualidadBase)
+                    const descuento = Number(beca.montoDescuento)
+                    const montoAPagar = Number(beca.montoAPagar)
 
-                    const descuento =
-                        Number(beca.montoDescuento)
-
-                    const montoAPagar =
-                        Number(beca.montoAPagar)
-
-                    expect(descuento)
-                        .to.be.closeTo(
+                    expect(descuento).to.be.closeTo(
                         mensualidad * 0.25,
                         0.01
                     )
 
-                    expect(montoAPagar)
-                        .to.be.closeTo(
+                    expect(montoAPagar).to.be.closeTo(
                         mensualidad - descuento,
                         0.01
                     )
@@ -198,7 +210,6 @@ describe('HU-015 - Asignar beca', () => {
                         },
                     })
                 }).then((deleteResponse) => {
-
                     expect(deleteResponse.status).to.eq(204)
                 })
             })
@@ -206,85 +217,83 @@ describe('HU-015 - Asignar beca', () => {
     })
 
     it('Debe permitir modificar una beca existente', () => {
-        obtenerDatosBase().then(({ token, estudiante, tipoBeca, periodos }) => {
-
-            cy.request({
-                method: 'GET',
-                url: `/api/becas/estudiante/${estudiante.id}`,
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-            }).then((response) => {
-
-                expect(response.status).to.eq(200)
-
-                const beca = response.body[0]
-
-                if (!beca) {
-                    cy.log(
-                        'No existe una beca previa para probar modificación.'
-                    )
-                    return
-                }
-
-                const porcentajeOriginal =
-                    Number(beca.porcentaje)
-
-                const tipoOriginal =
-                    beca.idTipoBeca || tipoBeca.id
-
-                const periodoOriginal =
-                    beca.idPeriodo || periodos[0].id
+        obtenerDatosBase().then(({ token, estudiantes, tipoBeca, periodos }) => {
+            buscarEstudianteConPeriodoDisponible(
+                token,
+                estudiantes,
+                periodos
+            ).then(({ estudiante, periodo }) => {
 
                 cy.request({
-                    method: 'PUT',
-                    url: `/api/becas/${beca.idBeca}`,
+                    method: 'POST',
+                    url: '/api/becas',
                     headers: {
                         Authorization: `Bearer ${token}`,
                     },
                     body: {
-                        idTipoBeca: tipoOriginal,
-                        idPeriodo: periodoOriginal,
-                        porcentaje: 26,
-                        fechaFin: beca.fechaFin || null,
-                        motivo: 'Cypress HU-015 - modificación',
+                        idEstudiante: estudiante.id,
+                        idTipoBeca: tipoBeca.id,
+                        idPeriodo: periodo.id,
+                        porcentaje: 25,
+                        fechaInicio: new Date().toISOString().slice(0, 10),
+                        motivo: 'Cypress HU-015 - preparación de modificación',
                     },
-                }).then((updateResponse) => {
+                }).then((createResponse) => {
+                    expect(createResponse.status).to.eq(201)
 
-                    expect(updateResponse.status).to.eq(200)
-                    expect(
-                        Number(updateResponse.body.porcentaje)
-                    ).to.eq(26)
+                    const beca = createResponse.body
 
-                    expect(
-                        Number(updateResponse.body.montoDescuento)
-                    ).to.be.closeTo(
-                        Number(updateResponse.body.montoMensualidadBase) * 0.26,
-                        0.01
-                    )
-
-                    return cy.request({
+                    cy.request({
                         method: 'PUT',
                         url: `/api/becas/${beca.idBeca}`,
                         headers: {
                             Authorization: `Bearer ${token}`,
                         },
                         body: {
-                            idTipoBeca: tipoOriginal,
-                            idPeriodo: periodoOriginal,
-                            porcentaje: porcentajeOriginal,
+                            idTipoBeca: beca.idTipoBeca,
+                            idPeriodo: beca.idPeriodo,
+                            porcentaje: 50,
                             fechaFin: beca.fechaFin || null,
-                            motivo:
-                                beca.motivo ||
-                                'Cypress HU-015 - restauración',
+                            motivo: 'Cypress HU-015 - modificación',
                         },
-                    })
-                }).then((restoreResponse) => {
+                    }).then((updateResponse) => {
+                        expect(updateResponse.status).to.eq(200)
+                        expect(Number(updateResponse.body.porcentaje)).to.eq(50)
 
-                    expect(restoreResponse.status).to.eq(200)
-                    expect(
-                        Number(restoreResponse.body.porcentaje)
-                    ).to.eq(porcentajeOriginal)
+                        expect(Number(updateResponse.body.montoDescuento))
+                            .to.be.closeTo(
+                                Number(updateResponse.body.montoMensualidadBase) * 0.50,
+                                0.01
+                            )
+
+                        return cy.request({
+                            method: 'PUT',
+                            url: `/api/becas/${beca.idBeca}`,
+                            headers: {
+                                Authorization: `Bearer ${token}`,
+                            },
+                            body: {
+                                idTipoBeca: beca.idTipoBeca,
+                                idPeriodo: beca.idPeriodo,
+                                porcentaje: 25,
+                                fechaFin: beca.fechaFin || null,
+                                motivo: 'Cypress HU-015 - restauración',
+                            },
+                        })
+                    }).then((restoreResponse) => {
+                        expect(restoreResponse.status).to.eq(200)
+                        expect(Number(restoreResponse.body.porcentaje)).to.eq(25)
+
+                        return cy.request({
+                            method: 'DELETE',
+                            url: `/api/becas/${beca.idBeca}`,
+                            headers: {
+                                Authorization: `Bearer ${token}`,
+                            },
+                        })
+                    }).then((deleteResponse) => {
+                        expect(deleteResponse.status).to.eq(204)
+                    })
                 })
             })
         })
