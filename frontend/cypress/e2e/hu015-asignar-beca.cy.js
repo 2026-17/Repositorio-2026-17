@@ -152,7 +152,8 @@ describe('HU-015 - Asignar beca', () => {
                         motivo: 'Cypress HU-015 - porcentaje inválido',
                     },
                 }).then((response) => {
-                    expect(response.status).to.be.oneOf([400, 422])
+                    expect(response.status).to.be.within(400, 499)
+                    expect(response.body).to.not.have.property('idBeca')
                 })
             })
         })

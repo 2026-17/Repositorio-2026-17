@@ -60,8 +60,12 @@ describe('HU-013 - Registrar y modificar profesores', () => {
         cy.contains('label', 'Primer apellido').parent().find('input').type('Prueba')
         cy.contains('label', 'Correo de contacto').parent().find('input').type(`${cedula}@correo.com`)
 
+        cy.intercept('POST', '**/api/profesores').as('registrarProfesor')
         cy.get('form').submit()
-        cy.contains('Profesor registrado correctamente').should('be.visible')
+        cy.wait('@registrarProfesor').its('response.statusCode').should('eq', 201)
+        cy.get('[role="alertdialog"]').should('be.visible')
+            .and('contain.text', 'Profesor registrado correctamente')
+            .within(() => cy.contains('button', 'Aceptar').click())
     })
 
     it('Debe permitir dar de baja a un profesor activo', () => {

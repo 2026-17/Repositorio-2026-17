@@ -22,6 +22,7 @@ const initialForm = {
     empleador: "",
     clasePuesto: CLASE_PUESTO_DEFAULT,
     fechaIngreso: "",
+    contrasena: "",
 };
 
 function nombreCompleto(p) {
@@ -179,7 +180,7 @@ function Profesores() {
             empleador: p.empleador || "",
             clasePuesto: p.clasePuesto || CLASE_PUESTO_DEFAULT,
             fechaIngreso: p.fechaIngreso || "",
-            } );
+        });
         setErrores({});
         setFormAbierto(true);
         requestAnimationFrame(() => formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
@@ -451,7 +452,64 @@ function Profesores() {
                                     onChange={(e) => setField("clasePuesto", e.target.value)}
                                     disabled={!editingId}
                                 />
-                                <div className="form-actions">
+                                {!editingId && (
+                                    <p className="field-hint">Se asigna automáticamente y solo puede modificarse al editar el profesor.</p>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="field">
+                            <label className="field-label">Especialidad(es)</label>
+                            <div className="especialidades-checklist">
+                                {instrumentos.map((i) => (
+                                    <label key={i.id} className="especialidad-chip">
+                                        <input
+                                            type="checkbox"
+                                            checked={form.especialidades.includes(i.nombre)}
+                                            onChange={() => toggleEspecialidad(i.nombre)}
+                                        />
+                                        {i.nombre}
+                                    </label>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="grid-2">
+                            <div className="field">
+                                <label className="field-label">Fecha de ingreso</label>
+                                <input
+                                    className="input"
+                                    type="date"
+                                    value={form.fechaIngreso}
+                                    onChange={(e) => setField("fechaIngreso", e.target.value)}
+                                />
+                            </div>
+                        </div>
+
+                        {!editingId && (
+                            <>
+                                <h3 className="card-subtitle">Cuenta de usuario</h3>
+                                <div className="grid-2">
+                                    <div className="field">
+                                        <label className="field-label">Contraseña temporal <span className="required">*</span></label>
+                                        <input
+                                            className={`input ${errores.contrasena ? "input-error" : ""}`}
+                                            type="password"
+                                            minLength={8}
+                                            placeholder="Mínimo 8 caracteres"
+                                            value={form.contrasena}
+                                            onChange={(e) => setField("contrasena", e.target.value)}
+                                        />
+                                        {errores.contrasena && <p className="field-error">{errores.contrasena}</p>}
+                                    </div>
+                                </div>
+                                <p className="field-hint">
+                                    Se creará automáticamente con rol Profesor y estado Activo.
+                                </p>
+                            </>
+                        )}
+
+                        <div className="form-actions">
                             <button type="button" className="btn btn--secondary" onClick={cerrarFormulario}>Cancelar</button>
                             <button type="submit" className="btn btn--primary" disabled={guardando}>
                                 {guardando ? "Guardando..." : editingId ? "Guardar cambios" : "Registrar profesor"}
