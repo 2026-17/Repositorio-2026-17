@@ -17,6 +17,7 @@ import CrearCurso from "./pages/DirectorAcademico/CrearCurso";
 import ModificarCurso from "./pages/DirectorAcademico/ModificarCurso";
 import DesactivarCurso from "./pages/DirectorAcademico/DesactivarCurso";
 import AsignarInstrumento from "./pages/DirectorAcademico/AsignarInstrumento.jsx";
+import AsignarInstrumentoAdministrativo from "./pages/Administrativa/AsignarInstrumento.jsx";
 import CrearPeriodoAcademico from "./pages/DirectorAcademico/CrearPeriodoAcademico";
 import ModificarPeriodoAcademico from "./pages/DirectorAcademico/ModificarPeriodoAcademico";
 
@@ -135,6 +136,12 @@ function App() {
                     <Route
                         path="/admin/administracion/estudiantes/:id/editar"
                         element={<EditarEstudiante />}
+                    />
+
+                    {/* Administrativo - HU-026 Asignar instrumento al estudiante */}
+                    <Route
+                        path="/admin/administracion/estudiantes/instrumentos"
+                        element={<AsignarInstrumentoAdministrativo />}
                     />
 
                     {/* Administrativo - HU-015 Asignar beca y registrar pago */}
