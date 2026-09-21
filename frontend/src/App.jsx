@@ -7,17 +7,25 @@ import {
 
 import Login from "./pages/Publico/login";
 import Notificaciones from "./pages/Estudiante/Notificaciones";
+import SeleccionCursos from "./pages/Estudiante/SeleccionCursos";
 import CreateUsers from "./pages/AdminSis/createUsers";
 import CreateStudent from "./pages/AdminSis/createStudent";
+import Estudiantes from "./pages/AdminSis/Estudiantes";
+import EditarEstudiante from "./pages/AdminSis/EditarEstudiante";
 
 import CrearCurso from "./pages/DirectorAcademico/CrearCurso";
+import ModificarCurso from "./pages/DirectorAcademico/ModificarCurso";
 import DesactivarCurso from "./pages/DirectorAcademico/DesactivarCurso";
+import AsignarInstrumento from "./pages/DirectorAcademico/AsignarInstrumento.jsx";
+import AsignarInstrumentoAdministrativo from "./pages/Administrativa/AsignarInstrumento.jsx";
 import CrearPeriodoAcademico from "./pages/DirectorAcademico/CrearPeriodoAcademico";
 import ModificarPeriodoAcademico from "./pages/DirectorAcademico/ModificarPeriodoAcademico";
+
 import BecasPagos from "./pages/Administrativa/Estudiantes.jsx";
 import Matricula from "./pages/Administrativa/Matricula.jsx";
-import Profesores from "./pages/Administrativa/Profesores.jsx";
+import Profesores from "./pages/DirectorAcademico/Profesores.jsx";
 import Reportes from "./pages/Administrativa/Reportes.jsx";
+
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 
@@ -78,6 +86,12 @@ function App() {
                         element={<CrearCurso />}
                     />
 
+                    {/* HU-030 - Modificar curso */}
+                    <Route
+                        path="/director-academico/cursos/modificar"
+                        element={<ModificarCurso />}
+                    />
+
                     {/* HU-031 - Desactivar curso */}
                     <Route
                         path="/director-academico/cursos/desactivar"
@@ -95,6 +109,15 @@ function App() {
                         path="/director-academico/periodos-academicos/modificar"
                         element={<ModificarPeriodoAcademico />}
                     />
+                    {/* Administración Académica - HU-026 */}
+                    <Route
+                        path="/director-academico/estudiantes/instrumentos"
+                        element={<AsignarInstrumento />}
+                    />
+                    <Route
+                        path="/director-academico/profesores"
+                        element={<Profesores />}
+                    />
 
                     {/* =================================================
                         ADMINISTRATIVO
@@ -102,7 +125,23 @@ function App() {
 
                     <Route
                         path="/admin/administracion/estudiantes"
+                        element={<Estudiantes />}
+                    />
+
+                    <Route
+                        path="/admin/administracion/estudiantes/crear"
                         element={<CreateStudent />}
+                    />
+
+                    <Route
+                        path="/admin/administracion/estudiantes/:id/editar"
+                        element={<EditarEstudiante />}
+                    />
+
+                    {/* Administrativo - HU-026 Asignar instrumento al estudiante */}
+                    <Route
+                        path="/admin/administracion/estudiantes/instrumentos"
+                        element={<AsignarInstrumentoAdministrativo />}
                     />
 
                     {/* Administrativo - HU-015 Asignar beca y registrar pago */}
@@ -111,15 +150,12 @@ function App() {
                         element={<BecasPagos />}
                     />
 
+
                     <Route
                         path="/admin/administracion/matricula"
                         element={<Matricula />}
                     />
 
-                    <Route
-                        path="/admin/administracion/profesores"
-                        element={<Profesores />}
-                    />
 
                     <Route
                         path="/admin/administracion/reportes"
@@ -134,6 +170,12 @@ function App() {
                     <Route
                         path="/estudiante/notificaciones"
                         element={<Notificaciones />}
+                    />
+
+                    {/* HU-002 - Solicitar matrícula de cursos */}
+                    <Route
+                        path="/estudiante/matricula"
+                        element={<SeleccionCursos />}
                     />
 
                 </Route>

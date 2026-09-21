@@ -1,6 +1,5 @@
 package cr.acusab.una.sigac.unit;
 
-import cr.acusab.una.sigac.data.entity.CentrosEducativo;
 import cr.acusab.una.sigac.data.entity.Encargado;
 import cr.acusab.una.sigac.data.entity.EstadosUsuario;
 import cr.acusab.una.sigac.data.entity.Estudiante;
@@ -19,6 +18,7 @@ import cr.acusab.una.sigac.data.repository.EstudianteEncargadoRepository;
 import cr.acusab.una.sigac.data.repository.EstudianteInstrumentoRepository;
 import cr.acusab.una.sigac.data.repository.EstudianteRepository;
 import cr.acusab.una.sigac.data.repository.InstrumentoRepository;
+import cr.acusab.una.sigac.data.repository.ProfesorRepository;
 import cr.acusab.una.sigac.data.repository.RoleRepository;
 import cr.acusab.una.sigac.data.repository.TipoDocumentoRepository;
 import cr.acusab.una.sigac.data.repository.TipoIdentificacionRepository;
@@ -28,6 +28,7 @@ import cr.acusab.una.sigac.logic.exception.BusinessException;
 import cr.acusab.una.sigac.logic.exception.DuplicateResourceException;
 import cr.acusab.una.sigac.logic.service.BecaService;
 import cr.acusab.una.sigac.logic.service.EstudianteService;
+import cr.acusab.una.sigac.logic.service.InscripcionPlanEstudioService;
 
 import cr.acusab.una.sigac.presentation.dto.request.EstudianteCreateRequest;
 import cr.acusab.una.sigac.presentation.dto.request.EstudianteUpdateRequest;
@@ -77,6 +78,9 @@ class EstudianteServiceTest {
     private EstudianteInstrumentoRepository estudianteInstrumentoRepository;
 
     @Mock
+    private ProfesorRepository profesorRepository;
+
+    @Mock
     private DocumentoEstudianteRepository documentoEstudianteRepository;
 
     @Mock
@@ -103,6 +107,9 @@ class EstudianteServiceTest {
     @Mock
     private BecaService becaService;
 
+    @Mock
+    private InscripcionPlanEstudioService inscripcionPlanService;
+
     @InjectMocks
     private EstudianteService estudianteService;
 
@@ -111,6 +118,7 @@ class EstudianteServiceTest {
 
     @BeforeEach
     void setUp() {
+
         ReflectionTestUtils.setField(
                 estudianteService,
                 "storageDirectory",
@@ -120,30 +128,34 @@ class EstudianteServiceTest {
 
     /*
      * HU-01 - Registrar estudiante.
-     * Caso normal: registrar correctamente un estudiante adulto
-     * con información válida.
+     * Caso normal: estudiante adulto.
      */
     @Test
     void debeCrearEstudianteAdultoCorrectamente() {
 
         EstudianteCreateRequest request =
-                crearRequestAdulto("ana@correo.com");
-
-        MockMultipartFile poliza = crearPdfValido();
+                crearRequestAdulto();
 
         configurarCreacionValida(request);
 
         EstudianteResponse resultado =
-                estudianteService.crear(request, poliza);
+                estudianteService.crear(
+                        request,
+                        crearPdfValido()
+                );
 
         assertNotNull(resultado);
 
         ArgumentCaptor<Estudiante> captor =
-                ArgumentCaptor.forClass(Estudiante.class);
+                ArgumentCaptor.forClass(
+                        Estudiante.class
+                );
 
-        verify(estudianteRepository).save(captor.capture());
+        verify(estudianteRepository)
+                .save(captor.capture());
 
-        Estudiante guardado = captor.getValue();
+        Estudiante guardado =
+                captor.getValue();
 
         assertEquals(
                 "123456789",
@@ -160,19 +172,33 @@ class EstudianteServiceTest {
                 guardado.getPrimerApellido()
         );
 
-        assertTrue(guardado.getActivo());
+        assertTrue(
+                guardado.getActivo()
+        );
 
         verify(estudianteInstrumentoRepository)
-                .save(any(EstudiantesInstrumento.class));
+                .save(
+                        any(EstudiantesInstrumento.class)
+                );
 
         verify(documentoEstudianteRepository)
                 .save(any());
+
+        verify(inscripcionPlanService)
+                .validarParaRegistro(
+                        List.of(1L)
+                );
+
+        verify(inscripcionPlanService)
+                .sincronizar(
+                        100L,
+                        List.of(1L)
+                );
     }
 
     /*
      * HU-01 - Registrar estudiante.
-     * Caso normal: registrar correctamente un menor
-     * junto con su encargado.
+     * Caso normal: estudiante menor con encargado.
      */
     @Test
     void debeCrearEstudianteMenorConEncargadoCorrectamente() {
@@ -180,12 +206,13 @@ class EstudianteServiceTest {
         EstudianteCreateRequest request =
                 crearRequestMenorConEncargado();
 
-        MockMultipartFile poliza = crearPdfValido();
-
         configurarCreacionValida(request);
 
         EstudianteResponse resultado =
-                estudianteService.crear(request, poliza);
+                estudianteService.crear(
+                        request,
+                        crearPdfValido()
+                );
 
         assertNotNull(resultado);
 
@@ -197,17 +224,23 @@ class EstudianteServiceTest {
 
         verify(estudianteRepository)
                 .save(any(Estudiante.class));
+
+        verify(inscripcionPlanService)
+                .sincronizar(
+                        100L,
+                        List.of(1L)
+                );
     }
 
     /*
      * HU-01 - Registrar estudiante.
-     * Caso de error: identificación duplicada.
+     * Error: identificación duplicada.
      */
     @Test
     void noDebeCrearEstudianteConIdentificacionDuplicada() {
 
         EstudianteCreateRequest request =
-                crearRequestAdulto("ana@correo.com");
+                crearRequestAdulto();
 
         when(estudianteRepository
                 .existsByIdTipoIdentificacion_IdAndNumeroIdentificacion(
@@ -230,13 +263,13 @@ class EstudianteServiceTest {
 
     /*
      * HU-01 - Registrar estudiante.
-     * Caso de error: género no permitido.
+     * Error: género inválido.
      */
     @Test
     void noDebeCrearEstudianteConGeneroInvalido() {
 
         EstudianteCreateRequest base =
-                crearRequestAdulto("ana@correo.com");
+                crearRequestAdulto();
 
         EstudianteCreateRequest request =
                 new EstudianteCreateRequest(
@@ -251,9 +284,11 @@ class EstudianteServiceTest {
                         base.telefono(),
                         base.correo(),
                         base.nivelEscolar(),
-                        base.idCentroEducativo(),
+                        base.centroEducativo(),
                         base.condicionesRelevantes(),
                         base.idInstrumento(),
+                        base.idProfesor(),
+                        base.idsPlanEstudio(),
                         base.encargados(),
                         base.beca()
                 );
@@ -272,13 +307,13 @@ class EstudianteServiceTest {
 
     /*
      * HU-01 - Registrar estudiante.
-     * Caso de error: la póliza es obligatoria.
+     * Error: póliza obligatoria.
      */
     @Test
     void noDebeCrearEstudianteSinPoliza() {
 
         EstudianteCreateRequest request =
-                crearRequestAdulto("ana@correo.com");
+                crearRequestAdulto();
 
         assertThrows(
                 BusinessException.class,
@@ -294,14 +329,13 @@ class EstudianteServiceTest {
 
     /*
      * HU-01 - Registrar estudiante.
-     * Caso de error: el archivo indica ser PDF,
-     * pero su contenido no posee la cabecera PDF válida.
+     * Error: contenido PDF inválido.
      */
     @Test
     void noDebeCrearEstudianteConPdfInvalido() {
 
         EstudianteCreateRequest request =
-                crearRequestAdulto("ana@correo.com");
+                crearRequestAdulto();
 
         MockMultipartFile archivoInvalido =
                 new MockMultipartFile(
@@ -309,7 +343,9 @@ class EstudianteServiceTest {
                         "poliza.pdf",
                         "application/pdf",
                         "ESTO-NO-ES-PDF"
-                                .getBytes(StandardCharsets.UTF_8)
+                                .getBytes(
+                                        StandardCharsets.UTF_8
+                                )
                 );
 
         assertThrows(
@@ -326,8 +362,7 @@ class EstudianteServiceTest {
 
     /*
      * HU-01 - Registrar estudiante.
-     * Caso límite: un menor debe tener al menos
-     * un encargado.
+     * Caso límite: menor sin encargado.
      */
     @Test
     void noDebeCrearMenorSinEncargado() {
@@ -345,9 +380,11 @@ class EstudianteServiceTest {
                         "8888-1111",
                         "luis@correo.com",
                         "Primaria",
-                        1L,
+                        "Escuela Central",
                         null,
                         5,
+                        null,
+                        List.of(1L),
                         List.of(),
                         null
                 );
@@ -366,14 +403,10 @@ class EstudianteServiceTest {
 
     /*
      * HU-01 - Registrar estudiante.
-     * Caso límite: los encargados solamente corresponden
-     * a estudiantes menores de edad.
+     * Caso límite: adulto con encargado.
      */
     @Test
     void noDebeCrearAdultoConEncargado() {
-
-        EstudianteCreateRequest.EncargadoRequest encargado =
-                crearEncargadoValido();
 
         EstudianteCreateRequest request =
                 new EstudianteCreateRequest(
@@ -391,7 +424,11 @@ class EstudianteServiceTest {
                         null,
                         null,
                         5,
-                        List.of(encargado),
+                        null,
+                        List.of(1L),
+                        List.of(
+                                crearEncargadoValido()
+                        ),
                         null
                 );
 
@@ -409,8 +446,7 @@ class EstudianteServiceTest {
 
     /*
      * HU-01 - Registrar estudiante.
-     * Caso límite: un estudiante entre 6 y 17 años
-     * debe tener centro educativo.
+     * Caso límite: menor sin centro educativo.
      */
     @Test
     void noDebeCrearMenorSinCentroEducativo() {
@@ -431,7 +467,11 @@ class EstudianteServiceTest {
                         null,
                         null,
                         5,
-                        List.of(crearEncargadoValido()),
+                        null,
+                        List.of(1L),
+                        List.of(
+                                crearEncargadoValido()
+                        ),
                         null
                 );
 
@@ -449,13 +489,13 @@ class EstudianteServiceTest {
 
     /*
      * HU-01 - Registrar estudiante.
-     * Caso de error: instrumento inexistente o inactivo.
+     * Error: instrumento inexistente.
      */
     @Test
     void noDebeCrearEstudianteConInstrumentoInexistente() {
 
         EstudianteCreateRequest request =
-                crearRequestAdulto("ana@correo.com");
+                crearRequestAdulto();
 
         when(instrumentoRepository
                 .findByIdAndActivoTrue(5))
@@ -475,35 +515,46 @@ class EstudianteServiceTest {
 
     /*
      * HU-01 - Registrar estudiante.
-     * Caso de error: ya existe un usuario
-     * con la misma identificación.
+     * Error: usuario con identificación duplicada.
      */
     @Test
     void noDebeCrearEstudianteSiUsuarioYaExiste() {
 
         EstudianteCreateRequest request =
-                crearRequestAdulto("ana@correo.com");
+                crearRequestAdulto();
 
-        Instrumento instrumento = mock(Instrumento.class);
+        Instrumento instrumento =
+                mock(Instrumento.class);
+
         TiposIdentificacion tipo =
                 mock(TiposIdentificacion.class);
+
         TiposDocumento tipoDocumento =
                 mock(TiposDocumento.class);
 
         when(instrumentoRepository
                 .findByIdAndActivoTrue(5))
-                .thenReturn(Optional.of(instrumento));
+                .thenReturn(
+                        Optional.of(instrumento)
+                );
 
         when(tipoIdentificacionRepository
                 .findByIdAndActivoTrue(1))
-                .thenReturn(Optional.of(tipo));
+                .thenReturn(
+                        Optional.of(tipo)
+                );
 
         when(tipoDocumentoRepository
                 .findByCodigoAndActivoTrue("POLIZA"))
-                .thenReturn(Optional.of(tipoDocumento));
+                .thenReturn(
+                        Optional.of(tipoDocumento)
+                );
 
-        when(usuarioRepository.findByCedula("123456789"))
-                .thenReturn(Optional.of(new Usuario()));
+        when(usuarioRepository
+                .findByCedula("123456789"))
+                .thenReturn(
+                        Optional.of(new Usuario())
+                );
 
         assertThrows(
                 DuplicateResourceException.class,
@@ -519,44 +570,39 @@ class EstudianteServiceTest {
 
     /*
      * HU-01 - Registrar estudiante.
-     * Caso normal: si no se proporciona correo,
-     * se genera un correo institucional.
+     * Error: planes de estudio inválidos.
      */
     @Test
-    void debeGenerarCorreoInstitucionalSiCorreoEsNulo() {
+    void noDebeCrearEstudianteConPlanesInvalidos() {
 
         EstudianteCreateRequest request =
-                crearRequestAdulto(null);
+                crearRequestAdulto();
 
-        configurarCreacionValida(request);
+        doThrow(
+                new BusinessException(
+                        "Planes de estudio inválidos"
+                )
+        )
+                .when(inscripcionPlanService)
+                .validarParaRegistro(
+                        List.of(1L)
+                );
 
-        estudianteService.crear(
-                request,
-                crearPdfValido()
+        assertThrows(
+                BusinessException.class,
+                () -> estudianteService.crear(
+                        request,
+                        crearPdfValido()
+                )
         );
 
-        ArgumentCaptor<Usuario> captor =
-                ArgumentCaptor.forClass(Usuario.class);
-
-        verify(usuarioRepository)
-                .save(captor.capture());
-
-        Usuario usuario = captor.getValue();
-
-        assertEquals(
-                "123456789@estudiante.sigac.local",
-                usuario.getCorreo()
-        );
-
-        assertTrue(
-                usuario.getRequiereCambioContrasena()
-        );
+        verify(estudianteRepository, never())
+                .save(any(Estudiante.class));
     }
 
     /*
      * HU-01 - Buscar estudiante.
-     * Caso límite: no ejecuta una búsqueda cuando
-     * el texto tiene menos de dos caracteres.
+     * Caso límite: texto demasiado corto.
      */
     @Test
     void debeRetornarListaVaciaSiBusquedaEsMuyCorta() {
@@ -576,8 +622,7 @@ class EstudianteServiceTest {
 
     /*
      * HU-01 - Buscar estudiante.
-     * Caso normal: encuentra estudiantes por nombre
-     * o identificación.
+     * Caso normal.
      */
     @Test
     void debeBuscarEstudiantesCorrectamente() {
@@ -590,7 +635,9 @@ class EstudianteServiceTest {
                         eq("Ana"),
                         any()
                 ))
-                .thenReturn(List.of(estudiante));
+                .thenReturn(
+                        List.of(estudiante)
+                );
 
         List<EstudianteBusquedaResponse> resultado =
                 estudianteService.buscar("Ana");
@@ -607,7 +654,7 @@ class EstudianteServiceTest {
 
     /*
      * HU-01 - Consultar estudiante.
-     * Caso normal: estudiante existente.
+     * Caso normal.
      */
     @Test
     void debeObtenerEstudianteExistente() {
@@ -616,10 +663,18 @@ class EstudianteServiceTest {
                 crearEstudianteExistente();
 
         when(estudianteRepository.findById(100L))
-                .thenReturn(Optional.of(estudiante));
+                .thenReturn(
+                        Optional.of(estudiante)
+                );
 
         when(estudianteInstrumentoRepository.findAll())
                 .thenReturn(List.of());
+
+        when(inscripcionPlanService
+                .idsPlanesActivos(100L))
+                .thenReturn(
+                        List.of(1L)
+                );
 
         EstudianteResponse resultado =
                 estudianteService.obtener(100L);
@@ -628,11 +683,14 @@ class EstudianteServiceTest {
 
         verify(estudianteRepository)
                 .findById(100L);
+
+        verify(inscripcionPlanService)
+                .idsPlanesActivos(100L);
     }
 
     /*
      * HU-01 - Consultar estudiante.
-     * Caso de error: estudiante inexistente.
+     * Error: estudiante inexistente.
      */
     @Test
     void noDebeObtenerEstudianteInexistente() {
@@ -651,8 +709,7 @@ class EstudianteServiceTest {
 
     /*
      * HU-01 - Modificar estudiante.
-     * Caso normal: modifica correctamente los datos
-     * de un estudiante existente.
+     * Caso normal.
      */
     @Test
     void debeActualizarEstudianteCorrectamente() {
@@ -663,15 +720,19 @@ class EstudianteServiceTest {
         EstudianteUpdateRequest request =
                 crearRequestActualizacion();
 
-        Instrumento instrumento = mock(Instrumento.class);
+        Instrumento instrumento =
+                mock(Instrumento.class);
 
-        when(instrumento.getId()).thenReturn(6);
+        when(instrumento.getId())
+                .thenReturn(6);
 
         TiposIdentificacion tipo =
                 mock(TiposIdentificacion.class);
 
         when(estudianteRepository.findById(100L))
-                .thenReturn(Optional.of(estudiante));
+                .thenReturn(
+                        Optional.of(estudiante)
+                );
 
         when(estudianteRepository
                 .findByIdTipoIdentificacion_IdAndNumeroIdentificacion(
@@ -682,20 +743,33 @@ class EstudianteServiceTest {
 
         when(instrumentoRepository
                 .findByIdAndActivoTrue(6))
-                .thenReturn(Optional.of(instrumento));
+                .thenReturn(
+                        Optional.of(instrumento)
+                );
 
         when(tipoIdentificacionRepository
                 .findByIdAndActivoTrue(1))
-                .thenReturn(Optional.of(tipo));
+                .thenReturn(
+                        Optional.of(tipo)
+                );
 
         when(estudianteRepository
                 .save(any(Estudiante.class)))
-                .thenAnswer(invocation ->
-                        invocation.getArgument(0)
+                .thenAnswer(
+                        invocation ->
+                                invocation.getArgument(0)
                 );
 
         when(estudianteInstrumentoRepository.findAll())
                 .thenReturn(List.of());
+
+        when(inscripcionPlanService.sincronizar(
+                100L,
+                List.of(1L, 2L)
+        ))
+                .thenReturn(
+                        List.of(1L, 2L)
+                );
 
         EstudianteResponse resultado =
                 estudianteService.actualizar(
@@ -706,7 +780,9 @@ class EstudianteServiceTest {
         assertNotNull(resultado);
 
         ArgumentCaptor<Estudiante> captor =
-                ArgumentCaptor.forClass(Estudiante.class);
+                ArgumentCaptor.forClass(
+                        Estudiante.class
+                );
 
         verify(estudianteRepository)
                 .save(captor.capture());
@@ -730,13 +806,20 @@ class EstudianteServiceTest {
         );
 
         verify(estudianteInstrumentoRepository)
-                .save(any(EstudiantesInstrumento.class));
+                .save(
+                        any(EstudiantesInstrumento.class)
+                );
+
+        verify(inscripcionPlanService)
+                .sincronizar(
+                        100L,
+                        List.of(1L, 2L)
+                );
     }
 
     /*
      * HU-01 - Modificar estudiante.
-     * Caso de error: la identificación nueva ya pertenece
-     * a otro estudiante.
+     * Error: identificación duplicada.
      */
     @Test
     void noDebeActualizarConIdentificacionDuplicada() {
@@ -753,7 +836,9 @@ class EstudianteServiceTest {
                 crearRequestActualizacion();
 
         when(estudianteRepository.findById(100L))
-                .thenReturn(Optional.of(estudiante));
+                .thenReturn(
+                        Optional.of(estudiante)
+                );
 
         when(estudianteRepository
                 .findByIdTipoIdentificacion_IdAndNumeroIdentificacion(
@@ -782,9 +867,8 @@ class EstudianteServiceTest {
      * =========================================================
      */
 
-    private EstudianteCreateRequest crearRequestAdulto(
-            String correo
-    ) {
+    private EstudianteCreateRequest
+    crearRequestAdulto() {
 
         return new EstudianteCreateRequest(
                 1,
@@ -796,17 +880,20 @@ class EstudianteServiceTest {
                 "FEMENINO",
                 "Heredia",
                 "8888-1111",
-                correo,
+                "ana@correo.com",
                 "Universitario",
                 null,
                 null,
                 5,
+                null,
+                List.of(1L),
                 List.of(),
                 null
         );
     }
 
-    private EstudianteCreateRequest crearRequestMenorConEncargado() {
+    private EstudianteCreateRequest
+    crearRequestMenorConEncargado() {
 
         return new EstudianteCreateRequest(
                 1,
@@ -820,10 +907,14 @@ class EstudianteServiceTest {
                 "8888-1111",
                 "luis@correo.com",
                 "Primaria",
-                1L,
+                "Escuela Central",
                 null,
                 5,
-                List.of(crearEncargadoValido()),
+                null,
+                List.of(1L),
+                List.of(
+                        crearEncargadoValido()
+                ),
                 null
         );
     }
@@ -831,7 +922,8 @@ class EstudianteServiceTest {
     private EstudianteCreateRequest.EncargadoRequest
     crearEncargadoValido() {
 
-        return new EstudianteCreateRequest.EncargadoRequest(
+        return new EstudianteCreateRequest
+                .EncargadoRequest(
                 null,
                 null,
                 "Maria",
@@ -864,18 +956,22 @@ class EstudianteServiceTest {
                 "Universitario",
                 null,
                 "Ninguna",
-                6
+                6,
+                List.of(1L, 2L)
         );
     }
 
-    private MockMultipartFile crearPdfValido() {
+    private MockMultipartFile
+    crearPdfValido() {
 
         return new MockMultipartFile(
                 "politica",
                 "poliza.pdf",
                 "application/pdf",
                 "%PDF-1.4\nDocumento de prueba"
-                        .getBytes(StandardCharsets.UTF_8)
+                        .getBytes(
+                                StandardCharsets.UTF_8
+                        )
         );
     }
 
@@ -887,7 +983,9 @@ class EstudianteServiceTest {
                 mock(Instrumento.class);
 
         when(instrumento.getId())
-                .thenReturn(request.idInstrumento());
+                .thenReturn(
+                        request.idInstrumento()
+                );
 
         TiposIdentificacion tipo =
                 mock(TiposIdentificacion.class);
@@ -911,27 +1009,11 @@ class EstudianteServiceTest {
                 ))
                 .thenReturn(false);
 
-        if (request.idCentroEducativo() != null) {
-
-            CentrosEducativo centro =
-                    mock(CentrosEducativo.class);
-
-            when(centro.getActivo())
-                    .thenReturn(true);
-
-            when(centro.getId())
-                    .thenReturn(
-                            request.idCentroEducativo()
-                    );
-
-            when(centroEducativoRepository
-                    .findById(
-                            request.idCentroEducativo()
-                    ))
-                    .thenReturn(
-                            Optional.of(centro)
-                    );
-        }
+        doNothing()
+                .when(inscripcionPlanService)
+                .validarParaRegistro(
+                        request.idsPlanEstudio()
+                );
 
         when(instrumentoRepository
                 .findByIdAndActivoTrue(
@@ -961,14 +1043,11 @@ class EstudianteServiceTest {
                 ))
                 .thenReturn(Optional.empty());
 
-        if (request.correo() != null) {
-
-            when(usuarioRepository
-                    .findByCorreo(
-                            request.correo().trim()
-                    ))
-                    .thenReturn(Optional.empty());
-        }
+        when(usuarioRepository
+                .findByCorreo(
+                        request.correo().trim()
+                ))
+                .thenReturn(Optional.empty());
 
         when(roleRepository
                 .findByCodigoIgnoreCase("ESTUDIANTE"))
@@ -983,12 +1062,15 @@ class EstudianteServiceTest {
 
         when(passwordEncoder
                 .encode("Temporal123"))
-                .thenReturn("hash-temporal");
+                .thenReturn(
+                        "hash-temporal"
+                );
 
         when(usuarioRepository
                 .save(any(Usuario.class)))
-                .thenAnswer(invocation ->
-                        invocation.getArgument(0)
+                .thenAnswer(
+                        invocation ->
+                                invocation.getArgument(0)
                 );
 
         when(estudianteRepository
@@ -1003,23 +1085,40 @@ class EstudianteServiceTest {
                     return estudiante;
                 });
 
+        when(inscripcionPlanService
+                .sincronizar(
+                        100L,
+                        request.idsPlanEstudio()
+                ))
+                .thenReturn(
+                        request.idsPlanEstudio()
+                );
+
         if (request.encargados() != null
                 && !request.encargados().isEmpty()) {
 
             when(encargadoRepository
                     .save(any(Encargado.class)))
-                    .thenAnswer(invocation ->
-                            invocation.getArgument(0)
-                    );
+                    .thenAnswer(invocation -> {
+
+                        Encargado encargado =
+                                invocation.getArgument(0);
+
+                        encargado.setId(200L);
+
+                        return encargado;
+                    });
         }
     }
 
-    private Estudiante crearEstudianteExistente() {
+    private Estudiante
+    crearEstudianteExistente() {
 
         Estudiante estudiante =
                 new Estudiante();
 
         estudiante.setId(100L);
+
         estudiante.setNumeroIdentificacion(
                 "123456789"
         );
@@ -1036,10 +1135,17 @@ class EstudianteServiceTest {
         estudiante.setDireccion("Heredia");
         estudiante.setTelefono("8888-1111");
         estudiante.setCorreo("ana@correo.com");
-        estudiante.setNivelEscolar("Universitario");
 
-        estudiante.setIdCentroEducativo(null);
-        estudiante.setCondicionesRelevantes(null);
+        estudiante.setNivelEscolar(
+                "Universitario"
+        );
+
+        estudiante.setCentroEducativo(null);
+
+        estudiante.setCondicionesRelevantes(
+                null
+        );
+
         estudiante.setActivo(true);
 
         return estudiante;

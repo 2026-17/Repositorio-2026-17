@@ -49,6 +49,21 @@
     color: var(--neutral-dark);
 }
 
+.card-subtitle {
+    margin: 8px 0 12px;
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--neutral-dark);
+    border-top: 1px solid var(--border-color, #e5e5e5);
+    padding-top: 16px;
+}
+
+.field-hint {
+    margin: -4px 0 12px;
+    font-size: 12px;
+    color: var(--neutral-medium, #6b7280);
+}
+
 .grid-2 {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -107,6 +122,12 @@
 
 .input:focus {
     border-color: var(--primary-purple);
+}
+
+.input:disabled {
+    background: var(--neutral-light, #f1f1f1);
+    color: #8a8a8a;
+    cursor: not-allowed;
 }
 
 .input.input-error {
@@ -234,6 +255,25 @@ textarea.input {
     font-family: var(--font-family);
     font-size: 13.5px;
     min-width: 220px;
+}
+
+.especialidades-checklist {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+    padding: 10px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--white);
+}
+
+.especialidad-chip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13.5px;
+    color: var(--neutral-text);
+    cursor: pointer;
 }
 
 .filter-select {

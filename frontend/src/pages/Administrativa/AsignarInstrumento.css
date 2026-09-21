@@ -1,0 +1,31 @@
+.asignar-instrumento-buscar-btn {
+    display: flex;
+    align-items: flex-end;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13.5px;
+    margin-bottom: 16px;
+}
+
+.table th,
+.table td {
+    text-align: left;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--borde);
+}
+
+.table th {
+    font-weight: 600;
+    color: var(--texto-suave);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.btn-sm {
+    padding: 4px 12px;
+    font-size: 12.5px;
+}

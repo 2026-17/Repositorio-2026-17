@@ -7,14 +7,18 @@ import jakarta.validation.constraints.Size;
 /*
  * HU-026 - Registrar instrumentos que aprende el estudiante.
  *
- * Se usa tanto para asignar un instrumento nuevo como para
- * cambiar el instrumento principal del estudiante.
+ * Se usa para asignar un nuevo instrumento al estudiante. Un
+ * estudiante puede tener varios instrumentos vigentes a la vez;
+ * no existe la nocion de instrumento "principal".
  */
 public class InstrumentoEstudianteRequest {
 
     @NotNull(message = "El instrumento es obligatorio.")
     @Positive(message = "El instrumento seleccionado no es válido.")
     private Integer idInstrumento;
+
+    @Positive(message = "El profesor seleccionado no es válido.")
+    private Long idProfesor;
 
     /*
      * Indica si este instrumento pasa a ser el principal del
@@ -25,7 +29,6 @@ public class InstrumentoEstudianteRequest {
      * pantalla de expediente buscan fijar el instrumento principal.
      */
     private Boolean esPrincipal = true;
-
     @Size(max = 500, message = "Las observaciones no pueden superar los 500 caracteres.")
     private String observaciones;
 
@@ -37,6 +40,14 @@ public class InstrumentoEstudianteRequest {
         this.idInstrumento = idInstrumento;
     }
 
+    public Long getIdProfesor() {
+        return idProfesor;
+    }
+
+    public void setIdProfesor(Long idProfesor) {
+        this.idProfesor = idProfesor;
+    }
+
     public Boolean getEsPrincipal() {
         return esPrincipal;
     }
@@ -44,7 +55,6 @@ public class InstrumentoEstudianteRequest {
     public void setEsPrincipal(Boolean esPrincipal) {
         this.esPrincipal = esPrincipal;
     }
-
     public String getObservaciones() {
         return observaciones;
     }

@@ -150,6 +150,16 @@ CREATE TABLE IF NOT EXISTS tipos_identificacion (
     CONSTRAINT uq_tipos_identificacion_nombre UNIQUE (nombre)
     ) ENGINE=InnoDB COMMENT='Opciones de identificacion para listas del frontend';
 
+CREATE TABLE IF NOT EXISTS grados_academicos (
+                                                 id_grado_academico      SMALLINT UNSIGNED NOT NULL AUTO_INCREMENT,
+                                                 codigo                  VARCHAR(30) NOT NULL,
+                                                 nombre                  VARCHAR(60) NOT NULL,
+                                                 activo                  BOOLEAN NOT NULL DEFAULT TRUE,
+                                                 CONSTRAINT pk_grados_academicos PRIMARY KEY (id_grado_academico),
+                                                 CONSTRAINT uq_grados_academicos_codigo UNIQUE (codigo),
+                                                 CONSTRAINT uq_grados_academicos_nombre UNIQUE (nombre)
+) ENGINE=InnoDB COMMENT='Catalogo de grados academicos para el formulario de profesores';
+
 CREATE TABLE IF NOT EXISTS centros_educativos (
                                                   id_centro_educativo     INT UNSIGNED NOT NULL AUTO_INCREMENT,
                                                   codigo                  VARCHAR(30) NULL,
@@ -450,6 +460,8 @@ CREATE TABLE IF NOT EXISTS cursos (
     descripcion                     TEXT NULL,
     horas_totales                   SMALLINT UNSIGNED NULL,
     creditos                        DECIMAL(4,1) NULL,
+    edad_minima                     TINYINT UNSIGNED NULL,
+    edad_maxima                     TINYINT UNSIGNED NULL,
     activo                          BOOLEAN NOT NULL DEFAULT TRUE,
     id_usuario_ultima_modificacion  INT UNSIGNED NULL,
     creado_en                       DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
@@ -461,6 +473,12 @@ CREATE TABLE IF NOT EXISTS cursos (
     CHECK (horas_totales IS NULL OR horas_totales > 0),
     CONSTRAINT ck_cursos_creditos
     CHECK (creditos IS NULL OR creditos >= 0),
+    CONSTRAINT ck_cursos_edad
+    CHECK (
+        (edad_minima IS NULL OR edad_minima <= 150)
+        AND (edad_maxima IS NULL OR edad_maxima <= 150)
+        AND (edad_minima IS NULL OR edad_maxima IS NULL OR edad_minima <= edad_maxima)
+    ),
     CONSTRAINT fk_cursos_usuario_modifica
     FOREIGN KEY (id_usuario_ultima_modificacion)
     REFERENCES usuarios (id_usuario)
@@ -550,6 +568,32 @@ CREATE TABLE IF NOT EXISTS requisitos_cursos (
     REFERENCES usuarios (id_usuario)
     ON UPDATE RESTRICT ON DELETE SET NULL
     ) ENGINE=InnoDB COMMENT='Prerrequisitos y correquisitos definidos dentro de cada plan';
+
+CREATE TABLE IF NOT EXISTS estudiantes_planes_estudio (
+                                                          id_estudiante_plan              INT UNSIGNED NOT NULL AUTO_INCREMENT,
+                                                          id_estudiante                   INT UNSIGNED NOT NULL,
+                                                          id_plan_estudio                 INT UNSIGNED NOT NULL,
+                                                          fecha_inscripcion               DATE NOT NULL DEFAULT (CURRENT_DATE),
+    activo                          BOOLEAN NOT NULL DEFAULT TRUE,
+    id_usuario_ultima_modificacion  INT UNSIGNED NULL,
+    creado_en                       DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    actualizado_en                  DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6)
+    ON UPDATE CURRENT_TIMESTAMP(6),
+    CONSTRAINT pk_estudiantes_planes_estudio PRIMARY KEY (id_estudiante_plan),
+    CONSTRAINT uq_estudiantes_planes_estudio
+    UNIQUE (id_estudiante, id_plan_estudio),
+    CONSTRAINT fk_estudiantes_planes_estudiantes
+    FOREIGN KEY (id_estudiante) REFERENCES estudiantes (id_estudiante)
+    ON UPDATE RESTRICT ON DELETE CASCADE,
+    CONSTRAINT fk_estudiantes_planes_planes
+    FOREIGN KEY (id_plan_estudio) REFERENCES planes_estudio (id_plan_estudio)
+    ON UPDATE RESTRICT ON DELETE RESTRICT,
+    CONSTRAINT fk_estudiantes_planes_usuario_modifica
+    FOREIGN KEY (id_usuario_ultima_modificacion)
+    REFERENCES usuarios (id_usuario)
+    ON UPDATE RESTRICT ON DELETE SET NULL,
+    INDEX idx_estudiantes_planes_plan (id_plan_estudio, activo)
+    ) ENGINE=InnoDB COMMENT='Planes de estudio en los que esta inscrito cada estudiante; limita los cursos que puede matricular';
 
 -- =============================================================================
 -- 5. PERIODOS, GRUPOS Y HORARIOS
@@ -1192,6 +1236,14 @@ INSERT IGNORE INTO instrumentos (codigo, nombre) VALUES
 ('TROMPETA', 'Trompeta'),
 ('PERCUSION', 'Percusion');
 
+INSERT IGNORE INTO grados_academicos (codigo, nombre) VALUES
+('TECNICO', 'Tecnico'),
+('DIPLOMADO', 'Diplomado'),
+('BACHILLERATO_UNIV', 'Bachillerato universitario'),
+('LICENCIATURA', 'Licenciatura'),
+('MAESTRIA', 'Maestria'),
+('DOCTORADO', 'Doctorado');
+
 INSERT IGNORE INTO tipos_requisitos_cursos (codigo, nombre, descripcion) VALUES
 ('PRERREQUISITO', 'Prerrequisito', 'Debe aprobarse antes de llevar el curso'),
 ('CORREQUISITO', 'Correquisito', 'Debe cursarse antes o durante el mismo periodo');
@@ -1694,6 +1746,8 @@ BEGIN
                                                                      'descripcion', OLD.descripcion,
                                                                      'horas_totales', OLD.horas_totales,
                                                                      'creditos', OLD.creditos,
+                                                                     'edad_minima', OLD.edad_minima,
+                                                                     'edad_maxima', OLD.edad_maxima,
                                                                      'activo', OLD.activo
                                                              ),
                                                              JSON_OBJECT(
@@ -1702,6 +1756,8 @@ BEGIN
                                                                      'descripcion', NEW.descripcion,
                                                                      'horas_totales', NEW.horas_totales,
                                                                      'creditos', NEW.creditos,
+                                                                     'edad_minima', NEW.edad_minima,
+                                                                     'edad_maxima', NEW.edad_maxima,
                                                                      'activo', NEW.activo
                                                              ));
                                                         END$$

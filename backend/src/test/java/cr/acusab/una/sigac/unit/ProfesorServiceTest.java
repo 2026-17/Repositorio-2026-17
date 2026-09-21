@@ -2,17 +2,17 @@ package cr.acusab.una.sigac.unit;
 
 import cr.acusab.una.sigac.data.entity.Profesor;
 import cr.acusab.una.sigac.data.entity.TiposIdentificacion;
-import cr.acusab.una.sigac.data.entity.Usuario;
+import cr.acusab.una.sigac.data.repository.EstadoUsuarioRepository;
+import cr.acusab.una.sigac.data.repository.InstrumentoRepository;
 import cr.acusab.una.sigac.data.repository.ProfesorRepository;
+import cr.acusab.una.sigac.data.repository.RoleRepository;
 import cr.acusab.una.sigac.data.repository.TipoIdentificacionRepository;
 import cr.acusab.una.sigac.data.repository.UsuarioRepository;
 import cr.acusab.una.sigac.logic.service.ProfesorService;
 import cr.acusab.una.sigac.logic.service.UsuarioService;
 import cr.acusab.una.sigac.presentation.dto.request.ProfesorCreateRequest;
 import cr.acusab.una.sigac.presentation.dto.request.ProfesorUpdateRequest;
-import cr.acusab.una.sigac.presentation.dto.request.UsuarioCreateRequest;
 import cr.acusab.una.sigac.presentation.dto.response.ProfesorResponse;
-import cr.acusab.una.sigac.presentation.dto.response.UsuarioResponse;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -47,7 +47,16 @@ class ProfesorServiceTest {
     private UsuarioRepository usuarioRepository;
 
     @Mock
+    private RoleRepository roleRepository;
+
+    @Mock
+    private EstadoUsuarioRepository estadoUsuarioRepository;
+
+    @Mock
     private UsuarioService usuarioService;
+
+    @Mock
+    private InstrumentoRepository instrumentoRepository;
 
     @InjectMocks
     private ProfesorService profesorService;
@@ -59,26 +68,17 @@ class ProfesorServiceTest {
 
     /*
      * HU-013 - Registrar profesor.
-     * Caso normal: registra correctamente un profesor
-     * cuando todos los datos requeridos son válidos.
+     * Caso normal.
      */
     @Test
     void debeRegistrarProfesorCorrectamente() {
 
         ProfesorCreateRequest request = crearRequestProfesor();
-        UsuarioCreateRequest usuarioRequest = crearRequestUsuario();
-
-        UsuarioResponse usuarioResponse = mock(UsuarioResponse.class);
-        Usuario usuario = new Usuario();
         TiposIdentificacion tipo = crearTipoIdentificacion();
 
-        when(usuarioResponse.getId()).thenReturn(10L);
-        when(usuarioService.crearUsuario(usuarioRequest))
-                .thenReturn(usuarioResponse);
-        when(usuarioRepository.findById(10L))
-                .thenReturn(Optional.of(usuario));
         when(tipoIdentificacionRepository.findById(1))
                 .thenReturn(Optional.of(tipo));
+
         when(profesorRepository
                 .findByIdTipoIdentificacion_IdAndNumeroIdentificacion(
                         1,
@@ -94,7 +94,7 @@ class ProfesorServiceTest {
                 });
 
         ProfesorResponse response =
-                profesorService.registrar(request, usuarioRequest);
+                profesorService.registrar(request);
 
         assertNotNull(response);
 
@@ -105,45 +105,47 @@ class ProfesorServiceTest {
 
         Profesor guardado = captor.getValue();
 
-        assertEquals("117770999", guardado.getNumeroIdentificacion());
-        assertEquals("Carlos", guardado.getNombres());
-        assertEquals("Ramirez", guardado.getPrimerApellido());
-        assertTrue(guardado.getActivo());
-        assertEquals(usuario, guardado.getIdUsuario());
-        assertEquals(tipo, guardado.getIdTipoIdentificacion());
+        assertEquals(
+                "117770999",
+                guardado.getNumeroIdentificacion()
+        );
 
-        verify(usuarioService).crearUsuario(usuarioRequest);
+        assertEquals(
+                "Carlos",
+                guardado.getNombres()
+        );
+
+        assertEquals(
+                "Ramirez",
+                guardado.getPrimerApellido()
+        );
+
+        assertEquals(
+                "Profesor de musica",
+                guardado.getClasePuesto()
+        );
+
+        assertTrue(guardado.getActivo());
+        assertEquals(tipo, guardado.getIdTipoIdentificacion());
     }
 
     /*
      * HU-013 - Registrar profesor.
-     * Caso de error: el tipo de identificación indicado
-     * no existe.
+     * Caso de error: tipo de identificación inexistente.
      */
     @Test
     void noDebeRegistrarProfesorSiTipoIdentificacionNoExiste() {
 
-        ProfesorCreateRequest request = crearRequestProfesor();
-        UsuarioCreateRequest usuarioRequest = crearRequestUsuario();
+        ProfesorCreateRequest request =
+                crearRequestProfesor();
 
-        UsuarioResponse usuarioResponse = mock(UsuarioResponse.class);
-        Usuario usuario = new Usuario();
-
-        when(usuarioResponse.getId()).thenReturn(10L);
-        when(usuarioService.crearUsuario(usuarioRequest))
-                .thenReturn(usuarioResponse);
-        when(usuarioRepository.findById(10L))
-                .thenReturn(Optional.of(usuario));
         when(tipoIdentificacionRepository.findById(1))
                 .thenReturn(Optional.empty());
 
         ResponseStatusException exception =
                 assertThrows(
                         ResponseStatusException.class,
-                        () -> profesorService.registrar(
-                                request,
-                                usuarioRequest
-                        )
+                        () -> profesorService.registrar(request)
                 );
 
         assertEquals(
@@ -157,24 +159,17 @@ class ProfesorServiceTest {
 
     /*
      * HU-013 - Registrar profesor.
-     * Caso de error: ya existe un profesor con
-     * la misma identificación.
+     * Caso de error: identificación duplicada.
      */
     @Test
     void noDebeRegistrarProfesorConIdentificacionDuplicada() {
 
-        ProfesorCreateRequest request = crearRequestProfesor();
-        UsuarioCreateRequest usuarioRequest = crearRequestUsuario();
+        ProfesorCreateRequest request =
+                crearRequestProfesor();
 
-        UsuarioResponse usuarioResponse = mock(UsuarioResponse.class);
-        Usuario usuario = new Usuario();
-        TiposIdentificacion tipo = crearTipoIdentificacion();
+        TiposIdentificacion tipo =
+                crearTipoIdentificacion();
 
-        when(usuarioResponse.getId()).thenReturn(10L);
-        when(usuarioService.crearUsuario(usuarioRequest))
-                .thenReturn(usuarioResponse);
-        when(usuarioRepository.findById(10L))
-                .thenReturn(Optional.of(usuario));
         when(tipoIdentificacionRepository.findById(1))
                 .thenReturn(Optional.of(tipo));
 
@@ -188,10 +183,7 @@ class ProfesorServiceTest {
         ResponseStatusException exception =
                 assertThrows(
                         ResponseStatusException.class,
-                        () -> profesorService.registrar(
-                                request,
-                                usuarioRequest
-                        )
+                        () -> profesorService.registrar(request)
                 );
 
         assertEquals(
@@ -205,26 +197,20 @@ class ProfesorServiceTest {
 
     /*
      * HU-013 - Registrar profesor.
-     * Caso límite: cuando la fecha de ingreso no se envía,
-     * el sistema utiliza la fecha actual.
+     * Caso límite: si no se indica fecha de ingreso,
+     * se utiliza la fecha actual.
      */
     @Test
     void debeUsarFechaActualSiFechaIngresoEsNula() {
 
-        ProfesorCreateRequest request = crearRequestProfesor();
+        ProfesorCreateRequest request =
+                crearRequestProfesor();
+
         request.setFechaIngreso(null);
 
-        UsuarioCreateRequest usuarioRequest = crearRequestUsuario();
+        TiposIdentificacion tipo =
+                crearTipoIdentificacion();
 
-        UsuarioResponse usuarioResponse = mock(UsuarioResponse.class);
-        Usuario usuario = new Usuario();
-        TiposIdentificacion tipo = crearTipoIdentificacion();
-
-        when(usuarioResponse.getId()).thenReturn(10L);
-        when(usuarioService.crearUsuario(usuarioRequest))
-                .thenReturn(usuarioResponse);
-        when(usuarioRepository.findById(10L))
-                .thenReturn(Optional.of(usuario));
         when(tipoIdentificacionRepository.findById(1))
                 .thenReturn(Optional.of(tipo));
 
@@ -242,7 +228,7 @@ class ProfesorServiceTest {
 
         LocalDate hoy = LocalDate.now();
 
-        profesorService.registrar(request, usuarioRequest);
+        profesorService.registrar(request);
 
         ArgumentCaptor<Profesor> captor =
                 ArgumentCaptor.forClass(Profesor.class);
@@ -257,13 +243,13 @@ class ProfesorServiceTest {
 
     /*
      * HU-013 - Listar profesores.
-     * Cuando no se indica filtro de estado,
-     * se deben listar todos los profesores.
+     * Sin filtro se listan todos.
      */
     @Test
     void debeListarTodosLosProfesoresCuandoActivoEsNulo() {
 
-        Profesor profesor = crearProfesor();
+        Profesor profesor =
+                crearProfesor();
 
         when(profesorRepository.findAll())
                 .thenReturn(List.of(profesor));
@@ -274,18 +260,20 @@ class ProfesorServiceTest {
         assertEquals(1, resultado.size());
 
         verify(profesorRepository).findAll();
+
         verify(profesorRepository, never())
                 .findByActivo(anyBoolean());
     }
 
     /*
      * HU-013 - Listar profesores.
-     * Debe permitir filtrar por estado activo.
+     * Filtrado por estado.
      */
     @Test
     void debeListarProfesoresFiltradosPorEstado() {
 
-        Profesor profesor = crearProfesor();
+        Profesor profesor =
+                crearProfesor();
 
         when(profesorRepository.findByActivo(true))
                 .thenReturn(List.of(profesor));
@@ -295,8 +283,11 @@ class ProfesorServiceTest {
 
         assertEquals(1, resultado.size());
 
-        verify(profesorRepository).findByActivo(true);
-        verify(profesorRepository, never()).findAll();
+        verify(profesorRepository)
+                .findByActivo(true);
+
+        verify(profesorRepository, never())
+                .findAll();
     }
 
     /*
@@ -306,7 +297,8 @@ class ProfesorServiceTest {
     @Test
     void debeObtenerProfesorExistente() {
 
-        Profesor profesor = crearProfesor();
+        Profesor profesor =
+                crearProfesor();
 
         when(profesorRepository.findById(1L))
                 .thenReturn(Optional.of(profesor));
@@ -316,12 +308,13 @@ class ProfesorServiceTest {
 
         assertNotNull(resultado);
 
-        verify(profesorRepository).findById(1L);
+        verify(profesorRepository)
+                .findById(1L);
     }
 
     /*
      * HU-013 - Consultar profesor.
-     * Caso de error: profesor inexistente.
+     * Caso de error.
      */
     @Test
     void noDebeObtenerProfesorInexistente() {
@@ -348,7 +341,9 @@ class ProfesorServiceTest {
     @Test
     void debeModificarProfesorCorrectamente() {
 
-        Profesor profesor = crearProfesor();
+        Profesor profesor =
+                crearProfesor();
+
         ProfesorUpdateRequest request =
                 crearRequestActualizacion();
 
@@ -366,39 +361,59 @@ class ProfesorServiceTest {
                 );
 
         ProfesorResponse resultado =
-                profesorService.modificar(1L, request);
+                profesorService.modificar(
+                        1L,
+                        request
+                );
 
         assertNotNull(resultado);
 
         ArgumentCaptor<Profesor> captor =
                 ArgumentCaptor.forClass(Profesor.class);
 
-        verify(profesorRepository).save(captor.capture());
+        verify(profesorRepository)
+                .save(captor.capture());
 
-        Profesor modificado = captor.getValue();
+        Profesor modificado =
+                captor.getValue();
 
-        assertEquals("Carlos Alberto", modificado.getNombres());
-        assertEquals("8888-8888", modificado.getTelefono());
+        assertEquals(
+                "Carlos Alberto",
+                modificado.getNombres()
+        );
+
+        assertEquals(
+                "8888-8888",
+                modificado.getTelefono()
+        );
+
         assertEquals(
                 "carlos.actualizado@correo.com",
                 modificado.getCorreo()
+        );
+
+        assertEquals(
+                "Profesor coordinador",
+                modificado.getClasePuesto()
         );
     }
 
     /*
      * HU-013 - Modificar profesor.
-     * Caso de error: se intenta utilizar una identificación
-     * que ya pertenece a otro profesor.
+     * Caso de error: identificación duplicada.
      */
     @Test
     void noDebeModificarProfesorConIdentificacionDuplicada() {
 
-        Profesor profesor = crearProfesor();
+        Profesor profesor =
+                crearProfesor();
 
         ProfesorUpdateRequest request =
                 crearRequestActualizacion();
 
-        request.setNumeroIdentificacion("222222222");
+        request.setNumeroIdentificacion(
+                "222222222"
+        );
 
         when(profesorRepository.findById(1L))
                 .thenReturn(Optional.of(profesor));
@@ -413,7 +428,9 @@ class ProfesorServiceTest {
                         1,
                         "222222222"
                 ))
-                .thenReturn(Optional.of(new Profesor()));
+                .thenReturn(
+                        Optional.of(new Profesor())
+                );
 
         ResponseStatusException exception =
                 assertThrows(
@@ -440,7 +457,9 @@ class ProfesorServiceTest {
     @Test
     void noDebeModificarProfesorSiTipoIdentificacionNoExiste() {
 
-        Profesor profesor = crearProfesor();
+        Profesor profesor =
+                crearProfesor();
+
         ProfesorUpdateRequest request =
                 crearRequestActualizacion();
 
@@ -470,13 +489,12 @@ class ProfesorServiceTest {
 
     /*
      * HU-013 - Dar de baja profesor.
-     * La baja debe ser lógica: conserva el profesor
-     * pero cambia su estado a inactivo.
      */
     @Test
     void debeDarDeBajaProfesorCorrectamente() {
 
-        Profesor profesor = crearProfesor();
+        Profesor profesor =
+                crearProfesor();
 
         when(profesorRepository.findById(1L))
                 .thenReturn(Optional.of(profesor));
@@ -494,11 +512,14 @@ class ProfesorServiceTest {
         ArgumentCaptor<Profesor> captor =
                 ArgumentCaptor.forClass(Profesor.class);
 
-        verify(profesorRepository).save(captor.capture());
+        verify(profesorRepository)
+                .save(captor.capture());
 
-        Profesor modificado = captor.getValue();
+        Profesor modificado =
+                captor.getValue();
 
         assertFalse(modificado.getActivo());
+
         assertEquals(
                 LocalDate.now(),
                 modificado.getFechaSalida()
@@ -509,8 +530,7 @@ class ProfesorServiceTest {
     }
 
     /*
-     * HU-013 - Dar de baja profesor.
-     * Caso de error: profesor inexistente.
+     * HU-013 - Dar de baja profesor inexistente.
      */
     @Test
     void noDebeDarDeBajaProfesorInexistente() {
@@ -534,25 +554,25 @@ class ProfesorServiceTest {
     }
 
     /*
-     * HU-013 - Eliminar profesor.
-     * Caso normal: eliminación física.
+     * HU-013 - Eliminación física.
      */
     @Test
     void debeEliminarProfesorCorrectamente() {
 
-        Profesor profesor = crearProfesor();
+        Profesor profesor =
+                crearProfesor();
 
         when(profesorRepository.findById(1L))
                 .thenReturn(Optional.of(profesor));
 
         profesorService.eliminar(1L);
 
-        verify(profesorRepository).delete(profesor);
+        verify(profesorRepository)
+                .delete(profesor);
     }
 
     /*
-     * HU-013 - Eliminar profesor.
-     * Caso de error: profesor inexistente.
+     * HU-013 - Eliminar profesor inexistente.
      */
     @Test
     void noDebeEliminarProfesorInexistente() {
@@ -576,7 +596,9 @@ class ProfesorServiceTest {
     }
 
     /*
-     * Datos reutilizables para las pruebas.
+     * =========================================================
+     * Métodos auxiliares
+     * =========================================================
      */
 
     private ProfesorCreateRequest crearRequestProfesor() {
@@ -595,12 +617,20 @@ class ProfesorServiceTest {
         request.setGradoAcademico("Licenciatura");
         request.setEspecialidad("Musica");
         request.setEmpleador("SIGAC");
-        request.setFechaIngreso(LocalDate.of(2026, 1, 10));
+
+        request.setClasePuesto(
+                "Profesor de musica"
+        );
+
+        request.setFechaIngreso(
+                LocalDate.of(2026, 1, 10)
+        );
 
         return request;
     }
 
-    private ProfesorUpdateRequest crearRequestActualizacion() {
+    private ProfesorUpdateRequest
+    crearRequestActualizacion() {
 
         ProfesorUpdateRequest request =
                 new ProfesorUpdateRequest();
@@ -611,33 +641,33 @@ class ProfesorServiceTest {
         request.setPrimerApellido("Ramirez");
         request.setSegundoApellido("Mora");
         request.setTelefono("8888-8888");
-        request.setCorreo("carlos.actualizado@correo.com");
+
+        request.setCorreo(
+                "carlos.actualizado@correo.com"
+        );
+
         request.setDireccion("San Jose");
         request.setGradoAcademico("Maestria");
-        request.setEspecialidad("Educacion Musical");
+
+        request.setEspecialidad(
+                "Educacion Musical"
+        );
+
         request.setEmpleador("SIGAC");
-        request.setFechaIngreso(LocalDate.of(2026, 1, 10));
-        request.setFechaSalida(null);
+
+        request.setClasePuesto(
+                "Profesor coordinador"
+        );
+
+        request.setFechaIngreso(
+                LocalDate.of(2026, 1, 10)
+        );
 
         return request;
     }
 
-    private UsuarioCreateRequest crearRequestUsuario() {
-
-        UsuarioCreateRequest request =
-                new UsuarioCreateRequest();
-
-        request.setCedula("117770999");
-        request.setNombre("Carlos Ramirez Mora");
-        request.setCorreo("carlos@correo.com");
-        request.setContrasena("Temporal123");
-        request.setIdRol(2);
-        request.setIdEstadoUsuario(1);
-
-        return request;
-    }
-
-    private TiposIdentificacion crearTipoIdentificacion() {
+    private TiposIdentificacion
+    crearTipoIdentificacion() {
 
         TiposIdentificacion tipo =
                 new TiposIdentificacion();
@@ -651,25 +681,41 @@ class ProfesorServiceTest {
 
     private Profesor crearProfesor() {
 
-        Profesor profesor = new Profesor();
+        Profesor profesor =
+                new Profesor();
 
         profesor.setId(1L);
+
         profesor.setIdTipoIdentificacion(
                 crearTipoIdentificacion()
         );
-        profesor.setNumeroIdentificacion("117770999");
+
+        profesor.setNumeroIdentificacion(
+                "117770999"
+        );
+
         profesor.setNombres("Carlos");
         profesor.setPrimerApellido("Ramirez");
         profesor.setSegundoApellido("Mora");
         profesor.setTelefono("8888-7777");
         profesor.setCorreo("carlos@correo.com");
         profesor.setDireccion("Heredia");
-        profesor.setGradoAcademico("Licenciatura");
+
+        profesor.setGradoAcademico(
+                "Licenciatura"
+        );
+
         profesor.setEspecialidad("Musica");
         profesor.setEmpleador("SIGAC");
+
+        profesor.setClasePuesto(
+                "Profesor de musica"
+        );
+
         profesor.setFechaIngreso(
                 LocalDate.of(2026, 1, 10)
         );
+
         profesor.setActivo(true);
 
         return profesor;

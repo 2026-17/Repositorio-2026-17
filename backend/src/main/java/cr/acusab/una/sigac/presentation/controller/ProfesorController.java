@@ -3,7 +3,6 @@ package cr.acusab.una.sigac.presentation.controller;
 import cr.acusab.una.sigac.logic.service.ProfesorService;
 import cr.acusab.una.sigac.presentation.dto.request.ProfesorCreateRequest;
 import cr.acusab.una.sigac.presentation.dto.request.ProfesorUpdateRequest;
-import cr.acusab.una.sigac.presentation.dto.request.UsuarioCreateRequest;
 import cr.acusab.una.sigac.presentation.dto.response.ProfesorResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -23,14 +22,21 @@ public class ProfesorController {
     }
 
     @PostMapping
-    public ResponseEntity<ProfesorResponse> registrar(@Valid @RequestBody ProfesorCreateRequest request, @Valid @RequestBody UsuarioCreateRequest usuarioRequest) {
-        ProfesorResponse response = profesorService.registrar(request, usuarioRequest);
+    public ResponseEntity<ProfesorResponse> registrar(@Valid @RequestBody ProfesorCreateRequest request) {
+        ProfesorResponse response = profesorService.registrar(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @GetMapping
     public ResponseEntity<List<ProfesorResponse>> listar(@RequestParam(required = false) Boolean activo) {
         return ResponseEntity.ok(profesorService.listar(activo));
+    }
+
+    // HU-026 - Profesores activos con esa especialidad (para el selector de
+    // profesor al asignar un instrumento a un estudiante).
+    @GetMapping("/por-instrumento/{idInstrumento}")
+    public ResponseEntity<List<ProfesorResponse>> listarPorInstrumento(@PathVariable Integer idInstrumento) {
+        return ResponseEntity.ok(profesorService.listarPorInstrumento(idInstrumento));
     }
 
     @GetMapping("/{id}")
@@ -47,6 +53,11 @@ public class ProfesorController {
     @PatchMapping("/{id}/baja")
     public ResponseEntity<ProfesorResponse> darDeBaja(@PathVariable Long id) {
         return ResponseEntity.ok(profesorService.darDeBaja(id));
+    }
+
+    @PatchMapping("/{id}/reactivar")
+    public ResponseEntity<ProfesorResponse> reactivar(@PathVariable Long id) {
+        return ResponseEntity.ok(profesorService.reactivar(id));
     }
 
     @DeleteMapping("/{id}")

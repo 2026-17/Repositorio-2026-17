@@ -9,6 +9,7 @@ import cr.acusab.una.sigac.presentation.dto.request.EstudianteCreateRequest;
 import cr.acusab.una.sigac.presentation.dto.response.BecaResponse;
 import cr.acusab.una.sigac.presentation.dto.response.EstudianteBusquedaResponse;
 import cr.acusab.una.sigac.presentation.dto.response.EstudianteResponse;
+import cr.acusab.una.sigac.presentation.dto.response.EstudianteListadoResponse;
 import cr.acusab.una.sigac.presentation.dto.request.EstudianteUpdateRequest;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
@@ -41,15 +42,19 @@ public class EstudianteService {
     private final EstudianteEncargadoRepository estudianteEncargadoRepository;
     private final InstrumentoRepository instrumentoRepository;
     private final EstudianteInstrumentoRepository estudianteInstrumentoRepository;
+    private final ProfesorRepository profesorRepository;
     private final DocumentoEstudianteRepository documentoEstudianteRepository;
     private final TipoIdentificacionRepository tipoIdentificacionRepository;
     private final TipoDocumentoRepository tipoDocumentoRepository;
+    // Ya no se usa para validar el centro educativo (ahora es texto libre,
+    // ver obtenerCentro); se conserva por si algo más lo necesita.
     private final CentroEducativoRepository centroEducativoRepository;
     private final UsuarioRepository usuarioRepository;
     private final RoleRepository roleRepository;
     private final EstadoUsuarioRepository estadoUsuarioRepository;
     private final PasswordEncoder passwordEncoder;
     private final BecaService becaService;
+    private final InscripcionPlanEstudioService inscripcionPlanService;
 
     @Value("${sigac.storage.documents:./storage/documents}")
     private String storageDirectory;
@@ -59,6 +64,7 @@ public class EstudianteService {
                              EstudianteEncargadoRepository estudianteEncargadoRepository,
                              InstrumentoRepository instrumentoRepository,
                              EstudianteInstrumentoRepository estudianteInstrumentoRepository,
+                             ProfesorRepository profesorRepository,
                              DocumentoEstudianteRepository documentoEstudianteRepository,
                              TipoIdentificacionRepository tipoIdentificacionRepository,
                              TipoDocumentoRepository tipoDocumentoRepository,
@@ -67,12 +73,14 @@ public class EstudianteService {
                              RoleRepository roleRepository,
                              EstadoUsuarioRepository estadoUsuarioRepository,
                              PasswordEncoder passwordEncoder,
-                             BecaService becaService) {
+                             BecaService becaService,
+                             InscripcionPlanEstudioService inscripcionPlanService) {
         this.estudianteRepository = estudianteRepository;
         this.encargadoRepository = encargadoRepository;
         this.estudianteEncargadoRepository = estudianteEncargadoRepository;
         this.instrumentoRepository = instrumentoRepository;
         this.estudianteInstrumentoRepository = estudianteInstrumentoRepository;
+        this.profesorRepository = profesorRepository;
         this.documentoEstudianteRepository = documentoEstudianteRepository;
         this.tipoIdentificacionRepository = tipoIdentificacionRepository;
         this.tipoDocumentoRepository = tipoDocumentoRepository;
@@ -82,6 +90,7 @@ public class EstudianteService {
         this.estadoUsuarioRepository = estadoUsuarioRepository;
         this.passwordEncoder = passwordEncoder;
         this.becaService = becaService;
+        this.inscripcionPlanService = inscripcionPlanService;
     }
 
     @Transactional
@@ -92,6 +101,7 @@ public class EstudianteService {
         }
         validarGenero(request.genero());
         validarPdf(politica);
+        inscripcionPlanService.validarParaRegistro(request.idsPlanEstudio());
         int edad = calcularEdad(request.fechaNacimiento());
         boolean menor = edad < 18;
         if (menor) {
@@ -100,9 +110,10 @@ public class EstudianteService {
             throw new BusinessException("Los encargados solo se registran para menores de edad");
         }
 
-        CentrosEducativo centro = obtenerCentro(request.idCentroEducativo(), edad);
+        String centro = obtenerCentro(request.centroEducativo(), edad);
         Instrumento instrumento = instrumentoRepository.findByIdAndActivoTrue(request.idInstrumento())
                 .orElseThrow(() -> new BusinessException("El instrumento indicado no existe o está inactivo"));
+        Profesor profesor = obtenerProfesorParaInstrumento(request.idProfesor(), instrumento);
         TiposIdentificacion tipo = tipoIdentificacionRepository.findByIdAndActivoTrue(request.idTipoIdentificacion())
                 .orElseThrow(() -> new BusinessException("El tipo de identificación indicado no existe o está inactivo"));
         TiposDocumento tipoPoliza = tipoDocumentoRepository.findByCodigoAndActivoTrue("POLIZA")
@@ -121,7 +132,8 @@ public class EstudianteService {
         estudiante.setActualizadoEn(ahora);
         estudiante = estudianteRepository.save(estudiante);
 
-        crearRelacionInstrumento(estudiante, instrumento);
+        crearRelacionInstrumento(estudiante, instrumento, profesor);
+        List<Long> idsPlanes = inscripcionPlanService.sincronizar(estudiante.getId(), request.idsPlanEstudio());
 
         if (menor) {
             for (var data : request.encargados()) {
@@ -151,7 +163,7 @@ public class EstudianteService {
             becaAsignada = becaService.asignar(becaRequest);
         }
 
-        return respuesta(estudiante, instrumento.getId(), edad, becaAsignada);
+        return respuesta(estudiante, instrumento.getId(), edad, becaAsignada, idsPlanes);
     }
 
     private Usuario crearUsuarioEstudiante(EstudianteCreateRequest request, String identificacion) {
@@ -217,14 +229,51 @@ public class EstudianteService {
     }
 
     @Transactional(readOnly = true)
+    public List<EstudianteListadoResponse> listado(String texto, Boolean activo) {
+        String normalizado = normalizarNullable(texto);
+        List<Estudiante> estudiantes = estudianteRepository.findAll().stream()
+                .filter(e -> activo == null || Objects.equals(e.getActivo(), activo))
+                .filter(e -> normalizado == null
+                        || normalizado.length() < 2
+                        || nombreCompleto(e).toLowerCase(Locale.ROOT).contains(normalizado.toLowerCase(Locale.ROOT))
+                        || e.getNumeroIdentificacion().toLowerCase(Locale.ROOT).contains(normalizado.toLowerCase(Locale.ROOT)))
+                .sorted((a, b) -> nombreCompleto(a).compareToIgnoreCase(nombreCompleto(b)))
+                .toList();
+
+        return estudiantes.stream().map(e -> {
+            Integer instrumentoId = estudianteInstrumentoRepository.findByIdEstudiante_IdAndFechaFinIsNull(e.getId())
+                    .stream()
+                    .map(x -> x.getInstrumento().getId())
+                    .findFirst()
+                    .orElse(null);
+            String instrumento = instrumentoId == null
+                    ? null
+                    : instrumentoRepository.findById(instrumentoId).map(Instrumento::getNombre).orElse(null);
+            String centro = e.getIdCentroEducativo() == null ? null : e.getIdCentroEducativo().getNombre();
+
+            return new EstudianteListadoResponse(
+                    e.getId(),
+                    nombreCompleto(e),
+                    e.getNumeroIdentificacion(),
+                    calcularEdad(e.getFechaNacimiento()),
+                    e.getNivelEscolar(),
+                    instrumento,
+                    centro,
+                    Boolean.TRUE.equals(e.getActivo())
+            );
+        }).toList();
+    }
+
+    @Transactional(readOnly = true)
     public EstudianteResponse obtener(Long id) {
         Estudiante estudiante = estudianteRepository.findById(id)
                 .orElseThrow(() -> new BusinessException("El estudiante indicado no existe"));
         Integer instrumentoId = estudianteInstrumentoRepository.findAll().stream()
                 .filter(x -> x.getEstudiante() != null && Objects.equals(x.getEstudiante().getId(), id)
-                        && Boolean.TRUE.equals(x.getEsPrincipal()))
+                        && x.getFechaFin() == null)
                 .map(x -> x.getInstrumento().getId()).findFirst().orElse(null);
-        return respuesta(estudiante, instrumentoId, calcularEdad(estudiante.getFechaNacimiento()), null);
+        return respuesta(estudiante, instrumentoId, calcularEdad(estudiante.getFechaNacimiento()), null,
+                inscripcionPlanService.idsPlanesActivos(id));
     }
 
     @Transactional
@@ -238,7 +287,7 @@ public class EstudianteService {
         }
         validarGenero(request.genero());
         int edad = calcularEdad(request.fechaNacimiento());
-        CentrosEducativo centro = obtenerCentro(request.idCentroEducativo(), edad);
+        String centro = obtenerCentro(request.centroEducativo(), edad);
         Instrumento instrumento = instrumentoRepository.findByIdAndActivoTrue(request.idInstrumento())
                 .orElseThrow(() -> new BusinessException("El instrumento indicado no existe o está inactivo"));
         TiposIdentificacion tipo = tipoIdentificacionRepository.findByIdAndActivoTrue(request.idTipoIdentificacion())
@@ -249,17 +298,18 @@ public class EstudianteService {
         estudiante.setActualizadoEn(Instant.now());
         estudianteRepository.save(estudiante);
 
-        var principales = estudianteInstrumentoRepository.findAll().stream()
+        var vigentes = estudianteInstrumentoRepository.findAll().stream()
                 .filter(x -> x.getEstudiante() != null && Objects.equals(x.getEstudiante().getId(), id)
-                        && Boolean.TRUE.equals(x.getEsPrincipal())).toList();
-        if (principales.isEmpty()) crearRelacionInstrumento(estudiante, instrumento);
-        else { principales.get(0).setInstrumento(instrumento); estudianteInstrumentoRepository.save(principales.get(0)); }
-        return respuesta(estudiante, instrumento.getId(), edad, null);
+                        && x.getFechaFin() == null).toList();
+        if (vigentes.isEmpty()) crearRelacionInstrumento(estudiante, instrumento, null);
+        else { vigentes.get(0).setInstrumento(instrumento); estudianteInstrumentoRepository.save(vigentes.get(0)); }
+        List<Long> idsPlanes = inscripcionPlanService.sincronizar(id, request.idsPlanEstudio());
+        return respuesta(estudiante, instrumento.getId(), edad, null, idsPlanes);
     }
 
     private void aplicarDatos(Estudiante e, TiposIdentificacion tipo, String identificacion, String nombres,
                               String primerApellido, String segundoApellido, LocalDate nacimiento, String genero,
-                              String direccion, String telefono, String correo, String nivel, CentrosEducativo centro,
+                              String direccion, String telefono, String correo, String nivel, String centro,
                               String condiciones) {
         e.setIdTipoIdentificacion(tipo);
         e.setNumeroIdentificacion(identificacion);
@@ -270,26 +320,55 @@ public class EstudianteService {
         e.setGenero(normalizar(genero).toUpperCase(Locale.ROOT));
         e.setDireccion(normalizar(direccion));
         e.setTelefono(normalizarNullable(telefono));
-        e.setCorreo(normalizarNullable(correo));
+        e.setCorreo(normalizar(correo));
         e.setNivelEscolar(normalizar(nivel));
-        e.setIdCentroEducativo(centro);
+        e.setCentroEducativo(centro);
         e.setCondicionesRelevantes(normalizarNullable(condiciones));
     }
 
-    private void crearRelacionInstrumento(Estudiante estudiante, Instrumento instrumento) {
+    private void crearRelacionInstrumento(Estudiante estudiante, Instrumento instrumento, Profesor profesor) {
         EstudiantesInstrumento relacion = new EstudiantesInstrumento();
         relacion.setEstudiante(estudiante);
         relacion.setInstrumento(instrumento);
+        relacion.setProfesor(profesor);
         relacion.setFechaInicio(LocalDate.now());
-        relacion.setEsPrincipal(true);
         estudianteInstrumentoRepository.save(relacion);
     }
 
-    private EstudianteResponse respuesta(Estudiante e, Integer instrumentoId, int edad, BecaResponse beca) {
+    // HU-026 - El profesor es opcional, pero si se indica debe existir,
+    // estar activo y tener ese instrumento entre sus especialidades
+    // (campo de texto separado por comas). Misma regla usada al asignar
+    // instrumentos desde la pantalla de Director Académico.
+    private Profesor obtenerProfesorParaInstrumento(Long idProfesor, Instrumento instrumento) {
+        if (idProfesor == null) {
+            return null;
+        }
+
+        Profesor profesor = profesorRepository.findById(idProfesor)
+                .orElseThrow(() -> new BusinessException("El profesor indicado no existe."));
+
+        if (!Boolean.TRUE.equals(profesor.getActivo())) {
+            throw new BusinessException("El profesor indicado no está activo.");
+        }
+
+        String especialidad = profesor.getEspecialidad();
+        boolean tieneEspecialidad = especialidad != null
+                && especialidad.toLowerCase().contains(instrumento.getNombre().toLowerCase());
+
+        if (!tieneEspecialidad) {
+            throw new BusinessException(
+                    "El profesor seleccionado no tiene " + instrumento.getNombre() + " como especialidad.");
+        }
+
+        return profesor;
+    }
+
+    private EstudianteResponse respuesta(Estudiante e, Integer instrumentoId, int edad, BecaResponse beca,
+                                         List<Long> idsPlanEstudio) {
         return new EstudianteResponse(e.getId(), e.getNumeroIdentificacion(), e.getNombres(), e.getPrimerApellido(),
                 e.getSegundoApellido(), e.getFechaNacimiento(), edad, e.getGenero(), e.getDireccion(), e.getTelefono(),
-                e.getCorreo(), e.getNivelEscolar(), e.getIdCentroEducativo() == null ? null : e.getIdCentroEducativo().getId(),
-                instrumentoId, edad < 18, beca);
+                e.getCorreo(), e.getNivelEscolar(), e.getCentroEducativo(),
+                instrumentoId, edad < 18, beca, idsPlanEstudio);
     }
 
     private int calcularEdad(LocalDate nacimiento) {
@@ -299,12 +378,15 @@ public class EstudianteService {
 
     private boolean requiereCentroEducativo(int edad) { return edad >= 6 && edad < 18; }
 
-    private CentrosEducativo obtenerCentro(Long id, int edad) {
-        if (requiereCentroEducativo(edad) && id == null) throw new BusinessException("Debe indicar el centro educativo para esta edad");
-        if (!requiereCentroEducativo(edad) && id != null) throw new BusinessException("El centro educativo no corresponde para esta edad");
-        if (id == null) return null;
-        return centroEducativoRepository.findById(id).filter(c -> Boolean.TRUE.equals(c.getActivo()))
-                .orElseThrow(() -> new BusinessException("El centro educativo indicado no existe o está inactivo"));
+    private String obtenerCentro(String centroEducativo, int edad) {
+        String normalizado = normalizarNullable(centroEducativo);
+        if (requiereCentroEducativo(edad) && normalizado == null) {
+            throw new BusinessException("Debe indicar el centro educativo para esta edad");
+        }
+        if (!requiereCentroEducativo(edad) && normalizado != null) {
+            throw new BusinessException("El centro educativo no corresponde para esta edad");
+        }
+        return normalizado;
     }
 
     private Encargado obtenerOCrearEncargado(EstudianteCreateRequest.EncargadoRequest data) {

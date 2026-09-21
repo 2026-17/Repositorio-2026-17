@@ -1,6 +1,7 @@
 package cr.acusab.una.sigac.presentation.dto.response;
 
 import java.time.LocalDate;
+import java.util.List;
 
 public record EstudianteResponse(
         Long id,
@@ -15,9 +16,11 @@ public record EstudianteResponse(
         String telefono,
         String correo,
         String nivelEscolar,
-        Long idCentroEducativo,
+        String centroEducativo,
         Integer idInstrumento,
         boolean menor,
         // Presente solo cuando se asignó una beca durante el registro.
-        BecaResponse beca
+        BecaResponse beca,
+        // Planes de estudio en los que el estudiante está inscrito (activos).
+        List<Long> idsPlanEstudio
 ) {}

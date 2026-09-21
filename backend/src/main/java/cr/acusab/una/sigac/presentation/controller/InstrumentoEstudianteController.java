@@ -19,12 +19,10 @@ import java.util.List;
  * estudiante": el instrumento siempre se gestiona en contexto
  * de un estudiante puntual.
  *
- * Nota para el equipo: HU-001 (Registrar estudiante) ya crea la
- * primera asignación de instrumento como parte del alta del
- * estudiante (ver EstudianteService.crear). Este controller cubre
- * el resto de la HU-026: consultar el historial, agregar más
- * instrumentos y cambiar el instrumento principal manteniendo el
- * historial de asignaciones anteriores.
+ * Un estudiante puede tener varios instrumentos vigentes a la vez;
+ * no existe el concepto de instrumento "principal". Un instrumento
+ * vigente se puede deshabilitar (finalizar), lo que registra su
+ * fecha de fin y lo conserva en el historial.
  */
 @RestController
 @RequestMapping("/estudiantes/{idEstudiante}/instrumentos")
@@ -39,12 +37,11 @@ public class InstrumentoEstudianteController {
     /*
      * HU-026 - Asignar un instrumento al estudiante.
      *
-     * Por defecto queda como instrumento principal (cierra el
-     * anterior si existía). Si se envía esPrincipal=false, se
-     * agrega como instrumento adicional sin afectar al principal.
+     * Se agrega como instrumento vigente adicional; el estudiante
+     * puede tener varios instrumentos vigentes al mismo tiempo.
      */
     @PostMapping
-    @PreAuthorize("hasRole('ADMINISTRATIVO')")
+    @PreAuthorize("hasAnyRole('ADMINISTRATIVO', 'DIRECTOR_ACADEMICO')")
     public ResponseEntity<InstrumentoEstudianteResponse> asignar(
             @PathVariable Long idEstudiante,
             @Valid @RequestBody InstrumentoEstudianteRequest request) {
@@ -56,19 +53,20 @@ public class InstrumentoEstudianteController {
     }
 
     /*
-     * HU-026 - Cambiar el instrumento principal del estudiante.
+     * HU-026 - Deshabilitar (finalizar) una asignación de
+     * instrumento vigente del estudiante.
      *
-     * Cierra la asignación principal vigente (fecha_fin = hoy) y
-     * registra la nueva, conservando el historial completo.
+     * Registra fecha_fin con la fecha del día en que se
+     * deshabilita y conserva el registro en el historial.
      */
-    @PutMapping("/principal")
-    @PreAuthorize("hasRole('ADMINISTRATIVO')")
-    public ResponseEntity<InstrumentoEstudianteResponse> cambiarPrincipal(
+    @PutMapping("/{idEstudianteInstrumento}/deshabilitar")
+    @PreAuthorize("hasAnyRole('ADMINISTRATIVO', 'DIRECTOR_ACADEMICO')")
+    public ResponseEntity<InstrumentoEstudianteResponse> deshabilitar(
             @PathVariable Long idEstudiante,
-            @Valid @RequestBody InstrumentoEstudianteRequest request) {
+            @PathVariable Long idEstudianteInstrumento) {
 
         InstrumentoEstudianteResponse actualizado =
-                instrumentoEstudianteService.cambiarPrincipal(idEstudiante, request);
+                instrumentoEstudianteService.deshabilitar(idEstudiante, idEstudianteInstrumento);
 
         return ResponseEntity.ok(actualizado);
     }

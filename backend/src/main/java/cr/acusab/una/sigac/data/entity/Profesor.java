@@ -74,6 +74,10 @@ public class Profesor {
     @Column(name = "empleador", length = 180)
     private String empleador;
 
+    @Size(max = 255)
+    @Column(name = "clase_puesto", length = 255)
+    private String clasePuesto;
+
     @NotNull
     @Column(name = "fecha_ingreso", nullable = false)
     private LocalDate fechaIngreso;

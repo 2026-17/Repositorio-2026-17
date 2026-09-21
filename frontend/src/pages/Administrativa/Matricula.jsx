@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { Search, CheckCircle2, Clock, AlertTriangle } from "lucide-react";
 import { API_URL } from "../../config/api";
 import "../AdminSis/styles/admin_Sis.css";
+
+import { useDialog } from "../../components/dialog/useDialog";
 
 async function leerRespuesta(response) {
     try {
@@ -82,7 +83,7 @@ function RequisitoItem({ etiqueta, cumplido, valor }) {
 }
 
 function Matricula() {
-    const navigate = useNavigate();
+    const dialog = useDialog();
     const token = localStorage.getItem("token");
 
     const [pestanaActiva, setPestanaActiva] =
@@ -95,9 +96,6 @@ function Matricula() {
     const [procesandoId, setProcesandoId] = useState(null);
 
     const [observaciones, setObservaciones] = useState({});
-
-    const [errorGeneral, setErrorGeneral] = useState("");
-    const [mensajeExito, setMensajeExito] = useState("");
 
     // --- Iniciar/recalcular una preaprobación (Historia 1) ---
     const [periodos, setPeriodos] = useState([]);
@@ -126,7 +124,6 @@ function Matricula() {
 
     const cargarDatos = useCallback(async () => {
         setCargando(true);
-        setErrorGeneral("");
 
         try {
             const [
@@ -186,14 +183,14 @@ function Matricula() {
             setSolicitudes([]);
             setHistorial([]);
 
-            setErrorGeneral(
+            dialog.error(
                 error.message ||
                 "Ocurrió un error al consultar las preaprobaciones."
             );
         } finally {
             setCargando(false);
         }
-    }, [token]);
+    }, [token, dialog]);
 
     const cargarPeriodos = useCallback(async () => {
         try {
@@ -236,8 +233,6 @@ function Matricula() {
             [idAutorizacion]: valor,
         }));
 
-        setErrorGeneral("");
-        setMensajeExito("");
     }
 
     function requisitosValidos(solicitud) {
@@ -300,18 +295,16 @@ function Matricula() {
     }
 
     async function crearPreaprobacion() {
-        setErrorGeneral("");
-        setMensajeExito("");
 
         if (!estudianteSeleccionado) {
-            setErrorGeneral(
+            dialog.error(
                 "Debe seleccionar un estudiante de la lista de resultados."
             );
             return;
         }
 
         if (!idPeriodoSeleccionado) {
-            setErrorGeneral(
+            dialog.error(
                 "Debe seleccionar el período académico vigente."
             );
             return;
@@ -343,7 +336,7 @@ function Matricula() {
                 "No fue posible iniciar la preaprobación."
             );
 
-            setMensajeExito(
+            dialog.exito(
                 `Se calcularon las comprobaciones automáticas para ${estudianteSeleccionado.nombreCompleto}. Revise el resultado en la pestaña Pendientes.`
             );
 
@@ -354,7 +347,7 @@ function Matricula() {
 
             await cargarDatos();
         } catch (error) {
-            setErrorGeneral(
+            dialog.error(
                 error.message ||
                 "Ocurrió un error al iniciar la preaprobación."
             );
@@ -372,8 +365,6 @@ function Matricula() {
     }
 
     async function guardarDocumentacion(solicitud) {
-        setErrorGeneral("");
-        setMensajeExito("");
 
         const completa =
             documentacionSeleccion[solicitud.idAutorizacion] ??
@@ -407,13 +398,13 @@ function Matricula() {
                 "No fue posible registrar el resultado de la documentación."
             );
 
-            setMensajeExito(
+            dialog.exito(
                 "Se registró el resultado de la revisión de documentación."
             );
 
             await cargarDatos();
         } catch (error) {
-            setErrorGeneral(
+            dialog.error(
                 error.message ||
                 "Ocurrió un error al registrar la documentación."
             );
@@ -426,14 +417,12 @@ function Matricula() {
         solicitud,
         decision
     ) {
-        setErrorGeneral("");
-        setMensajeExito("");
 
         if (
             decision === "APROBAR" &&
             !requisitosValidos(solicitud)
         ) {
-            setErrorGeneral(
+            dialog.error(
                 "No se puede habilitar la matrícula porque todavía existen requisitos pendientes."
             );
             return;
@@ -446,7 +435,7 @@ function Matricula() {
             decision === "RECHAZAR" &&
             !observacion.trim()
         ) {
-            setErrorGeneral(
+            dialog.error(
                 "Debe indicar una observación administrativa para rechazar la solicitud."
             );
             return;
@@ -457,8 +446,17 @@ function Matricula() {
                 ? "habilitar"
                 : "rechazar";
 
-        const confirmado = window.confirm(
-            `¿Está seguro de que desea ${textoDecision} la matrícula de ${solicitud.estudiante}?`
+        const confirmado = await dialog.confirmar(
+            `¿Está seguro de que desea ${textoDecision} la matrícula de ${solicitud.estudiante}?`,
+            {
+                titulo: decision === "APROBAR"
+                    ? "Habilitar matrícula"
+                    : "Rechazar matrícula",
+                textoAceptar: decision === "APROBAR"
+                    ? "Habilitar"
+                    : "Rechazar",
+                peligro: decision !== "APROBAR",
+            }
         );
 
         if (!confirmado) {
@@ -500,7 +498,7 @@ function Matricula() {
                     ? "Estudiante habilitado para matricular en el período revisado. La decisión fue registrada en el historial y se notificó al estudiante."
                     : "Preaprobación rechazada correctamente. La decisión fue registrada en el historial y se notificó al estudiante.";
 
-            setMensajeExito(mensaje);
+            dialog.exito(mensaje);
 
             setObservaciones((prev) => {
                 const siguientes = {
@@ -516,7 +514,7 @@ function Matricula() {
 
             await cargarDatos();
         } catch (error) {
-            setErrorGeneral(
+            dialog.error(
                 error.message ||
                 "Ocurrió un error al procesar la preaprobación."
             );
@@ -967,17 +965,6 @@ function Matricula() {
                 <button
                     type="button"
                     className="btn btn-secondary"
-                    onClick={() =>
-                        navigate("/admin/administracion/estudiantes")
-                    }
-                    disabled={procesandoId !== null}
-                >
-                    ← Volver a administración
-                </button>
-
-                <button
-                    type="button"
-                    className="btn btn-secondary"
                     onClick={() => {
                         void cargarDatos();
                     }}
@@ -988,20 +975,6 @@ function Matricula() {
             </div>
 
             <br></br>
-
-            {errorGeneral && (
-                <div className="banner banner-danger" role="alert">
-                    <AlertTriangle size={16} />
-                    {errorGeneral}
-                </div>
-            )}
-
-            {mensajeExito && (
-                <div className="banner banner-success" role="status">
-                    <CheckCircle2 size={16} />
-                    {mensajeExito}
-                </div>
-            )}
 
             {renderFormularioNuevaPreaprobacion()}
 
