@@ -116,9 +116,14 @@ const SUBNAV_POR_ROL = {
     [ROLES.JUNTA_DIRECTIVA]: [],
 
     /*
+     * HU-002 - Solicitud de matrícula.
      * HU-012 - Notificaciones del estudiante.
      */
     [ROLES.ESTUDIANTE]: [
+        {
+            to: "/estudiante/matricula",
+            label: "Matrícula",
+        },
         {
             to: "/estudiante/notificaciones",
             label: "Notificaciones",
