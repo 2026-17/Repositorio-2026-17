@@ -43,11 +43,15 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import org.mockito.ArgumentCaptor;
+
+import org.springframework.orm.jpa.JpaSystemException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.math.BigDecimal;
+import java.sql.SQLException;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -520,6 +524,70 @@ class MatriculaEstudianteServiceTest {
                 assertThrows(MatriculaInvalidaException.class, () -> service.confirmar(solicitud(2L)));
 
         assertTrue(ex.getErrores().stream().anyMatch(e -> e.contains("Correquisito incumplido")));
+    }
+
+    @Test
+    void confirmar_notaMinimaExigidaPeroCursoSinNota_seRechaza() {
+
+        grupos.add(grupo(2L, 102L, 10));
+        requisitos.add(requisito("PRERREQUISITO", 102L, 101L, new BigDecimal("70")));
+        aprobados.add(new Object[]{101L, null});
+
+        MatriculaInvalidaException ex =
+                assertThrows(MatriculaInvalidaException.class, () -> service.confirmar(solicitud(2L)));
+
+        assertTrue(ex.getErrores().stream().anyMatch(e -> e.contains("Prerrequisito incumplido")));
+    }
+
+    /*
+     * La base de datos valida el correquisito al insertar cada curso, así
+     * que el curso requerido debe guardarse primero aunque el estudiante
+     * lo haya elegido después.
+     */
+    @Test
+    void confirmar_guardaPrimeroElCorrequisito_sinImportarElOrdenElegido() {
+
+        grupos.add(grupo(1L, 101L, 10));
+        grupos.add(grupo(2L, 102L, 10));
+        requisitos.add(requisito("CORREQUISITO", 102L, 101L, null));
+
+        service.confirmar(solicitud(2L, 1L));
+
+        ArgumentCaptor<MatriculaDetalle> guardados = ArgumentCaptor.forClass(MatriculaDetalle.class);
+        verify(detalleRepository, times(2)).save(guardados.capture());
+
+        assertEquals(
+                List.of(1L, 2L),
+                guardados.getAllValues().stream().map(MatriculaDetalle::getIdGrupo).toList()
+        );
+    }
+
+    @Test
+    void confirmar_reglaRechazadaPorLaBaseDeDatos_seMuestraAlEstudiante() {
+
+        grupos.add(grupo(1L, 101L, 10));
+
+        when(detalleRepository.save(any(MatriculaDetalle.class)))
+                .thenThrow(new JpaSystemException(new RuntimeException(
+                        "no se pudo insertar",
+                        new SQLException("El estudiante no cumple los prerrequisitos del curso", "45000")
+                )));
+
+        MatriculaInvalidaException ex =
+                assertThrows(MatriculaInvalidaException.class, () -> service.confirmar(solicitud(1L)));
+
+        assertEquals("El estudiante no cumple los prerrequisitos del curso", ex.getMessage());
+    }
+
+    @Test
+    void confirmar_errorDeBaseDeDatosDeOtraNaturaleza_noSeOculta() {
+
+        grupos.add(grupo(1L, 101L, 10));
+
+        when(detalleRepository.save(any(MatriculaDetalle.class)))
+                .thenThrow(new JpaSystemException(new RuntimeException("conexión perdida")));
+
+        assertThrows(JpaSystemException.class, () -> service.confirmar(solicitud(1L)));
     }
 
     @Test

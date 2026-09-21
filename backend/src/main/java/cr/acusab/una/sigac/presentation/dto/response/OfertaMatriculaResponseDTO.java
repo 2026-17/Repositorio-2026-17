@@ -87,8 +87,8 @@ public class OfertaMatriculaResponseDTO {
     }
 
     /*
-     * Curso que el estudiante ya aprobó (o le fue equiparado). La nota
-     * puede ser nula en cursos equiparados o con valoración cualitativa.
+     * Curso que el estudiante ya aprobó. La nota puede ser nula en cursos
+     * con valoración cualitativa.
      */
     @Getter
     @Setter

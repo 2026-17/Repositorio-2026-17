@@ -40,11 +40,12 @@ public interface MatriculaDetalleRepository
     );
 
     /*
-     * Historia 2 - Cursos que el estudiante ya aprobó (o le fueron
-     * equiparados) y la mejor nota obtenida en cada uno.
+     * Historia 2 - Cursos que el estudiante ya aprobó y la mejor nota
+     * obtenida en cada uno. Solo cuenta el estado APROBADO, igual que la
+     * validación de requisitos de la base de datos.
      *
      * Devuelve filas [idCurso, notaMaxima]. La nota puede ser nula en
-     * cursos equiparados o con valoración cualitativa.
+     * cursos con valoración cualitativa.
      */
     @Query(value = """
             SELECT g.id_curso, MAX(c.nota_final)
@@ -60,7 +61,7 @@ public interface MatriculaDetalleRepository
                      INNER JOIN grupos g
                                 ON g.id_grupo = md.id_grupo
             WHERE a.id_estudiante = :idEstudiante
-              AND ea.codigo IN ('APROBADO', 'EQUIPARADO')
+              AND ea.codigo = 'APROBADO'
             GROUP BY g.id_curso
             """, nativeQuery = true)
     List<Object[]> findCursosAprobados(

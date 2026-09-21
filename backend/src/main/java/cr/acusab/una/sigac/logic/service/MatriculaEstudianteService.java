@@ -42,6 +42,7 @@ import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.sql.SQLException;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -505,39 +506,74 @@ public class MatriculaEstudianteService {
                         .map(gruposPorId::get)
                         .toList();
 
-        Matricula matricula =
-                matriculaExistente != null
-                        ? matriculaExistente
-                        : crearMatricula(
-                        autorizacion,
-                        mallaPorCurso
-                                .get(
-                                        gruposEnOrden
-                                                .get(0)
-                                                .getIdCurso()
-                                )
-                                .getIdPlanEstudio()
+        List<Grupo> gruposParaInsertar =
+                ordenarCorrequisitosPrimero(
+                        gruposEnOrden,
+                        idsPlan
                 );
 
-        for (Grupo grupo : gruposEnOrden) {
+        Matricula matricula;
 
-            MatriculaDetalle detalle =
-                    new MatriculaDetalle();
+        try {
 
-            detalle.setMatricula(
-                    matricula
-            );
+            matricula =
+                    matriculaExistente != null
+                            ? matriculaExistente
+                            : crearMatricula(
+                            autorizacion,
+                            mallaPorCurso
+                                    .get(
+                                            gruposEnOrden
+                                                    .get(0)
+                                                    .getIdCurso()
+                                    )
+                                    .getIdPlanEstudio()
+                    );
 
-            detalle.setIdGrupo(
-                    grupo.getId()
-            );
+            for (Grupo grupo : gruposParaInsertar) {
 
-            matriculaDetalleRepository.save(
-                    detalle
-            );
+                MatriculaDetalle detalle =
+                        new MatriculaDetalle();
+
+                detalle.setMatricula(
+                        matricula
+                );
+
+                detalle.setIdGrupo(
+                        grupo.getId()
+                );
+
+                matriculaDetalleRepository.save(
+                        detalle
+                );
+            }
+
+            matriculaDetalleRepository.flush();
+
+        } catch (BusinessException ex) {
+
+            throw ex;
+
+        } catch (RuntimeException ex) {
+
+            /*
+             * Los triggers de la base de datos son la última línea de
+             * defensa. Si rechazan la matrícula, se le muestra su mensaje
+             * al estudiante en lugar de un error interno.
+             */
+            String reglaDeBaseDeDatos =
+                    mensajeDeReglaDeBaseDeDatos(
+                            ex
+                    );
+
+            if (reglaDeBaseDeDatos != null) {
+                throw new MatriculaInvalidaException(
+                        List.of(reglaDeBaseDeDatos)
+                );
+            }
+
+            throw ex;
         }
-
-        matriculaDetalleRepository.flush();
 
         Map<Long, PlanEstudio> planes =
                 planEstudioRepository
@@ -820,7 +856,11 @@ public class MatriculaEstudianteService {
             } else if (TIPO_CORREQUISITO.equals(codigoTipo)) {
 
                 boolean cumplido =
-                        aprobados.containsKey(idRequerido)
+                        estaAprobado(
+                                aprobados,
+                                idRequerido,
+                                requisito.getNotaMinima()
+                        )
                                 || cursosMatriculados.contains(idRequerido)
                                 || cursosSeleccionados.contains(idRequerido);
 
@@ -847,10 +887,10 @@ public class MatriculaEstudianteService {
         BigDecimal nota =
                 aprobados.get(idCurso);
 
-        // Cursos equiparados o con valoración cualitativa no tienen nota.
+        // Igual que la validación de la base de datos: si el plan exige una
+        // nota mínima, la nota debe existir y alcanzarla.
         return notaMinima == null
-                || nota == null
-                || nota.compareTo(notaMinima) >= 0;
+                || (nota != null && nota.compareTo(notaMinima) >= 0);
     }
 
     /*
@@ -939,6 +979,114 @@ public class MatriculaEstudianteService {
                                 && hb.getHoraInicio().isBefore(ha.getHoraFin())
                 )
         );
+    }
+
+    /*
+     * La base de datos valida los correquisitos al insertar cada curso
+     * (trg_matriculas_detalles_bi_validar_requisitos): el curso requerido
+     * debe estar ya en la matrícula o aprobado. Por eso se insertan primero
+     * los cursos de los que otros de la selección dependen, sin alterar
+     * el resto del orden en que el estudiante los eligió.
+     */
+    private List<Grupo> ordenarCorrequisitosPrimero(
+            List<Grupo> grupos,
+            List<Long> idsPlan
+    ) {
+
+        Set<Long> idsCurso =
+                grupos
+                        .stream()
+                        .map(Grupo::getIdCurso)
+                        .collect(Collectors.toSet());
+
+        // curso -> cursos de la selección que debe llevar junto con él.
+        Map<Long, Set<Long>> dependencias =
+                new HashMap<>();
+
+        requisitosCursoRepository
+                .findActivosPorPlanesYCursos(
+                        idsPlan,
+                        idsCurso
+                )
+                .stream()
+                .filter(requisito ->
+                        TIPO_CORREQUISITO.equals(
+                                requisito.getIdTipoRequisito().getCodigo()
+                        )
+                )
+                .filter(requisito ->
+                        idsCurso.contains(
+                                requisito.getIdCursoRequerido().getId()
+                        )
+                )
+                .forEach(requisito ->
+                        dependencias
+                                .computeIfAbsent(
+                                        requisito.getIdCurso().getId(),
+                                        id -> new HashSet<>()
+                                )
+                                .add(
+                                        requisito.getIdCursoRequerido().getId()
+                                )
+                );
+
+        List<Grupo> pendientes =
+                new ArrayList<>(grupos);
+
+        List<Grupo> ordenados =
+                new ArrayList<>();
+
+        Set<Long> cursosInsertados =
+                new HashSet<>();
+
+        while (!pendientes.isEmpty()) {
+
+            // Si dos cursos se exigen mutuamente no existe un orden posible:
+            // se sigue el orden original y la base de datos informará el motivo.
+            Grupo siguiente =
+                    pendientes
+                            .stream()
+                            .filter(grupo ->
+                                    cursosInsertados.containsAll(
+                                            dependencias.getOrDefault(
+                                                    grupo.getIdCurso(),
+                                                    Set.of()
+                                            )
+                                    )
+                            )
+                            .findFirst()
+                            .orElse(pendientes.get(0));
+
+            pendientes.remove(siguiente);
+            ordenados.add(siguiente);
+            cursosInsertados.add(siguiente.getIdCurso());
+        }
+
+        return ordenados;
+    }
+
+    /*
+     * Los triggers de la base de datos rechazan con SQLSTATE 45000 y un
+     * mensaje propio (por ejemplo, "El estudiante no cumple los
+     * prerrequisitos del curso"). Devuelve ese mensaje, o null si el error
+     * es de otra naturaleza.
+     */
+    private String mensajeDeReglaDeBaseDeDatos(
+            Throwable error
+    ) {
+
+        for (Throwable causa = error;
+             causa != null;
+             causa = causa.getCause()) {
+
+            if (causa instanceof SQLException sqlException
+                    && "45000".equals(sqlException.getSQLState())) {
+
+                return sqlException.getMessage();
+            }
+        }
+
+        return null;
     }
 
     /*

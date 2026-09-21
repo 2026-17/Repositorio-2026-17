@@ -14,7 +14,7 @@ export function formatearHorarios(horarios) {
 }
 
 // La API entrega los cursos aprobados como [{ idCurso, nota }]. Se indexan
-// por curso; la nota puede ser null (curso equiparado o cualitativo).
+// por curso; la nota puede ser null (valoración cualitativa).
 export function mapaAprobados(cursosAprobados) {
     return new Map((cursosAprobados ?? []).map((c) => [c.idCurso, c.nota]));
 }
@@ -22,7 +22,8 @@ export function mapaAprobados(cursosAprobados) {
 function estaAprobado(aprobados, idCurso, notaMinima) {
     if (!aprobados.has(idCurso)) return false;
     const nota = aprobados.get(idCurso);
-    return notaMinima == null || nota == null || nota >= notaMinima;
+    // Igual que el servidor: con nota mínima, la nota debe existir y alcanzarla.
+    return notaMinima == null || (nota != null && nota >= notaMinima);
 }
 
 function horasSolapan(horarioA, horarioB) {
@@ -60,7 +61,7 @@ export function validarSeleccion({
 
             if (
                 req.tipo === "CORREQUISITO"
-                && !aprobados.has(req.idCursoRequerido)
+                && !estaAprobado(aprobados, req.idCursoRequerido, req.notaMinima)
                 && !idsCursosMatriculados.includes(req.idCursoRequerido)
                 && !idsCursosSeleccionados.includes(req.idCursoRequerido)
             ) {
