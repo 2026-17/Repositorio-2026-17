@@ -41,6 +41,7 @@ public record EstudianteCreateRequest(
         @Size(max = 30, message = "El teléfono no puede superar 30 caracteres")
         String telefono,
 
+        @NotBlank(message = "El correo electrónico es obligatorio")
         @Email(message = "El correo electrónico no tiene un formato válido")
         @Size(max = 254, message = "El correo no puede superar 254 caracteres")
         String correo,
@@ -49,12 +50,17 @@ public record EstudianteCreateRequest(
         @Size(max = 80, message = "El nivel escolar no puede superar 80 caracteres")
         String nivelEscolar,
 
-        Long idCentroEducativo,
+        @Size(max = 180, message = "El centro educativo no puede superar 180 caracteres")
+        String centroEducativo,
 
         String condicionesRelevantes,
 
         @NotNull(message = "El instrumento es obligatorio")
         Integer idInstrumento,
+
+        // Opcional: el profesor que impartirá ese instrumento desde el
+        // registro del estudiante. Debe tener el instrumento como especialidad.
+        Long idProfesor,
 
         @Size(max = 2, message = "Un estudiante puede registrar como máximo dos encargados")
         @Valid

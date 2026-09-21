@@ -2,6 +2,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { API_URL } from "../../config/api.js";
 import "./Profesores.css";
 
+// Por ahora la clase de puesto es un dato fijo (no hay catálogo con varias opciones).
+const CLASE_PUESTO_DEFAULT =
+    "Profesor de Enseñanza Técnica Profesional(III y IV Ciclos, Enseñanza Especial y Escuela Laboratorio) (G. de E)";
+
 import { useDialog } from "../../components/dialog/useDialog";
 
 const initialForm = {
@@ -14,15 +18,28 @@ const initialForm = {
     correo: "",
     direccion: "",
     gradoAcademico: "",
-    especialidad: "",
+    especialidades: [],
     empleador: "",
+    clasePuesto: CLASE_PUESTO_DEFAULT,
     fechaIngreso: "",
-    fechaSalida: "",
     contrasena: "",
 };
 
 function nombreCompleto(p) {
     return [p.nombres, p.primerApellido, p.segundoApellido].filter(Boolean).join(" ");
+}
+
+// El backend sigue guardando "especialidad" como un único texto; para permitir
+// varias especialidades por profesor las unimos/separamos por coma en ese campo.
+function especialidadesDesdeTexto(texto) {
+    return (texto || "")
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+}
+
+function especialidadesATexto(lista) {
+    return lista.filter(Boolean).join(", ");
 }
 
 function Profesores() {
@@ -128,6 +145,17 @@ function Profesores() {
         setErrores((e) => ({ ...e, [name]: "" }));
     }
 
+    function toggleEspecialidad(nombre) {
+        setForm((f) => {
+            const yaEsta = f.especialidades.includes(nombre);
+            const especialidades = yaEsta
+                ? f.especialidades.filter((e) => e !== nombre)
+                : [...f.especialidades, nombre];
+            return { ...f, especialidades };
+        });
+        setErrores((e) => ({ ...e, especialidades: "" }));
+    }
+
     function abrirNuevo() {
         setEditingId(null);
         setForm(initialForm);
@@ -148,10 +176,10 @@ function Profesores() {
             correo: p.correo || "",
             direccion: p.direccion || "",
             gradoAcademico: p.gradoAcademico || "",
-            especialidad: p.especialidad || "",
+            especialidades: especialidadesDesdeTexto(p.especialidad),
             empleador: p.empleador || "",
+            clasePuesto: p.clasePuesto || CLASE_PUESTO_DEFAULT,
             fechaIngreso: p.fechaIngreso || "",
-            fechaSalida: p.fechaSalida || "",
         });
         setErrores({});
         setFormAbierto(true);
@@ -202,13 +230,14 @@ function Profesores() {
             correo: form.correo.trim() || null,
             direccion: form.direccion.trim() || null,
             gradoAcademico: form.gradoAcademico.trim() || null,
-            especialidad: form.especialidad.trim() || null,
+            especialidad: especialidadesATexto(form.especialidades) || null,
             empleador: form.empleador.trim() || null,
+            clasePuesto: form.clasePuesto.trim() || null,
             fechaIngreso: form.fechaIngreso || null,
         };
 
         const payload = editingId
-            ? { ...payloadBase, fechaSalida: form.fechaSalida || null }
+            ? payloadBase
             : {
                 profesor: payloadBase,
                 usuario: {
@@ -267,17 +296,16 @@ function Profesores() {
         }
     }
 
-    async function eliminar(p) {
+    async function reactivar(p) {
         const confirmado = await dialog.confirmar(
-            `¿Eliminar permanentemente a ${nombreCompleto(p)}? Esta acción no se puede deshacer.`,
+            `¿Reactivar a ${nombreCompleto(p)} para que pueda volver a impartir cursos?`,
             { titulo: "Eliminar profesor", textoAceptar: "Eliminar", peligro: true }
         );
         if (!confirmado) return;
         try {
-            const response = await fetch(`${API_URL}/profesores/${p.id}`, { method: "DELETE", headers: getHeaders() });
-            if (!response.ok) throw new Error("No fue posible eliminar al profesor.");
-            dialog.exito("Profesor eliminado correctamente.");
-            if (editingId === p.id) cerrarFormulario();
+            const response = await fetch(`${API_URL}/profesores/${p.id}/reactivar`, { method: "PATCH", headers: getHeaders() });
+            if (!response.ok) throw new Error("No fue posible reactivar al profesor.");
+            dialog.exito("Profesor reactivado correctamente.");
             setRecargar((n) => n + 1);
         } catch (e) {
             dialog.error(e.message);
@@ -429,27 +457,43 @@ function Profesores() {
                                 </select>
                             </div>
                             <div className="field">
-                                <label className="field-label">Especialidad</label>
-                                <select
-                                    className="input"
-                                    value={form.especialidad}
-                                    onChange={(e) => setField("especialidad", e.target.value)}
-                                >
-                                    <option value="">Seleccione una opción</option>
-                                    {instrumentos.map((i) => (
-                                        <option key={i.id} value={i.nombre}>{i.nombre}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div className="field">
                                 <label className="field-label">Grupo profesional / Empleador</label>
                                 <input
                                     className="input"
                                     maxLength={180}
-                                    placeholder="Colegio profesional o institución"
+                                    placeholder="VT, VAU u otro colegio profesional / institución"
                                     value={form.empleador}
                                     onChange={(e) => setField("empleador", e.target.value)}
                                 />
+                            </div>
+                            <div className="field">
+                                <label className="field-label">Clase de puesto</label>
+                                <input
+                                    className="input"
+                                    maxLength={255}
+                                    value={form.clasePuesto}
+                                    onChange={(e) => setField("clasePuesto", e.target.value)}
+                                    disabled={!editingId}
+                                />
+                                {!editingId && (
+                                    <p className="field-hint">Se asigna automáticamente y solo puede modificarse al editar el profesor.</p>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="field">
+                            <label className="field-label">Especialidad(es)</label>
+                            <div className="especialidades-checklist">
+                                {instrumentos.map((i) => (
+                                    <label key={i.id} className="especialidad-chip">
+                                        <input
+                                            type="checkbox"
+                                            checked={form.especialidades.includes(i.nombre)}
+                                            onChange={() => toggleEspecialidad(i.nombre)}
+                                        />
+                                        {i.nombre}
+                                    </label>
+                                ))}
                             </div>
                         </div>
 
@@ -463,17 +507,6 @@ function Profesores() {
                                     onChange={(e) => setField("fechaIngreso", e.target.value)}
                                 />
                             </div>
-                            {editingId && (
-                                <div className="field">
-                                    <label className="field-label">Fecha de salida</label>
-                                    <input
-                                        className="input"
-                                        type="date"
-                                        value={form.fechaSalida}
-                                        onChange={(e) => setField("fechaSalida", e.target.value)}
-                                    />
-                                </div>
-                            )}
                         </div>
 
                         {!editingId && (
@@ -515,28 +548,30 @@ function Profesores() {
                     <tr>
                         <th>Identificación</th>
                         <th>Nombre</th>
+                        <th>Grupo profesional</th>
+                        <th>Clase de puesto</th>
+                        <th>Especialidad</th>
                         <th>Contacto</th>
                         <th>Grado académico</th>
-                        <th>Especialidad</th>
-                        <th>Grupo profesional</th>
                         <th>Estado</th>
                         <th>Acciones</th>
                     </tr>
                     </thead>
                     <tbody>
                     {cargando ? (
-                        <tr><td className="empty" colSpan={8}>Cargando profesores...</td></tr>
+                        <tr><td className="empty" colSpan={9}>Cargando profesores...</td></tr>
                     ) : profesoresFiltrados.length === 0 ? (
-                        <tr><td className="empty" colSpan={8}>No hay profesores que coincidan con la búsqueda.</td></tr>
+                        <tr><td className="empty" colSpan={9}>No hay profesores que coincidan con la búsqueda.</td></tr>
                     ) : (
                         profesoresFiltrados.map((p) => (
                             <tr key={p.id}>
                                 <td>{p.tipoIdentificacion?.codigo + ": " || " "} {p.numeroIdentificacion}</td>
                                 <td>{nombreCompleto(p)}</td>
+                                <td>{p.empleador || "—"}</td>
+                                <td>{p.clasePuesto || "—"}</td>
+                                <td>{p.especialidad || "—"}</td>
                                 <td>{p.telefono || "—"}<br />{p.correo || ""}</td>
                                 <td>{p.gradoAcademico || "—"}</td>
-                                <td>{p.especialidad || "—"}</td>
-                                <td>{p.empleador || "—"}</td>
                                 <td>
                                         <span className={`badge ${p.activo ? "badge-activo" : "badge-inactivo"}`}>
                                             {p.activo ? "Activo" : "Inactivo"}
@@ -547,14 +582,15 @@ function Profesores() {
                                         <button type="button" className="btn btn--secondary btn-sm" onClick={() => abrirEditar(p)}>
                                             Editar
                                         </button>
-                                        {p.activo && (
+                                        {p.activo ? (
                                             <button type="button" className="btn btn--secondary btn-sm" onClick={() => darDeBaja(p)}>
                                                 Dar de baja
                                             </button>
+                                        ) : (
+                                            <button type="button" className="btn btn--secondary btn-sm" onClick={() => reactivar(p)}>
+                                                Reactivar
+                                            </button>
                                         )}
-                                        <button type="button" className="btn btn--danger btn-sm" onClick={() => eliminar(p)}>
-                                            Eliminar
-                                        </button>
                                     </div>
                                 </td>
                             </tr>

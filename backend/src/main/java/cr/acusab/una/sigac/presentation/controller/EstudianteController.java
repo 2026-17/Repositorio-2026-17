@@ -35,8 +35,8 @@ public class EstudianteController {
     }
 
     @GetMapping
-    public ResponseEntity<List<EstudianteBusquedaResponse>> buscar(
-            @RequestParam(required = false) String texto) {
+    @PreAuthorize("hasAnyRole('ADMINISTRATIVO', 'DIRECTOR_ACADEMICO')")
+    public ResponseEntity<List<EstudianteBusquedaResponse>> buscar(@RequestParam(required = false) String texto) {
         return ResponseEntity.ok(estudianteService.buscar(texto));
     }
 

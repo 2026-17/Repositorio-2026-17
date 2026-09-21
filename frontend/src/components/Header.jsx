@@ -64,6 +64,14 @@ const SUBNAV_POR_ROL = {
                 },
             ],
         },
+        {
+            to: "/director-academico/profesores",
+            label: "Profesores",
+        },
+        {
+            to: "/director-academico/estudiantes/instrumentos",
+            label: "Asignar instrumento",
+        },
     ],
 
     [ROLES.ADMINISTRATIVO]: [
@@ -96,10 +104,6 @@ const SUBNAV_POR_ROL = {
                     label: "Becas y pagos",
                 },
             ],
-        },
-        {
-            to: "/admin/administracion/profesores",
-            label: "Profesores",
         },
         {
             to: "/admin/administracion/reportes",

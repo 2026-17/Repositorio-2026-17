@@ -17,6 +17,18 @@ public class InstrumentoEstudianteRequest {
     @Positive(message = "El instrumento seleccionado no es válido.")
     private Integer idInstrumento;
 
+    @Positive(message = "El profesor seleccionado no es válido.")
+    private Long idProfesor;
+
+    /*
+     * Indica si este instrumento pasa a ser el principal del
+     * estudiante. Si ya existe un instrumento principal vigente,
+     * se le registra fecha_fin y se conserva en el historial.
+     *
+     * Por defecto es true: la mayoría de asignaciones desde la
+     * pantalla de expediente buscan fijar el instrumento principal.
+     */
+    private Boolean esPrincipal = true;
     @Size(max = 500, message = "Las observaciones no pueden superar los 500 caracteres.")
     private String observaciones;
 
@@ -28,6 +40,21 @@ public class InstrumentoEstudianteRequest {
         this.idInstrumento = idInstrumento;
     }
 
+    public Long getIdProfesor() {
+        return idProfesor;
+    }
+
+    public void setIdProfesor(Long idProfesor) {
+        this.idProfesor = idProfesor;
+    }
+
+    public Boolean getEsPrincipal() {
+        return esPrincipal;
+    }
+
+    public void setEsPrincipal(Boolean esPrincipal) {
+        this.esPrincipal = esPrincipal;
+    }
     public String getObservaciones() {
         return observaciones;
     }

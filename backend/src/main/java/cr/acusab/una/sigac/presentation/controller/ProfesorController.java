@@ -32,6 +32,13 @@ public class ProfesorController {
         return ResponseEntity.ok(profesorService.listar(activo));
     }
 
+    // HU-026 - Profesores activos con esa especialidad (para el selector de
+    // profesor al asignar un instrumento a un estudiante).
+    @GetMapping("/por-instrumento/{idInstrumento}")
+    public ResponseEntity<List<ProfesorResponse>> listarPorInstrumento(@PathVariable Integer idInstrumento) {
+        return ResponseEntity.ok(profesorService.listarPorInstrumento(idInstrumento));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<ProfesorResponse> obtener(@PathVariable Long id) {
         return ResponseEntity.ok(profesorService.obtener(id));
@@ -46,6 +53,11 @@ public class ProfesorController {
     @PatchMapping("/{id}/baja")
     public ResponseEntity<ProfesorResponse> darDeBaja(@PathVariable Long id) {
         return ResponseEntity.ok(profesorService.darDeBaja(id));
+    }
+
+    @PatchMapping("/{id}/reactivar")
+    public ResponseEntity<ProfesorResponse> reactivar(@PathVariable Long id) {
+        return ResponseEntity.ok(profesorService.reactivar(id));
     }
 
     @DeleteMapping("/{id}")

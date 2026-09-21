@@ -12,6 +12,8 @@ public record InstrumentoEstudianteResponse(
         Integer idInstrumento,
         String codigoInstrumento,
         String nombreInstrumento,
+        Long idProfesor,
+        String nombreProfesor,
         LocalDate fechaInicio,
         LocalDate fechaFin,
         boolean vigente,

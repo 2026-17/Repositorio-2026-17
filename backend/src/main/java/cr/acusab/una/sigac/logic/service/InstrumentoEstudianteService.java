@@ -3,9 +3,11 @@ package cr.acusab.una.sigac.logic.service;
 import cr.acusab.una.sigac.data.entity.Estudiante;
 import cr.acusab.una.sigac.data.entity.EstudiantesInstrumento;
 import cr.acusab.una.sigac.data.entity.Instrumento;
+import cr.acusab.una.sigac.data.entity.Profesor;
 import cr.acusab.una.sigac.data.repository.EstudianteInstrumentoRepository;
 import cr.acusab.una.sigac.data.repository.EstudianteRepository;
 import cr.acusab.una.sigac.data.repository.InstrumentoRepository;
+import cr.acusab.una.sigac.data.repository.ProfesorRepository;
 import cr.acusab.una.sigac.logic.exception.BusinessException;
 import cr.acusab.una.sigac.presentation.dto.request.InstrumentoEstudianteRequest;
 import cr.acusab.una.sigac.presentation.dto.response.InstrumentoEstudianteResponse;
@@ -36,15 +38,18 @@ public class InstrumentoEstudianteService {
     private final EstudianteRepository estudianteRepository;
     private final InstrumentoRepository instrumentoRepository;
     private final EstudianteInstrumentoRepository estudianteInstrumentoRepository;
+    private final ProfesorRepository profesorRepository;
 
     public InstrumentoEstudianteService(
             EstudianteRepository estudianteRepository,
             InstrumentoRepository instrumentoRepository,
-            EstudianteInstrumentoRepository estudianteInstrumentoRepository
+            EstudianteInstrumentoRepository estudianteInstrumentoRepository,
+            ProfesorRepository profesorRepository
     ) {
         this.estudianteRepository = estudianteRepository;
         this.instrumentoRepository = instrumentoRepository;
         this.estudianteInstrumentoRepository = estudianteInstrumentoRepository;
+        this.profesorRepository = profesorRepository;
     }
 
     /*
@@ -73,9 +78,18 @@ public class InstrumentoEstudianteService {
                             "El estudiante ya tiene asignado ese instrumento actualmente.");
                 });
 
-        // 4. Registrar la nueva asignación con su fecha de inicio.
+        // 3.1 Si se indicó un profesor, validar que exista, esté activo
+        // y tenga ese instrumento como especialidad.
+        Profesor profesor = obtenerProfesorParaInstrumento(request.getIdProfesor(), instrumento);
+
+        // 4. La HU-026 no define un instrumento principal: un estudiante
+        // puede tener varios instrumentos vigentes simultáneamente.
+        // El campo esPrincipal se conserva por compatibilidad del contrato,
+        // pero no dispara ninguna acción adicional al registrar la asignación.
+
+        // 5. Registrar la nueva asignación con su fecha de inicio.
         EstudiantesInstrumento asignacion = crearAsignacion(
-                estudiante, instrumento, request.getObservaciones());
+                estudiante, instrumento, profesor, request.getObservaciones());
 
         return mapearAResponse(estudianteInstrumentoRepository.save(asignacion));
     }
@@ -141,14 +155,42 @@ public class InstrumentoEstudianteService {
     // --- Métodos de apoyo ---
 
     private EstudiantesInstrumento crearAsignacion(
-            Estudiante estudiante, Instrumento instrumento, String observaciones) {
+            Estudiante estudiante, Instrumento instrumento, Profesor profesor, String observaciones) {
 
         EstudiantesInstrumento asignacion = new EstudiantesInstrumento();
         asignacion.setEstudiante(estudiante);
         asignacion.setInstrumento(instrumento);
+        asignacion.setProfesor(profesor);
         asignacion.setFechaInicio(LocalDate.now());
         asignacion.setObservaciones(observaciones);
         return asignacion;
+    }
+
+    // HU-026 - El profesor es opcional, pero si se indica debe existir,
+    // estar activo y tener ese instrumento entre sus especialidades
+    // (campo de texto separado por comas).
+    private Profesor obtenerProfesorParaInstrumento(Long idProfesor, Instrumento instrumento) {
+        if (idProfesor == null) {
+            return null;
+        }
+
+        Profesor profesor = profesorRepository.findById(idProfesor)
+                .orElseThrow(() -> new BusinessException("El profesor indicado no existe."));
+
+        if (!Boolean.TRUE.equals(profesor.getActivo())) {
+            throw new BusinessException("El profesor indicado no está activo.");
+        }
+
+        String especialidad = profesor.getEspecialidad();
+        boolean tieneEspecialidad = especialidad != null &&
+                especialidad.toLowerCase().contains(instrumento.getNombre().toLowerCase());
+
+        if (!tieneEspecialidad) {
+            throw new BusinessException(
+                    "El profesor seleccionado no tiene " + instrumento.getNombre() + " como especialidad.");
+        }
+
+        return profesor;
     }
 
     private Estudiante obtenerEstudiante(Long idEstudiante) {
@@ -170,6 +212,7 @@ public class InstrumentoEstudianteService {
 
     private InstrumentoEstudianteResponse mapearAResponse(EstudiantesInstrumento asignacion) {
         Instrumento instrumento = asignacion.getInstrumento();
+        Profesor profesor = asignacion.getProfesor();
 
         return new InstrumentoEstudianteResponse(
                 asignacion.getId(),
@@ -177,10 +220,20 @@ public class InstrumentoEstudianteService {
                 instrumento.getId(),
                 instrumento.getCodigo(),
                 instrumento.getNombre(),
+                profesor != null ? profesor.getId() : null,
+                profesor != null ? nombreCompleto(profesor) : null,
                 asignacion.getFechaInicio(),
                 asignacion.getFechaFin(),
                 asignacion.getFechaFin() == null,
                 asignacion.getObservaciones()
         );
+    }
+
+    private String nombreCompleto(Profesor p) {
+        StringBuilder sb = new StringBuilder(p.getNombres()).append(" ").append(p.getPrimerApellido());
+        if (p.getSegundoApellido() != null && !p.getSegundoApellido().isBlank()) {
+            sb.append(" ").append(p.getSegundoApellido());
+        }
+        return sb.toString();
     }
 }

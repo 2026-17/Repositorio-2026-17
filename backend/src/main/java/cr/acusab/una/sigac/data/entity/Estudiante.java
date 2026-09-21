@@ -64,8 +64,9 @@ public class Estudiante {
     @Column(name = "telefono", length = 30)
     private String telefono;
 
+    @NotNull
     @Size(max = 254)
-    @Column(name = "correo", length = 254)
+    @Column(name = "correo", nullable = false, length = 254)
     private String correo;
 
     @Size(max = 500)
@@ -76,10 +77,15 @@ public class Estudiante {
     @Column(name = "nivel_escolar", length = 80)
     private String nivelEscolar;
 
+    // Legado: ya no se usa para nuevos registros, ver centroEducativo (texto).
     @ManyToOne(fetch = FetchType.LAZY)
     @OnDelete(action = OnDeleteAction.SET_NULL)
     @JoinColumn(name = "id_centro_educativo")
     private CentrosEducativo idCentroEducativo;
+
+    @Size(max = 180)
+    @Column(name = "centro_educativo", length = 180)
+    private String centroEducativo;
 
     @Lob
     @Column(name = "condiciones_relevantes")

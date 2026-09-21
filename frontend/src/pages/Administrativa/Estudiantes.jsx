@@ -100,7 +100,7 @@ function Estudiantes() {
         setBuscando(true);
         const temporizador = setTimeout(async () => {
             try {
-                const response = await fetch(`/api/estudiantes?texto=${encodeURIComponent(consulta)}`, {
+                const response = await fetch(`${API_URL}/estudiantes?texto=${encodeURIComponent(consulta)}`, {
                     headers: authHeaders,
                 });
                 if (!response.ok) throw new Error();
@@ -135,7 +135,7 @@ function Estudiantes() {
         limpiarSeleccion();
 
         try {
-            const response = await fetch(`/api/estudiantes/${idEstudiante}`, { headers: authHeaders });
+            const response = await fetch(`${API_URL}/estudiantes/${idEstudiante}`, { headers: authHeaders });
             if (!response.ok) throw new Error();
             const data = await response.json();
             setEstudiante(data);
@@ -171,7 +171,7 @@ function Estudiantes() {
 
         try {
             const params = new URLSearchParams({ idPeriodo, anio, mes });
-            const response = await fetch(`/api/pagos/estudiante/${estudiante.id}/mes?${params}`, {
+            const response = await fetch(`${API_URL}/pagos/estudiante/${estudiante.id}/mes?${params}`, {
                 headers: authHeaders,
             });
             const body = await response.json().catch(() => ({}));
@@ -223,7 +223,7 @@ function Estudiantes() {
 
         try {
             setGuardandoPago(true);
-            const response = await fetch(`/api/pagos`, {
+            const response = await fetch(`${API_URL}/pagos`, {
                 method: "POST",
                 headers: authHeaders,
                 body: data,
@@ -253,7 +253,7 @@ function Estudiantes() {
     async function verComprobante() {
         setAbriendoComprobante(true);
         try {
-            const response = await fetch(`/api/pagos/${estadoMes.idMensualidad}/comprobante`, {
+            const response = await fetch(`${API_URL}/pagos/${estadoMes.idMensualidad}/comprobante`, {
                 headers: authHeaders,
             });
             if (response.status === 401) throw new Error("La sesión ha expirado. Inicie sesión nuevamente.");
@@ -276,7 +276,7 @@ function Estudiantes() {
     async function eliminarPagoAhora() {
         try {
             setEliminandoPago(true);
-            const response = await fetch(`/api/pagos/${estadoMes.idMensualidad}`, {
+            const response = await fetch(`${API_URL}/pagos/${estadoMes.idMensualidad}`, {
                 method: "DELETE",
                 headers: authHeaders,
             });

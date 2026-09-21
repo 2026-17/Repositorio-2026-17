@@ -54,7 +54,8 @@ public class ProfesorUpdateRequest {
     @Size(max = 180)
     private String empleador;
 
-    private LocalDate fechaIngreso;
+    @Size(max = 255)
+    private String clasePuesto;
 
-    private LocalDate fechaSalida;
+    private LocalDate fechaIngreso;
 }
