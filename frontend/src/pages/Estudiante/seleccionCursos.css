@@ -1,0 +1,174 @@
+/* =========================================
+   HU-002 / Issue #61 - Selección de cursos para matrícula
+   ========================================= */
+
+.seleccion-cursos-page {
+    padding: 32px 0 48px;
+}
+
+.seleccion-cursos-page__header {
+    margin-bottom: 24px;
+}
+
+.seleccion-cursos-page__header h1 {
+    margin: 0 0 4px;
+    color: var(--primary-purple);
+    font-size: 1.6rem;
+}
+
+.seleccion-cursos-page__header p {
+    margin: 0;
+    color: #666;
+}
+
+.alert {
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    font-size: 0.9rem;
+}
+
+.alert--error {
+    background-color: #fdecec;
+    color: var(--primary-red-dark);
+    border: 1px solid #f4c2c2;
+}
+
+.alert--success {
+    background-color: #eaf8ef;
+    color: #1f7a45;
+    border: 1px solid #bfe8cf;
+}
+
+.resumen-matricula {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+    background: var(--white);
+    border-radius: 12px;
+    padding: 20px 24px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    margin-bottom: 24px;
+}
+
+.resumen-matricula > div {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.resumen-matricula__label {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: #888;
+}
+
+/* Tabla de oferta de cursos */
+.oferta-tabla-wrap {
+    background: var(--white);
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    overflow-x: auto;
+    margin-bottom: 20px;
+}
+
+.oferta-tabla {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.oferta-tabla th,
+.oferta-tabla td {
+    text-align: left;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border-color);
+    vertical-align: top;
+}
+
+.oferta-tabla th {
+    background-color: var(--neutral-light);
+    color: var(--primary-purple-dark);
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.oferta-tabla tbody tr:hover {
+    background-color: #faf7fc;
+}
+
+.fila--seleccionada {
+    background-color: #f3ecf7;
+}
+
+.fila--error {
+    background-color: #fdf3f3;
+}
+
+.oferta-tabla__validacion {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 220px;
+}
+
+.texto-error {
+    color: var(--primary-red-dark);
+    font-size: 0.78rem;
+    font-weight: 500;
+}
+
+.oferta-tabla-empty {
+    padding: 24px;
+    text-align: center;
+    color: #777;
+}
+
+.badge--sin-cupos {
+    background-color: #fdecec;
+    color: var(--primary-red-dark);
+}
+
+.badge--pendiente {
+    background-color: #fdf3e0;
+    color: #96690a;
+}
+
+/* Acciones de envío */
+.seleccion-cursos-page__acciones {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.seleccion-cursos-page__acciones p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #555;
+}
+
+/* Confirmación de solicitud enviada */
+.solicitud-confirmacion {
+    background: var(--white);
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+}
+
+.solicitud-confirmacion h2 {
+    margin-top: 0;
+    color: var(--primary-purple);
+    font-size: 1.2rem;
+}
+
+.solicitud-confirmacion ul {
+    margin: 12px 0 20px;
+    padding-left: 20px;
+}
+
+.solicitud-confirmacion li {
+    margin-bottom: 4px;
+}

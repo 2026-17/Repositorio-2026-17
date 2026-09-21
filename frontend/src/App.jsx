@@ -7,6 +7,7 @@ import {
 
 import Login from "./pages/Publico/login";
 import Notificaciones from "./pages/Estudiante/Notificaciones";
+import SeleccionCursos from "./pages/Estudiante/SeleccionCursos";
 import CreateUsers from "./pages/AdminSis/createUsers";
 import CreateStudent from "./pages/AdminSis/createStudent";
 import Estudiantes from "./pages/AdminSis/Estudiantes";
@@ -162,6 +163,12 @@ function App() {
                     <Route
                         path="/estudiante/notificaciones"
                         element={<Notificaciones />}
+                    />
+
+                    {/* HU-002 - Solicitar matrícula de cursos */}
+                    <Route
+                        path="/estudiante/matricula"
+                        element={<SeleccionCursos />}
                     />
 
                 </Route>
