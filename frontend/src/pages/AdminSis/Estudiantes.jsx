@@ -4,7 +4,6 @@ import { API_URL } from "../../config/api.js";
 import CreateStudent from "./createStudent";
 import EditarEstudiante from "./EditarEstudiante";
 import "./styles/admin_Sis.css";
-import "../Administrativa/Profesores.css";
 import "./styles/Estudiantes.css";
 
 import { useDialog } from "../../components/dialog/useDialog";

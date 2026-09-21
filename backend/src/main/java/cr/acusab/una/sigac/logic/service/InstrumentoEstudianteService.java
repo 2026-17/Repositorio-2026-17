@@ -78,18 +78,14 @@ public class InstrumentoEstudianteService {
                             "El estudiante ya tiene asignado ese instrumento actualmente.");
                 });
 
-        boolean esPrincipal = request.getEsPrincipal() == null || request.getEsPrincipal();
-
         // 3.1 Si se indicó un profesor, validar que exista, esté activo
         // y tenga ese instrumento como especialidad.
         Profesor profesor = obtenerProfesorParaInstrumento(request.getIdProfesor(), instrumento);
 
-        // 4. Si el instrumento nuevo es principal, cerrar el
-        // instrumento principal anterior (si existe) conservando
-        // su historial, tal como pide la HU al "cambiar de instrumento".
-        if (esPrincipal) {
-            cerrarInstrumentoPrincipalVigente(idEstudiante);
-        }
+        // 4. La HU-026 no define un instrumento principal: un estudiante
+        // puede tener varios instrumentos vigentes simultáneamente.
+        // El campo esPrincipal se conserva por compatibilidad del contrato,
+        // pero no dispara ninguna acción adicional al registrar la asignación.
 
         // 5. Registrar la nueva asignación con su fecha de inicio.
         EstudiantesInstrumento asignacion = crearAsignacion(

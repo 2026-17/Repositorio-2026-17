@@ -106,10 +106,6 @@ const SUBNAV_POR_ROL = {
             ],
         },
         {
-            to: "/admin/administracion/profesores",
-            label: "Profesores",
-        },
-        {
             to: "/admin/administracion/reportes",
             label: "Reportes",
         },
