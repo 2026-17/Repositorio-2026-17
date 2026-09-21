@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Collection;
 import java.util.List;
 
 public interface RequisitosCursoRepository extends JpaRepository<RequisitosCurso, Long> {
@@ -46,5 +47,23 @@ public interface RequisitosCursoRepository extends JpaRepository<RequisitosCurso
     List<RequisitosCurso> findActivosPorPlanYTipo(
             @Param("idPlanEstudio") Long idPlanEstudio,
             @Param("codigoTipo") String codigoTipo
+    );
+
+    /*
+     * Historia 2 - Requisitos activos de un conjunto de cursos dentro de
+     * los planes en los que el estudiante está inscrito.
+     */
+    @Query("""
+            SELECT r
+            FROM RequisitosCurso r
+            JOIN FETCH r.idCursoRequerido
+            JOIN FETCH r.idTipoRequisito
+            WHERE r.idPlanEstudio.id IN :idsPlanEstudio
+              AND r.idCurso.id IN :idsCurso
+              AND r.activo = true
+            """)
+    List<RequisitosCurso> findActivosPorPlanesYCursos(
+            @Param("idsPlanEstudio") Collection<Long> idsPlanEstudio,
+            @Param("idsCurso") Collection<Long> idsCurso
     );
 }

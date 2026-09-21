@@ -2,11 +2,13 @@ package cr.acusab.una.sigac.presentation.dto.request;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PastOrPresent;
 import jakarta.validation.constraints.Size;
 
 import java.time.LocalDate;
+import java.util.List;
 
 public record EstudianteUpdateRequest(
         @NotNull Integer idTipoIdentificacion,
@@ -22,5 +24,6 @@ public record EstudianteUpdateRequest(
         @NotBlank @Size(max = 80) String nivelEscolar,
         @Size(max = 180) String centroEducativo,
         String condicionesRelevantes,
-        @NotNull Integer idInstrumento
+        @NotNull Integer idInstrumento,
+        @NotEmpty(message = "Debe seleccionar al menos un plan de estudio") List<Long> idsPlanEstudio
 ) {}

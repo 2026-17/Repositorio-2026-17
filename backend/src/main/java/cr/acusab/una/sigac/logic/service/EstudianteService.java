@@ -54,6 +54,7 @@ public class EstudianteService {
     private final EstadoUsuarioRepository estadoUsuarioRepository;
     private final PasswordEncoder passwordEncoder;
     private final BecaService becaService;
+    private final InscripcionPlanEstudioService inscripcionPlanService;
 
     @Value("${sigac.storage.documents:./storage/documents}")
     private String storageDirectory;
@@ -72,7 +73,8 @@ public class EstudianteService {
                              RoleRepository roleRepository,
                              EstadoUsuarioRepository estadoUsuarioRepository,
                              PasswordEncoder passwordEncoder,
-                             BecaService becaService) {
+                             BecaService becaService,
+                             InscripcionPlanEstudioService inscripcionPlanService) {
         this.estudianteRepository = estudianteRepository;
         this.encargadoRepository = encargadoRepository;
         this.estudianteEncargadoRepository = estudianteEncargadoRepository;
@@ -88,6 +90,7 @@ public class EstudianteService {
         this.estadoUsuarioRepository = estadoUsuarioRepository;
         this.passwordEncoder = passwordEncoder;
         this.becaService = becaService;
+        this.inscripcionPlanService = inscripcionPlanService;
     }
 
     @Transactional
@@ -98,6 +101,7 @@ public class EstudianteService {
         }
         validarGenero(request.genero());
         validarPdf(politica);
+        inscripcionPlanService.validarParaRegistro(request.idsPlanEstudio());
         int edad = calcularEdad(request.fechaNacimiento());
         boolean menor = edad < 18;
         if (menor) {
@@ -129,6 +133,7 @@ public class EstudianteService {
         estudiante = estudianteRepository.save(estudiante);
 
         crearRelacionInstrumento(estudiante, instrumento, profesor);
+        List<Long> idsPlanes = inscripcionPlanService.sincronizar(estudiante.getId(), request.idsPlanEstudio());
 
         if (menor) {
             for (var data : request.encargados()) {
@@ -158,7 +163,7 @@ public class EstudianteService {
             becaAsignada = becaService.asignar(becaRequest);
         }
 
-        return respuesta(estudiante, instrumento.getId(), edad, becaAsignada);
+        return respuesta(estudiante, instrumento.getId(), edad, becaAsignada, idsPlanes);
     }
 
     private Usuario crearUsuarioEstudiante(EstudianteCreateRequest request, String identificacion) {
@@ -267,7 +272,8 @@ public class EstudianteService {
                 .filter(x -> x.getEstudiante() != null && Objects.equals(x.getEstudiante().getId(), id)
                         && x.getFechaFin() == null)
                 .map(x -> x.getInstrumento().getId()).findFirst().orElse(null);
-        return respuesta(estudiante, instrumentoId, calcularEdad(estudiante.getFechaNacimiento()), null);
+        return respuesta(estudiante, instrumentoId, calcularEdad(estudiante.getFechaNacimiento()), null,
+                inscripcionPlanService.idsPlanesActivos(id));
     }
 
     @Transactional
@@ -297,7 +303,8 @@ public class EstudianteService {
                         && x.getFechaFin() == null).toList();
         if (vigentes.isEmpty()) crearRelacionInstrumento(estudiante, instrumento, null);
         else { vigentes.get(0).setInstrumento(instrumento); estudianteInstrumentoRepository.save(vigentes.get(0)); }
-        return respuesta(estudiante, instrumento.getId(), edad, null);
+        List<Long> idsPlanes = inscripcionPlanService.sincronizar(id, request.idsPlanEstudio());
+        return respuesta(estudiante, instrumento.getId(), edad, null, idsPlanes);
     }
 
     private void aplicarDatos(Estudiante e, TiposIdentificacion tipo, String identificacion, String nombres,
@@ -356,11 +363,12 @@ public class EstudianteService {
         return profesor;
     }
 
-    private EstudianteResponse respuesta(Estudiante e, Integer instrumentoId, int edad, BecaResponse beca) {
+    private EstudianteResponse respuesta(Estudiante e, Integer instrumentoId, int edad, BecaResponse beca,
+                                         List<Long> idsPlanEstudio) {
         return new EstudianteResponse(e.getId(), e.getNumeroIdentificacion(), e.getNombres(), e.getPrimerApellido(),
                 e.getSegundoApellido(), e.getFechaNacimiento(), edad, e.getGenero(), e.getDireccion(), e.getTelefono(),
                 e.getCorreo(), e.getNivelEscolar(), e.getCentroEducativo(),
-                instrumentoId, edad < 18, beca);
+                instrumentoId, edad < 18, beca, idsPlanEstudio);
     }
 
     private int calcularEdad(LocalDate nacimiento) {

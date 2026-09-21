@@ -1,13 +1,29 @@
-// HU-002 / Issue #61 - Selección de cursos para matrícula.
+// Historia 2 - Matricular cursos previamente autorizados.
+//
 // Reglas de validación de la selección de cursos, separadas de la UI.
+// Replican las que aplica el servidor al confirmar para dar respuesta
+// inmediata al estudiante; el servidor es quien decide.
 
 const NOMBRES_DIAS = { 1: "Lun", 2: "Mar", 3: "Mié", 4: "Jue", 5: "Vie", 6: "Sáb", 7: "Dom" };
 
 export function formatearHorarios(horarios) {
-    if (!horarios || horarios.length === 0) return "Sin horario definido";
+    if (!horarios || horarios.length === 0) return "Por definir";
     return horarios
         .map((h) => `${NOMBRES_DIAS[h.diaSemana] ?? "?"} ${h.horaInicio}-${h.horaFin}`)
         .join(", ");
+}
+
+// La API entrega los cursos aprobados como [{ idCurso, nota }]. Se indexan
+// por curso; la nota puede ser null (valoración cualitativa).
+export function mapaAprobados(cursosAprobados) {
+    return new Map((cursosAprobados ?? []).map((c) => [c.idCurso, c.nota]));
+}
+
+function estaAprobado(aprobados, idCurso, notaMinima) {
+    if (!aprobados.has(idCurso)) return false;
+    const nota = aprobados.get(idCurso);
+    // Igual que el servidor: con nota mínima, la nota debe existir y alcanzarla.
+    return notaMinima == null || (nota != null && nota >= notaMinima);
 }
 
 function horasSolapan(horarioA, horarioB) {
@@ -21,18 +37,17 @@ export function gruposConflictoHorario(grupoA, grupoB) {
 }
 
 // Prerrequisitos: deben aparecer entre los cursos que el estudiante ya aprobó.
-// Correquisitos: deben estar ya aprobados o matriculados junto con este curso
-// dentro de la misma solicitud. También se valida choque de horario contra lo
+// Correquisitos: deben estar ya aprobados o matriculados, o incluidos en la
+// misma selección. También se valida el choque de horario contra lo
 // seleccionado y contra lo que el estudiante ya tenga matriculado en el período.
 export function validarSeleccion({
-    oferta,
     requisitosPorCurso,
-    cursosAprobados,
-    idsGruposSeleccionados,
+    aprobados,
+    seleccionados,
     gruposYaMatriculados = [],
 }) {
-    const seleccionados = oferta.filter((g) => idsGruposSeleccionados.includes(g.idGrupo));
     const idsCursosSeleccionados = seleccionados.map((g) => g.idCurso);
+    const idsCursosMatriculados = gruposYaMatriculados.map((g) => g.idCurso);
     const erroresPorGrupo = {};
 
     seleccionados.forEach((grupo) => {
@@ -40,16 +55,17 @@ export function validarSeleccion({
         const requisitos = requisitosPorCurso[grupo.idCurso] ?? [];
 
         requisitos.forEach((req) => {
-            const cursoRequerido = oferta.find((g) => g.idCurso === req.idCursoRequerido);
-            const nombreRequerido = cursoRequerido?.nombreCurso ?? `curso #${req.idCursoRequerido}`;
-            const yaAprobado = cursosAprobados.includes(req.idCursoRequerido);
-
-            if (req.tipo === "REQUISITO" && !yaAprobado) {
-                errores.push(`Prerrequisito incumplido: debe haber aprobado "${nombreRequerido}".`);
+            if (req.tipo === "REQUISITO" && !estaAprobado(aprobados, req.idCursoRequerido, req.notaMinima)) {
+                errores.push(`Prerrequisito incumplido: debe haber aprobado "${req.nombreCursoRequerido}".`);
             }
 
-            if (req.tipo === "CORREQUISITO" && !yaAprobado && !idsCursosSeleccionados.includes(req.idCursoRequerido)) {
-                errores.push(`Correquisito incumplido: debe matricular junto con "${nombreRequerido}".`);
+            if (
+                req.tipo === "CORREQUISITO"
+                && !estaAprobado(aprobados, req.idCursoRequerido, req.notaMinima)
+                && !idsCursosMatriculados.includes(req.idCursoRequerido)
+                && !idsCursosSeleccionados.includes(req.idCursoRequerido)
+            ) {
+                errores.push(`Correquisito incumplido: debe matricular junto con "${req.nombreCursoRequerido}".`);
             }
         });
 
@@ -82,8 +98,7 @@ export function validarSeleccion({
 export function tieneBloqueoEstatico({
     grupo,
     requisitosPorCurso,
-    cursosAprobados,
-    oferta,
+    aprobados,
     idsCursosMatriculados = [],
 }) {
     if (idsCursosMatriculados.includes(grupo.idCurso)) {
@@ -96,13 +111,11 @@ export function tieneBloqueoEstatico({
 
     const requisitos = requisitosPorCurso[grupo.idCurso] ?? [];
     const prerrequisitoFaltante = requisitos.find(
-        (req) => req.tipo === "REQUISITO" && !cursosAprobados.includes(req.idCursoRequerido)
+        (req) => req.tipo === "REQUISITO" && !estaAprobado(aprobados, req.idCursoRequerido, req.notaMinima)
     );
 
     if (prerrequisitoFaltante) {
-        const cursoRequerido = oferta.find((g) => g.idCurso === prerrequisitoFaltante.idCursoRequerido);
-        const nombreRequerido = cursoRequerido?.nombreCurso ?? `curso #${prerrequisitoFaltante.idCursoRequerido}`;
-        return `Prerrequisito incumplido: debe haber aprobado "${nombreRequerido}".`;
+        return `Prerrequisito incumplido: debe haber aprobado "${prerrequisitoFaltante.nombreCursoRequerido}".`;
     }
 
     return null;

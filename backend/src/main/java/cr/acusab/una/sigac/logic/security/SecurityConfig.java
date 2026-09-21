@@ -265,6 +265,43 @@ public class SecurityConfig {
                         .hasRole("ESTUDIANTE")
 
                         /*
+                         * =====================================================
+                         * Historia 2 - Matricular cursos autorizados
+                         * Rol: ESTUDIANTE
+                         *
+                         * Permite:
+                         * - consultar su oferta de matrícula;
+                         * - confirmar la selección de grupos.
+                         * =====================================================
+                         */
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/matriculas-estudiante/**"
+                        )
+                        .hasRole("ESTUDIANTE")
+
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/matriculas-estudiante/**"
+                        )
+                        .hasRole("ESTUDIANTE")
+
+                        /*
+                         * =====================================================
+                         * Planes de estudio vigentes
+                         * Roles: ADMINISTRATIVO y DIRECTOR_ACADEMICO
+                         *
+                         * Opciones del selector de planes al registrar y
+                         * editar estudiantes.
+                         * =====================================================
+                         */
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/planes-estudio"
+                        )
+                        .hasAnyRole("ADMINISTRATIVO", "DIRECTOR_ACADEMICO")
+
+                        /*
                          * Cualquier otro endpoint necesita
                          * un usuario autenticado.
                          */

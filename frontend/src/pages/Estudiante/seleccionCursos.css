@@ -1,5 +1,5 @@
 /* =========================================
-   HU-002 / Issue #61 - Selección de cursos para matrícula
+   Historia 2 - Matrícula de cursos autorizados
    ========================================= */
 
 .seleccion-cursos-page {
@@ -21,6 +21,12 @@
     color: #666;
 }
 
+.seccion-titulo {
+    margin: 0 0 12px;
+    color: var(--primary-purple-dark);
+    font-size: 1.05rem;
+}
+
 .alert {
     padding: 12px 16px;
     border-radius: 8px;
@@ -32,6 +38,12 @@
     background-color: #fdecec;
     color: var(--primary-red-dark);
     border: 1px solid #f4c2c2;
+}
+
+.alert--info {
+    background-color: #eef4fb;
+    color: #24527a;
+    border: 1px solid #c5d9ee;
 }
 
 .alert--success {
@@ -98,6 +110,12 @@
     background-color: #faf7fc;
 }
 
+.oferta-tabla__plan {
+    display: block;
+    color: #888;
+    font-size: 0.75rem;
+}
+
 .fila--seleccionada {
     background-color: #f3ecf7;
 }
@@ -106,17 +124,24 @@
     background-color: #fdf3f3;
 }
 
+.oferta-tabla__codigo {
+    white-space: nowrap;
+}
+
 .oferta-tabla__validacion {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
     min-width: 220px;
 }
 
 .texto-error {
+    display: block;
+    margin-bottom: 4px;
     color: var(--primary-red-dark);
     font-size: 0.78rem;
     font-weight: 500;
+}
+
+.texto-error:last-child {
+    margin-bottom: 0;
 }
 
 .oferta-tabla-empty {
@@ -130,12 +155,12 @@
     color: var(--primary-red-dark);
 }
 
-.badge--pendiente {
-    background-color: #fdf3e0;
-    color: #96690a;
+.badge--registrada {
+    background-color: #eaf8ef;
+    color: #1f7a45;
 }
 
-/* Acciones de envío */
+/* Acciones de confirmación */
 .seleccion-cursos-page__acciones {
     display: flex;
     align-items: center;
@@ -150,25 +175,26 @@
     color: #555;
 }
 
-/* Confirmación de solicitud enviada */
-.solicitud-confirmacion {
+/* Matrícula confirmada */
+.matricula-confirmada {
     background: var(--white);
     border-radius: 12px;
     padding: 24px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
 }
 
-.solicitud-confirmacion h2 {
+.matricula-confirmada h2 {
     margin-top: 0;
     color: var(--primary-purple);
     font-size: 1.2rem;
 }
 
-.solicitud-confirmacion ul {
-    margin: 12px 0 20px;
-    padding-left: 20px;
+.matricula-confirmada p {
+    margin: 0 0 8px;
 }
 
-.solicitud-confirmacion li {
-    margin-bottom: 4px;
+.matricula-confirmada .oferta-tabla-wrap {
+    margin: 12px 0 20px;
+    box-shadow: none;
+    border: 1px solid var(--border-color);
 }

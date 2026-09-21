@@ -62,6 +62,11 @@ public record EstudianteCreateRequest(
         // registro del estudiante. Debe tener el instrumento como especialidad.
         Long idProfesor,
 
+        // Obligatorio: los planes de estudio en los que se inscribe. Determinan
+        // los cursos que el estudiante podrá matricular.
+        @NotEmpty(message = "Debe seleccionar al menos un plan de estudio")
+        List<Long> idsPlanEstudio,
+
         @Size(max = 2, message = "Un estudiante puede registrar como máximo dos encargados")
         @Valid
         List<EncargadoRequest> encargados,

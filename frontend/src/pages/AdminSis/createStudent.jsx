@@ -62,6 +62,7 @@ const initialForm = {
   condicionesRelevantes: "",
   idInstrumento: "",
   idProfesor: "",
+  idsPlanEstudio: [],
   encargados: [],
 };
 
@@ -70,6 +71,7 @@ export default function CreateStudent({ onCancel, onSuccess } = {}) {
   const [types, setTypes] = useState([]);
   const [centers, setCenters] = useState([]);
   const [instruments, setInstruments] = useState([]);
+  const [planes, setPlanes] = useState([]);
   const [profesores, setProfesores] = useState([]);
   const [profesoresLoading, setProfesoresLoading] = useState(false);
   const [periodos, setPeriodos] = useState([]);
@@ -96,13 +98,15 @@ export default function CreateStudent({ onCancel, onSuccess } = {}) {
       fetch(`${API_URL}/registro/catalogos/instrumentos`, { headers }).then((r) => (r.ok ? r.json() : Promise.reject(new Error("No se pudo cargar instrumentos.")))),
       fetch(`${API_URL}/periodos-academicos`, { headers }).then((r) => (r.ok ? r.json() : Promise.reject(new Error("No se pudo cargar períodos académicos.")))),
       fetch(`${API_URL}/becas/tipos-becas`, { headers }).then((r) => (r.ok ? r.json() : Promise.reject(new Error("No se pudo cargar tipos de beca.")))),
+      fetch(`${API_URL}/planes-estudio`, { headers }).then((r) => (r.ok ? r.json() : Promise.reject(new Error("No se pudo cargar los planes de estudio.")))),
     ])
-      .then(([t, c, i, p, tb]) => {
+      .then(([t, c, i, p, tb, pl]) => {
         setTypes(t);
         setCenters(c);
         setInstruments(i);
         setPeriodos(p);
         setTiposBeca(tb);
+        setPlanes(pl);
       })
       .catch(() => {
         if (dialog?.error) dialog.error("No fue posible cargar los catálogos. Verifique que el backend esté disponible.");
@@ -181,6 +185,16 @@ export default function CreateStudent({ onCancel, onSuccess } = {}) {
     setErrors({});
   };
 
+  const togglePlan = (idPlan) => {
+    setForm((f) => ({
+      ...f,
+      idsPlanEstudio: f.idsPlanEstudio.includes(idPlan)
+        ? f.idsPlanEstudio.filter((id) => id !== idPlan)
+        : [...f.idsPlanEstudio, idPlan],
+    }));
+    setErrors((err) => ({ ...err, idsPlanEstudio: "" }));
+  };
+
   const reset = () => {
     setForm(initialForm);
     setPolicy(null);
@@ -210,6 +224,7 @@ export default function CreateStudent({ onCancel, onSuccess } = {}) {
       if (!String(form[name] ?? "").trim()) nextErrors[name] = message;
     });
 
+    if (form.idsPlanEstudio.length === 0) nextErrors.idsPlanEstudio = "Seleccione al menos un plan de estudio.";
     if (edad === null && form.fechaNacimiento) nextErrors.fechaNacimiento = "La fecha de nacimiento no es válida.";
     if (requiereCentro && !form.centroEducativo.trim()) nextErrors.centroEducativo = "Ingrese el centro educativo.";
     if (form.correo && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.correo)) nextErrors.correo = "Ingrese un correo electrónico válido.";
@@ -395,6 +410,21 @@ export default function CreateStudent({ onCancel, onSuccess } = {}) {
               </select>
             </Field>
           </div>
+          <Field
+            label="Planes de estudio"
+            required
+            error={errors.idsPlanEstudio}
+            errorKey="idsPlanEstudio"
+            hint={!catalogLoading && planes.length === 0 ? "No hay planes de estudio vigentes. El director académico debe crear uno." : "Determinan los cursos que el estudiante podrá matricular. Puede seleccionar más de uno."}
+          >
+            <div className="check-row">
+              {planes.map((p) => (
+                <label key={p.id}>
+                  <input type="checkbox" checked={form.idsPlanEstudio.includes(p.id)} onChange={() => togglePlan(p.id)} /> {p.nombre}
+                </label>
+              ))}
+            </div>
+          </Field>
           {requiereCentro ? (
             <Field label="Centro educativo" required hint="Se solicita para estudiantes de 6 a 17 años." error={errors.centroEducativo} errorKey="centroEducativo">
               <input className={`input ${errors.centroEducativo ? "input-error" : ""}`} maxLength={180} value={form.centroEducativo} onChange={(e) => setField("centroEducativo", e.target.value)} placeholder="Nombre del centro educativo" />

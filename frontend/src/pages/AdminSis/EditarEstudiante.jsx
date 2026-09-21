@@ -28,7 +28,7 @@ function todayISO() {
 const initialForm = {
     idTipoIdentificacion: "", numeroIdentificacion: "", nombres: "", primerApellido: "", segundoApellido: "",
     fechaNacimiento: "", genero: "", direccion: "", telefono: "", correo: "", nivelEscolar: "",
-    idCentroEducativo: "", condicionesRelevantes: "", idInstrumento: "",
+    idCentroEducativo: "", condicionesRelevantes: "", idInstrumento: "", idsPlanEstudio: [],
 };
 
 function EditarEstudiante({ studentId, onCancel, onSuccess } = {}) {
@@ -39,6 +39,7 @@ function EditarEstudiante({ studentId, onCancel, onSuccess } = {}) {
     const [types, setTypes] = useState([]);
     const [centers, setCenters] = useState([]);
     const [instruments, setInstruments] = useState([]);
+    const [planes, setPlanes] = useState([]);
     const [form, setForm] = useState(initialForm);
     const [errors, setErrors] = useState({});
     const [loading, setLoading] = useState(true);
@@ -52,14 +53,15 @@ function EditarEstudiante({ studentId, onCancel, onSuccess } = {}) {
             try {
                 const token = localStorage.getItem("token");
                 const headers = token ? { Authorization: `Bearer ${token}` } : {};
-                const [studentResponse, typesResponse, centersResponse, instrumentsResponse] = await Promise.all([
+                const [studentResponse, typesResponse, centersResponse, instrumentsResponse, plansResponse] = await Promise.all([
                     fetch(`/api/estudiantes/${id}`, { headers }),
                     fetch(`/api/registro/catalogos/tipos-identificacion`, { headers }),
                     fetch(`/api/registro/catalogos/centros-educativos`, { headers }),
                     fetch(`/api/registro/catalogos/instrumentos`, { headers }),
+                    fetch(`/api/planes-estudio`, { headers }),
                 ]);
-                if (!studentResponse.ok || !typesResponse.ok || !centersResponse.ok || !instrumentsResponse.ok) throw new Error("No fue posible cargar la información del estudiante.");
-                const [student, typeData, centerData, instrumentData] = await Promise.all([studentResponse.json(), typesResponse.json(), centersResponse.json(), instrumentsResponse.json()]);
+                if (!studentResponse.ok || !typesResponse.ok || !centersResponse.ok || !instrumentsResponse.ok || !plansResponse.ok) throw new Error("No fue posible cargar la información del estudiante.");
+                const [student, typeData, centerData, instrumentData, planData] = await Promise.all([studentResponse.json(), typesResponse.json(), centersResponse.json(), instrumentsResponse.json(), plansResponse.json()]);
                 setForm({
                     idTipoIdentificacion: String(student.idTipoIdentificacion ?? ""), numeroIdentificacion: student.numeroIdentificacion ?? "",
                     nombres: student.nombres ?? "", primerApellido: student.primerApellido ?? "", segundoApellido: student.segundoApellido ?? "",
@@ -67,10 +69,12 @@ function EditarEstudiante({ studentId, onCancel, onSuccess } = {}) {
                     telefono: student.telefono ?? "", correo: student.correo ?? "", nivelEscolar: student.nivelEscolar ?? "",
                     idCentroEducativo: student.idCentroEducativo == null ? "" : String(student.idCentroEducativo),
                     condicionesRelevantes: student.condicionesRelevantes ?? "", idInstrumento: student.idInstrumento == null ? "" : String(student.idInstrumento),
+                    idsPlanEstudio: Array.isArray(student.idsPlanEstudio) ? student.idsPlanEstudio : [],
                 });
                 setTypes(typeData);
                 setCenters(centerData);
                 setInstruments(instrumentData);
+                setPlanes(planData);
             } catch (e) {
                 dialog.error(e.message);
             } finally {
@@ -89,6 +93,16 @@ function EditarEstudiante({ studentId, onCancel, onSuccess } = {}) {
         setErrors(current => ({ ...current, [name]: "" }));
     }
 
+    function togglePlan(idPlan) {
+        setForm(current => ({
+            ...current,
+            idsPlanEstudio: current.idsPlanEstudio.includes(idPlan)
+                ? current.idsPlanEstudio.filter(idActual => idActual !== idPlan)
+                : [...current.idsPlanEstudio, idPlan],
+        }));
+        setErrors(current => ({ ...current, idsPlanEstudio: "" }));
+    }
+
     async function submit(event) {
         event.preventDefault();
         const nextErrors = {};
@@ -99,6 +113,7 @@ function EditarEstudiante({ studentId, onCancel, onSuccess } = {}) {
         ];
         required.forEach(([name, message]) => { if (!String(form[name] ?? "").trim()) nextErrors[name] = message; });
         if (edad === null && form.fechaNacimiento) nextErrors.fechaNacimiento = "La fecha de nacimiento no es válida.";
+        if (form.idsPlanEstudio.length === 0) nextErrors.idsPlanEstudio = "Seleccione al menos un plan de estudio.";
         if (requiereCentro && !form.idCentroEducativo) nextErrors.idCentroEducativo = "Seleccione el centro educativo.";
         if (form.correo && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.correo)) nextErrors.correo = "Ingrese un correo electrónico válido.";
         setErrors(nextErrors);
@@ -170,6 +185,11 @@ function EditarEstudiante({ studentId, onCancel, onSuccess } = {}) {
                         <Field label="Nivel escolar" required error={errors.nivelEscolar} errorKey="nivelEscolar"><select id="cmbNivelEscolar" className={`input ${errors.nivelEscolar ? "input-error" : ""}`} value={form.nivelEscolar} onChange={e => setField("nivelEscolar", e.target.value)}><option value="">Seleccione una opción</option>{NIVELES.map(level => <option key={level}>{level}</option>)}</select></Field>
                         <Field label="Instrumento musical" required error={errors.idInstrumento} errorKey="idInstrumento"><select id="cmbInstrumento" className={`input ${errors.idInstrumento ? "input-error" : ""}`} value={form.idInstrumento} onChange={e => setField("idInstrumento", e.target.value)}><option value="">Seleccione una opción</option>{instruments.map(instrument => <option key={instrument.id} value={instrument.id}>{instrument.nombre}</option>)}</select></Field>
                     </div>
+                    <Field label="Planes de estudio" required error={errors.idsPlanEstudio} errorKey="idsPlanEstudio" hint={planes.length === 0 ? "No hay planes de estudio vigentes." : "Determinan los cursos que el estudiante podrá matricular. Puede seleccionar más de uno."}>
+                        <div className="check-row">
+                            {planes.map(plan => <label key={plan.id}><input type="checkbox" checked={form.idsPlanEstudio.includes(plan.id)} onChange={() => togglePlan(plan.id)} /> {plan.nombre}</label>)}
+                        </div>
+                    </Field>
                     <Field label="Centro educativo" required={requiereCentro} error={errors.idCentroEducativo} errorKey="idCentroEducativo"><select id="cmbCentroEducativo" className={`input ${errors.idCentroEducativo ? "input-error" : ""}`} value={form.idCentroEducativo} onChange={e => setField("idCentroEducativo", e.target.value)} disabled={!requiereCentro}><option value="">{requiereCentro ? "Seleccione una opción" : "No aplica para esta edad"}</option>{centers.map(center => <option key={center.id} value={center.id}>{center.nombre}</option>)}</select></Field>
                 </section>
                 <div className="actions-row">
