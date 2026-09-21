@@ -151,114 +151,91 @@ describe('HU-030 - Modificar curso', () => {
 
     it('Debe modificar el curso y luego restaurar sus valores originales', () => {
         obtenerCursoActivo().then((curso) => {
-
-            const nombreOriginal =
-                curso.nombre
-
-            const descripcionOriginal =
-                curso.descripcion || ''
-
-            const horasOriginales =
-                curso.horasTotales
-
-            const nivelOriginal =
-                curso.nivel
-
-            const programaOriginal =
-                curso.idPrograma
-
-            const nombreNuevo =
-                `${nombreOriginal} [Cypress]`
-
-            cy.get('#buscarCurso')
-                .clear()
-                .type(curso.codigo)
-
-            cy.contains(
-                'article.modificar-curso-card',
-                curso.codigo
-            )
-                .find('button')
-                .click()
-
-            cy.get('#nombre')
-                .clear()
-                .type(nombreNuevo)
-
-            cy.intercept(
-                'PUT',
-                `**/api/cursos/${curso.idCurso}`
-            ).as('modificarCurso')
-
-            cy.contains(
-                'button',
-                'Guardar cambios'
-            ).click()
-
-            cy.get('[role="alertdialog"]')
-                .should('be.visible')
-                .within(() => {
-
-                    cy.contains(
-                        'h2',
-                        'Confirmar modificación'
-                    ).should('be.visible')
-
-                    cy.contains(
-                        'button',
-                        'Confirmar cambios'
-                    ).click()
-                })
-
-            cy.wait('@modificarCurso')
-                .its('response.statusCode')
-                .should('eq', 200)
-
-            cy.get('[role="alertdialog"]')
-                .should('be.visible')
-                .within(() => {
-
-                    cy.contains(
-                        'El curso'
-                    ).should('contain.text', curso.codigo)
-
-                    cy.contains(
-                        'button',
-                        'Aceptar'
-                    ).click()
-                })
-
-            cy.get('#nombre')
-                .should('have.value', nombreNuevo)
-
             obtenerToken().then((token) => {
-
                 cy.request({
-                    method: 'PUT',
-                    url:
-                        `/api/cursos/${curso.idCurso}`,
+                    method: 'GET',
+                    url: `/api/cursos/${curso.idCurso}`,
                     headers: {
-                        Authorization:
-                            `Bearer ${token}`,
-                        'Content-Type':
-                            'application/json',
+                        Authorization: `Bearer ${token}`,
                     },
-                    body: {
-                        nombre: nombreOriginal,
-                        descripcion: descripcionOriginal,
-                        horasTotales: horasOriginales,
-                        idPrograma: programaOriginal,
-                        nivel: nivelOriginal,
-                    },
-                }).then((restoreResponse) => {
+                }).then((detalleResponse) => {
+                    expect(detalleResponse.status).to.eq(200)
 
-                    expect(
-                        restoreResponse.status
-                    ).to.eq(200)
+                    const original = detalleResponse.body
+                    const nombreOriginal = original.nombre
+                    const descripcionOriginal = original.descripcion || ''
+                    const horasOriginales = original.horasTotales
+                    const nivelOriginal = original.nivel
+                    const programaOriginal = original.idPrograma
+                    const nombreNuevo = `${nombreOriginal} [Cypress]`
 
-                    expect(
-                        restoreResponse.body.nombre
-                    ).to.eq(nombreOriginal)
+                    cy.get('#buscarCurso')
+                        .clear()
+                        .type(curso.codigo)
+
+                    cy.contains(
+                        'article.modificar-curso-card',
+                        curso.codigo
+                    )
+                        .find('button')
+                        .click()
+
+                    cy.get('#codigo')
+                        .should('have.value', curso.codigo)
+
+                    cy.get('#nombre')
+                        .clear()
+                        .type(nombreNuevo)
+
+                    cy.intercept(
+                        'PUT',
+                        `**/api/cursos/${curso.idCurso}`
+                    ).as('modificarCurso')
+
+                    cy.contains('button', 'Guardar cambios').click()
+
+                    cy.get('[role="alertdialog"]')
+                        .should('be.visible')
+                        .within(() => {
+                            cy.contains('h2', 'Confirmar modificación')
+                                .should('be.visible')
+                            cy.contains('button', 'Confirmar cambios').click()
+                        })
+
+                    cy.wait('@modificarCurso')
+                        .its('response.statusCode')
+                        .should('eq', 200)
+
+                    cy.get('[role="alertdialog"]')
+                        .should('be.visible')
+                        .within(() => {
+                            cy.contains('El curso')
+                                .should('contain.text', curso.codigo)
+                            cy.contains('button', 'Aceptar').click()
+                        })
+
+                    cy.get('#nombre')
+                        .should('have.value', nombreNuevo)
+
+                    cy.request({
+                        method: 'PUT',
+                        url: `/api/cursos/${curso.idCurso}`,
+                        headers: {
+                            Authorization: `Bearer ${token}`,
+                            'Content-Type': 'application/json',
+                        },
+                        body: {
+                            nombre: nombreOriginal,
+                            descripcion: descripcionOriginal,
+                            horasTotales: horasOriginales,
+                            idPrograma: programaOriginal,
+                            nivel: nivelOriginal,
+                        },
+                    }).then((restoreResponse) => {
+                        expect(restoreResponse.status).to.eq(200)
+                        expect(restoreResponse.body.nombre)
+                            .to.eq(nombreOriginal)
+                    })
                 })
             })
         })

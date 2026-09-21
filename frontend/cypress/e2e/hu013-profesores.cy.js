@@ -29,27 +29,23 @@ describe('HU-013 - Registrar y modificar profesores', () => {
         cy.contains('button', 'Registrar profesor').should('exist').should('not.be.disabled')
     })
 
-    it('Debe exigir correo y contraseña al registrar un profesor nuevo (creación de usuario)', () => {
-        const cedula = `PROF${Date.now()}`
+    it('Debe exigir los campos obligatorios al registrar un profesor nuevo', () => {
         cy.contains('button', '+ Nuevo profesor').click()
-
-        cy.contains('label', 'Tipo de identificación')
-            .parent()
-            .find('select')
-            .find('option')
-            .should('have.length.greaterThan', 1) // espera a que cargue el catálogo
-        cy.contains('label', 'Tipo de identificación').parent().find('select').select(1)
-        cy.contains('label', 'Cédula / Número de identificación').parent().find('input').type(cedula)
-        cy.contains('label', 'Nombre').parent().find('input').type('Profesor')
-        cy.contains('label', 'Primer apellido').parent().find('input').type('Prueba')
 
         cy.get('form').submit()
 
-        cy.contains('El correo es obligatorio para crear la cuenta de usuario').should('be.visible')
+        cy.contains('Seleccione el tipo de identificación.')
+            .should('be.visible')
+        cy.contains('Ingrese el número de identificación.')
+            .should('be.visible')
+        cy.contains('Ingrese el nombre.')
+            .should('be.visible')
+        cy.contains('Ingrese el primer apellido.')
+            .should('be.visible')
     })
 
     it('Debe registrar un profesor nuevo con datos completos', () => {
-        const cedula = `PROF${Date.now()}`
+        const cedula = String(Date.now()).slice(-9)
         cy.contains('button', '+ Nuevo profesor').click()
 
         cy.contains('label', 'Tipo de identificación')
@@ -63,14 +59,6 @@ describe('HU-013 - Registrar y modificar profesores', () => {
         cy.contains('label', 'Nombre').parent().find('input').type('Profesor')
         cy.contains('label', 'Primer apellido').parent().find('input').type('Prueba')
         cy.contains('label', 'Correo de contacto').parent().find('input').type(`${cedula}@correo.com`)
-
-        // Contraseña de al menos 8 caracteres para la cuenta de usuario del profesor
-        cy.get('body').then(($body) => {
-            const contrasenaInput = $body.find('input[type="password"]')
-            if (contrasenaInput.length) {
-                cy.wrap(contrasenaInput.first()).type('claveSegura123')
-            }
-        })
 
         cy.get('form').submit()
         cy.contains('Profesor registrado correctamente').should('be.visible')
