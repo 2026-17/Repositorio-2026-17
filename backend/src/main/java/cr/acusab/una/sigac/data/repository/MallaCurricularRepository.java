@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -71,5 +72,13 @@ public interface MallaCurricularRepository
      */
     List<MallaCurricular> findByIdPlanEstudioAndActivoTrueOrderByNivelAscOrdenEnNivelAsc(
             Long idPlanEstudio
+    );
+
+    /*
+     * Historia 2 - Cursos activos de varios planes a la vez (los planes
+     * en los que el estudiante está inscrito).
+     */
+    List<MallaCurricular> findByIdPlanEstudioInAndActivoTrue(
+            Collection<Long> idsPlanEstudio
     );
 }

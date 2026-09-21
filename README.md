@@ -147,6 +147,16 @@ El script crea la base `sigac_db`, utiliza `utf8mb4_0900_ai_ci` y no elimina inf
 > [!IMPORTANT]
 > La configuración del backend usa `sigac` como valor predeterminado, mientras que el script crea `sigac_db`. Defina `DB_NAME=sigac_db` al trabajar localmente, o utilice el nombre real asignado por su proveedor.
 
+#### Scripts SQL adicionales
+
+| Archivo | Cuándo usarlo |
+|---|---|
+| `sigac_migracion_estudiantes_planes.sql` | En una base **ya existente**: crea la tabla `estudiantes_planes_estudio` (planes de estudio en los que está inscrito cada estudiante). Una instalación limpia con `sigac_db.sql` ya la incluye. Es idempotente. |
+| `sigac_datos_prueba.sql` | **Solo desarrollo.** Carga programas, planes, cursos, malla, requisitos, un período en matrícula, profesores y grupos con horario para probar la matrícula del estudiante. Antes de ejecutarlo, cambie en el archivo el número de identificación del estudiante que se inscribirá a los planes. Es idempotente. |
+
+> [!NOTE]
+> Un estudiante solo puede matricular cursos de los planes en los que está inscrito (`estudiantes_planes_estudio`). El estudiante debe además estar autorizado por el personal administrativo para el período en matrícula.
+
 ### 3. Configurar y ejecutar el backend
 
 Defina las variables requeridas en la terminal. Ejemplo para Bash:
