@@ -60,6 +60,11 @@ describe('HU-013 - Registrar y modificar profesores', () => {
         cy.contains('label', 'Primer apellido').parent().find('input').type('Prueba')
         cy.contains('label', 'Correo de contacto').parent().find('input').type(`${cedula}@correo.com`)
 
+        cy.get('input[type="password"]')
+            .should('exist')
+            .first()
+            .type('claveSegura123')
+
         cy.intercept('POST', '**/api/profesores').as('registrarProfesor')
         cy.get('form').submit()
         cy.wait('@registrarProfesor').its('response.statusCode').should('eq', 201)

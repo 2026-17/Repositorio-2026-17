@@ -202,6 +202,12 @@ function Profesores() {
         if (form.correo && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.correo)) {
             nuevosErrores.correo = "Ingrese un correo electrónico válido.";
         }
+        if (!editingId) {
+            if (!form.correo.trim()) nuevosErrores.correo = "El correo es obligatorio para crear la cuenta de usuario.";
+            if (!form.contrasena || form.contrasena.length < 8) {
+                nuevosErrores.contrasena = "Ingrese una contraseña de al menos 8 caracteres.";
+            }
+        }
         setErrores(nuevosErrores);
         if (Object.keys(nuevosErrores).length > 0) {
             dialog.validacion(nuevosErrores);
@@ -230,7 +236,23 @@ function Profesores() {
             fechaIngreso: form.fechaIngreso || null,
         };
 
-        const payload = payloadBase;
+        const payload = editingId
+            ? payloadBase
+            : {
+                profesor: payloadBase,
+                usuario: {
+                    cedula: payloadBase.numeroIdentificacion,
+                    nombre: [
+                        form.nombres.trim(),
+                        form.primerApellido.trim(),
+                        form.segundoApellido.trim(),
+                    ].filter(Boolean).join(" "),
+                    correo: payloadBase.correo,
+                    contrasena: form.contrasena,
+                    idRol: 1,
+                    idEstadoUsuario: 1,
+                },
+            };
 
         const url = editingId ? `${API_URL}/profesores/${editingId}` : `${API_URL}/profesores`;
         const method = editingId ? "PUT" : "POST";
