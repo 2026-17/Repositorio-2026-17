@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { useDialog } from "../../components/dialog/useDialog";
 import {
@@ -76,6 +76,21 @@ function ConsultaCursos() {
 
     const puedeBuscar = Boolean(idPeriodo) && Boolean(idPrograma) && !buscando && !cargandoFiltros;
 
+    // El texto no se envía al servidor: filtra en el momento la lista ya
+    // cargada, para que el estudiante pueda escribir mientras ve los
+    // cursos reales en vez de adivinar un nombre o código antes de verlos.
+    const cursosFiltrados = useMemo(() => {
+        const textoNormalizado = texto.trim().toLowerCase();
+
+        if (!textoNormalizado) return cursos;
+
+        return cursos.filter(
+            (curso) =>
+                curso.nombreCurso?.toLowerCase().includes(textoNormalizado) ||
+                curso.codigoCurso?.toLowerCase().includes(textoNormalizado)
+        );
+    }, [cursos, texto]);
+
     async function handleBuscar(event) {
         event.preventDefault();
 
@@ -91,7 +106,6 @@ function ConsultaCursos() {
             const resultado = await consultarCursosDisponibles(token, {
                 idPeriodo,
                 idPrograma,
-                texto,
             });
 
             setCursos(Array.isArray(resultado) ? resultado : []);
@@ -173,7 +187,7 @@ function ConsultaCursos() {
 
                     <div className="field">
                         <label className="field-label" htmlFor="texto">
-                            Buscar por nombre o código (opcional)
+                            Filtrar por nombre o código (opcional)
                         </label>
 
                         <input
@@ -182,7 +196,7 @@ function ConsultaCursos() {
                             className="input"
                             value={texto}
                             onChange={(event) => setTexto(event.target.value)}
-                            placeholder="Ej. Piano o MUS-101"
+                            placeholder="Escriba para filtrar los resultados"
                             disabled={cargandoFiltros}
                         />
                     </div>
@@ -220,10 +234,12 @@ function ConsultaCursos() {
                     <p className="consulta-cursos-page__resultado" role="status">
                         {cursos.length === 0
                             ? "No se encontraron cursos disponibles con los filtros seleccionados."
-                            : `${cursos.length} curso(s) disponible(s).`}
+                            : cursosFiltrados.length === 0
+                                ? `Ningún curso coincide con "${texto.trim()}".`
+                                : `${cursosFiltrados.length} curso(s) disponible(s).`}
                     </p>
 
-                    {cursos.length > 0 && (
+                    {cursosFiltrados.length > 0 && (
                         <div className="oferta-tabla-wrap">
                             <table className="oferta-tabla">
                                 <thead>
@@ -238,7 +254,7 @@ function ConsultaCursos() {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {cursos.map((curso) => {
+                                    {cursosFiltrados.map((curso) => {
                                         const sinCupos = curso.cupoDisponible <= 0;
 
                                         return (

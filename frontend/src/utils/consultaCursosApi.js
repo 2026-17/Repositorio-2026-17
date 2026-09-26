@@ -43,12 +43,8 @@ export async function consultarPeriodos(token) {
     return leerRespuesta(response, "No fue posible consultar los períodos académicos.");
 }
 
-export async function consultarCursosDisponibles(token, { idPeriodo, idPrograma, texto }) {
+export async function consultarCursosDisponibles(token, { idPeriodo, idPrograma }) {
     const params = new URLSearchParams({ idPeriodo, idPrograma });
-
-    if (texto && texto.trim()) {
-        params.set("texto", texto.trim());
-    }
 
     const response = await fetch(`${API_URL}/consulta-cursos?${params.toString()}`, {
         headers: { Authorization: `Bearer ${token}` },
