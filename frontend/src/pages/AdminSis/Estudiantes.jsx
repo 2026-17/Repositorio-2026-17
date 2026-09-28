@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Edit3, Plus } from "lucide-react";
+import { Edit3, Plus, UserX } from "lucide-react";
 import { API_URL } from "../../config/api.js";
 import CreateStudent from "./createStudent";
 import EditarEstudiante from "./EditarEstudiante";
@@ -16,6 +16,10 @@ function Estudiantes() {
     const [cargando, setCargando] = useState(true);
     const [formAbierto, setFormAbierto] = useState(false);
     const [editingId, setEditingId] = useState(null);
+    const [bajaEstudiante, setBajaEstudiante] = useState(null);
+    const [motivoBaja, setMotivoBaja] = useState("");
+    const [bajaError, setBajaError] = useState("");
+    const [bajaCargando, setBajaCargando] = useState(false);
     const [recargar, setRecargar] = useState(0);
 
     const getHeaders = useCallback(() => {
@@ -84,6 +88,80 @@ function Estudiantes() {
         setEditingId(null);
     }
 
+    function abrirBaja(estudiante) {
+        setFormAbierto(false);
+        setEditingId(null);
+        setBajaEstudiante(estudiante);
+        setMotivoBaja("");
+        setBajaError("");
+    }
+
+    function cerrarBaja() {
+        if (bajaCargando) return;
+        setBajaEstudiante(null);
+        setMotivoBaja("");
+        setBajaError("");
+    }
+
+    async function confirmarBaja() {
+        const motivo = motivoBaja.trim();
+
+        if (!motivo) {
+            setBajaError("El motivo de baja es obligatorio.");
+            return;
+        }
+
+        if (motivo.length > 500) {
+            setBajaError("El motivo de baja no puede superar 500 caracteres.");
+            return;
+        }
+
+        const confirmado = await dialog.confirmar(
+            `¿Confirma la baja de ${bajaEstudiante.nombreCompleto}?`,
+            {
+                peligro: true,
+                textoAceptar: "Dar de baja",
+            }
+        );
+
+        if (!confirmado) return;
+
+        setBajaCargando(true);
+        setBajaError("");
+
+        try {
+            const response = await fetch(
+                `${API_URL}/estudiantes/${bajaEstudiante.id}/baja`,
+                {
+                    method: "PATCH",
+                    headers: {
+                        ...getHeaders(),
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({ motivoBaja: motivo }),
+                }
+            );
+
+            const data = await response.json().catch(() => ({}));
+
+            if (!response.ok) {
+                throw new Error(data.message || "No se pudo dar de baja al estudiante.");
+            }
+
+            setBajaEstudiante(null);
+            setMotivoBaja("");
+            setRecargar((n) => n + 1);
+
+            await dialog.exito(
+                `Baja realizada correctamente. Matrículas canceladas: ${data.matriculasCanceladas}. Cursos retirados: ${data.cursosRetirados}.`
+            );
+        } catch (e) {
+            setBajaError(e.message);
+        } finally {
+            setBajaCargando(false);
+        }
+    }
+
     function formularioGuardado() {
         setFormAbierto(false);
         setEditingId(null);
@@ -100,6 +178,58 @@ function Estudiantes() {
                 <h1>Estudiantes</h1>
                 <p>Registre, consulte y administre la información académica y de contacto de los estudiantes.</p>
             </div>
+
+            {bajaEstudiante && (
+                <section className="student-baja-form" aria-labelledby="titulo-baja-estudiante">
+                    <div className="student-baja-form__header">
+                        <div>
+                            <h2 id="titulo-baja-estudiante">Dar de baja estudiante</h2>
+                            <p>
+                                {bajaEstudiante.nombreCompleto} — {bajaEstudiante.numeroIdentificacion}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="form-group">
+                        <label htmlFor="txtMotivoBaja">Motivo de baja *</label>
+                        <textarea
+                            id="txtMotivoBaja"
+                            value={motivoBaja}
+                            onChange={(e) => {
+                                setMotivoBaja(e.target.value);
+                                if (bajaError) setBajaError("");
+                            }}
+                            maxLength={500}
+                            rows={4}
+                            className={bajaError ? "input-error" : ""}
+                            placeholder="Indique el motivo de la baja"
+                            disabled={bajaCargando}
+                        />
+                        <small>{motivoBaja.length}/500</small>
+                        {bajaError && <p className="form-error">{bajaError}</p>}
+                    </div>
+
+                    <div className="form-actions">
+                        <button
+                            type="button"
+                            className="btn btn--secondary"
+                            onClick={cerrarBaja}
+                            disabled={bajaCargando}
+                        >
+                            Cancelar
+                        </button>
+                        <button
+                            type="button"
+                            className="btn btn--danger"
+                            onClick={confirmarBaja}
+                            disabled={bajaCargando}
+                        >
+                            <UserX size={16} />
+                            {bajaCargando ? "Procesando..." : "Dar de baja"}
+                        </button>
+                    </div>
+                </section>
+            )}
 
             {formAbierto && (
                 <section id="form-estudiante">
@@ -197,6 +327,16 @@ function Estudiantes() {
                                                 <Edit3 size={14} />
                                                 Editar
                                             </button>
+                                            {e.activo && (
+                                                <button
+                                                    type="button"
+                                                    className="btn btn--danger btn-sm"
+                                                    onClick={() => abrirBaja(e)}
+                                                >
+                                                    <UserX size={14} />
+                                                    Dar de baja
+                                                </button>
+                                            )}
                                         </div>
                                     </td>
                                 </tr>
