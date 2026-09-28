@@ -1497,7 +1497,9 @@ BEGIN
                      'telefono', OLD.telefono,
                      'correo', OLD.correo,
                      'id_centro_educativo', OLD.id_centro_educativo,
-                     'activo', OLD.activo
+                     'activo', OLD.activo,
+                     'motivo_baja', OLD.motivo_baja,
+                     'fecha_baja', OLD.fecha_baja
              ),
              JSON_OBJECT(
                      'numero_identificacion', NEW.numero_identificacion,
@@ -1507,7 +1509,9 @@ BEGIN
                      'telefono', NEW.telefono,
                      'correo', NEW.correo,
                      'id_centro_educativo', NEW.id_centro_educativo,
-                     'activo', NEW.activo
+                     'activo', NEW.activo,
+                     'motivo_baja', NEW.motivo_baja,
+                     'fecha_baja', NEW.fecha_baja
              ));
         END$$
 
