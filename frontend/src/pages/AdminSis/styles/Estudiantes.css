@@ -181,3 +181,68 @@
         max-width: none;
     }
 }
+
+
+.student-baja-form {
+    margin-bottom: 20px;
+    padding: 20px;
+    border: 1px solid #e5e2da;
+    border-radius: 10px;
+    background: #ffffff;
+}
+
+.student-baja-form__header {
+    margin-bottom: 18px;
+}
+
+.student-baja-form__header h2 {
+    margin: 0 0 4px;
+    color: var(--texto);
+    font-size: 18px;
+}
+
+.student-baja-form__header p {
+    margin: 0;
+    color: var(--texto-suave);
+    font-size: 13px;
+}
+
+.student-baja-form textarea {
+    width: 100%;
+    resize: vertical;
+    box-sizing: border-box;
+}
+
+.student-baja-form small {
+    display: block;
+    margin-top: 5px;
+    color: var(--texto-suave);
+    font-size: 11px;
+}
+
+.form-error {
+    margin: 6px 0 0;
+    color: var(--rojo-01);
+    font-size: 12px;
+}
+
+.btn--danger {
+    background: var(--rojo-01);
+    color: #ffffff;
+    border-color: var(--rojo-01);
+}
+
+.btn--danger:hover:not(:disabled) {
+    filter: brightness(0.94);
+}
+
+.btn--danger:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+}
+
+.row-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
