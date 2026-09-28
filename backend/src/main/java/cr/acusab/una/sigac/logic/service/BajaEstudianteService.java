@@ -176,7 +176,7 @@ public class BajaEstudianteService {
     private String escaparJson(String valor) {
         return valor
                 .replace("\\", "\\\\")
-                .replace(""", "\\"")
+                .replace("\"", "\\\"")
                 .replace("\b", "\\\\b")
                 .replace("\f", "\\\\f")
                 .replace("\n", "\\\\n")
