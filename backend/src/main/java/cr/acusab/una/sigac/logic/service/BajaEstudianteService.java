@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 
 @Service
@@ -77,6 +78,7 @@ public class BajaEstudianteService {
 
         Usuario usuario = obtenerUsuarioAutenticado();
         Instant fechaBaja = Instant.now();
+        LocalDate fechaRetiro = fechaBaja.atZone(ZoneId.systemDefault()).toLocalDate();
 
         EstadoMatricula cancelada = estadoMatriculaRepository
                 .findByCodigoAndActivoTrue(ESTADO_CANCELADA)
@@ -95,7 +97,7 @@ public class BajaEstudianteService {
 
             for (MatriculaDetalle detalle : detalles) {
                 detalle.setRetirado(true);
-                detalle.setFechaRetiro(LocalDate.now());
+                detalle.setFechaRetiro(fechaRetiro);
                 detalle.setMotivoRetiro(motivo);
                 matriculaDetalleRepository.save(detalle);
                 detallesRetirados++;
