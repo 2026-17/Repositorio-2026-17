@@ -108,6 +108,12 @@ public class AutorizacionMatriculaService {
                                 )
                         );
 
+        if (!Boolean.TRUE.equals(estudiante.getActivo())) {
+            throw new BusinessException(
+                    "No se puede iniciar una solicitud de matrícula para un estudiante inactivo."
+            );
+        }
+
         PeriodoAcademico periodo =
                 periodoAcademicoRepository
                         .findById(request.getIdPeriodo())
