@@ -195,6 +195,8 @@ CREATE TABLE IF NOT EXISTS estudiantes (
     fecha_ingreso                   DATE NOT NULL,
     fecha_egreso                    DATE NULL,
     activo                          BOOLEAN NOT NULL DEFAULT TRUE,
+    motivo_baja                     VARCHAR(500) NULL,
+    fecha_baja                      DATETIME(6) NULL,
     id_usuario_ultima_modificacion  INT UNSIGNED NULL,
     creado_en                       DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     actualizado_en                  DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6)
