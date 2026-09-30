@@ -97,6 +97,13 @@
             <version>10.4</version>
         </dependency>
 
+        <!-- PDFBox: validacion de integridad de documentos PDF adjuntos -->
+        <dependency>
+            <groupId>org.apache.pdfbox</groupId>
+            <artifactId>pdfbox</artifactId>
+            <version>3.0.3</version>
+        </dependency>
+
         <!-- Base de datos en memoria SOLO para pruebas -->
         <dependency>
             <groupId>com.h2database</groupId>

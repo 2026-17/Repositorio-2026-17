@@ -311,4 +311,6 @@ psd
 thumb
 sketch
 
-# End of https://www.toptal.com/developers/gitignore/api/java,maven,intellij,node,reactstorage/
+# End of https://www.toptal.com/developers/gitignore/api/java,maven,intellij,node,react
+
+storage/

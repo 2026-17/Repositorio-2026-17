@@ -113,6 +113,13 @@ public class SecurityConfig {
                         )
                         .hasRole("DIRECTOR_ACADEMICO")
 
+                        // HU-022 - Gestión de estudiantes y adjuntar/reemplazar
+                        // documentos del expediente estudiantil.
+                        // Solo el personal administrativo gestiona estudiantes
+                        // y sus documentos.
+                        .requestMatchers("/estudiantes/**")
+                        .hasRole("ADMINISTRATIVO")
+
                         // Las demás rutas requieren autenticación.
                         .anyRequest()
                         .authenticated()
