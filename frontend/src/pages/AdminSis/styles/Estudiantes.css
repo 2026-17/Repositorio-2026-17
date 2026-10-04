@@ -246,3 +246,27 @@
     flex-wrap: wrap;
     gap: 6px;
 }
+
+
+/* La tabla de administración de estudiantes necesita más espacio horizontal. */
+.students-management-page {
+    max-width: 1200px;
+}
+
+.students-management-page .table-wrap {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+.students-management-page .table {
+    width: 100%;
+    min-width: 1050px;
+}
+
+@media (max-width: 720px) {
+    .students-management-page {
+        padding-left: 16px;
+        padding-right: 16px;
+    }
+}
