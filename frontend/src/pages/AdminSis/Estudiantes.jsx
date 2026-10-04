@@ -173,7 +173,7 @@ function Estudiantes() {
     }
 
     return (
-        <div className="content">
+        <div className="content students-management-page">
             <div className="page-title">
                 <h1>Estudiantes</h1>
                 <p>Registre, consulte y administre la información académica y de contacto de los estudiantes.</p>
