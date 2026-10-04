@@ -94,6 +94,15 @@ function Estudiantes() {
         setBajaEstudiante(estudiante);
         setMotivoBaja("");
         setBajaError("");
+
+        // El formulario se renderiza al inicio de la página; llevarlo a la vista.
+        requestAnimationFrame(() => {
+            document.getElementById("form-baja-estudiante")?.scrollIntoView({
+                behavior: "smooth",
+                block: "start",
+            });
+            document.getElementById("txtMotivoBaja")?.focus({ preventScroll: true });
+        });
     }
 
     function cerrarBaja() {
@@ -180,7 +189,7 @@ function Estudiantes() {
             </div>
 
             {bajaEstudiante && (
-                <section className="student-baja-form" aria-labelledby="titulo-baja-estudiante">
+                <section id="form-baja-estudiante" className="student-baja-form" aria-labelledby="titulo-baja-estudiante">
                     <div className="student-baja-form__header">
                         <div>
                             <h2 id="titulo-baja-estudiante">Dar de baja estudiante</h2>
