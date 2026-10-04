@@ -105,8 +105,8 @@ public class BajaEstudianteService {
                         usuario.getId(),
                         "matriculas_detalles",
                         detalle.getId(),
-                        "{"retirado":false}",
-                        "{"retirado":true,"motivo_retiro":"" + escaparJson(motivo) + ""}"
+                        "{\"retirado\":false}",
+                        "{\"retirado\":true,\"motivo_retiro\":\"" + escaparJson(motivo) + "\"}"
                 );
             }
 
@@ -117,8 +117,8 @@ public class BajaEstudianteService {
                     usuario.getId(),
                     "matriculas",
                     matricula.getId(),
-                    "{"estado":"REGISTRADA"}",
-                    "{"estado":"CANCELADA","motivo_baja":"" + escaparJson(motivo) + ""}"
+                    "{\"estado\":\"REGISTRADA\"}",
+                    "{\"estado\":\"CANCELADA\",\"motivo_baja\":\"" + escaparJson(motivo) + "\"}"
             );
         }
 
@@ -179,10 +179,10 @@ public class BajaEstudianteService {
         return valor
                 .replace("\\", "\\\\")
                 .replace("\"", "\\\"")
-                .replace("\b", "\\\\b")
-                .replace("\f", "\\\\f")
-                .replace("\n", "\\\\n")
-                .replace("\r", "\\\\r")
-                .replace("\t", "\\\\t");
+                .replace("\b", "\\b")
+                .replace("\f", "\\f")
+                .replace("\n", "\\n")
+                .replace("\r", "\\r")
+                .replace("\t", "\\t");
     }
 }
