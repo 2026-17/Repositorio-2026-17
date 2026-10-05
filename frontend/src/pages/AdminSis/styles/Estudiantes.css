@@ -248,25 +248,82 @@
 }
 
 
-/* La tabla de administración de estudiantes necesita más espacio horizontal. */
+/* HU-009: tabla completa sin scroll horizontal residual en escritorio. */
 .students-management-page {
-    max-width: 1200px;
+    width: min(100% - 32px, 1480px);
+    max-width: 1480px;
+    padding-left: 0;
+    padding-right: 0;
 }
 
 .students-management-page .table-wrap {
     width: 100%;
     max-width: 100%;
-    overflow-x: auto;
+    overflow-x: visible;
 }
 
 .students-management-page .table {
     width: 100%;
-    min-width: 1050px;
+    min-width: 0;
+    table-layout: fixed;
+    border-collapse: collapse;
+}
+
+.students-management-page .table th,
+.students-management-page .table td {
+    padding: 10px 8px;
+    overflow-wrap: anywhere;
+    vertical-align: middle;
+}
+
+.students-management-page .table th:nth-child(1) { width: 12%; }
+.students-management-page .table th:nth-child(2) { width: 18%; }
+.students-management-page .table th:nth-child(3) { width: 6%; }
+.students-management-page .table th:nth-child(4) { width: 11%; }
+.students-management-page .table th:nth-child(5) { width: 11%; }
+.students-management-page .table th:nth-child(6) { width: 16%; }
+.students-management-page .table th:nth-child(7) { width: 8%; }
+.students-management-page .table th:nth-child(8) { width: 18%; }
+
+.students-management-page .row-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+.students-management-page .row-actions .btn {
+    min-width: 0;
+    white-space: normal;
+    justify-content: center;
+    padding: 6px 8px;
+    line-height: 1.2;
+}
+
+.students-management-page .btn--success {
+    background: var(--verde-02);
+    color: #ffffff;
+    border-color: var(--verde-02);
+}
+
+.students-management-page .btn--success:hover {
+    filter: brightness(0.94);
+}
+
+@media (max-width: 1050px) {
+    .students-management-page .table-wrap {
+        overflow-x: auto;
+    }
+
+    .students-management-page .table {
+        min-width: 960px;
+        table-layout: auto;
+    }
 }
 
 @media (max-width: 720px) {
     .students-management-page {
-        padding-left: 16px;
-        padding-right: 16px;
+        width: calc(100% - 24px);
+        padding-left: 0;
+        padding-right: 0;
     }
 }
