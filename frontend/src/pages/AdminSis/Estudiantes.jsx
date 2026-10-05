@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Edit3, Plus, UserX } from "lucide-react";
+import { Edit3, Plus, UserCheck, UserX } from "lucide-react";
 import { API_URL } from "../../config/api.js";
 import CreateStudent from "./createStudent";
 import EditarEstudiante from "./EditarEstudiante";
@@ -171,6 +171,42 @@ function Estudiantes() {
         }
     }
 
+    async function confirmarReactivacion(estudiante) {
+        const confirmado = await dialog.confirmar(
+            `¿Desea reactivar a ${estudiante.nombreCompleto}?`,
+            {
+                textoAceptar: "Reactivar estudiante",
+            }
+        );
+
+        if (!confirmado) return;
+
+        try {
+            const response = await fetch(
+                `${API_URL}/estudiantes/${estudiante.id}/reactivar`,
+                {
+                    method: "PATCH",
+                    headers: getHeaders(),
+                }
+            );
+            const data = await response.json().catch(() => ({}));
+
+            if (!response.ok) {
+                throw new Error(
+                    data.message || "No se pudo reactivar al estudiante."
+                );
+            }
+
+            setRecargar((n) => n + 1);
+            await dialog.exito(
+                data.mensaje ||
+                "Estudiante reactivado. Las matrículas y cursos cancelados no se restauran automáticamente."
+            );
+        } catch (e) {
+            dialog.error(e.message);
+        }
+    }
+
     function formularioGuardado() {
         setFormAbierto(false);
         setEditingId(null);
@@ -336,7 +372,7 @@ function Estudiantes() {
                                                 <Edit3 size={14} />
                                                 Editar
                                             </button>
-                                            {e.activo && (
+                                            {e.activo ? (
                                                 <button
                                                     type="button"
                                                     className="btn btn--danger btn-sm"
@@ -344,6 +380,15 @@ function Estudiantes() {
                                                 >
                                                     <UserX size={14} />
                                                     Dar de baja
+                                                </button>
+                                            ) : (
+                                                <button
+                                                    type="button"
+                                                    className="btn btn--success btn-sm"
+                                                    onClick={() => confirmarReactivacion(e)}
+                                                >
+                                                    <UserCheck size={14} />
+                                                    Reactivar
                                                 </button>
                                             )}
                                         </div>
