@@ -111,6 +111,9 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/auth/login",
                                 "/auth/logout",
+                                // "Olvidé mi contraseña" (sin sesión)
+                                "/auth/recuperar-contrasena/solicitar",
+                                "/auth/recuperar-contrasena/confirmar",
                                 "/usuarios",
                                 "/roles",
                                 "/estados-usuarios"

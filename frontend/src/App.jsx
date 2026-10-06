@@ -6,6 +6,7 @@ import {
 } from "react-router-dom";
 
 import Login from "./pages/Publico/login";
+import RecuperarContrasena from "./pages/Publico/RecuperarContrasena";
 import Notificaciones from "./pages/Estudiante/Notificaciones";
 import SeleccionCursos from "./pages/Estudiante/SeleccionCursos";
 import CreateUsers from "./pages/AdminSis/createUsers";
@@ -61,6 +62,11 @@ function App() {
                 <Route
                     path="/login"
                     element={<Login />}
+                />
+
+                <Route
+                    path="/recuperar-contrasena"
+                    element={<RecuperarContrasena />}
                 />
 
                 {/* =====================================================

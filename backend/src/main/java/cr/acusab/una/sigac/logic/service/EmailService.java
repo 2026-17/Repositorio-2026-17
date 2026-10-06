@@ -1,0 +1,149 @@
+package cr.acusab.una.sigac.logic.service;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.time.Duration;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Envía correos transaccionales con la API HTTP de Brevo (no SMTP: Railway
+ * bloquea SMTP saliente en los planes Free/Trial/Hobby).
+ * Si brevo.api-key está vacía, no envía nada y muestra el código en consola,
+ * para poder trabajar localmente sin cuenta de Brevo.
+ */
+@Service
+public class EmailService {
+
+    private static final Logger log = LoggerFactory.getLogger(EmailService.class);
+    private static final String BREVO_URL = "https://api.brevo.com/v3/smtp/email";
+
+    private final RestClient restClient;
+    private final String apiKey;
+    private final String remitenteCorreo;
+    private final String remitenteNombre;
+
+    public EmailService(
+            @Value("${brevo.api-key:}") String apiKey,
+            @Value("${brevo.sender-email}") String remitenteCorreo,
+            @Value("${brevo.sender-name}") String remitenteNombre
+    ) {
+        SimpleClientHttpRequestFactory fabrica = new SimpleClientHttpRequestFactory();
+        fabrica.setConnectTimeout(Duration.ofSeconds(5));
+        fabrica.setReadTimeout(Duration.ofSeconds(10));
+
+        this.restClient = RestClient.builder().requestFactory(fabrica).build();
+        this.apiKey = apiKey;
+        this.remitenteCorreo = remitenteCorreo;
+        this.remitenteNombre = remitenteNombre;
+    }
+
+    public void enviarCodigoRecuperacion(String destinatario, String codigo, int minutosValidez) {
+        enviarCodigo(destinatario, codigo, minutosValidez,
+                "Código para recuperar su contraseña",
+                "Recuperación de contraseña",
+                "Recibimos una solicitud para recuperar la contraseña de su cuenta en SIGAC.",
+                "Si usted no hizo esta solicitud, puede ignorar este correo: su contraseña no cambiará.");
+    }
+
+    public void enviarCodigoCambio(String destinatario, String codigo, int minutosValidez) {
+        enviarCodigo(destinatario, codigo, minutosValidez,
+                "Código para cambiar su contraseña",
+                "Cambio de contraseña",
+                "Recibimos una solicitud para cambiar la contraseña de su cuenta en SIGAC. "
+                        + "Ingrese este código en la pantalla de cambio de contraseña para confirmar.",
+                "Si usted no hizo esta solicitud, alguien podría conocer su contraseña actual. "
+                        + "No comparta este código y comuníquese con la administración de ACUSAB.");
+    }
+
+    private void enviarCodigo(String destinatario, String codigo, int minutosValidez,
+                              String asunto, String titulo, String introduccion, String avisoSeguridad) {
+        if (apiKey.isBlank()) {
+            log.warn("brevo.api-key vacía: no se envía el correo. Código para {}: {} (vence en {} min)",
+                    destinatario, codigo, minutosValidez);
+            return;
+        }
+
+        // Correo con tablas y estilos en línea: es lo que la mayoría de clientes
+        // de correo (Gmail, Outlook) muestran de forma confiable.
+        String html = """
+                <!DOCTYPE html>
+                <html lang="es">
+                <body style="margin:0; padding:0; background-color:#f4f0f8;">
+                  <table role="presentation" width="100%%" cellpadding="0" cellspacing="0" style="background-color:#f4f0f8; padding:32px 16px;">
+                    <tr>
+                      <td align="center">
+                        <table role="presentation" width="100%%" cellpadding="0" cellspacing="0" style="max-width:520px; background-color:#ffffff; border-radius:12px; overflow:hidden; font-family:Arial, Helvetica, sans-serif; color:#2b2b33;">
+                          <tr>
+                            <td style="background-color:#662483; padding:24px 32px; text-align:center;">
+                              <div style="font-size:28px; line-height:1; color:#ffffff;">&#9834;</div>
+                              <div style="margin-top:8px; font-size:20px; font-weight:bold; color:#ffffff; letter-spacing:1px;">SIGAC</div>
+                              <div style="margin-top:4px; font-size:13px; color:#e9dcf2;">ACUSAB · Santa Bárbara de Heredia</div>
+                            </td>
+                          </tr>
+                          <tr>
+                            <td style="padding:32px;">
+                              <h1 style="margin:0 0 16px; font-size:22px; color:#662483;">%s</h1>
+                              <p style="margin:0 0 24px; font-size:15px; line-height:1.6;">%s</p>
+                              <p style="margin:0 0 8px; font-size:13px; color:#5a5a63; text-align:center; text-transform:uppercase; letter-spacing:1px;">Su código de verificación</p>
+                              <table role="presentation" align="center" cellpadding="0" cellspacing="0" style="margin:0 auto 12px;">
+                                <tr>
+                                  <td style="background-color:#faf7fc; border:2px dashed #662483; border-radius:10px; padding:16px 28px; font-family:'Courier New', Courier, monospace; font-size:32px; font-weight:bold; letter-spacing:8px; color:#662483; text-align:center;">%s</td>
+                                </tr>
+                              </table>
+                              <p style="margin:0 0 28px; font-size:13px; color:#5a5a63; text-align:center;">Vence en <strong>%d minutos</strong> y solo puede usarse una vez.</p>
+                              <table role="presentation" width="100%%" cellpadding="0" cellspacing="0">
+                                <tr>
+                                  <td style="background-color:#fbeaec; border-left:4px solid #be1622; border-radius:6px; padding:14px 16px; font-size:13px; line-height:1.5; color:#5a1a20;">
+                                    <strong>¿No fue usted?</strong> %s
+                                  </td>
+                                </tr>
+                              </table>
+                            </td>
+                          </tr>
+                          <tr>
+                            <td style="background-color:#fbfaf7; border-top:1px solid #ece9e2; padding:18px 32px; text-align:center; font-size:12px; line-height:1.5; color:#777777;">
+                              Este correo se envía automáticamente, por favor no lo responda.<br>
+                              ACUSAB · Sistema de Gestión Académica (SIGAC)
+                            </td>
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>
+                  </table>
+                </body>
+                </html>
+                """.formatted(titulo, introduccion, codigo, minutosValidez, avisoSeguridad);
+
+        Map<String, Object> cuerpo = Map.of(
+                "sender", Map.of("name", remitenteNombre, "email", remitenteCorreo),
+                "to", List.of(Map.of("email", destinatario)),
+                "subject", asunto,
+                "htmlContent", html
+        );
+
+        try {
+            restClient.post()
+                    .uri(BREVO_URL)
+                    .header("api-key", apiKey)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .accept(MediaType.APPLICATION_JSON)
+                    .body(cuerpo)
+                    .retrieve()
+                    .toBodilessEntity();
+        } catch (RestClientException e) {
+            log.error("No se pudo enviar el correo a {} con Brevo: {}", destinatario, e.getMessage());
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+                    "No se pudo enviar el correo. Intente de nuevo más tarde.");
+        }
+    }
+}

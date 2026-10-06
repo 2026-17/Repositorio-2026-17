@@ -81,7 +81,8 @@ CREATE TABLE tokens_revocados (
 
 -- Códigos de un solo uso enviados por correo (recuperar o cambiar contraseña).
 -- Se guarda el hash del código, nunca el código en texto plano.
--- Se pueden borrar cuando expira_en < NOW()
+-- LimpiezaCodigosVerificacionJob borra los que vencieron hace más de un día
+-- (no antes: se usan para limitar cuántos códigos se piden por hora)
 CREATE TABLE codigos_verificacion (
       id_codigo_verificacion BIGINT UNSIGNED  NOT NULL AUTO_INCREMENT,
       id_usuario             INT UNSIGNED     NOT NULL,
@@ -99,23 +100,6 @@ CREATE TABLE codigos_verificacion (
       CONSTRAINT ck_codigos_verificacion_proposito CHECK (proposito IN ('RECUPERACION', 'CAMBIO'))
 );
 
--- Códigos temporales enviados al correo para recuperar o cambiar la contraseña
-CREATE TABLE codigos_verificacion (
-  id_codigo_verificacion BIGINT UNSIGNED  NOT NULL AUTO_INCREMENT,
-  id_usuario             INT UNSIGNED     NOT NULL,
-  proposito              VARCHAR(20)      NOT NULL,
-  hash_codigo            VARCHAR(255)     NOT NULL,
-  intentos               TINYINT UNSIGNED NOT NULL DEFAULT 0,
-  expira_en              DATETIME         NOT NULL,
-  usado_en               DATETIME,
-  creado_en              DATETIME         NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (id_codigo_verificacion),
-  INDEX idx_codigos_verificacion_usuario (id_usuario, proposito, creado_en),
-  INDEX idx_codigos_verificacion_expira  (expira_en),
-  CONSTRAINT fk_codigos_verificacion_usuarios FOREIGN KEY (id_usuario)
-      REFERENCES usuarios (id_usuario) ON DELETE CASCADE,
-  CONSTRAINT ck_codigos_verificacion_proposito CHECK (proposito IN ('RECUPERACION', 'CAMBIO'))
-);
 
 -- Historial automático de cambios en algunas tablas académicas
 CREATE TABLE bitacoras (

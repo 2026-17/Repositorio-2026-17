@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 import acusabIcon from "../../assets/acusabIcon.png";
 import slide1 from "../../assets/slideshow/slide1.jpg";
@@ -248,6 +248,13 @@ function Login() {
                                     autoComplete="current-password"
                                     required
                                 />
+
+                                <Link
+                                    to="/recuperar-contrasena"
+                                    className="login-olvido"
+                                >
+                                    ¿Olvidó su contraseña?
+                                </Link>
                             </div>
 
                             <div className="form-actions">

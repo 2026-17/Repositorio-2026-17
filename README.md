@@ -217,6 +217,9 @@ La aplicación quedará disponible normalmente en `http://localhost:5173` y las 
 | `JWT_SECRET_KEY` | Sí | — | Secreto para firmar JWT con HS256. |
 | `CORS_ALLOWED_ORIGINS` | No | `https://sigac.acusab.ed.cr` | Orígenes adicionales, separados por comas. |
 | `PORT` | No | `8080` | Puerto HTTP del backend. |
+| `BREVO_API_KEY` | No | — | API key de Brevo para enviar correos (códigos de recuperación y cambio de contraseña). Si está vacía, no se envían correos y el código se muestra en la consola del backend. |
+| `BREVO_SENDER_EMAIL` | No | `noreply@acusab.ed.cr` | Remitente de los correos; debe estar registrado en Brevo. |
+| `BREVO_SENDER_NAME` | No | `SIGAC ACUSAB` | Nombre visible del remitente. |
 
 No incluya valores reales ni credenciales en archivos versionados. En Railway deben configurarse como variables del servicio.
 

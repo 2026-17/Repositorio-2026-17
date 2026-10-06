@@ -111,6 +111,19 @@
     box-shadow: 0 0 0 3px rgba(102, 36, 131, 0.1);
 }
 
+.login-olvido {
+    display: inline-block;
+    margin-top: 10px;
+    color: #662483;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.login-olvido:hover {
+    text-decoration: underline;
+}
+
 .form-actions {
     display: flex;
     justify-content: flex-end;
