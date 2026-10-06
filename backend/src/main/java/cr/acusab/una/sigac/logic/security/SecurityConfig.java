@@ -120,6 +120,15 @@ public class SecurityConfig {
                         .requestMatchers("/estudiantes/**")
                         .hasRole("ADMINISTRATIVO")
 
+                        // HU-014 - Asignar profesores a cursos y grupos.
+                        // Solo el Director Académico asigna/reasigna/quita
+                        // profesores y habilita grupos.
+                        .requestMatchers("/grupos/**")
+                        .hasRole("DIRECTOR_ACADEMICO")
+
+                        .requestMatchers(HttpMethod.GET, "/profesores/*/grupos")
+                        .hasRole("DIRECTOR_ACADEMICO")
+
                         // Las demás rutas requieren autenticación.
                         .anyRequest()
                         .authenticated()

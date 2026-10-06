@@ -18,4 +18,18 @@ public interface GrupoRepository extends JpaRepository<Grupo, Long> {
     Optional<Grupo> findFirstByIdCursoOrderByCreadoEnDesc(Long idCurso);
 
     List<Grupo> findByIdCursoInOrderByCreadoEnDesc(List<Long> idCursos);
+
+    /*
+     * HU-014 - Asignar profesores a cursos y grupos.
+     */
+
+    // Otros grupos del mismo profesor en el mismo periodo, para detectar
+    // choques de horario (excluye el propio grupo que se esta asignando).
+    List<Grupo> findByIdProfesorAndIdPeriodoAndIdNot(Long idProfesor, Long idPeriodo, Long idGrupo);
+
+    // Grupos asignados a un profesor ("cursos asignados al profesor").
+    List<Grupo> findByIdProfesor(Long idProfesor);
+
+    // Soporta el flujo Curso -> Periodo -> Grupo al elegir a quien asignar.
+    List<Grupo> findByIdCursoAndIdPeriodo(Long idCurso, Long idPeriodo);
 }

@@ -1,9 +1,11 @@
 package cr.acusab.una.sigac.presentation.controller;
 
+import cr.acusab.una.sigac.logic.service.AsignacionProfesorService;
 import cr.acusab.una.sigac.logic.service.ProfesorService;
 import cr.acusab.una.sigac.presentation.dto.request.ProfesorCreateRequest;
 import cr.acusab.una.sigac.presentation.dto.request.ProfesorUpdateRequest;
 import cr.acusab.una.sigac.presentation.dto.request.UsuarioCreateRequest;
+import cr.acusab.una.sigac.presentation.dto.response.GrupoDeProfesorResponse;
 import cr.acusab.una.sigac.presentation.dto.response.ProfesorResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -17,9 +19,20 @@ import java.util.List;
 public class ProfesorController {
 
     private final ProfesorService profesorService;
+    private final AsignacionProfesorService asignacionProfesorService;
 
-    public ProfesorController(ProfesorService profesorService) {
+    public ProfesorController(ProfesorService profesorService, AsignacionProfesorService asignacionProfesorService) {
         this.profesorService = profesorService;
+        this.asignacionProfesorService = asignacionProfesorService;
+    }
+
+    /*
+     * HU-014 - "Actualizacion de cursos asignados al profesor".
+     */
+    @GetMapping("/{id}/grupos")
+    public ResponseEntity<List<GrupoDeProfesorResponse>> listarGruposAsignados(
+            @PathVariable Long id, @RequestParam(required = false) Long idPeriodo) {
+        return ResponseEntity.ok(asignacionProfesorService.listarGruposDeProfesor(id, idPeriodo));
     }
 
     @PostMapping
