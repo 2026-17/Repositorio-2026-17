@@ -116,10 +116,15 @@ const SUBNAV_POR_ROL = {
     [ROLES.JUNTA_DIRECTIVA]: [],
 
     /*
+     * HU-10 - Consultar cursos disponibles de un período académico.
      * HU-002 - Solicitud de matrícula.
      * HU-012 - Notificaciones del estudiante.
      */
     [ROLES.ESTUDIANTE]: [
+        {
+            to: "/estudiante/cursos-disponibles",
+            label: "Cursos disponibles",
+        },
         {
             to: "/estudiante/matricula",
             label: "Matrícula",
