@@ -125,6 +125,10 @@ export default function CreateStudent({ onCancel, onSuccess } = {}) {
   const menor = edad !== null && edad < 18;
   const requiereCentro = edad !== null && edad >= 6 && edad < 18;
   const incrustado = Boolean(onCancel);
+  // Los encargados solo aplican a menores de edad: para un mayor, ese paso no existe.
+  const pasosVisibles = menor ? [0, 1, 2, 3] : [0, 2, 3];
+  const pasoSiguiente = pasosVisibles[pasosVisibles.indexOf(paso) + 1];
+  const pasoAnterior = pasosVisibles[pasosVisibles.indexOf(paso) - 1];
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -372,7 +376,7 @@ export default function CreateStudent({ onCancel, onSuccess } = {}) {
     if (paso < PASOS.length - 1) {
       const delPaso = Object.fromEntries(Object.entries(todos).filter(([campo]) => pasoDeCampo(campo) === paso));
       setErrors(delPaso);
-      if (Object.keys(delPaso).length === 0) irA(paso + 1);
+      if (Object.keys(delPaso).length === 0) irA(pasoSiguiente);
       return;
     }
 
@@ -453,7 +457,7 @@ export default function CreateStudent({ onCancel, onSuccess } = {}) {
           id={`${P}fechaNacimiento`}
           errorKey="fechaNacimiento"
           label="Fecha de nacimiento"
-          hint={edad !== null ? `${edad} años${menor ? " · requiere encargado" : ""}` : "Define si se requiere un encargado."}
+          hint={edad !== null ? `${edad} años · ${menor ? "menor de edad, requiere encargado" : "mayor de edad, sin encargados"}` : "Solo los menores de edad registran encargados."}
           error={errors.fechaNacimiento}
         >
           <input id={`${P}fechaNacimiento`} className="sg-input" type="date" max={todayISO()} value={form.fechaNacimiento} onChange={(e) => setField("fechaNacimiento", e.target.value)} {...aria("fechaNacimiento", errors)} />
@@ -488,9 +492,7 @@ export default function CreateStudent({ onCancel, onSuccess } = {}) {
     <>
       <h2 className="form-section-title" id="est-step-title" tabIndex={-1}>Encargados</h2>
       <p className="form-section-sub">
-        {menor
-          ? "El estudiante es menor de edad: registre uno o dos encargados. Debe existir exactamente un responsable principal."
-          : "El estudiante es mayor de edad: no se registran encargados. Puede continuar."}
+        El estudiante es menor de edad: registre uno o dos encargados. Debe existir exactamente un responsable principal.
       </p>
 
       {menor && (
@@ -711,9 +713,9 @@ export default function CreateStudent({ onCancel, onSuccess } = {}) {
           </dl>
         </section>
 
-        <section className="review-block">
-          <h3>Encargados <button type="button" className="link-btn" onClick={() => irA(1)}>Editar<span className="sr-only"> encargados</span></button></h3>
-          {form.encargados.length > 0 ? (
+        {menor && (
+          <section className="review-block">
+            <h3>Encargados <button type="button" className="link-btn" onClick={() => irA(1)}>Editar<span className="sr-only"> encargados</span></button></h3>
             <dl>
               {form.encargados.map((g, i) => (
                 <div className="review-pair" key={i}>
@@ -725,10 +727,8 @@ export default function CreateStudent({ onCancel, onSuccess } = {}) {
                 </div>
               ))}
             </dl>
-          ) : (
-            <p className="muted review-empty">Sin encargados (estudiante mayor de edad).</p>
-          )}
-        </section>
+          </section>
+        )}
 
         <section className="review-block">
           <h3>Información académica <button type="button" className="link-btn" onClick={() => irA(2)}>Editar<span className="sr-only"> información académica</span></button></h3>
@@ -767,7 +767,7 @@ export default function CreateStudent({ onCancel, onSuccess } = {}) {
         ? <h2 className="form-section-title wizard-titulo">Registrar estudiante</h2>
         : <PageHead title="Registrar estudiante" sub="Datos personales, académicos, de contacto y documentación requerida." />}
 
-      <Stepper pasos={PASOS} actual={paso} etiqueta="Pasos del registro" />
+      <Stepper pasos={pasosVisibles.map((i) => PASOS[i])} actual={pasosVisibles.indexOf(paso)} etiqueta="Pasos del registro" />
 
       {catalogLoading && <Alert tone="info" title="Cargando catálogos..." className="form-alert" />}
 
@@ -789,7 +789,7 @@ export default function CreateStudent({ onCancel, onSuccess } = {}) {
 
         <div className="wizard-foot">
           {paso > 0 ? (
-            <button type="button" className="sg-btn sg-btn--secondary" onClick={() => irA(paso - 1)}>
+            <button type="button" className="sg-btn sg-btn--secondary" onClick={() => irA(pasoAnterior)}>
               <ArrowLeft size={18} strokeWidth={1.75} aria-hidden="true" />
               Anterior
             </button>
