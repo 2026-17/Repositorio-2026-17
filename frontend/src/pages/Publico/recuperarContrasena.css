@@ -4,38 +4,39 @@
    ========================================= */
 
 .recuperar-card .login-greeting {
-    margin-bottom: 24px;
+    margin-bottom: var(--space-5);
 }
 
 .recuperar-card .form-actions {
-    margin-top: 20px;
+    margin-top: var(--space-5);
 }
 
 .recuperar-volver {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    margin-bottom: 20px;
-    padding: 0;
+    gap: var(--space-1);
+    margin-bottom: var(--space-5);
+    padding: var(--space-1) 6px;
+    margin-left: -6px;
     background: none;
     border: none;
-    color: #662483;
-    font-family: var(--font-sans);
-    font-weight: 600;
-    font-size: 0.85rem;
+    border-radius: var(--radius-sm);
+    color: var(--primary);
+    font: 600 14px/20px var(--font-sans);
     cursor: pointer;
 }
 
 .recuperar-volver:hover {
     text-decoration: underline;
+    text-underline-offset: 3px;
 }
 
-/* Indicador de pasos 1 - 2 - 3 */
+/* Indicador de pasos 1 - 2 - 3 (como el stepper del prototipo) */
 .recuperar-pasos {
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: 24px;
+    margin-bottom: var(--space-5);
 }
 
 .recuperar-pasos__grupo {
@@ -44,76 +45,88 @@
 }
 
 .recuperar-pasos__item {
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
+    width: 32px;
+    height: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-weight: 700;
-    font-size: 0.85rem;
-    background-color: #e0e0e0;
-    color: #777777;
+    border: 2px solid var(--border-strong);
+    border-radius: 50%;
+    background: var(--surface);
+    color: var(--ink-muted);
+    font: 700 14px/1 var(--font-sans);
 }
 
 .recuperar-pasos__item--activo {
-    background-color: #662483;
-    color: #ffffff;
+    border-color: var(--primary);
+    color: var(--primary);
+    box-shadow: 0 0 0 4px var(--primary-soft);
 }
 
 .recuperar-pasos__item--hecho {
-    background-color: #2fac66;
-    color: #ffffff;
+    border-color: var(--primary-fill);
+    background: var(--primary-fill);
+    color: var(--on-primary);
 }
 
 .recuperar-pasos__linea {
     width: 32px;
     height: 2px;
-    margin: 0 8px;
-    background-color: #e0e0e0;
+    margin: 0 var(--space-2);
+    background: var(--border);
 }
 
 /* Paso 2: código */
 .recuperar-codigo-input {
     text-align: center;
     letter-spacing: 8px;
-    font-size: 1.3rem;
-    font-weight: 700;
+    font-size: 22px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
+.app-container .recuperar-codigo-input {
+    height: 56px;
+    font-size: 22px;
+    font-weight: 600;
 }
 
 .recuperar-vigencia {
-    margin: -12px 0 0;
+    margin: calc(-1 * var(--space-3)) 0 0;
     text-align: center;
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: #666666;
+    font-size: 14px;
+    line-height: 20px;
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink-muted);
 }
 
 .recuperar-vigencia--expirada {
-    color: #be1622;
+    color: var(--danger);
+    font-weight: 600;
 }
 
 .recuperar-reenviar {
     display: block;
     width: 100%;
-    margin-top: 12px;
-    padding: 0;
+    margin-top: var(--space-3);
+    padding: var(--space-1);
     background: none;
     border: none;
+    border-radius: var(--radius-sm);
     text-align: center;
-    color: #662483;
-    font-family: var(--font-sans);
-    font-weight: 600;
-    font-size: 0.85rem;
+    color: var(--primary);
+    font: 600 14px/20px var(--font-sans);
     cursor: pointer;
 }
 
 .recuperar-reenviar:hover:not(:disabled) {
     text-decoration: underline;
+    text-underline-offset: 3px;
 }
 
 .recuperar-reenviar:disabled {
-    color: #aaaaaa;
+    color: var(--ink-disabled);
     cursor: not-allowed;
 }
 
@@ -125,49 +138,64 @@
 }
 
 .recuperar-password-wrapper .form-input {
-    padding-right: 44px;
+    padding-right: 48px;
 }
 
 .recuperar-password-toggle {
     position: absolute;
-    right: 10px;
-    display: flex;
-    padding: 4px;
+    right: 4px;
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 32px;
+    padding: 0;
     background: none;
     border: none;
-    color: #777777;
+    border-radius: 6px;
+    color: var(--ink-muted);
     cursor: pointer;
 }
 
+.recuperar-password-toggle:hover {
+    color: var(--ink);
+    background: var(--surface-raised);
+}
+
+/* Requisitos de la contraseña (como .rules del prototipo) */
 .recuperar-politica {
     list-style: none;
-    margin: -8px 0 20px;
-    padding: 12px 14px;
-    background-color: #f4f4f9;
-    border-radius: 8px;
+    margin: calc(-1 * var(--space-2)) 0 var(--space-5);
+    padding: var(--space-3) var(--space-4);
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 8px;
+    gap: 6px var(--space-3);
+    background: var(--surface-sunken);
+    border-radius: var(--radius-md);
 }
 
 .recuperar-politica__item {
     display: flex;
     align-items: center;
-    gap: 6px;
-    font-size: 0.78rem;
-    font-weight: 600;
-    color: #888888;
+    gap: var(--space-2);
+    font-size: 14px;
+    line-height: 20px;
+    color: var(--ink-muted);
+}
+
+.recuperar-politica__item svg {
+    flex: none;
 }
 
 .recuperar-politica__item--ok {
-    color: #2fac66;
+    color: var(--success);
+    font-weight: 600;
 }
 
 .recuperar-campo-error {
     display: block;
-    margin-top: 6px;
-    font-size: 0.78rem;
-    color: #be1622;
+    margin-top: var(--space-1);
+    font: 500 14px/20px var(--font-sans);
+    color: var(--danger);
 }
 
 /* Paso 4: éxito */
@@ -176,11 +204,12 @@
 }
 
 .recuperar-exito__icono {
-    color: #2fac66;
-    margin-bottom: 8px;
+    display: inline-block;
+    margin-bottom: var(--space-2);
+    color: var(--success);
 }
 
-@media screen and (max-width: 480px) {
+@media (max-width: 640px) {
     .recuperar-politica {
         grid-template-columns: 1fr;
     }
