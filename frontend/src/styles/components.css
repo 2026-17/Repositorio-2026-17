@@ -6,7 +6,6 @@
 
    1. Base y foco
    2. Clases sg-* del sistema de diseño (para componentes nuevos)
-   3. Nombres de botón heredados (pantalla de requisitos)
    ===================================================================== */
 
 /* ===== 1. Base y foco ===== */
@@ -187,63 +186,4 @@ textarea {
 @media (pointer: coarse) {
     .sg-btn, .sg-input { height: 44px; }
     .sg-pager__btn { min-width: 44px; height: 44px; }
-}
-
-/* ===== 3. Nombres de botón heredados (pantalla de requisitos) ===== */
-
-/* Nombres de botón usados por las pantallas de cursos y requisitos */
-.btn-principal,
-.btn-secundario {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: var(--space-2);
-    height: 40px;
-    padding: 0 var(--space-4);
-    border: 1px solid transparent;
-    border-radius: var(--radius-md);
-    font: 600 14px/20px var(--font-sans);
-    white-space: nowrap;
-    cursor: pointer;
-    transition: background-color var(--duration-fast) ease, border-color var(--duration-fast) ease;
-}
-
-.btn-principal {
-    background: var(--primary-fill);
-    color: var(--on-primary);
-}
-
-.btn-principal:hover:not(:disabled) {
-    background: var(--primary-fill-hover);
-}
-
-.btn-secundario {
-    background: var(--surface);
-    color: var(--ink);
-    border-color: var(--border-strong);
-}
-
-.btn-secundario:hover:not(:disabled) {
-    background: var(--surface-raised);
-    border-color: var(--ink-muted);
-}
-
-.btn-principal:active:not(:disabled),
-.btn-secundario:active:not(:disabled) {
-    transform: translateY(1px);
-}
-
-.btn-principal:disabled,
-.btn-secundario:disabled {
-    background: var(--surface-sunken);
-    color: var(--ink-disabled);
-    border-color: transparent;
-    cursor: not-allowed;
-}
-
-@media (pointer: coarse) {
-    .btn-principal,
-    .btn-secundario {
-        height: 44px;
-    }
 }

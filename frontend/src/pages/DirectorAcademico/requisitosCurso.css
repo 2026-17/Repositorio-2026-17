@@ -45,55 +45,8 @@
     font-size: 14px;
 }
 
-/* Página independiente "Configurar requisitos" (RequisitosCurso.jsx) */
-.requisitos-curso {
-    max-width: 920px;
-}
-
-.requisitos-curso__header h1 {
-    font: 600 26px/32px var(--font-display);
-    color: var(--ink);
-}
-
-.requisitos-curso__header p {
-    margin: var(--space-1) 0 var(--space-6);
-    color: var(--ink-muted);
-}
-
-.requisitos-curso__selectores {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: var(--space-5);
-    margin-bottom: var(--space-5);
-}
-
-.requisitos-curso__selectores label {
-    display: grid;
-    gap: var(--space-1);
-    font: 600 14px/20px var(--font-sans);
-}
-
-.requisitos-curso__selectores select {
-    height: 40px;
-    padding: 0 40px 0 var(--space-3);
-    appearance: none;
-    background: var(--surface) var(--icon-chevron) no-repeat right 12px center;
-    color: var(--ink);
-    border: 1px solid var(--border-strong);
-    border-radius: var(--radius-md);
-    font: 400 16px/24px var(--font-sans);
-}
-
-.requisitos-curso__acciones {
-    display: flex;
-    justify-content: flex-end;
-    gap: var(--space-2);
-    margin-top: var(--space-5);
-}
-
 @media (max-width: 900px) {
-    .requisitos-curso__grid,
-    .requisitos-curso__selectores {
+    .requisitos-curso__grid {
         grid-template-columns: 1fr;
     }
 }
