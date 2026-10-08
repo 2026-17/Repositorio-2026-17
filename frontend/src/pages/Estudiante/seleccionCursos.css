@@ -2,130 +2,149 @@
    Historia 2 - Matrícula de cursos autorizados
    ========================================= */
 
-.seleccion-cursos-page {
-    padding: 32px 0 48px;
+.container.seleccion-cursos-page {
+    padding-top: var(--space-6);
+    padding-bottom: var(--space-8);
 }
 
 .seleccion-cursos-page__header {
-    margin-bottom: 24px;
+    margin-bottom: var(--space-6);
 }
 
 .seleccion-cursos-page__header h1 {
-    margin: 0 0 4px;
-    color: var(--primary-purple);
-    font-size: 1.6rem;
+    margin: 0 0 var(--space-1);
+    font: 600 26px/32px var(--font-display);
+    color: var(--ink);
 }
 
 .seleccion-cursos-page__header p {
     margin: 0;
-    color: #666;
+    font-size: 15px;
+    line-height: 22px;
+    color: var(--ink-muted);
 }
 
 .seccion-titulo {
-    margin: 0 0 12px;
-    color: var(--primary-purple-dark);
-    font-size: 1.05rem;
+    margin: 0 0 var(--space-3);
+    font: 600 17px/24px var(--font-sans);
+    color: var(--ink);
 }
 
+/* Avisos (como .sg-alert) */
 .alert {
-    padding: 12px 16px;
-    border-radius: 8px;
-    margin-bottom: 16px;
-    font-size: 0.9rem;
+    margin-bottom: var(--space-4);
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    font: 500 14px/20px var(--font-sans);
 }
 
 .alert--error {
-    background-color: #fdecec;
-    color: var(--primary-red-dark);
-    border: 1px solid #f4c2c2;
+    background: var(--danger-soft);
+    color: var(--danger-strong);
+    border: 2px solid var(--danger);
 }
 
 .alert--info {
-    background-color: #eef4fb;
-    color: #24527a;
-    border: 1px solid #c5d9ee;
+    background: var(--info-soft);
+    color: var(--info);
 }
 
 .alert--success {
-    background-color: #eaf8ef;
-    color: #1f7a45;
-    border: 1px solid #bfe8cf;
+    background: var(--success-soft);
+    color: var(--success);
 }
 
+/* Resumen (como la franja de indicadores del prototipo) */
 .resumen-matricula {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: 16px;
-    background: var(--white);
-    border-radius: 12px;
-    padding: 20px 24px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
-    margin-bottom: 24px;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: var(--space-4);
+    margin-bottom: var(--space-5);
+    padding: var(--space-5);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-1);
 }
 
 .resumen-matricula > div {
     display: flex;
     flex-direction: column;
     gap: 2px;
+    font: 600 16px/24px var(--font-sans);
+    color: var(--ink);
 }
 
 .resumen-matricula__label {
-    font-size: 0.78rem;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-    color: #888;
+    font: 500 13px/18px var(--font-sans);
+    color: var(--ink-muted);
 }
 
 /* Tabla de oferta de cursos */
 .oferta-tabla-wrap {
-    background: var(--white);
-    border-radius: 12px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    margin-bottom: var(--space-5);
     overflow-x: auto;
-    margin-bottom: 20px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-1);
 }
 
 .oferta-tabla {
     width: 100%;
     border-collapse: collapse;
-    font-size: 0.9rem;
+    font-size: 14px;
+    line-height: 20px;
 }
 
 .oferta-tabla th,
 .oferta-tabla td {
+    padding: var(--space-3) var(--space-4);
+    border-bottom: 1px solid var(--border);
     text-align: left;
-    padding: 12px 16px;
-    border-bottom: 1px solid var(--border-color);
     vertical-align: top;
+    color: var(--ink);
 }
 
 .oferta-tabla th {
-    background-color: var(--neutral-light);
-    color: var(--primary-purple-dark);
-    font-weight: 700;
+    background: var(--surface);
+    font: 600 13px/20px var(--font-sans);
+    color: var(--ink-subtle);
     white-space: nowrap;
 }
 
+.oferta-tabla tbody tr:last-child td {
+    border-bottom: 0;
+}
+
 .oferta-tabla tbody tr:hover {
-    background-color: #faf7fc;
+    background: var(--surface-raised);
+}
+
+.oferta-tabla input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--primary-fill);
 }
 
 .oferta-tabla__plan {
     display: block;
-    color: #888;
-    font-size: 0.75rem;
+    font-size: 13px;
+    color: var(--ink-muted);
 }
 
-.fila--seleccionada {
-    background-color: #f3ecf7;
+.oferta-tabla tbody tr.fila--seleccionada {
+    background: var(--primary-soft);
 }
 
-.fila--error {
-    background-color: #fdf3f3;
+.oferta-tabla tbody tr.fila--error {
+    background: var(--danger-soft);
 }
 
 .oferta-tabla__codigo {
     white-space: nowrap;
+    font-variant-numeric: tabular-nums;
 }
 
 .oferta-tabla__validacion {
@@ -134,10 +153,9 @@
 
 .texto-error {
     display: block;
-    margin-bottom: 4px;
-    color: var(--primary-red-dark);
-    font-size: 0.78rem;
-    font-weight: 500;
+    margin-bottom: var(--space-1);
+    font: 500 13px/18px var(--font-sans);
+    color: var(--danger);
 }
 
 .texto-error:last-child {
@@ -145,56 +163,73 @@
 }
 
 .oferta-tabla-empty {
-    padding: 24px;
+    padding: var(--space-6) var(--space-5);
     text-align: center;
-    color: #777;
+    font-size: 14px;
+    color: var(--ink-muted);
 }
 
-.badge--sin-cupos {
-    background-color: #fdecec;
-    color: var(--primary-red-dark);
+/* Insignias (como .sg-badge) */
+.badge.badge--sin-cupos {
+    background: var(--danger-soft);
+    color: var(--danger-strong);
 }
 
-.badge--registrada {
-    background-color: #eaf8ef;
-    color: #1f7a45;
+.badge.badge--registrada {
+    background: var(--success-soft);
+    color: var(--success);
 }
 
 /* Acciones de confirmación */
 .seleccion-cursos-page__acciones {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
-    gap: 16px;
-    flex-wrap: wrap;
+    gap: var(--space-4);
 }
 
 .seleccion-cursos-page__acciones p {
     margin: 0;
-    font-size: 0.9rem;
-    color: #555;
+    font-size: 15px;
+    line-height: 22px;
+    color: var(--ink-muted);
 }
 
-/* Matrícula confirmada */
+/* Matrícula confirmada (como la pantalla de éxito del prototipo) */
 .matricula-confirmada {
-    background: var(--white);
-    border-radius: 12px;
-    padding: 24px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    padding: var(--space-5);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-1);
 }
 
 .matricula-confirmada h2 {
-    margin-top: 0;
-    color: var(--primary-purple);
-    font-size: 1.2rem;
+    margin: 0 0 var(--space-3);
+    font: 600 22px/28px var(--font-display);
+    color: var(--ink);
 }
 
 .matricula-confirmada p {
-    margin: 0 0 8px;
+    margin: 0 0 var(--space-2);
+    font-size: 15px;
+    line-height: 22px;
+    color: var(--ink);
 }
 
 .matricula-confirmada .oferta-tabla-wrap {
-    margin: 12px 0 20px;
+    margin: var(--space-3) 0 var(--space-5);
     box-shadow: none;
-    border: 1px solid var(--border-color);
+}
+
+@media (max-width: 640px) {
+    .seleccion-cursos-page__header h1 {
+        font-size: 24px;
+        line-height: 30px;
+    }
+
+    .seleccion-cursos-page__acciones .btn {
+        width: 100%;
+    }
 }

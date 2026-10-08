@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { API_URL } from "../../config/api";
+import "./notificaciones.css";
 
 import { useDialog } from "../../components/dialog/useDialog";
 
@@ -179,13 +180,10 @@ function Notificaciones() {
                 </p>
             </div>
 
-            <div
-                style={{
-                    marginBottom: "1rem",
-                }}
-            >
+            <div className="notificaciones__barra">
                 <button
                     type="button"
+                    className="btn btn-secondary"
                     onClick={() => {
                         void cargarNotificaciones();
                     }}
@@ -201,40 +199,21 @@ function Notificaciones() {
             </div>
 
             {cargando ? (
-                <p>Cargando notificaciones...</p>
+                <p className="notificaciones__cargando">Cargando notificaciones...</p>
             ) : notificaciones.length === 0 ? (
-                <div
-                    style={{
-                        border: "1px solid #ddd",
-                        borderRadius: "8px",
-                        padding: "1.25rem",
-                    }}
-                >
-                    <h2
-                        style={{
-                            marginTop: 0,
-                        }}
-                    >
+                <div className="notificaciones__vacio">
+                    <h2>
                         Sin notificaciones
                     </h2>
 
-                    <p
-                        style={{
-                            marginBottom: 0,
-                        }}
-                    >
+                    <p>
                         Actualmente no tiene notificaciones
                         relacionadas con sus solicitudes de
                         matrícula.
                     </p>
                 </div>
             ) : (
-                <div
-                    style={{
-                        display: "grid",
-                        gap: "1rem",
-                    }}
-                >
+                <div className="notificaciones__lista">
                     {notificaciones.map(
                         (notificacion) => {
                             const procesando =
@@ -246,32 +225,15 @@ function Notificaciones() {
                                     key={
                                         notificacion.idNotificacion
                                     }
-                                    style={{
-                                        border:
-                                            notificacion.leida
-                                                ? "1px solid #ccc"
-                                                : "2px solid #6f2788",
-                                        borderRadius: "8px",
-                                        padding: "1rem",
-                                    }}
+                                    className={
+                                        notificacion.leida
+                                            ? "notificacion"
+                                            : "notificacion notificacion--no-leida"
+                                    }
                                 >
-                                    <div
-                                        style={{
-                                            display: "flex",
-                                            justifyContent:
-                                                "space-between",
-                                            alignItems:
-                                                "flex-start",
-                                            gap: "1rem",
-                                            flexWrap: "wrap",
-                                        }}
-                                    >
+                                    <div className="notificacion__encabezado">
                                         <div>
-                                            <h2
-                                                style={{
-                                                    marginTop: 0,
-                                                }}
-                                            >
+                                            <h2>
                                                 {
                                                     notificacion.asunto
                                                 }
@@ -318,19 +280,8 @@ function Notificaciones() {
                                         </div>
                                     </div>
 
-                                    <div
-                                        style={{
-                                            marginTop: "0.75rem",
-                                            padding: "0.85rem",
-                                            border: "1px solid #ddd",
-                                            borderRadius: "6px",
-                                        }}
-                                    >
-                                        <p
-                                            style={{
-                                                margin: 0,
-                                            }}
-                                        >
+                                    <div className="notificacion__mensaje">
+                                        <p>
                                             {
                                                 notificacion.mensaje
                                             }
@@ -338,13 +289,10 @@ function Notificaciones() {
                                     </div>
 
                                     {!notificacion.leida && (
-                                        <div
-                                            style={{
-                                                marginTop: "1rem",
-                                            }}
-                                        >
+                                        <div className="notificacion__acciones">
                                             <button
                                                 type="button"
+                                                className="btn btn-primary"
                                                 onClick={() =>
                                                     marcarComoLeida(
                                                         notificacion

@@ -1,0 +1,118 @@
+/* =========================================
+   HU-012 - Notificaciones del estudiante
+   (antes con estilos en línea; ahora con los tokens del sistema)
+   ========================================= */
+
+.notificaciones__barra {
+    margin-bottom: var(--space-5);
+}
+
+.notificaciones__cargando {
+    margin: 0;
+    font-size: 15px;
+    color: var(--ink-muted);
+}
+
+.notificaciones__lista {
+    display: grid;
+    gap: var(--space-3);
+}
+
+/* Estado vacío (como .sg-empty) */
+.notificaciones__vacio {
+    padding: var(--space-7) var(--space-5);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-1);
+    text-align: center;
+}
+
+.notificaciones__vacio h2 {
+    margin: 0 0 var(--space-1);
+    font: 600 16px/24px var(--font-sans);
+    color: var(--ink);
+}
+
+.notificaciones__vacio p {
+    margin: 0 auto;
+    max-width: 42ch;
+    font-size: 14px;
+    line-height: 20px;
+    color: var(--ink-muted);
+}
+
+/* Tarjeta de notificación (como .notice del prototipo) */
+.notificacion {
+    padding: var(--space-4) var(--space-5);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-1);
+}
+
+/* No leída: borde de acento a la izquierda */
+.notificacion--no-leida {
+    border-left: 4px solid var(--primary);
+    padding-left: calc(var(--space-5) - 3px);
+}
+
+.notificacion__encabezado {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: var(--space-4);
+}
+
+.notificacion h2 {
+    margin: 0 0 var(--space-2);
+    font: 600 17px/24px var(--font-sans);
+    color: var(--ink);
+}
+
+.notificacion__encabezado p {
+    margin: 0 0 2px;
+    font-size: 14px;
+    line-height: 20px;
+    color: var(--ink-muted);
+}
+
+.notificacion__encabezado p strong {
+    font-weight: 600;
+    color: var(--ink);
+}
+
+.notificacion__mensaje {
+    margin-top: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+}
+
+.notificacion__mensaje p {
+    margin: 0;
+    font-size: 15px;
+    line-height: 22px;
+    color: var(--ink);
+}
+
+.notificacion__acciones {
+    margin-top: var(--space-4);
+}
+
+@media (max-width: 640px) {
+    .notificacion {
+        padding: var(--space-4);
+    }
+
+    .notificacion--no-leida {
+        padding-left: calc(var(--space-4) - 3px);
+    }
+
+    .notificacion__acciones .btn,
+    .notificaciones__barra .btn {
+        width: 100%;
+    }
+}
