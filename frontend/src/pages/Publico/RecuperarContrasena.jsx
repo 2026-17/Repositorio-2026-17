@@ -1,31 +1,25 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Check, CircleCheck, CircleX, Clock } from "lucide-react";
+import { ArrowLeft, Check, Clock } from "lucide-react";
 
 import { API_URL } from "../../config/api";
 import Alert from "../../components/ui/Alert";
 import Field from "../../components/ui/Field";
 import PasswordField from "../../components/ui/PasswordField";
+import RequisitosContrasena from "../../components/ui/RequisitosContrasena";
+import { revisarContrasena } from "../../components/ui/politicaContrasena";
 import AuthLayout from "./AuthLayout";
 
 import "./publico.css";
 import "./recuperarContrasena.css";
 
 /*
- * Deben coincidir con el backend:
- * CodigoVerificacionService (15 min de vigencia, 1 min entre envíos)
- * y RestablecerContrasenaRequest / PoliticaContrasena (12 a 16 caracteres,
- * con mayúscula, número y carácter especial).
+ * Deben coincidir con el backend: CodigoVerificacionService
+ * (15 min de vigencia, 1 min entre envíos). Las reglas de la contraseña
+ * están en politicaContrasena.js.
  */
 const MINUTOS_VIGENCIA = 15;
 const SEGUNDOS_ENTRE_ENVIOS = 60;
-
-const REQUISITOS = [
-    { id: "longitud", texto: "Entre 12 y 16 caracteres", cumple: (pw) => pw.length >= 12 && pw.length <= 16 },
-    { id: "mayuscula", texto: "Una letra mayúscula", cumple: (pw) => /[A-Z]/.test(pw) },
-    { id: "numero", texto: "Un número", cumple: (pw) => /[0-9]/.test(pw) },
-    { id: "especial", texto: "Un carácter especial", cumple: (pw) => /[^A-Za-z0-9]/.test(pw) },
-];
 
 /*
  * Lee el mensaje de error del backend ({ status, message }).
@@ -131,7 +125,7 @@ function RecuperarContrasena() {
     const segundosReenvio = Math.max(0, Math.ceil((reenvioEn - ahora) / 1000));
     const codigoVencido = segundosVigencia === 0;
 
-    const requisitos = REQUISITOS.map((r) => ({ ...r, ok: r.cumple(contrasena) }));
+    const requisitos = revisarContrasena(contrasena);
     const contrasenaValida = requisitos.every((r) => r.ok);
     const coinciden = confirmacion.length > 0 && contrasena === confirmacion;
 
@@ -352,17 +346,7 @@ function RecuperarContrasena() {
                             describedBy="requisitos-contrasena"
                         />
 
-                        <ul className="rules" id="requisitos-contrasena" aria-label="Requisitos de la contraseña">
-                            {requisitos.map((r) => (
-                                <li key={r.id} className={r.ok ? "ok" : ""}>
-                                    {r.ok
-                                        ? <CircleCheck size={16} strokeWidth={1.75} aria-hidden="true" />
-                                        : <CircleX size={16} strokeWidth={1.75} aria-hidden="true" />}
-                                    {r.texto}
-                                    <span className="sr-only">{r.ok ? " (cumplido)" : " (pendiente)"}</span>
-                                </li>
-                            ))}
-                        </ul>
+                        <RequisitosContrasena id="requisitos-contrasena" requisitos={requisitos} />
 
                         <PasswordField
                             id="confirmarContrasena"

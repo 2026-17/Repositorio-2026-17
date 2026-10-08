@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.util.HtmlUtils;
 
 import java.time.Duration;
 import java.util.List;
@@ -18,8 +19,9 @@ import java.util.Map;
 /**
  * Envía correos transaccionales con la API HTTP de Brevo (no SMTP: Railway
  * bloquea SMTP saliente en los planes Free/Trial/Hobby).
- * Si brevo.api-key está vacía, no envía nada y muestra el código en consola,
- * para poder trabajar localmente sin cuenta de Brevo.
+ * Si brevo.api-key está vacía, no envía nada y muestra el código (o la
+ * contraseña temporal) en consola, para poder trabajar localmente sin cuenta
+ * de Brevo.
  */
 @Service
 public class EmailService {
@@ -65,6 +67,40 @@ public class EmailService {
                         + "No comparta este código y comuníquese con la administración de ACUSAB.");
     }
 
+    /**
+     * Correo de bienvenida de una cuenta nueva con su contraseña temporal
+     * (ver ContrasenaTemporalService).
+     */
+    public void enviarContrasenaTemporal(String destinatario, String nombre, String cedula, String contrasena) {
+        if (apiKey.isBlank()) {
+            log.warn("brevo.api-key vacía: no se envía el correo. Contraseña temporal para {} (cédula {}): {}",
+                    destinatario, cedula, contrasena);
+            return;
+        }
+
+        String contenido = """
+                <h1 style="margin:0 0 16px; font-size:22px; color:#662483;">Bienvenido(a) a SIGAC</h1>
+                <p style="margin:0 0 24px; font-size:15px; line-height:1.6;">Hola, %s. Se creó su cuenta en el Sistema de Gestión Académica de ACUSAB. Para ingresar use estos datos:</p>
+                <table role="presentation" width="100%%" cellpadding="0" cellspacing="0" style="margin:0 0 24px; background-color:#faf7fc; border:1px solid #e9dcf2; border-radius:10px;">
+                  <tr>
+                    <td style="padding:16px 20px 8px; font-size:13px; color:#5a5a63;">Cédula</td>
+                    <td style="padding:16px 20px 8px; font-size:16px; font-weight:bold; text-align:right;">%s</td>
+                  </tr>
+                  <tr>
+                    <td style="padding:8px 20px 16px; font-size:13px; color:#5a5a63;">Contraseña temporal</td>
+                    <td style="padding:8px 20px 16px; font-family:'Courier New', Courier, monospace; font-size:18px; font-weight:bold; letter-spacing:2px; color:#662483; text-align:right;">%s</td>
+                  </tr>
+                </table>
+                <p style="margin:0 0 28px; font-size:15px; line-height:1.6;">La primera vez que ingrese, el sistema le pedirá <strong>crear una contraseña nueva</strong>. La contraseña temporal deja de servir en cuanto la cambie.</p>
+                %s
+                """.formatted(
+                HtmlUtils.htmlEscape(nombre), HtmlUtils.htmlEscape(cedula), HtmlUtils.htmlEscape(contrasena),
+                avisoSeguridad("No comparta esta contraseña con nadie. Si no esperaba este correo, "
+                        + "comuníquese con la administración de ACUSAB."));
+
+        enviar(destinatario, "Su cuenta en SIGAC", contenido);
+    }
+
     private void enviarCodigo(String destinatario, String codigo, int minutosValidez,
                               String asunto, String titulo, String introduccion, String avisoSeguridad) {
         if (apiKey.isBlank()) {
@@ -73,6 +109,37 @@ public class EmailService {
             return;
         }
 
+        String contenido = """
+                <h1 style="margin:0 0 16px; font-size:22px; color:#662483;">%s</h1>
+                <p style="margin:0 0 24px; font-size:15px; line-height:1.6;">%s</p>
+                <p style="margin:0 0 8px; font-size:13px; color:#5a5a63; text-align:center; text-transform:uppercase; letter-spacing:1px;">Su código de verificación</p>
+                <table role="presentation" align="center" cellpadding="0" cellspacing="0" style="margin:0 auto 12px;">
+                  <tr>
+                    <td style="background-color:#faf7fc; border:2px dashed #662483; border-radius:10px; padding:16px 28px; font-family:'Courier New', Courier, monospace; font-size:32px; font-weight:bold; letter-spacing:8px; color:#662483; text-align:center;">%s</td>
+                  </tr>
+                </table>
+                <p style="margin:0 0 28px; font-size:13px; color:#5a5a63; text-align:center;">Vence en <strong>%d minutos</strong> y solo puede usarse una vez.</p>
+                %s
+                """.formatted(titulo, introduccion, codigo, minutosValidez,
+                avisoSeguridad("<strong>¿No fue usted?</strong> " + avisoSeguridad));
+
+        enviar(destinatario, asunto, contenido);
+    }
+
+    // Recuadro rojo de advertencia al final del correo
+    private static String avisoSeguridad(String texto) {
+        return """
+                <table role="presentation" width="100%%" cellpadding="0" cellspacing="0">
+                  <tr>
+                    <td style="background-color:#fbeaec; border-left:4px solid #be1622; border-radius:6px; padding:14px 16px; font-size:13px; line-height:1.5; color:#5a1a20;">
+                      %s
+                    </td>
+                  </tr>
+                </table>
+                """.formatted(texto);
+    }
+
+    private void enviar(String destinatario, String asunto, String contenido) {
         // Correo con tablas y estilos en línea: es lo que la mayoría de clientes
         // de correo (Gmail, Outlook) muestran de forma confiable.
         String html = """
@@ -92,22 +159,7 @@ public class EmailService {
                           </tr>
                           <tr>
                             <td style="padding:32px;">
-                              <h1 style="margin:0 0 16px; font-size:22px; color:#662483;">%s</h1>
-                              <p style="margin:0 0 24px; font-size:15px; line-height:1.6;">%s</p>
-                              <p style="margin:0 0 8px; font-size:13px; color:#5a5a63; text-align:center; text-transform:uppercase; letter-spacing:1px;">Su código de verificación</p>
-                              <table role="presentation" align="center" cellpadding="0" cellspacing="0" style="margin:0 auto 12px;">
-                                <tr>
-                                  <td style="background-color:#faf7fc; border:2px dashed #662483; border-radius:10px; padding:16px 28px; font-family:'Courier New', Courier, monospace; font-size:32px; font-weight:bold; letter-spacing:8px; color:#662483; text-align:center;">%s</td>
-                                </tr>
-                              </table>
-                              <p style="margin:0 0 28px; font-size:13px; color:#5a5a63; text-align:center;">Vence en <strong>%d minutos</strong> y solo puede usarse una vez.</p>
-                              <table role="presentation" width="100%%" cellpadding="0" cellspacing="0">
-                                <tr>
-                                  <td style="background-color:#fbeaec; border-left:4px solid #be1622; border-radius:6px; padding:14px 16px; font-size:13px; line-height:1.5; color:#5a1a20;">
-                                    <strong>¿No fue usted?</strong> %s
-                                  </td>
-                                </tr>
-                              </table>
+                              %s
                             </td>
                           </tr>
                           <tr>
@@ -122,7 +174,7 @@ public class EmailService {
                   </table>
                 </body>
                 </html>
-                """.formatted(titulo, introduccion, codigo, minutosValidez, avisoSeguridad);
+                """.formatted(contenido);
 
         Map<String, Object> cuerpo = Map.of(
                 "sender", Map.of("name", remitenteNombre, "email", remitenteCorreo),

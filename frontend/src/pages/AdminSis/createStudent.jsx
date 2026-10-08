@@ -403,7 +403,7 @@ export default function CreateStudent({ onCancel, onSuccess } = {}) {
             <span className="success-mark"><Check size={32} strokeWidth={1.75} aria-hidden="true" /></span>
             <h2 id="page-title" tabIndex={-1}>Estudiante registrado</h2>
             <p className="muted">
-              {`${form.nombres} ${form.primerApellido}`.trim()} quedó registrado con estado activo y ya está disponible para matrícula y gestión académica.
+              {`${form.nombres} ${form.primerApellido}`.trim()} quedó registrado con estado activo y ya está disponible para matrícula y gestión académica. Se envió una contraseña temporal a {form.correo} para su primer ingreso.
             </p>
             <p className="receipt">ID asignado <b>{registrado.id}</b></p>
             {registrado.beca && (

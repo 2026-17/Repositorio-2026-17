@@ -222,7 +222,6 @@ class ProfesorServiceTest {
         request.setCedula("118760542");
         request.setNombre("Marcela Vargas");
         request.setCorreo("marcela@test.cr");
-        request.setContrasena("Password123!");
         request.setIdRol(idRol);
         request.setIdEstadoUsuario(idEstado);
 

@@ -17,9 +17,13 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Set;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
+    private static final Set<String> RUTAS_CON_CAMBIO_PENDIENTE =
+            Set.of("/auth/contrasena-temporal/cambiar", "/auth/logout");
+
     private final JwtService jwtService;
     private final TokenRevocadoRepository tokenRevocadoRepository;
 
@@ -42,6 +46,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             JWTClaimsSet claims = jwtService.validarYObtenerClaims(header.substring(7));
             String jti = claims.getJWTID();
             if (jti == null || !tokenRevocadoRepository.existsByJti(jti)) {
+                // Token emitido con la contraseña temporal: solo sirve para cambiarla.
+                // Se corta aquí (y no en SecurityConfig) para que cubra también los
+                // endpoints que solo piden estar autenticado.
+                if (Boolean.TRUE.equals(claims.getClaim(JwtService.CLAIM_CAMBIO_CONTRASENA))
+                        && !RUTAS_CON_CAMBIO_PENDIENTE.contains(request.getServletPath())) {
+                    response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                    response.setContentType("application/json;charset=UTF-8");
+                    response.getWriter().write("{\"status\":403,\"message\":"
+                            + "\"Debe cambiar su contraseña temporal antes de usar el sistema.\"}");
+                    return;
+                }
+
                 String cedula = claims.getSubject();
                 String rol = (String) claims.getClaim("rol");
                 List<SimpleGrantedAuthority> authorities = rol != null

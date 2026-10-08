@@ -2,11 +2,13 @@ import {
     BrowserRouter,
     Routes,
     Route,
+    Navigate,
     Outlet,
 } from "react-router-dom";
 
 import Login from "./pages/Publico/login";
 import RecuperarContrasena from "./pages/Publico/RecuperarContrasena";
+import CambiarContrasenaTemporal from "./pages/Publico/CambiarContrasenaTemporal";
 import Notificaciones from "./pages/Estudiante/Notificaciones";
 import ConsultaCursos from "./pages/Estudiante/ConsultaCursos";
 import SeleccionCursos from "./pages/Estudiante/SeleccionCursos";
@@ -31,8 +33,14 @@ import RegistrarProfesor from "./pages/DirectorAcademico/RegistrarProfesor.jsx";
 import Reportes from "./pages/Administrativa/Reportes.jsx";
 
 import Header from "./components/Header";
+import { cambioContrasenaPendiente, RUTA_CAMBIO_CONTRASENA_TEMPORAL } from "./utils/sesion";
 
 function Layout() {
+    // Con la contraseña temporal no se entra al sistema hasta cambiarla
+    if (cambioContrasenaPendiente()) {
+        return <Navigate to={RUTA_CAMBIO_CONTRASENA_TEMPORAL} replace />;
+    }
+
     return (
         <Header>
             <Outlet />
@@ -61,6 +69,12 @@ function App() {
                 <Route
                     path="/recuperar-contrasena"
                     element={<RecuperarContrasena />}
+                />
+
+                {/* Primer inicio de sesión: cambio de la contraseña temporal */}
+                <Route
+                    path={RUTA_CAMBIO_CONTRASENA_TEMPORAL}
+                    element={<CambiarContrasenaTemporal />}
                 />
 
                 {/* =====================================================

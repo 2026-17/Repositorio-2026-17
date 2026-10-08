@@ -11,4 +11,6 @@ public class LoginResponse {
     private final String rol;
     private final String nombre;
     private final String correo;
+    // true si ingresó con la contraseña temporal: debe cambiarla antes de usar el sistema
+    private final boolean requiereCambioContrasena;
 }

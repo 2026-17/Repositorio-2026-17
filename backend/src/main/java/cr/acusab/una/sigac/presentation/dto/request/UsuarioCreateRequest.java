@@ -32,9 +32,8 @@ public class UsuarioCreateRequest {
     @Size(max = 254)
     private String correo;
 
-    @NotNull
-    @Size(min = 8, message = "La contrasena debe tener al menos 12 caracteres")
-    private String contrasena;
+    // Sin contraseña: el sistema genera una temporal y la envía al correo
+    // (ver ContrasenaTemporalService).
 
     @NotNull
     private Integer idRol;

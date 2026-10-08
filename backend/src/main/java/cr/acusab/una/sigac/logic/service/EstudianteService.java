@@ -14,7 +14,6 @@ import cr.acusab.una.sigac.presentation.dto.response.UbicacionResponse;
 import cr.acusab.una.sigac.presentation.dto.request.EstudianteUpdateRequest;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -36,7 +35,6 @@ public class EstudianteService {
     private static final long MAX_PDF_SIZE = 50L * 1024L * 1024L;
     private static final List<String> GENEROS = List.of("MASCULINO", "FEMENINO", "OTRO");
     private static final List<String> PARENTESCOS = List.of("MADRE", "PADRE", "TUTOR", "FAMILIAR", "OTRO");
-    private static final String CONTRASENA_TEMPORAL = "Temporal123";
 
     private final EstudianteRepository estudianteRepository;
     private final EncargadoRepository encargadoRepository;
@@ -53,7 +51,7 @@ public class EstudianteService {
     private final UsuarioRepository usuarioRepository;
     private final RoleRepository roleRepository;
     private final EstadoUsuarioRepository estadoUsuarioRepository;
-    private final PasswordEncoder passwordEncoder;
+    private final ContrasenaTemporalService contrasenaTemporalService;
     private final BecaService becaService;
     private final InscripcionPlanEstudioService inscripcionPlanService;
     private final DistritoRepository distritoRepository;
@@ -74,7 +72,7 @@ public class EstudianteService {
                              UsuarioRepository usuarioRepository,
                              RoleRepository roleRepository,
                              EstadoUsuarioRepository estadoUsuarioRepository,
-                             PasswordEncoder passwordEncoder,
+                             ContrasenaTemporalService contrasenaTemporalService,
                              BecaService becaService,
                              InscripcionPlanEstudioService inscripcionPlanService,
                              DistritoRepository distritoRepository) {
@@ -91,7 +89,7 @@ public class EstudianteService {
         this.usuarioRepository = usuarioRepository;
         this.roleRepository = roleRepository;
         this.estadoUsuarioRepository = estadoUsuarioRepository;
-        this.passwordEncoder = passwordEncoder;
+        this.contrasenaTemporalService = contrasenaTemporalService;
         this.becaService = becaService;
         this.inscripcionPlanService = inscripcionPlanService;
         this.distritoRepository = distritoRepository;
@@ -196,10 +194,9 @@ public class EstudianteService {
         usuario.setNombre(normalizar(request.nombres()) + " " + normalizar(request.primerApellido())
                 + (normalizarNullable(request.segundoApellido()) == null ? "" : " " + normalizar(request.segundoApellido())));
         usuario.setCorreo(correo);
-        usuario.setHashContrasena(passwordEncoder.encode(CONTRASENA_TEMPORAL));
+        contrasenaTemporalService.asignar(usuario);
         usuario.setIdRol(rol);
         usuario.setIdEstadoUsuario(estado);
-        usuario.setRequiereCambioContrasena(true);
         usuario.setIntentosFallidos((short) 0);
         usuario.setBloqueadoHasta(null);
         usuario.setUltimoAcceso(null);

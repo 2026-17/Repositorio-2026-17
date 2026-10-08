@@ -2,6 +2,7 @@ package cr.acusab.una.sigac.presentation.controller;
 
 import cr.acusab.una.sigac.logic.service.AuthService;
 import cr.acusab.una.sigac.presentation.dto.request.CambiarContrasenaRequest;
+import cr.acusab.una.sigac.presentation.dto.request.CambioContrasenaTemporalRequest;
 import cr.acusab.una.sigac.presentation.dto.request.LoginRequest;
 import cr.acusab.una.sigac.presentation.dto.request.RestablecerContrasenaRequest;
 import cr.acusab.una.sigac.presentation.dto.request.SolicitarRecuperacionRequest;
@@ -35,6 +36,17 @@ public class AuthController {
             authService.logout(authHeader.substring(7));
         }
         return ResponseEntity.noContent().build();
+    }
+
+    // Requiere sesión. Es lo único (junto con logout) que permite un token
+    // emitido con la contraseña temporal; responde con un token normal.
+    @PostMapping("/contrasena-temporal/cambiar")
+    public ResponseEntity<LoginResponse> cambiarContrasenaTemporal(
+            Authentication authentication,
+            @RequestHeader("Authorization") String authHeader,
+            @Valid @RequestBody CambioContrasenaTemporalRequest request) {
+        return ResponseEntity.ok(authService.cambiarContrasenaTemporal(
+                authentication.getName(), authHeader.substring(7), request));
     }
 
     // Público. Siempre responde lo mismo, exista o no la cédula.

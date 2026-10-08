@@ -5,7 +5,6 @@ import { useDialog } from "../../components/dialog/useDialog";
 import Alert from "../../components/ui/Alert";
 import Field from "../../components/ui/Field";
 import PageHead from "../../components/ui/PageHead";
-import PasswordField from "../../components/ui/PasswordField";
 import { listaErrores } from "../../components/ui/utilidades";
 import "./styles/createUsers.css";
 
@@ -13,7 +12,6 @@ const FORM_VACIO = {
     cedula: "",
     nombre: "",
     correo: "",
-    contrasena: "",
     idRol: "",
     idEstadoUsuario: "",
 };
@@ -78,7 +76,6 @@ function CreateUsers() {
         if (!form.nombre.trim()) nuevos.nombre = "Escriba el nombre.";
         if (!form.correo.trim()) nuevos.correo = "Escriba el correo electrónico.";
         else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.correo.trim())) nuevos.correo = "Escriba un correo con el formato nombre@dominio.com";
-        if (!form.contrasena) nuevos.contrasena = "Escriba una contraseña.";
         if (!form.idRol) nuevos.idRol = "Seleccione el rol.";
         if (!form.idEstadoUsuario) nuevos.idEstadoUsuario = "Seleccione el estado del usuario.";
         return nuevos;
@@ -96,7 +93,6 @@ function CreateUsers() {
             cedula: form.cedula,
             nombre: form.nombre,
             correo: form.correo,
-            contrasena: form.contrasena,
             idRol: Number(form.idRol),
             idEstadoUsuario: Number(form.idEstadoUsuario),
         };
@@ -115,7 +111,7 @@ function CreateUsers() {
                 return;
             }
 
-            dialog.exito("Usuario creado");
+            dialog.exito(`Usuario creado. Se envió una contraseña temporal a ${payload.correo}.`);
             setForm(FORM_VACIO);
         } catch {
             dialog.error("No se pudo conectar con el servidor");
@@ -132,7 +128,7 @@ function CreateUsers() {
 
     return (
         <div className="crear-usuario">
-            <PageHead title="Crear usuario" sub="Registre una cuenta de acceso a SIGAC con su rol y estado." />
+            <PageHead title="Crear usuario" sub="Registre una cuenta de acceso a SIGAC con su rol y estado. La contraseña temporal se envía al correo del usuario." />
 
             {error && <Alert tone="danger" title={error} className="form-alert" />}
 
@@ -157,17 +153,9 @@ function CreateUsers() {
                         <Field id={`${P}nombre`} errorKey="nombre" label="Nombre" error={errores.nombre}>
                             <input id={`${P}nombre`} className="sg-input" type="text" autoComplete="name" value={form.nombre} onChange={(e) => setCampo("nombre", e.target.value)} {...aria("nombre")} />
                         </Field>
-                        <Field id={`${P}correo`} errorKey="correo" label="Correo" error={errores.correo}>
+                        <Field id={`${P}correo`} errorKey="correo" label="Correo" hint="Se enviará una contraseña temporal a este correo." error={errores.correo}>
                             <input id={`${P}correo`} className="sg-input" type="email" autoComplete="email" value={form.correo} onChange={(e) => setCampo("correo", e.target.value)} placeholder="nombre@correo.com" {...aria("correo")} />
                         </Field>
-                        <PasswordField
-                            id={`${P}contrasena`}
-                            label="Contraseña"
-                            value={form.contrasena}
-                            onChange={(e) => setCampo("contrasena", e.target.value)}
-                            autoComplete="new-password"
-                            error={errores.contrasena}
-                        />
                         <Field id={`${P}idRol`} errorKey="idRol" label="Rol" error={errores.idRol} select>
                             <select id={`${P}idRol`} className="sg-input sg-select" value={form.idRol} onChange={(e) => setCampo("idRol", e.target.value)} {...aria("idRol")}>
                                 <option value="">Seleccione un rol</option>

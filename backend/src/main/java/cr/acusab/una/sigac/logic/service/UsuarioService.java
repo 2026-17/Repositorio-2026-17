@@ -12,7 +12,6 @@ import cr.acusab.una.sigac.presentation.dto.response.EstadoUsuarioResponse;
 import cr.acusab.una.sigac.presentation.dto.response.RoleResponse;
 import cr.acusab.una.sigac.presentation.dto.response.UsuarioResponse;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -26,18 +25,18 @@ public class UsuarioService {
     private final UsuarioRepository usuarioRepository;
     private final RoleRepository roleRepository;
     private final EstadoUsuarioRepository estadoUsuarioRepository;
-    private final PasswordEncoder passwordEncoder;
+    private final ContrasenaTemporalService contrasenaTemporalService;
 
     public UsuarioService(
             UsuarioRepository usuarioRepository,
             RoleRepository roleRepository,
             EstadoUsuarioRepository estadoUsuarioRepository,
-            PasswordEncoder passwordEncoder
+            ContrasenaTemporalService contrasenaTemporalService
     ) {
         this.usuarioRepository = usuarioRepository;
         this.roleRepository = roleRepository;
         this.estadoUsuarioRepository = estadoUsuarioRepository;
-        this.passwordEncoder = passwordEncoder;
+        this.contrasenaTemporalService = contrasenaTemporalService;
     }
 
     @Transactional
@@ -62,10 +61,9 @@ public class UsuarioService {
         usuario.setCedula(request.getCedula());
         usuario.setNombre(request.getNombre());
         usuario.setCorreo(request.getCorreo());
-        usuario.setHashContrasena(passwordEncoder.encode(request.getContrasena()));
+        contrasenaTemporalService.asignar(usuario);
         usuario.setIdRol(rol);
         usuario.setIdEstadoUsuario(estado);
-        usuario.setRequiereCambioContrasena(true);
         usuario.setIntentosFallidos((short) 0);
         usuario.setBloqueadoHasta(null);
         usuario.setUltimoAcceso(null);

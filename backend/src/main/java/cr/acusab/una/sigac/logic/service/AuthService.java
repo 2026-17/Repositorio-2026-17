@@ -9,6 +9,7 @@ import cr.acusab.una.sigac.data.repository.RoleRepository;
 import cr.acusab.una.sigac.data.repository.TokenRevocadoRepository;
 import cr.acusab.una.sigac.data.repository.UsuarioRepository;
 import cr.acusab.una.sigac.presentation.dto.request.CambiarContrasenaRequest;
+import cr.acusab.una.sigac.presentation.dto.request.CambioContrasenaTemporalRequest;
 import cr.acusab.una.sigac.presentation.dto.request.LoginRequest;
 import cr.acusab.una.sigac.presentation.dto.request.RestablecerContrasenaRequest;
 import cr.acusab.una.sigac.presentation.dto.response.LoginResponse;
@@ -62,9 +63,42 @@ public class AuthService {
         Role rol = roleRepository.findById(usuario.getIdRol().getId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Rol no existe"));
 
-        String token = jwtService.generarToken(loginRequest.getCedula(), rol.getCodigo());
+        return respuestaLogin(usuario, rol);
+    }
 
-        return new LoginResponse(token, jwtService.getExpirationMillis(), rol.getCodigo(), usuario.getNombre(), usuario.getCorreo());
+    /**
+     * Primer inicio de sesión: cambia la contraseña temporal por la del
+     * usuario. El token con el que se llama (que solo servía para esto) se
+     * revoca, y se devuelve uno nuevo con acceso normal según el rol.
+     */
+    @Transactional
+    public LoginResponse cambiarContrasenaTemporal(String cedula, String token, CambioContrasenaTemporalRequest request) {
+        Usuario usuario = buscarPorCedula(cedula);
+
+        if (!Boolean.TRUE.equals(usuario.getRequiereCambioContrasena())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Su cuenta no tiene un cambio de contraseña pendiente.");
+        }
+        if (!passwordEncoder.matches(request.getContrasenaActual(), usuario.getHashContrasena())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La contraseña temporal no es correcta.");
+        }
+        if (passwordEncoder.matches(request.getContrasenaNueva(), usuario.getHashContrasena())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "La nueva contraseña debe ser distinta de la contraseña temporal.");
+        }
+        guardarNuevaContrasena(usuario, request.getContrasenaNueva());
+        logout(token);
+
+        Role rol = roleRepository.findById(usuario.getIdRol().getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Rol no existe"));
+        return respuestaLogin(usuario, rol);
+    }
+
+    private LoginResponse respuestaLogin(Usuario usuario, Role rol) {
+        boolean requiereCambio = Boolean.TRUE.equals(usuario.getRequiereCambioContrasena());
+        String token = jwtService.generarToken(usuario.getCedula(), rol.getCodigo(), requiereCambio);
+        return new LoginResponse(token, jwtService.getExpirationMillis(), rol.getCodigo(),
+                usuario.getNombre(), usuario.getCorreo(), requiereCambio);
     }
 
 
