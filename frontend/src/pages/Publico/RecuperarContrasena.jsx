@@ -1,13 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Check, Circle, CircleCheck, Eye, EyeOff } from "lucide-react";
-
-import acusabIcon from "../../assets/acusabIcon.png";
-import slide1 from "../../assets/slideshow/slide1.jpg";
-import slide2 from "../../assets/slideshow/slide2.jpg";
-import slide3 from "../../assets/slideshow/slide3.jpg";
+import { ArrowLeft, Check, CircleCheck, CircleX, Clock } from "lucide-react";
 
 import { API_URL } from "../../config/api";
+import Alert from "../../components/ui/Alert";
+import Field from "../../components/ui/Field";
+import PasswordField from "../../components/ui/PasswordField";
+import AuthLayout from "./AuthLayout";
 
 import "./publico.css";
 import "./recuperarContrasena.css";
@@ -43,6 +42,62 @@ function formatearTiempo(segundos) {
     return `${m}:${s}`;
 }
 
+/*
+ * Código de 6 dígitos en casillas separadas (como el prototipo).
+ * El valor sigue siendo un solo texto: cada casilla muestra un dígito,
+ * se puede pegar el código completo y Retroceso vuelve a la anterior.
+ */
+function CasillasCodigo({ valor, onChange, invalido, describedBy }) {
+    const refs = useRef([]);
+    const digitos = Array.from({ length: 6 }, (_, i) => valor[i] || "");
+
+    function enfocar(i) {
+        const casilla = refs.current[Math.max(0, Math.min(5, i))];
+        if (casilla) casilla.focus();
+    }
+
+    function alEscribir(i, texto) {
+        const nuevos = texto.replace(/\D/g, "");
+        if (!nuevos) return;
+        const desde = Math.min(i, valor.length);
+        const siguiente = (valor.slice(0, desde) + nuevos).slice(0, 6);
+        onChange(siguiente);
+        enfocar(siguiente.length);
+    }
+
+    function alPresionar(i, event) {
+        if (event.key === "Backspace") {
+            event.preventDefault();
+            const hasta = digitos[i] ? i : i - 1;
+            if (hasta < 0) return;
+            onChange(valor.slice(0, hasta));
+            enfocar(hasta);
+        }
+    }
+
+    return (
+        <div className="code-inputs">
+            {digitos.map((d, i) => (
+                <input
+                    key={i}
+                    ref={(el) => { refs.current[i] = el; }}
+                    id={i === 0 ? "codigo" : undefined}
+                    value={d}
+                    inputMode="numeric"
+                    autoComplete={i === 0 ? "one-time-code" : "off"}
+                    maxLength={i === 0 ? 6 : 1}
+                    aria-label={`Dígito ${i + 1} de 6`}
+                    aria-invalid={invalido ? "true" : undefined}
+                    aria-describedby={describedBy}
+                    onChange={(e) => alEscribir(i, e.target.value)}
+                    onKeyDown={(e) => alPresionar(i, e)}
+                    onFocus={(e) => e.target.select()}
+                />
+            ))}
+        </div>
+    );
+}
+
 function RecuperarContrasena() {
     const navigate = useNavigate();
 
@@ -51,7 +106,6 @@ function RecuperarContrasena() {
     const [codigo, setCodigo] = useState("");
     const [contrasena, setContrasena] = useState("");
     const [confirmacion, setConfirmacion] = useState("");
-    const [mostrarContrasena, setMostrarContrasena] = useState(false);
     const [error, setError] = useState("");
     const [cargando, setCargando] = useState(false);
 
@@ -65,6 +119,12 @@ function RecuperarContrasena() {
         if (paso !== 2 && paso !== 3) return undefined;
         const intervalo = setInterval(() => setAhora(Date.now()), 1000);
         return () => clearInterval(intervalo);
+    }, [paso]);
+
+    // Al cambiar de paso, el foco va al título (lectores de pantalla)
+    useEffect(() => {
+        const titulo = document.getElementById("rec-title");
+        if (titulo) titulo.focus();
     }, [paso]);
 
     const segundosVigencia = Math.max(0, Math.ceil((venceEn - ahora) / 1000));
@@ -106,6 +166,10 @@ function RecuperarContrasena() {
 
     async function handleSolicitar(event) {
         event.preventDefault();
+        if (!cedula.trim()) {
+            setError("Escriba su número de cédula.");
+            return;
+        }
         if (await enviarCodigo()) setPaso(2);
     }
 
@@ -155,231 +219,191 @@ function RecuperarContrasena() {
         setPaso(n);
     }
 
+    const avisoError = error && (
+        <Alert tone="danger" title={error} autoFocus />
+    );
+
     return (
-        <div className="app-container">
-            <header className="sigac-header">
-                <img src={acusabIcon} alt="Logo ACUSAB" className="header-logo" />
-                <h1 className="header-title">SIGAC</h1>
-                <div className="header-spacer" />
-            </header>
+        <AuthLayout>
+            {paso < 4 && (
+                <>
+                    <button
+                        type="button"
+                        className="link-btn back-link"
+                        onClick={paso === 1 ? () => navigate("/login") : () => irAPaso(paso - 1)}
+                    >
+                        <ArrowLeft size={16} strokeWidth={1.75} aria-hidden="true" />
+                        {paso === 1 ? "Volver a iniciar sesión" : "Atrás"}
+                    </button>
+                    <p className="step-count">Paso {paso} de 3</p>
+                </>
+            )}
 
-            <main className="split-layout">
-                <section className="form-panel">
-                    <div className="login-card recuperar-card">
+            {/* Paso 1: cédula */}
+            {paso === 1 && (
+                <>
+                    <h1 id="rec-title" tabIndex={-1}>Recuperar contraseña</h1>
+                    <p className="lead">
+                        Le enviaremos un código de 6 dígitos al correo registrado en su cuenta para crear una contraseña nueva.
+                    </p>
 
-                        {paso < 4 && (
-                            <button type="button" className="recuperar-volver" onClick={() => navigate("/login")}>
-                                <ArrowLeft size={16} /> Volver a iniciar sesión
+                    <form onSubmit={handleSolicitar} className="auth-form" noValidate>
+                        {avisoError}
+
+                        <Field id="cedula" label="Cédula">
+                            <input
+                                id="cedula"
+                                type="text"
+                                className="sg-input"
+                                inputMode="numeric"
+                                value={cedula}
+                                onChange={(e) => setCedula(e.target.value)}
+                                autoComplete="username"
+                                maxLength={20}
+                            />
+                        </Field>
+
+                        <button
+                            type="submit"
+                            className={`sg-btn sg-btn--primary sg-btn--lg auth-submit${cargando ? " is-loading" : ""}`}
+                            disabled={cargando}
+                            aria-busy={cargando || undefined}
+                        >
+                            {cargando && <span className="sg-spinner" aria-hidden="true" />}
+                            {cargando ? "Enviando…" : "Enviar código"}
+                        </button>
+                    </form>
+                </>
+            )}
+
+            {/* Paso 2: código */}
+            {paso === 2 && (
+                <>
+                    <h1 id="rec-title" tabIndex={-1}>Revise su correo</h1>
+                    <p className="lead">
+                        Si la cédula <b>{cedula.trim()}</b> está registrada, recibirá un código en unos minutos.
+                        Revise también la carpeta de correo no deseado.
+                    </p>
+
+                    <form onSubmit={handleContinuar} className="auth-form" noValidate>
+                        {avisoError}
+
+                        <fieldset className="fieldset">
+                            <legend>Código de verificación</legend>
+                            <CasillasCodigo
+                                valor={codigo}
+                                onChange={(v) => { setCodigo(v); setError(""); }}
+                                invalido={Boolean(error)}
+                                describedBy="vigencia-codigo"
+                            />
+                        </fieldset>
+
+                        <div className="auth-row">
+                            <span id="vigencia-codigo" className={`timer${codigoVencido ? " is-expired" : ""}`}>
+                                <Clock size={16} strokeWidth={1.75} aria-hidden="true" />
+                                {codigoVencido
+                                    ? "El código venció. Solicite uno nuevo."
+                                    : <>El código vence en <b>{formatearTiempo(segundosVigencia)}</b></>}
+                            </span>
+                            <button
+                                type="button"
+                                className="link-btn"
+                                onClick={enviarCodigo}
+                                disabled={cargando || segundosReenvio > 0}
+                            >
+                                {segundosReenvio > 0
+                                    ? `Reenviar en ${segundosReenvio} s`
+                                    : "Reenviar código"}
                             </button>
-                        )}
+                        </div>
 
-                        {paso < 4 && (
-                            <div className="recuperar-pasos" aria-label={`Paso ${paso} de 3`}>
-                                {[1, 2, 3].map((n) => (
-                                    <span key={n} className="recuperar-pasos__grupo">
-                                        {n > 1 && <span className="recuperar-pasos__linea" />}
-                                        <span
-                                            className={
-                                                "recuperar-pasos__item" +
-                                                (n < paso ? " recuperar-pasos__item--hecho" : "") +
-                                                (n === paso ? " recuperar-pasos__item--activo" : "")
-                                            }
-                                        >
-                                            {n < paso ? <Check size={14} /> : n}
-                                        </span>
-                                    </span>
-                                ))}
-                            </div>
-                        )}
+                        <button
+                            type="submit"
+                            className="sg-btn sg-btn--primary sg-btn--lg auth-submit"
+                            disabled={codigoVencido || codigo.length !== 6}
+                        >
+                            Verificar código
+                        </button>
 
-                        {/* Paso 1: cédula */}
-                        {paso === 1 && (
-                            <form onSubmit={handleSolicitar}>
-                                <h2 className="login-title">Recuperar contraseña</h2>
-                                <p className="login-greeting">
-                                    Ingrese su cédula y le enviaremos un código de verificación al correo registrado en su cuenta.
-                                </p>
+                        <button type="button" className="link-btn auth-alt" onClick={() => irAPaso(1)}>
+                            Usar otra cédula
+                        </button>
+                    </form>
+                </>
+            )}
 
-                                <div className="form-group">
-                                    <label htmlFor="cedula" className="form-label">Cédula</label>
-                                    <input
-                                        id="cedula"
-                                        type="text"
-                                        className="form-input"
-                                        value={cedula}
-                                        onChange={(e) => setCedula(e.target.value)}
-                                        autoComplete="username"
-                                        maxLength={20}
-                                        required
-                                    />
-                                </div>
+            {/* Paso 3: nueva contraseña */}
+            {paso === 3 && (
+                <>
+                    <h1 id="rec-title" tabIndex={-1}>Cree una contraseña nueva</h1>
+                    <p className="lead">
+                        Úsela la próxima vez que ingrese a SIGAC. El código se comprobará al guardarla.
+                    </p>
 
-                                <div className="form-actions">
-                                    <button type="submit" className="btn-primary" disabled={cargando}>
-                                        {cargando ? "Enviando..." : "Enviar código de verificación"}
-                                    </button>
-                                </div>
-                            </form>
-                        )}
+                    <form onSubmit={handleRestablecer} className="auth-form" noValidate>
+                        {avisoError}
 
-                        {/* Paso 2: código */}
-                        {paso === 2 && (
-                            <form onSubmit={handleContinuar}>
-                                <h2 className="login-title">Ingrese su código</h2>
-                                <p className="login-greeting">
-                                    Si la cédula <strong>{cedula.trim()}</strong> está registrada, se envió un código de
-                                    6 dígitos al correo de la cuenta. Revise también la carpeta de spam.
-                                </p>
+                        <PasswordField
+                            id="nuevaContrasena"
+                            label="Contraseña nueva"
+                            value={contrasena}
+                            onChange={(e) => setContrasena(e.target.value.slice(0, 16))}
+                            autoComplete="new-password"
+                            describedBy="requisitos-contrasena"
+                        />
 
-                                <div className="form-group">
-                                    <label htmlFor="codigo" className="form-label">Código de verificación</label>
-                                    <input
-                                        id="codigo"
-                                        type="text"
-                                        inputMode="numeric"
-                                        autoComplete="one-time-code"
-                                        maxLength={6}
-                                        className="form-input recuperar-codigo-input"
-                                        value={codigo}
-                                        onChange={(e) => setCodigo(e.target.value.replace(/\D/g, ""))}
-                                        placeholder="000000"
-                                        required
-                                    />
-                                </div>
+                        <ul className="rules" id="requisitos-contrasena" aria-label="Requisitos de la contraseña">
+                            {requisitos.map((r) => (
+                                <li key={r.id} className={r.ok ? "ok" : ""}>
+                                    {r.ok
+                                        ? <CircleCheck size={16} strokeWidth={1.75} aria-hidden="true" />
+                                        : <CircleX size={16} strokeWidth={1.75} aria-hidden="true" />}
+                                    {r.texto}
+                                    <span className="sr-only">{r.ok ? " (cumplido)" : " (pendiente)"}</span>
+                                </li>
+                            ))}
+                        </ul>
 
-                                <p className={"recuperar-vigencia" + (codigoVencido ? " recuperar-vigencia--expirada" : "")}>
-                                    {codigoVencido
-                                        ? "El código venció. Solicite uno nuevo."
-                                        : `El código vence en ${formatearTiempo(segundosVigencia)}`}
-                                </p>
+                        <PasswordField
+                            id="confirmarContrasena"
+                            label="Confirme la contraseña"
+                            value={confirmacion}
+                            onChange={(e) => setConfirmacion(e.target.value.slice(0, 16))}
+                            autoComplete="new-password"
+                            error={confirmacion.length > 0 && !coinciden ? "Las contraseñas no coinciden." : ""}
+                        />
 
-                                <div className="form-actions">
-                                    <button type="submit" className="btn-primary" disabled={codigoVencido || codigo.length !== 6}>
-                                        Continuar
-                                    </button>
-                                </div>
+                        <button
+                            type="submit"
+                            className={`sg-btn sg-btn--primary sg-btn--lg auth-submit${cargando ? " is-loading" : ""}`}
+                            disabled={cargando || !contrasenaValida || !coinciden}
+                            aria-busy={cargando || undefined}
+                        >
+                            {cargando && <span className="sg-spinner" aria-hidden="true" />}
+                            {cargando ? "Guardando…" : "Guardar contraseña"}
+                        </button>
+                    </form>
+                </>
+            )}
 
-                                <button
-                                    type="button"
-                                    className="recuperar-reenviar"
-                                    onClick={enviarCodigo}
-                                    disabled={cargando || segundosReenvio > 0}
-                                >
-                                    {segundosReenvio > 0
-                                        ? `Reenviar código (${formatearTiempo(segundosReenvio)})`
-                                        : "Reenviar código"}
-                                </button>
-
-                                <button type="button" className="recuperar-reenviar" onClick={() => irAPaso(1)}>
-                                    Usar otra cédula
-                                </button>
-                            </form>
-                        )}
-
-                        {/* Paso 3: nueva contraseña */}
-                        {paso === 3 && (
-                            <form onSubmit={handleRestablecer}>
-                                <h2 className="login-title">Cree su nueva contraseña</h2>
-                                <p className="login-greeting">
-                                    El código se comprobará al guardar la nueva contraseña.
-                                </p>
-
-                                <div className="form-group">
-                                    <label htmlFor="nuevaContrasena" className="form-label">Nueva contraseña</label>
-                                    <div className="recuperar-password-wrapper">
-                                        <input
-                                            id="nuevaContrasena"
-                                            type={mostrarContrasena ? "text" : "password"}
-                                            className="form-input"
-                                            value={contrasena}
-                                            onChange={(e) => setContrasena(e.target.value)}
-                                            autoComplete="new-password"
-                                            maxLength={16}
-                                            required
-                                        />
-                                        <button
-                                            type="button"
-                                            className="recuperar-password-toggle"
-                                            onClick={() => setMostrarContrasena((v) => !v)}
-                                            aria-label={mostrarContrasena ? "Ocultar contraseña" : "Mostrar contraseña"}
-                                        >
-                                            {mostrarContrasena ? <EyeOff size={18} /> : <Eye size={18} />}
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <ul className="recuperar-politica">
-                                    {requisitos.map((r) => (
-                                        <li
-                                            key={r.id}
-                                            className={"recuperar-politica__item" + (r.ok ? " recuperar-politica__item--ok" : "")}
-                                        >
-                                            {r.ok ? <Check size={14} /> : <Circle size={14} />} {r.texto}
-                                        </li>
-                                    ))}
-                                </ul>
-
-                                <div className="form-group">
-                                    <label htmlFor="confirmarContrasena" className="form-label">Confirmar contraseña</label>
-                                    <input
-                                        id="confirmarContrasena"
-                                        type={mostrarContrasena ? "text" : "password"}
-                                        className="form-input"
-                                        value={confirmacion}
-                                        onChange={(e) => setConfirmacion(e.target.value)}
-                                        autoComplete="new-password"
-                                        maxLength={16}
-                                        required
-                                    />
-                                    {confirmacion.length > 0 && !coinciden && (
-                                        <span className="recuperar-campo-error">Las contraseñas no coinciden.</span>
-                                    )}
-                                </div>
-
-                                <div className="form-actions">
-                                    <button
-                                        type="submit"
-                                        className="btn-primary"
-                                        disabled={cargando || !contrasenaValida || !coinciden}
-                                    >
-                                        {cargando ? "Guardando..." : "Restablecer contraseña"}
-                                    </button>
-                                </div>
-
-                                <button type="button" className="recuperar-reenviar" onClick={() => irAPaso(2)}>
-                                    Volver al código
-                                </button>
-                            </form>
-                        )}
-
-                        {/* Paso 4: éxito */}
-                        {paso === 4 && (
-                            <div className="recuperar-exito">
-                                <CircleCheck size={56} className="recuperar-exito__icono" />
-                                <h2 className="login-title">Contraseña restablecida</h2>
-                                <p className="login-greeting">
-                                    Su contraseña se actualizó correctamente. Ya puede iniciar sesión con la nueva contraseña.
-                                </p>
-                                <div className="form-actions">
-                                    <button type="button" className="btn-primary" onClick={() => navigate("/login", { replace: true })}>
-                                        Ir a iniciar sesión
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-
-                        {error && <p className="error-message" role="alert">{error}</p>}
-                    </div>
-                </section>
-
-                <section className="slideshow-panel">
-                    <div className="slide slide-1" style={{ backgroundImage: `url(${slide1})` }} />
-                    <div className="slide slide-2" style={{ backgroundImage: `url(${slide2})` }} />
-                    <div className="slide slide-3" style={{ backgroundImage: `url(${slide3})` }} />
-                    <div className="slideshow-overlay" />
-                </section>
-            </main>
-        </div>
+            {/* Paso 4: éxito */}
+            {paso === 4 && (
+                <div className="success-screen auth-success">
+                    <span className="success-mark"><Check size={32} strokeWidth={1.75} aria-hidden="true" /></span>
+                    <h1 id="rec-title" tabIndex={-1}>Contraseña actualizada</h1>
+                    <p className="muted">
+                        Su contraseña se actualizó correctamente. Ya puede ingresar con la nueva contraseña.
+                    </p>
+                    <button
+                        type="button"
+                        className="sg-btn sg-btn--primary sg-btn--lg auth-submit"
+                        onClick={() => navigate("/login", { replace: true })}
+                    >
+                        Ir a ingresar
+                    </button>
+                </div>
+            )}
+        </AuthLayout>
     );
 }
 
