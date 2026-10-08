@@ -10,7 +10,6 @@ import { UBICACION_VACIA } from "../../components/ubicacion";
 import Alert from "../../components/ui/Alert";
 import Field from "../../components/ui/Field";
 import PageHead from "../../components/ui/PageHead";
-import PasswordField from "../../components/ui/PasswordField";
 import Stepper from "../../components/ui/Stepper";
 import { listaErrores } from "../../components/ui/utilidades";
 
@@ -25,7 +24,7 @@ const CLASE_PUESTO_DEFAULT =
 
 // En qué paso está cada campo (para mostrar solo los errores del paso actual)
 function pasoDeCampo(campo) {
-  if (campo === "contrasena" || campo === "confirmado") return 2;
+  if (campo === "confirmado") return 2;
   return 0;
 }
 
@@ -55,7 +54,6 @@ const initialForm = {
   especialidades: [],
   empleador: "",
   fechaIngreso: "",
-  contrasena: "",
 };
 
 export default function RegistrarProfesor() {
@@ -139,7 +137,6 @@ export default function RegistrarProfesor() {
     if (form.ubicacion.idProvincia && !form.ubicacion.codigoDistrito) {
       nextErrors.codigoDistrito = "Complete cantón y distrito, o deje la provincia sin seleccionar.";
     }
-    if (!form.contrasena || form.contrasena.length < 8) nextErrors.contrasena = "Ingrese una contraseña de al menos 8 caracteres.";
     if (!confirmado) nextErrors.confirmado = "Confirme que verificó los datos con el profesor.";
     return nextErrors;
   };
@@ -174,7 +171,6 @@ export default function RegistrarProfesor() {
         cedula: profesor.numeroIdentificacion,
         nombre: nombreCompleto,
         correo: profesor.correo,
-        contrasena: form.contrasena,
         // El backend siempre fija el rol PROFESOR y el estado ACTIVO
         // (ver ProfesorService.registrar), pero UsuarioCreateRequest
         // los exige con @NotNull, así que mandamos un valor cualquiera.
@@ -249,7 +245,7 @@ export default function RegistrarProfesor() {
             <span className="success-mark"><Check size={32} strokeWidth={1.75} aria-hidden="true" /></span>
             <h2 id="page-title" tabIndex={-1}>Profesor registrado</h2>
             <p className="muted">
-              {`${form.nombres} ${form.primerApellido}`.trim()} quedó registrado con estado activo y ya tiene su cuenta de usuario con rol Profesor.
+              {`${form.nombres} ${form.primerApellido}`.trim()} quedó registrado con estado activo y ya tiene su cuenta de usuario con rol Profesor. Se envió una contraseña temporal a {form.correo}.
             </p>
             {registrado.id && <p className="receipt">ID asignado <b>{registrado.id}</b></p>}
             <div className="page-actions success-actions">
@@ -352,20 +348,12 @@ export default function RegistrarProfesor() {
   if (paso === 2) cuerpo = (
     <>
       <h2 className="form-section-title" id="prof-step-title" tabIndex={-1}>Revisar y confirmar</h2>
-      <p className="form-section-sub">Defina la contraseña temporal y verifique los datos con el profesor antes de confirmar.</p>
+      <p className="form-section-sub">Verifique los datos con el profesor antes de confirmar.</p>
 
       <div className="review">
-        <div className="cuenta-profesor">
-          <PasswordField
-            id={`${P}contrasena`}
-            label="Contraseña temporal"
-            hint="Mínimo 8 caracteres. Se creará con rol Profesor y estado Activo."
-            value={form.contrasena}
-            onChange={(e) => setField("contrasena", e.target.value)}
-            autoComplete="new-password"
-            error={errors.contrasena}
-          />
-        </div>
+        <Alert tone="info" title="Cuenta de usuario">
+          Se creará con rol Profesor y estado Activo. El sistema enviará una contraseña temporal a <b>{form.correo || "su correo"}</b>, que el profesor deberá cambiar la primera vez que ingrese.
+        </Alert>
 
         <section className="review-block">
           <h3>Profesor <button type="button" className="link-btn" onClick={() => irA(0)}>Editar<span className="sr-only"> datos del profesor</span></button></h3>

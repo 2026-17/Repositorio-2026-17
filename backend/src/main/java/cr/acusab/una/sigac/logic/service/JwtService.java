@@ -22,17 +22,26 @@ public class JwtService {
         this.jwtConfig = jwtConfig;
     }
 
-    public String generarToken(String cedula, String rolCodigo) {
+    /**
+     * Claim que marca un token emitido con la contraseña temporal: solo sirve
+     * para cambiarla (ver JwtAuthenticationFilter).
+     */
+    public static final String CLAIM_CAMBIO_CONTRASENA = "cambioContrasena";
+
+    public String generarToken(String cedula, String rolCodigo, boolean cambioContrasenaPendiente) {
         try {
             Instant now = Instant.now();
             Instant exp = now.plusMillis(jwtConfig.getJwtExpiration());
-            JWTClaimsSet claims = new JWTClaimsSet.Builder()
+            JWTClaimsSet.Builder builder = new JWTClaimsSet.Builder()
                     .subject(cedula)
                     .claim("rol", rolCodigo)
                     .jwtID(UUID.randomUUID().toString())
                     .issueTime(Date.from(now))
-                    .expirationTime(Date.from(exp))
-                    .build();
+                    .expirationTime(Date.from(exp));
+            if (cambioContrasenaPendiente) {
+                builder.claim(CLAIM_CAMBIO_CONTRASENA, true);
+            }
+            JWTClaimsSet claims = builder.build();
             SignedJWT signedJWT = new SignedJWT(new JWSHeader(jwtConfig.getAlgorithm()), claims);
             signedJWT.sign(new MACSigner(jwtConfig.getSecretKey().getEncoded()));
             return signedJWT.serialize();

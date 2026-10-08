@@ -25,6 +25,12 @@ public interface GrupoRepository extends JpaRepository<Grupo, Long> {
     List<Grupo> findByIdCursoInOrderByCreadoEnDesc(List<Long> idCursos);
 
     /*
+     * Crear grupo - El código no se puede repetir dentro del mismo
+     * período (uq_grupos_periodo_codigo en la BD).
+     */
+    boolean existsByIdPeriodoAndCodigo(Long idPeriodo, String codigo);
+
+    /*
      * Historia 2 - Oferta de grupos de un período, filtrada por estado.
      */
     List<Grupo> findByIdPeriodoAndEstadoIn(

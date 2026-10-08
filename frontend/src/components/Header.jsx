@@ -24,6 +24,7 @@ import {
 
 import { API_URL } from "../config/api";
 import { etiquetaRol, ROLES } from "../constants/roles";
+import { limpiarSesion } from "../utils/sesion";
 import { iniciales } from "./ui/utilidades";
 
 /*
@@ -55,6 +56,7 @@ const MENU_POR_ROL = {
                 { to: "/director-academico/cursos/crear", label: "Crear curso", icon: BookPlus },
                 { to: "/director-academico/cursos/modificar", label: "Modificar curso", icon: BookOpen },
                 { to: "/director-academico/cursos/desactivar", label: "Desactivar curso", icon: BookX },
+                { to: "/director-academico/grupos/crear", label: "Crear grupo", icon: Users },
             ],
         },
         {
@@ -218,11 +220,7 @@ function Header({ children }) {
      * almacenados localmente.
      */
     function limpiarSesionLocal() {
-        localStorage.removeItem("token");
-        localStorage.removeItem("rol");
-        localStorage.removeItem("cedula");
-        localStorage.removeItem("nombre");
-        localStorage.removeItem("correo");
+        limpiarSesion();
 
         window.location.href = "/";
     }

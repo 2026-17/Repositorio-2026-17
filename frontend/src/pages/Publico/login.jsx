@@ -6,32 +6,10 @@ import Alert from "../../components/ui/Alert";
 import Field from "../../components/ui/Field";
 import PasswordField from "../../components/ui/PasswordField";
 import { listaErrores } from "../../components/ui/utilidades";
+import { guardarSesion, RUTA_CAMBIO_CONTRASENA_TEMPORAL, RUTAS_POR_ROL } from "../../utils/sesion";
 import AuthLayout from "./AuthLayout";
 
 import "./publico.css";
-
-/*
- * Ruta de redirección según el rol
- * después de iniciar sesión.
- */
-const RUTAS_POR_ROL = {
-    ADMINISTRADOR:
-        "/admin/usuarios/crear",
-
-    DIRECTOR_ACADEMICO:
-        "/director-academico/cursos/crear",
-
-    ADMINISTRATIVO:
-        "/admin/administracion/estudiantes",
-
-    /*
-     * HU-012
-     * El estudiante ingresa directamente
-     * a sus notificaciones de matrícula.
-     */
-    ESTUDIANTE:
-        "/estudiante/notificaciones",
-};
 
 function Login() {
     const navigate = useNavigate();
@@ -96,11 +74,17 @@ function Login() {
              * Información de sesión utilizada
              * por el Header y las páginas internas.
              */
-            localStorage.setItem("token", data.token || "");
-            localStorage.setItem("rol", data.rol || "");
-            localStorage.setItem("cedula", form.cedula);
-            localStorage.setItem("nombre", data.nombre || "");
-            localStorage.setItem("correo", data.correo || "");
+            guardarSesion(data, form.cedula);
+
+            /*
+             * Ingresó con la contraseña temporal: debe cambiarla
+             * antes de usar el sistema (el backend no le deja
+             * hacer nada más con este token).
+             */
+            if (data.requiereCambioContrasena) {
+                navigate(RUTA_CAMBIO_CONTRASENA_TEMPORAL, { replace: true });
+                return;
+            }
 
             /*
              * Redirección según el rol

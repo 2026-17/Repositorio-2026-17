@@ -169,6 +169,18 @@ public class SecurityConfig {
 
                         /*
                          * =====================================================
+                         * Gestión de grupos
+                         * Rol: DIRECTOR_ACADEMICO
+                         * =====================================================
+                         */
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/grupos"
+                        )
+                        .hasRole("DIRECTOR_ACADEMICO")
+
+                        /*
+                         * =====================================================
                          * Gestión de períodos académicos
                          * Rol: DIRECTOR_ACADEMICO
                          * =====================================================
