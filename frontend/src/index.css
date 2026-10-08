@@ -193,261 +193,8 @@ textarea {
     border-bottom-color: var(--morado);
 }
 
-.content {
-    max-width: 860px;
-    margin: 0 auto;
-    padding: 28px 24px 60px;
-}
-
-.page-title h1 {
-    margin: 0;
-    font-weight: 700;
-    font-size: 22px;
-}
-
-.page-title p {
-    margin: 4px 0 22px;
-    color: var(--suave);
-    font-size: 13.5px;
-}
-
-.card {
-    background: var(--blanco);
-    border: 1px solid #e5e2da;
-    border-radius: 12px;
-    padding: 22px 24px 8px;
-    margin-bottom: 20px;
-}
-
-.card-accent-warning {
-    border-left: 4px solid var(--naranja);
-}
-
-.card-title {
-    margin: 0;
-    font-size: 16px;
-    font-weight: 600;
-}
-
-.card-subtitle,
-.hint {
-    color: var(--suave);
-    font-size: 12px;
-}
-
-.card-subtitle {
-    margin: 3px 0 14px;
-}
-
-.card-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 4px;
-}
-
-.grid-2 {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-}
-
-.field {
-    margin-bottom: 20px;
-}
-
-.field-label {
-    display: block;
-    font-size: 13.5px;
-    font-weight: 500;
-    margin-bottom: 6px;
-}
-
-.required {
-    color: var(--rojo);
-}
-
-.hint {
-    margin: 6px 0 0;
-}
-
-.input {
-    width: 100%;
-    min-height: 40px;
-    padding: 9px 12px;
-    border: 1px solid var(--borde);
-    border-radius: 8px;
-    background: var(--blanco);
-    outline: 0;
-    color: var(--texto);
-}
-
-.input:focus {
-    border-color: var(--morado);
-}
-
-.textarea {
-    min-height: 72px;
-    resize: vertical;
-}
-
-.age-box {
-    min-height: 40px;
-    background: #f4f0f8;
-    border-radius: 9px;
-    padding: 9px 13px;
-    display: flex;
-    flex-direction: column;
-}
-
-.age-box small {
-    font-size: 11.5px;
-    color: var(--suave);
-}
-
-.age-box strong {
-    font-size: 16px;
-    margin-top: 2px;
-}
-
-.age-box span {
-    font-size: 12px;
-    color: var(--verde-dark);
-    margin-top: 2px;
-}
-
-.subcard {
-    border: 1px solid #ece9e2;
-    border-radius: 10px;
-    padding: 18px;
-    margin: 16px 0;
-    background: #fbfaf7;
-}
-
-.subcard-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 14px;
-}
-
-.icon-btn {
-    width: 30px;
-    height: 30px;
-    border-radius: 8px;
-    border: 1px solid var(--borde);
-    background: var(--blanco);
-    cursor: pointer;
-    font-size: 18px;
-}
-
-.danger {
-    color: var(--rojo);
-}
-
-.check-row {
-    display: flex;
-    gap: 24px;
-    flex-wrap: wrap;
-    margin: 4px 0;
-}
-
-.check-row label {
-    font-size: 13px;
-}
-
-.check-row input {
-    accent-color: var(--morado);
-}
-
-.pill {
-    border-radius: 999px;
-    background: #f4f0f8;
-    color: var(--morado);
-    padding: 5px 10px;
-    font-size: 12px;
-    font-weight: 600;
-}
-
-.file-input {
-    display: flex;
-    align-items: center;
-    min-height: 44px;
-    padding: 9px 14px;
-    border: 1px dashed #c8c4bb;
-    border-radius: 8px;
-    cursor: pointer;
-    background: #faf9f6;
-    font-size: 13.5px;
-    overflow-wrap: anywhere;
-}
-
-.file-input.has-file {
-    background: #eaf7f0;
-    color: var(--verde-dark);
-    border-color: #c9ebd9;
-}
-
-.banner {
-    border-radius: 8px;
-    padding: 10px 14px;
-    margin-bottom: 20px;
-    font-size: 13.5px;
-    font-weight: 500;
-}
-
-.banner-warning {
-    background: #fdf1e6;
-    border: 1px solid #f2d3ac;
-    color: #a85210;
-}
-
-.banner-info {
-    background: #f4f0f8;
-    border: 1px solid #ded1e5;
-    color: var(--morado);
-}
-
-.actions-row {
-    display: flex;
-    justify-content: flex-end;
-    gap: 12px;
-    padding-top: 20px;
-    border-top: 1px solid #e5e2da;
-}
-
-.btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 40px;
-    padding: 0 18px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-weight: 500;
-    border: 1px solid transparent;
-}
-
-.btn:disabled {
-    opacity: 0.55;
-    cursor: not-allowed;
-}
-
-.btn-primary {
-    background: var(--morado);
-    color: var(--blanco);
-    border-color: var(--morado);
-}
-
-.btn-secondary {
-    background: var(--blanco);
-    color: var(--morado);
-    border-color: var(--morado);
-}
-
-.full {
-    width: 100%;
-}
+/* .content, .page-title, .card, .grid-2, .field, .input, .btn, .banner y demás
+   clases compartidas viven ahora en src/styles/components.css */
 
 .confirm-wrap {
     min-height: calc(100vh - 104px);
@@ -457,9 +204,10 @@ textarea {
 }
 
 .confirm-card {
-    background: var(--blanco);
-    border: 1px solid #e5e2da;
-    border-radius: 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-1);
+    border-radius: var(--radius-lg);
     padding: 40px 44px;
     max-width: 440px;
     text-align: center;
@@ -469,8 +217,8 @@ textarea {
     width: 56px;
     height: 56px;
     border-radius: 50%;
-    background: #eaf7f0;
-    color: var(--verde-dark);
+    background: var(--success-soft);
+    color: var(--success);
     font-size: 28px;
     display: grid;
     place-items: center;
@@ -478,20 +226,21 @@ textarea {
 }
 
 .confirm-card h1 {
-    font-size: 19px;
+    font: 600 26px/32px var(--font-display);
+    color: var(--ink);
     margin: 0 0 8px;
 }
 
 .confirm-card p {
-    font-size: 14px;
-    color: #6a6a6a;
+    font-size: 15px;
+    color: var(--ink-muted);
     line-height: 1.6;
     margin: 0 0 20px;
 }
 
 .confirm-id {
-    background: #f4f0f8;
-    border-radius: 8px;
+    border: 1px dashed var(--border-strong);
+    border-radius: var(--radius-md);
     padding: 12px 16px;
     margin-bottom: 24px;
     display: flex;
@@ -504,26 +253,11 @@ textarea {
 
 .confirm-id strong {
     font-size: 18px;
-    color: var(--morado);
-}
-
-.sr-only {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
 }
 
 @media (max-width: 640px) {
-    .grid-2 {
-        grid-template-columns: 1fr;
-    }
-
     .header,
     .sigac-header {
         padding: 0 14px;
@@ -534,22 +268,6 @@ textarea {
     .header-right > span:not(.header-avatar),
     .user-badge {
         font-size: 0;
-    }
-
-    .content {
-        padding: 22px 14px 45px;
-    }
-
-    .card {
-        padding: 18px 16px 5px;
-    }
-
-    .actions-row {
-        flex-direction: column-reverse;
-    }
-
-    .btn {
-        width: 100%;
     }
 
     .admin-tabs {

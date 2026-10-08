@@ -37,54 +37,8 @@ body {
     padding: 0 24px;
     box-sizing: border-box;
 }
-
-/* =========================================
-   Botones Globales (Estándar D04)
-   ========================================= */
-.btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: 9px 18px;
-    border-radius: 8px;
-    border: none;
-    cursor: pointer;
-    font-family: var(--font-family);
-    font-weight: 600;
-    font-size: 0.9rem;
-    text-decoration: none;
-    transition: all 0.25s ease;
-}
-
-.btn--primary {
-    background-color: var(--primary-purple);
-    color: var(--white);
-}
-
-.btn--primary:hover {
-    background-color: var(--primary-purple-dark);
-}
-
-.btn--secondary {
-    background-color: var(--white);
-    color: var(--primary-purple);
-    border: 1.5px solid var(--white);
-}
-
-.btn--secondary:hover {
-    background-color: var(--neutral-light);
-    color: var(--primary-purple-dark);
-}
-
-.btn--danger {
-    background-color: var(--primary-red);
-    color: var(--white);
-}
-
-.btn--danger:hover {
-    background-color: var(--primary-red-dark);
-}
+/* Botones globales (.btn, .btn--primary, .btn--secondary, .btn--danger):
+   ver src/styles/components.css */
 
 /* Contenido entre el Header (sticky) y el Footer Fijo.
    El header ya no es "fixed": ocupa su propio espacio en el flujo, así
