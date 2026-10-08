@@ -55,6 +55,7 @@ const MENU_POR_ROL = {
                 { to: "/director-academico/cursos/crear", label: "Crear curso", icon: BookPlus },
                 { to: "/director-academico/cursos/modificar", label: "Modificar curso", icon: BookOpen },
                 { to: "/director-academico/cursos/desactivar", label: "Desactivar curso", icon: BookX },
+                { to: "/director-academico/grupos/crear", label: "Crear grupo", icon: Users },
             ],
         },
         {

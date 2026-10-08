@@ -17,6 +17,7 @@ import EditarEstudiante from "./pages/AdminSis/EditarEstudiante";
 import CrearCurso from "./pages/DirectorAcademico/CrearCurso";
 import ModificarCurso from "./pages/DirectorAcademico/ModificarCurso";
 import DesactivarCurso from "./pages/DirectorAcademico/DesactivarCurso";
+import CrearGrupo from "./pages/DirectorAcademico/CrearGrupo";
 import AsignarInstrumento from "./pages/DirectorAcademico/AsignarInstrumento.jsx";
 import AsignarInstrumentoAdministrativo from "./pages/Administrativa/AsignarInstrumento.jsx";
 import CrearPeriodoAcademico from "./pages/DirectorAcademico/CrearPeriodoAcademico";
@@ -94,6 +95,12 @@ function App() {
                     <Route
                         path="/director-academico/cursos/desactivar"
                         element={<DesactivarCurso />}
+                    />
+
+                    {/* Crear grupo de un curso en un período */}
+                    <Route
+                        path="/director-academico/grupos/crear"
+                        element={<CrearGrupo />}
                     />
 
                     {/* Crear período académico */}
