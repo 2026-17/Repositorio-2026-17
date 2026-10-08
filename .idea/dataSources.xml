@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="DataSourceManagerImpl" format="xml" multifile-model="true">
-    <data-source source="LOCAL" name="sigac_db@crossover.proxy.rlwy.net" uuid="db0b3c78-edc2-4dd7-a7ca-a9c6f4996ef4">
+    <data-source source="LOCAL" name="sigac_db@shortline.proxy.rlwy.net" uuid="db0b3c78-edc2-4dd7-a7ca-a9c6f4996ef4">
       <driver-ref>mysql.8</driver-ref>
       <synchronize>true</synchronize>
       <jdbc-driver>com.mysql.cj.jdbc.Driver</jdbc-driver>

@@ -1,35 +1,32 @@
-.asignar-instrumento-buscar-btn {
+/* Asignar instrumento (HU-026). Usa .panel, .dtable, .form-grid y los
+   componentes del sistema de diseño; aquí solo lo propio de la pantalla. */
+
+.asignar-instrumento {
+    max-width: 1080px;
+}
+
+.asignar-instrumento .form-alert {
+    margin-bottom: var(--space-5);
+}
+
+/* Buscador del estudiante: campo + botón en una fila */
+.busqueda-estudiante {
     display: flex;
+    flex-wrap: wrap;
     align-items: flex-end;
+    gap: var(--space-3);
 }
 
-.table-wrap {
-    overflow-x: auto;
+.busqueda-estudiante .sg-field {
+    flex: 1 1 280px;
+    max-width: 420px;
 }
 
-.table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 13.5px;
-    margin-bottom: 16px;
+/* Si el campo tiene error, el botón se alinea con el campo, no con el mensaje */
+.busqueda-estudiante:has(.has-error) {
+    align-items: center;
 }
 
-.table th,
-.table td {
-    text-align: left;
-    padding: 10px 12px;
-    border-bottom: 1px solid var(--borde);
-}
-
-.table th {
-    font-weight: 600;
-    color: var(--texto-suave);
-    font-size: 12px;
-    text-transform: uppercase;
-    letter-spacing: 0.3px;
-}
-
-.btn-sm {
-    padding: 4px 12px;
-    font-size: 12.5px;
+.panel-foot.ficha-estudiante {
+    justify-content: flex-start;
 }

@@ -1,12 +1,28 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { API_URL } from "../../config/api.js";
+import { ChevronsUpDown, GraduationCap, Pencil, Plus, Save, Search, X } from "lucide-react";
 import "./Profesores.css";
+import Alert from "../../components/ui/Alert";
+import EmptyState from "../../components/ui/EmptyState";
+import Field from "../../components/ui/Field";
+import PageHead from "../../components/ui/PageHead";
+import Pagination from "../../components/ui/Pagination";
+import StatusBadge from "../../components/ui/StatusBadge";
+import { iniciales, listaErrores, paginar } from "../../components/ui/utilidades";
+
+const TAMANO_PAGINA = 10;
+
+// Prefijo de los ids del formulario (para los enlaces del resumen de errores)
+const P = "prof-";
 
 // Por ahora la clase de puesto es un dato fijo (no hay catálogo con varias opciones).
 const CLASE_PUESTO_DEFAULT =
     "Profesor de Enseñanza Técnica Profesional(III y IV Ciclos, Enseñanza Especial y Escuela Laboratorio) (G. de E)";
 
 import { useDialog } from "../../components/dialog/useDialog";
+import UbicacionSelects from "../../components/UbicacionSelects";
+import { UBICACION_VACIA, ubicacionDesdeRespuesta } from "../../components/ubicacion";
 
 const initialForm = {
     idTipoIdentificacion: "",
@@ -16,13 +32,13 @@ const initialForm = {
     segundoApellido: "",
     telefono: "",
     correo: "",
+    ubicacion: UBICACION_VACIA,
     direccion: "",
     gradoAcademico: "",
     especialidades: [],
     empleador: "",
     clasePuesto: CLASE_PUESTO_DEFAULT,
     fechaIngreso: "",
-    contrasena: "",
 };
 
 function nombreCompleto(p) {
@@ -59,6 +75,9 @@ function Profesores() {
     const [form, setForm] = useState(initialForm);
     const [errores, setErrores] = useState({});
     const [guardando, setGuardando] = useState(false);
+    const [intento, setIntento] = useState(0);
+    const [orden, setOrden] = useState("asc");
+    const [pagina, setPagina] = useState(1);
 
     const formRef = useRef(null);
 
@@ -140,6 +159,15 @@ function Profesores() {
         );
     }, [profesores, busqueda]);
 
+    const profesoresOrdenados = useMemo(() => {
+        const lista = [...profesoresFiltrados];
+        lista.sort((a, b) => {
+            const c = nombreCompleto(a).localeCompare(nombreCompleto(b), "es");
+            return orden === "asc" ? c : -c;
+        });
+        return lista;
+    }, [profesoresFiltrados, orden]);
+
     function setField(name, value) {
         setForm((f) => ({ ...f, [name]: value }));
         setErrores((e) => ({ ...e, [name]: "" }));
@@ -156,14 +184,6 @@ function Profesores() {
         setErrores((e) => ({ ...e, especialidades: "" }));
     }
 
-    function abrirNuevo() {
-        setEditingId(null);
-        setForm(initialForm);
-        setErrores({});
-        setFormAbierto(true);
-        requestAnimationFrame(() => formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
-    }
-
     function abrirEditar(p) {
         setEditingId(p.id);
         setForm({
@@ -174,6 +194,7 @@ function Profesores() {
             segundoApellido: p.segundoApellido || "",
             telefono: p.telefono || "",
             correo: p.correo || "",
+            ubicacion: ubicacionDesdeRespuesta(p.ubicacion),
             direccion: p.direccion || "",
             gradoAcademico: p.gradoAcademico || "",
             especialidades: especialidadesDesdeTexto(p.especialidad),
@@ -202,15 +223,13 @@ function Profesores() {
         if (form.correo && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.correo)) {
             nuevosErrores.correo = "Ingrese un correo electrónico válido.";
         }
-        if (!editingId) {
-            if (!form.correo.trim()) nuevosErrores.correo = "El correo es obligatorio para crear la cuenta de usuario.";
-            if (!form.contrasena || form.contrasena.length < 8) {
-                nuevosErrores.contrasena = "Ingrese una contraseña de al menos 8 caracteres.";
-            }
+        // La ubicación es opcional, pero si se empieza hay que llegar hasta el distrito
+        if (form.ubicacion.idProvincia && !form.ubicacion.codigoDistrito) {
+            nuevosErrores.codigoDistrito = "Complete cantón y distrito, o deje la provincia sin seleccionar.";
         }
         setErrores(nuevosErrores);
         if (Object.keys(nuevosErrores).length > 0) {
-            dialog.validacion(nuevosErrores);
+            setIntento((n) => n + 1);
             return false;
         }
         return true;
@@ -228,6 +247,7 @@ function Profesores() {
             segundoApellido: form.segundoApellido.trim() || null,
             telefono: form.telefono.trim() || null,
             correo: form.correo.trim() || null,
+            codigoDistrito: form.ubicacion.codigoDistrito ? Number(form.ubicacion.codigoDistrito) : null,
             direccion: form.direccion.trim() || null,
             gradoAcademico: form.gradoAcademico.trim() || null,
             especialidad: especialidadesATexto(form.especialidades) || null,
@@ -236,27 +256,10 @@ function Profesores() {
             fechaIngreso: form.fechaIngreso || null,
         };
 
-        const payload = editingId
-            ? payloadBase
-            : {
-                profesor: payloadBase,
-                usuario: {
-                    cedula: payloadBase.numeroIdentificacion,
-                    nombre: [form.nombres.trim(), form.primerApellido.trim(), form.segundoApellido.trim()]
-                        .filter(Boolean)
-                        .join(" "),
-                    correo: payloadBase.correo,
-                    contrasena: form.contrasena,
-                    // El backend siempre fija el rol PROFESOR y el estado ACTIVO
-                    // (ver ProfesorService.registrar), pero UsuarioCreateRequest
-                    // los exige con @NotNull, así que mandamos un valor cualquiera.
-                    idRol: 1,
-                    idEstadoUsuario: 1,
-                },
-            };
+        const payload = payloadBase;
 
-        const url = editingId ? `${API_URL}/profesores/${editingId}` : `${API_URL}/profesores`;
-        const method = editingId ? "PUT" : "POST";
+        const url = `${API_URL}/profesores/${editingId}`;
+        const method = "PUT";
 
         setGuardando(true);
         try {
@@ -270,7 +273,7 @@ function Profesores() {
                 throw new Error(mensaje);
             }
 
-            dialog.exito(editingId ? "Información del profesor actualizada correctamente." : "Profesor registrado correctamente.");
+            dialog.exito("Información del profesor actualizada correctamente.");
             cerrarFormulario();
             setRecargar((n) => n + 1);
         } catch (e) {
@@ -299,7 +302,7 @@ function Profesores() {
     async function reactivar(p) {
         const confirmado = await dialog.confirmar(
             `¿Reactivar a ${nombreCompleto(p)} para que pueda volver a impartir cursos?`,
-            { titulo: "Eliminar profesor", textoAceptar: "Eliminar", peligro: true }
+            { titulo: "Reactivar profesor", textoAceptar: "Reactivar" }
         );
         if (!confirmado) return;
         try {
@@ -312,292 +315,312 @@ function Profesores() {
         }
     }
 
-    return (
-        <div className="container">
-            <div className="page-title">
-                <h1>Profesores</h1>
-                <p>Registre, consulte y administre la información académica y de contacto de los profesores.</p>
-            </div>
+    const aria = (campo) => ({
+        "aria-invalid": errores[campo] ? "true" : undefined,
+        "aria-describedby": errores[campo] ? `${P}${campo}-error` : undefined,
+    });
+    const resumen = listaErrores(errores, P);
+    const filasPagina = paginar(profesoresOrdenados, pagina, TAMANO_PAGINA);
+    const hayFiltros = Boolean(busqueda.trim()) || filtroActivo !== "true";
 
-            <div className="page-toolbar">
-                <div className="page-toolbar__filters">
-                    <input
-                        type="text"
-                        className="search-input"
-                        placeholder="Buscar por nombre, identificación o correo..."
-                        value={busqueda}
-                        onChange={(e) => setBusqueda(e.target.value)}
-                    />
-                    <select
-                        className="filter-select"
-                        value={filtroActivo}
-                        onChange={(e) => setFiltroActivo(e.target.value)}
-                    >
-                        <option value="true">Activos</option>
-                        <option value="false">Inactivos</option>
-                        <option value="">Todos</option>
-                    </select>
-                </div>
-                <button type="button" className="btn btn--primary" onClick={formAbierto ? cerrarFormulario : abrirNuevo}>
-                    {formAbierto ? "Cancelar" : "+ Nuevo profesor"}
-                </button>
-            </div>
+    function quitarFiltros() {
+        setBusqueda("");
+        setFiltroActivo("true");
+        setPagina(1);
+    }
+
+    return (
+        <div className="profesores">
+            <PageHead
+                title="Profesores"
+                sub="Registre, consulte y administre la información académica y de contacto de los profesores."
+                actions={formAbierto ? (
+                    <button type="button" className="sg-btn sg-btn--secondary" onClick={cerrarFormulario}>
+                        <X size={18} strokeWidth={1.75} aria-hidden="true" />
+                        Cancelar
+                    </button>
+                ) : (
+                    <Link to="/director-academico/profesores/registrar" className="sg-btn sg-btn--primary">
+                        <Plus size={18} strokeWidth={1.75} aria-hidden="true" />
+                        Nuevo profesor
+                    </Link>
+                )}
+            />
 
             {formAbierto && (
-                <div className="card" ref={formRef}>
-                    <h2 className="card-title">{editingId ? "Modificar profesor" : "Registrar profesor"}</h2>
-                    <form onSubmit={handleSubmit} noValidate>
-                        <div className="grid-2">
-                            <div className="field">
-                                <label className="field-label">Tipo de identificación <span className="required">*</span></label>
-                                <select
-                                    className={`input ${errores.idTipoIdentificacion ? "input-error" : ""}`}
-                                    value={form.idTipoIdentificacion}
-                                    onChange={(e) => setField("idTipoIdentificacion", e.target.value)}
-                                >
-                                    <option value="">Seleccione una opción</option>
-                                    {tipos.map((t) => (
-                                        <option key={t.id} value={t.id}>{t.nombre}</option>
-                                    ))}
-                                </select>
-                                {errores.idTipoIdentificacion && <p className="field-error">{errores.idTipoIdentificacion}</p>}
-                            </div>
-                            <div className="field">
-                                <label className="field-label">Cédula / Número de identificación <span className="required">*</span></label>
-                                <input
-                                    className={`input ${errores.numeroIdentificacion ? "input-error" : ""}`}
-                                    maxLength={40}
-                                    value={form.numeroIdentificacion}
-                                    onChange={(e) => setField("numeroIdentificacion", e.target.value)}
-                                />
-                                {errores.numeroIdentificacion && <p className="field-error">{errores.numeroIdentificacion}</p>}
-                            </div>
+                <form ref={formRef} onSubmit={handleSubmit} noValidate className="form-incrustado">
+                    {resumen.length > 0 && (
+                        <Alert
+                            key={intento}
+                            tone="danger"
+                            autoFocus
+                            className="form-alert"
+                            title={resumen.length === 1 ? "Revise 1 dato antes de guardar" : `Revise ${resumen.length} datos antes de guardar`}
+                            errors={resumen}
+                        />
+                    )}
+
+                    <section className="panel">
+                        <div className="panel-head">
+                            <h2>Modificar profesor</h2>
                         </div>
 
-                        <div className="grid-3">
-                            <div className="field">
-                                <label className="field-label">Nombre <span className="required">*</span></label>
-                                <input
-                                    className={`input ${errores.nombres ? "input-error" : ""}`}
-                                    maxLength={100}
-                                    value={form.nombres}
-                                    onChange={(e) => setField("nombres", e.target.value)}
-                                />
-                                {errores.nombres && <p className="field-error">{errores.nombres}</p>}
-                            </div>
-                            <div className="field">
-                                <label className="field-label">Primer apellido <span className="required">*</span></label>
-                                <input
-                                    className={`input ${errores.primerApellido ? "input-error" : ""}`}
-                                    maxLength={80}
-                                    value={form.primerApellido}
-                                    onChange={(e) => setField("primerApellido", e.target.value)}
-                                />
-                                {errores.primerApellido && <p className="field-error">{errores.primerApellido}</p>}
-                            </div>
-                            <div className="field">
-                                <label className="field-label">Segundo apellido</label>
-                                <input
-                                    className="input"
-                                    maxLength={80}
-                                    value={form.segundoApellido}
-                                    onChange={(e) => setField("segundoApellido", e.target.value)}
-                                />
-                            </div>
-                        </div>
-
-                        <div className="grid-2">
-                            <div className="field">
-                                <label className="field-label">Teléfono de contacto</label>
-                                <input
-                                    className="input"
-                                    maxLength={30}
-                                    placeholder="8888-4321"
-                                    value={form.telefono}
-                                    onChange={(e) => setField("telefono", e.target.value)}
-                                />
-                            </div>
-                            <div className="field">
-                                <label className="field-label">Correo de contacto</label>
-                                <input
-                                    className={`input ${errores.correo ? "input-error" : ""}`}
-                                    type="email"
-                                    maxLength={254}
-                                    placeholder="nombre@correo.com"
-                                    value={form.correo}
-                                    onChange={(e) => setField("correo", e.target.value)}
-                                />
-                                {errores.correo && <p className="field-error">{errores.correo}</p>}
-                            </div>
-                        </div>
-
-                        <div className="field">
-                            <label className="field-label">Residencia / Dirección</label>
-                            <textarea
-                                className="input"
-                                maxLength={500}
-                                placeholder="Provincia, cantón, distrito y señas exactas"
-                                value={form.direccion}
-                                onChange={(e) => setField("direccion", e.target.value)}
-                            />
-                        </div>
-
-                        <div className="grid-3">
-                            <div className="field">
-                                <label className="field-label">Grado académico</label>
-                                <select
-                                    className="input"
-                                    value={form.gradoAcademico}
-                                    onChange={(e) => setField("gradoAcademico", e.target.value)}
-                                >
-                                    <option value="">Seleccione una opción</option>
-                                    {gradosAcademicos.map((g) => (
-                                        <option key={g.id} value={g.nombre}>{g.nombre}</option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div className="field">
-                                <label className="field-label">Grupo profesional / Empleador</label>
-                                <input
-                                    className="input"
-                                    maxLength={180}
-                                    placeholder="VT, VAU u otro colegio profesional / institución"
-                                    value={form.empleador}
-                                    onChange={(e) => setField("empleador", e.target.value)}
-                                />
-                            </div>
-                            <div className="field">
-                                <label className="field-label">Clase de puesto</label>
-                                <input
-                                    className="input"
-                                    maxLength={255}
-                                    value={form.clasePuesto}
-                                    onChange={(e) => setField("clasePuesto", e.target.value)}
-                                    disabled={!editingId}
-                                />
-                                {!editingId && (
-                                    <p className="field-hint">Se asigna automáticamente y solo puede modificarse al editar el profesor.</p>
-                                )}
-                            </div>
-                        </div>
-
-                        <div className="field">
-                            <label className="field-label">Especialidad(es)</label>
-                            <div className="especialidades-checklist">
-                                {instrumentos.map((i) => (
-                                    <label key={i.id} className="especialidad-chip">
-                                        <input
-                                            type="checkbox"
-                                            checked={form.especialidades.includes(i.nombre)}
-                                            onChange={() => toggleEspecialidad(i.nombre)}
-                                        />
-                                        {i.nombre}
-                                    </label>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div className="grid-2">
-                            <div className="field">
-                                <label className="field-label">Fecha de ingreso</label>
-                                <input
-                                    className="input"
-                                    type="date"
-                                    value={form.fechaIngreso}
-                                    onChange={(e) => setField("fechaIngreso", e.target.value)}
-                                />
-                            </div>
-                        </div>
-
-                        {!editingId && (
-                            <>
-                                <h3 className="card-subtitle">Cuenta de usuario</h3>
-                                <div className="grid-2">
-                                    <div className="field">
-                                        <label className="field-label">Contraseña temporal <span className="required">*</span></label>
-                                        <input
-                                            className={`input ${errores.contrasena ? "input-error" : ""}`}
-                                            type="password"
-                                            minLength={8}
-                                            placeholder="Mínimo 8 caracteres"
-                                            value={form.contrasena}
-                                            onChange={(e) => setField("contrasena", e.target.value)}
-                                        />
-                                        {errores.contrasena && <p className="field-error">{errores.contrasena}</p>}
-                                    </div>
+                        <div className="panel-body">
+                            <div className="form-section">
+                                <h3 className="form-section-title">Datos personales</h3>
+                                <p className="form-section-sub">Identificación y contacto del profesor.</p>
+                                <div className="form-grid">
+                                    <Field id={`${P}idTipoIdentificacion`} errorKey="idTipoIdentificacion" label="Tipo de identificación" error={errores.idTipoIdentificacion} select>
+                                        <select id={`${P}idTipoIdentificacion`} className="sg-input sg-select" value={form.idTipoIdentificacion} onChange={(e) => setField("idTipoIdentificacion", e.target.value)} {...aria("idTipoIdentificacion")}>
+                                            <option value="">Seleccione</option>
+                                            {tipos.map((t) => (
+                                                <option key={t.id} value={t.id}>{t.nombre}</option>
+                                            ))}
+                                        </select>
+                                    </Field>
+                                    <Field id={`${P}numeroIdentificacion`} errorKey="numeroIdentificacion" label="Cédula / Número de identificación" error={errores.numeroIdentificacion}>
+                                        <input id={`${P}numeroIdentificacion`} className="sg-input" maxLength={40} value={form.numeroIdentificacion} onChange={(e) => setField("numeroIdentificacion", e.target.value)} {...aria("numeroIdentificacion")} />
+                                    </Field>
+                                    <Field id={`${P}nombres`} errorKey="nombres" label="Nombre" error={errores.nombres}>
+                                        <input id={`${P}nombres`} className="sg-input" maxLength={100} value={form.nombres} onChange={(e) => setField("nombres", e.target.value)} {...aria("nombres")} />
+                                    </Field>
+                                    <Field id={`${P}primerApellido`} errorKey="primerApellido" label="Primer apellido" error={errores.primerApellido}>
+                                        <input id={`${P}primerApellido`} className="sg-input" maxLength={80} value={form.primerApellido} onChange={(e) => setField("primerApellido", e.target.value)} {...aria("primerApellido")} />
+                                    </Field>
+                                    <Field id={`${P}segundoApellido`} label="Segundo apellido" optional>
+                                        <input id={`${P}segundoApellido`} className="sg-input" maxLength={80} value={form.segundoApellido} onChange={(e) => setField("segundoApellido", e.target.value)} />
+                                    </Field>
+                                    <Field id={`${P}telefono`} label="Teléfono de contacto" optional>
+                                        <input id={`${P}telefono`} className="sg-input" type="tel" inputMode="tel" maxLength={30} placeholder="8888-4321" value={form.telefono} onChange={(e) => setField("telefono", e.target.value)} />
+                                    </Field>
+                                    <Field
+                                        id={`${P}correo`}
+                                        errorKey="correo"
+                                        label="Correo de contacto"
+                                        optional
+                                        error={errores.correo}
+                                        className="span-all"
+                                    >
+                                        <input id={`${P}correo`} className="sg-input" type="email" maxLength={254} placeholder="nombre@correo.com" value={form.correo} onChange={(e) => setField("correo", e.target.value)} {...aria("correo")} />
+                                    </Field>
+                                    <UbicacionSelects
+                                        idPrefix={P}
+                                        value={form.ubicacion}
+                                        errors={errores}
+                                        onChange={(ubicacion) => {
+                                            setForm((f) => ({ ...f, ubicacion }));
+                                            setErrores((e) => ({ ...e, codigoDistrito: "" }));
+                                        }}
+                                    />
+                                    <Field id={`${P}direccion`} label="Dirección exacta (señas)" optional className="span-all">
+                                        <textarea id={`${P}direccion`} className="sg-input" maxLength={500} placeholder="Ej.: 200 m norte de la iglesia, casa verde a mano derecha" value={form.direccion} onChange={(e) => setField("direccion", e.target.value)} />
+                                    </Field>
                                 </div>
-                                <p className="field-hint">
-                                    Se creará automáticamente con rol Profesor y estado Activo.
-                                </p>
-                            </>
-                        )}
+                            </div>
 
-                        <div className="form-actions">
-                            <button type="button" className="btn btn--secondary" onClick={cerrarFormulario}>Cancelar</button>
-                            <button type="submit" className="btn btn--primary" disabled={guardando}>
-                                {guardando ? "Guardando..." : editingId ? "Guardar cambios" : "Registrar profesor"}
+                            <div className="form-section">
+                                <h3 className="form-section-title">Información académica y laboral</h3>
+                                <p className="form-section-sub">Grado, puesto y los instrumentos que puede impartir.</p>
+                                <div className="form-grid">
+                                    <Field id={`${P}gradoAcademico`} label="Grado académico" optional select>
+                                        <select id={`${P}gradoAcademico`} className="sg-input sg-select" value={form.gradoAcademico} onChange={(e) => setField("gradoAcademico", e.target.value)}>
+                                            <option value="">Seleccione</option>
+                                            {gradosAcademicos.map((g) => (
+                                                <option key={g.id} value={g.nombre}>{g.nombre}</option>
+                                            ))}
+                                        </select>
+                                    </Field>
+                                    <Field id={`${P}empleador`} label="Grupo profesional / Empleador" optional>
+                                        <input id={`${P}empleador`} className="sg-input" maxLength={180} placeholder="VT, VAU u otro colegio profesional / institución" value={form.empleador} onChange={(e) => setField("empleador", e.target.value)} />
+                                    </Field>
+                                    <Field
+                                        id={`${P}clasePuesto`}
+                                        label="Clase de puesto"
+                                        className="span-all"
+                                    >
+                                        <input id={`${P}clasePuesto`} className="sg-input" maxLength={255} value={form.clasePuesto} onChange={(e) => setField("clasePuesto", e.target.value)} />
+                                    </Field>
+                                    <Field id={`${P}fechaIngreso`} label="Fecha de ingreso" optional hint="Si la deja vacía se usa la fecha de hoy.">
+                                        <input id={`${P}fechaIngreso`} className="sg-input" type="date" value={form.fechaIngreso} onChange={(e) => setField("fechaIngreso", e.target.value)} />
+                                    </Field>
+                                    <fieldset className="fieldset span-all">
+                                        <legend>Especialidad(es) <span className="sg-field__optional">(opcional)</span></legend>
+                                        <div className="especialidades-checklist">
+                                            {instrumentos.map((i) => {
+                                                const marcada = form.especialidades.includes(i.nombre);
+                                                return (
+                                                    <label key={i.id} className={`choice choice--compacta${marcada ? " is-checked" : ""}`}>
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={marcada}
+                                                            onChange={() => toggleEspecialidad(i.nombre)}
+                                                        />
+                                                        <span className="choice-main"><b>{i.nombre}</b></span>
+                                                    </label>
+                                                );
+                                            })}
+                                        </div>
+                                    </fieldset>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="panel-foot">
+                            <button type="button" className="sg-btn sg-btn--secondary" onClick={cerrarFormulario}>Cancelar</button>
+                            <button type="submit" className={`sg-btn sg-btn--primary${guardando ? " is-loading" : ""}`} disabled={guardando} aria-busy={guardando || undefined}>
+                                {guardando ? <span className="sg-spinner" aria-hidden="true" /> : <Save size={18} strokeWidth={1.75} aria-hidden="true" />}
+                                {guardando ? "Guardando…" : "Guardar cambios"}
                             </button>
                         </div>
-                    </form>
-                </div>
+                    </section>
+                </form>
             )}
 
-            <div className="table-wrap">
-                <table className="table">
-                    <thead>
-                    <tr>
-                        <th>Identificación</th>
-                        <th>Nombre</th>
-                        <th>Grupo profesional</th>
-                        <th>Clase de puesto</th>
-                        <th>Especialidad</th>
-                        <th>Contacto</th>
-                        <th>Grado académico</th>
-                        <th>Estado</th>
-                        <th>Acciones</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    {cargando ? (
-                        <tr><td className="empty" colSpan={9}>Cargando profesores...</td></tr>
-                    ) : profesoresFiltrados.length === 0 ? (
-                        <tr><td className="empty" colSpan={9}>No hay profesores que coincidan con la búsqueda.</td></tr>
-                    ) : (
-                        profesoresFiltrados.map((p) => (
-                            <tr key={p.id}>
-                                <td>{p.tipoIdentificacion?.codigo + ": " || " "} {p.numeroIdentificacion}</td>
-                                <td>{nombreCompleto(p)}</td>
-                                <td>{p.empleador || "—"}</td>
-                                <td>{p.clasePuesto || "—"}</td>
-                                <td>{p.especialidad || "—"}</td>
-                                <td>{p.telefono || "—"}<br />{p.correo || ""}</td>
-                                <td>{p.gradoAcademico || "—"}</td>
-                                <td>
-                                        <span className={`badge ${p.activo ? "badge-activo" : "badge-inactivo"}`}>
-                                            {p.activo ? "Activo" : "Inactivo"}
-                                        </span>
-                                </td>
-                                <td>
-                                    <div className="row-actions">
-                                        <button type="button" className="btn btn--secondary btn-sm" onClick={() => abrirEditar(p)}>
-                                            Editar
-                                        </button>
-                                        {p.activo ? (
-                                            <button type="button" className="btn btn--secondary btn-sm" onClick={() => darDeBaja(p)}>
-                                                Dar de baja
-                                            </button>
-                                        ) : (
-                                            <button type="button" className="btn btn--secondary btn-sm" onClick={() => reactivar(p)}>
-                                                Reactivar
-                                            </button>
-                                        )}
-                                    </div>
-                                </td>
-                            </tr>
-                        ))
+            <div className="panel">
+                <div className="filters" role="search">
+                    <Field id="txtBuscarProfesor" label="Buscar" icon={Search} className="f-search">
+                        <input
+                            id="txtBuscarProfesor"
+                            type="search"
+                            className="sg-input"
+                            placeholder="Nombre, identificación o correo"
+                            value={busqueda}
+                            onChange={(e) => { setBusqueda(e.target.value); setPagina(1); }}
+                        />
+                    </Field>
+                    <Field id="cmbEstadoProfesor" label="Estado" select>
+                        <select
+                            id="cmbEstadoProfesor"
+                            className="sg-input sg-select"
+                            value={filtroActivo}
+                            onChange={(e) => { setFiltroActivo(e.target.value); setPagina(1); }}
+                        >
+                            <option value="true">Activos</option>
+                            <option value="false">Inactivos</option>
+                            <option value="">Todos</option>
+                        </select>
+                    </Field>
+                </div>
+
+                <div className="chips">
+                    <span className="result-count" aria-live="polite">
+                        <b>{profesoresOrdenados.length}</b>
+                        {profesoresOrdenados.length === 1 ? " resultado" : " resultados"}
+                    </span>
+                    {busqueda.trim() && (
+                        <span className="chip">
+                            Búsqueda: {busqueda.trim()}
+                            <button type="button" aria-label="Quitar filtro de búsqueda" onClick={() => { setBusqueda(""); setPagina(1); }}>
+                                <X size={14} strokeWidth={1.75} aria-hidden="true" />
+                            </button>
+                        </span>
                     )}
-                    </tbody>
-                </table>
+                    {filtroActivo !== "true" && (
+                        <span className="chip">
+                            Estado: {filtroActivo === "false" ? "Inactivos" : "Todos"}
+                            <button type="button" aria-label="Quitar filtro de estado" onClick={() => { setFiltroActivo("true"); setPagina(1); }}>
+                                <X size={14} strokeWidth={1.75} aria-hidden="true" />
+                            </button>
+                        </span>
+                    )}
+                    {hayFiltros && (
+                        <button type="button" className="link-btn chips-clear" onClick={quitarFiltros}>Quitar filtros</button>
+                    )}
+                </div>
+
+                {cargando ? (
+                    <div className="table-wrap" aria-busy="true">
+                        <table className="dtable">
+                            <caption className="sr-only">Cargando profesores...</caption>
+                            <tbody>
+                                {[0, 1, 2, 3].map((i) => (
+                                    <tr key={i}>{[0, 1, 2, 3, 4, 5].map((j) => <td key={j}><span className="skeleton" /></td>)}</tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                ) : profesoresOrdenados.length === 0 ? (
+                    <EmptyState
+                        icon={GraduationCap}
+                        title={busqueda.trim() ? `Ningún profesor coincide con «${busqueda.trim()}»` : "No hay profesores con estos filtros"}
+                        description="Revise la ortografía, busque por identificación o correo, o quite algún filtro."
+                        action={hayFiltros && <button type="button" className="sg-btn sg-btn--secondary" onClick={quitarFiltros}>Quitar filtros</button>}
+                    />
+                ) : (
+                    <div className="table-wrap">
+                        <table className="dtable dtable--cards dtable--compacta">
+                            <caption className="sr-only">Lista de profesores, página {pagina}</caption>
+                            <thead>
+                                <tr>
+                                    <th scope="col" aria-sort={orden === "asc" ? "ascending" : "descending"}>
+                                        <button type="button" onClick={() => setOrden(orden === "asc" ? "desc" : "asc")}>
+                                            Profesor
+                                            <ChevronsUpDown size={14} strokeWidth={1.75} aria-hidden="true" />
+                                        </button>
+                                    </th>
+                                    <th scope="col">Especialidad y grado</th>
+                                    <th scope="col">Grupo profesional</th>
+                                    <th scope="col">Contacto</th>
+                                    <th scope="col">Estado</th>
+                                    <th scope="col" className="actions"><span className="sr-only">Acciones</span></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {filasPagina.map((p) => (
+                                    <tr key={p.id}>
+                                        <td className="c-main">
+                                            <div className="who">
+                                                <span className="avatar avatar--sm" aria-hidden="true">{iniciales(nombreCompleto(p))}</span>
+                                                <div>
+                                                    <b>{nombreCompleto(p)}</b>
+                                                    <span>{p.tipoIdentificacion?.codigo ? `${p.tipoIdentificacion.codigo}: ` : ""}{p.numeroIdentificacion}</span>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td data-label="Especialidad">
+                                            {p.especialidad ? <span className="inst">{p.especialidad}</span> : "—"}
+                                            {p.gradoAcademico && <span className="sub">{p.gradoAcademico}</span>}
+                                        </td>
+                                        <td data-label="Grupo">
+                                            {p.empleador || "—"}
+                                            {p.clasePuesto && <span className="sub clase-puesto" title={p.clasePuesto}>{p.clasePuesto}</span>}
+                                        </td>
+                                        <td data-label="Contacto">
+                                            <span className="tnum">{p.telefono || "—"}</span>
+                                            {p.correo && <span className="sub">{p.correo}</span>}
+                                        </td>
+                                        <td>
+                                            <StatusBadge tone={p.activo ? "success" : "neutral"}>{p.activo ? "Activo" : "Inactivo"}</StatusBadge>
+                                        </td>
+                                        <td className="actions">
+                                            <span className="row-actions">
+                                                <button type="button" className="sg-btn sg-btn--ghost sg-btn--sm" onClick={() => abrirEditar(p)} aria-label={`Editar a ${nombreCompleto(p)}`}>
+                                                    <Pencil size={16} strokeWidth={1.75} aria-hidden="true" />
+                                                    Editar
+                                                </button>
+                                                {p.activo ? (
+                                                    <button type="button" className="sg-btn sg-btn--ghost sg-btn--sm btn-peligro" onClick={() => darDeBaja(p)}>
+                                                        Dar de baja
+                                                    </button>
+                                                ) : (
+                                                    <button type="button" className="sg-btn sg-btn--ghost sg-btn--sm" onClick={() => reactivar(p)}>
+                                                        Reactivar
+                                                    </button>
+                                                )}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+
+                {!cargando && profesoresOrdenados.length > 0 && (
+                    <div className="table-foot">
+                        <Pagination page={pagina} pageSize={TAMANO_PAGINA} total={profesoresOrdenados.length} onChange={setPagina} />
+                    </div>
+                )}
             </div>
         </div>
     );

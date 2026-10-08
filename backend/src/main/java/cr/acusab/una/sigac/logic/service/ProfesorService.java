@@ -1,5 +1,6 @@
 package cr.acusab.una.sigac.logic.service;
 
+import cr.acusab.una.sigac.data.entity.Distrito;
 import cr.acusab.una.sigac.data.entity.Profesor;
 import cr.acusab.una.sigac.data.entity.Role;
 import cr.acusab.una.sigac.data.entity.EstadosUsuario;
@@ -12,6 +13,7 @@ import cr.acusab.una.sigac.presentation.dto.request.ProfesorUpdateRequest;
 import cr.acusab.una.sigac.presentation.dto.request.UsuarioCreateRequest;
 import cr.acusab.una.sigac.presentation.dto.response.ProfesorResponse;
 import cr.acusab.una.sigac.presentation.dto.response.TipoIdentificacionResponse;
+import cr.acusab.una.sigac.presentation.dto.response.UbicacionResponse;
 import cr.acusab.una.sigac.presentation.dto.response.UsuarioResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
@@ -39,6 +41,7 @@ public class ProfesorService {
     private final EstadoUsuarioRepository estadoUsuarioRepository;
     private final UsuarioService usuarioService;
     private final InstrumentoRepository instrumentoRepository;
+    private final DistritoRepository distritoRepository;
 
     public ProfesorService(
             ProfesorRepository profesorRepository,
@@ -47,7 +50,8 @@ public class ProfesorService {
             RoleRepository roleRepository,
             EstadoUsuarioRepository estadoUsuarioRepository,
             UsuarioService usuarioService,
-            InstrumentoRepository instrumentoRepository
+            InstrumentoRepository instrumentoRepository,
+            DistritoRepository distritoRepository
     ) {
         this.profesorRepository = profesorRepository;
         this.tipoIdentificacionRepository = tipoIdentificacionRepository;
@@ -56,6 +60,7 @@ public class ProfesorService {
         this.estadoUsuarioRepository = estadoUsuarioRepository;
         this.usuarioService = usuarioService;
         this.instrumentoRepository = instrumentoRepository;
+        this.distritoRepository = distritoRepository;
     }
 
     @Transactional
@@ -95,6 +100,7 @@ public class ProfesorService {
         profesor.setSegundoApellido(request.getSegundoApellido());
         profesor.setTelefono(request.getTelefono());
         profesor.setCorreo(request.getCorreo());
+        profesor.setDistrito(obtenerDistrito(request.getCodigoDistrito()));
         profesor.setDireccion(request.getDireccion());
         profesor.setGradoAcademico(request.getGradoAcademico());
         profesor.setEspecialidad(request.getEspecialidad());
@@ -163,6 +169,7 @@ public class ProfesorService {
         profesor.setSegundoApellido(request.getSegundoApellido());
         profesor.setTelefono(request.getTelefono());
         profesor.setCorreo(request.getCorreo());
+        profesor.setDistrito(obtenerDistrito(request.getCodigoDistrito()));
         profesor.setDireccion(request.getDireccion());
         profesor.setGradoAcademico(request.getGradoAcademico());
         profesor.setEspecialidad(request.getEspecialidad());
@@ -208,6 +215,15 @@ public class ProfesorService {
         profesorRepository.delete(profesor);
     }
 
+    // El distrito es opcional (igual que la direccion), pero si viene debe existir
+    private Distrito obtenerDistrito(Integer codigoDistrito) {
+        if (codigoDistrito == null) {
+            return null;
+        }
+        return distritoRepository.findById(codigoDistrito)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "El distrito indicado no existe"));
+    }
+
     private Profesor buscarOFallar(Long id) {
         return profesorRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Profesor no encontrado"));
@@ -235,6 +251,7 @@ public class ProfesorService {
                 p.getTelefono(),
                 p.getCorreo(),
                 p.getDireccion(),
+                UbicacionResponse.de(p.getDistrito()),
                 p.getGradoAcademico(),
                 p.getEspecialidad(),
                 p.getEmpleador(),

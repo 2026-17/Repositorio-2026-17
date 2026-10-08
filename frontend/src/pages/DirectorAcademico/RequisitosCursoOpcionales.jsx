@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ChevronDown, ListChecks, RotateCcw } from "lucide-react";
 import { API_URL } from "../../config/api";
 import CamposRequisitosCurso from "./CamposRequisitosCurso";
 import "./requisitosCurso.css";
@@ -40,36 +41,64 @@ export default function RequisitosCursoOpcionales({ idPrograma, idCurso, value, 
     }
 
     return (
-        <section className="requisitos-curso requisitos-curso--integrado">
-            <header className="requisitos-curso__header">
-                <h2>Requisitos del curso</h2>
-                <p>Opcional. Configure prerrequisitos, correquisitos y restricciones de edad para este curso.</p>
-            </header>
-            <button type="button" className="btn-secundario" disabled={disabled || !idPrograma}
-                aria-expanded={abierto} onClick={() => {
-                    setAbierto(!abierto);
-                    if (!abierto && !datos && !cargando) cargar();
-                }}>
-                {abierto ? "Ocultar configuración" : "Configurar requisitos"}
-            </button>
-            {!idPrograma && <p>Seleccione primero el programa académico.</p>}
-            {abierto && <>
-                {cargando && <div className="requisitos-curso__cargando" role="status">Cargando configuración...</div>}
-                {configuracion && <>
-                    <CamposRequisitosCurso configuracion={configuracion} guardando={disabled || cargando}
-                        setConfiguracion={next => onChange({
-                            prerrequisitos: next.prerrequisitos || [],
-                            correquisitos: next.correquisitos || [],
-                            edadMinima: next.edadMinima ?? null,
-                            edadMaxima: next.edadMaxima ?? null,
-                        })} />
-                    <div className="requisitos-curso__pie">
-                        <p className="requisitos-curso__nota">La configuración se aplica al guardar el curso.</p>
-                        <button type="button" className="btn-secundario" disabled={disabled || !value}
-                            onClick={() => onChange(undefined)}>Deshacer cambios en requisitos</button>
-                    </div>
-                </>}
-            </>}
+        <section className="panel requisitos-panel" aria-labelledby="requisitos-titulo">
+            <div className="panel-head">
+                <div>
+                    <h2 id="requisitos-titulo">Requisitos del curso <span className="sg-field__optional">(opcional)</span></h2>
+                    <p className="panel-head-sub">
+                        {idPrograma
+                            ? "Configure prerrequisitos, correquisitos y restricciones de edad para este curso."
+                            : "Seleccione primero el programa académico."}
+                    </p>
+                </div>
+                <button
+                    type="button"
+                    className="sg-btn sg-btn--secondary sg-btn--sm"
+                    disabled={disabled || !idPrograma}
+                    aria-expanded={abierto}
+                    onClick={() => {
+                        setAbierto(!abierto);
+                        if (!abierto && !datos && !cargando) cargar();
+                    }}
+                >
+                    {abierto ? <ChevronDown size={16} strokeWidth={1.75} className="girar" aria-hidden="true" /> : <ListChecks size={16} strokeWidth={1.75} aria-hidden="true" />}
+                    {abierto ? "Ocultar configuración" : "Configurar requisitos"}
+                </button>
+            </div>
+
+            {abierto && (
+                <div className="panel-body">
+                    {cargando && (
+                        <p className="muted requisitos-curso__cargando" role="status">Cargando configuración...</p>
+                    )}
+                    {configuracion && (
+                        <>
+                            <CamposRequisitosCurso
+                                configuracion={configuracion}
+                                guardando={disabled || cargando}
+                                setConfiguracion={next => onChange({
+                                    prerrequisitos: next.prerrequisitos || [],
+                                    correquisitos: next.correquisitos || [],
+                                    edadMinima: next.edadMinima ?? null,
+                                    edadMaxima: next.edadMaxima ?? null,
+                                })}
+                            />
+                            <div className="requisitos-curso__pie">
+                                <p className="muted">La configuración se aplica al guardar el curso.</p>
+                                <button
+                                    type="button"
+                                    className="sg-btn sg-btn--ghost sg-btn--sm"
+                                    disabled={disabled || !value}
+                                    onClick={() => onChange(undefined)}
+                                >
+                                    <RotateCcw size={16} strokeWidth={1.75} aria-hidden="true" />
+                                    Deshacer cambios en requisitos
+                                </button>
+                            </div>
+                        </>
+                    )}
+                </div>
+            )}
         </section>
     );
 }

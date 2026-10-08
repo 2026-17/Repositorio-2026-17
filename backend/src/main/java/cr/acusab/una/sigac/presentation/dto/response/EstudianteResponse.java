@@ -13,6 +13,7 @@ public record EstudianteResponse(
         int edad,
         String genero,
         String direccion,
+        UbicacionResponse ubicacion,
         String telefono,
         String correo,
         String nivelEscolar,

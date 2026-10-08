@@ -1,0 +1,83 @@
+/* =========================================
+   HU-012 - Notificaciones del estudiante.
+   Lista de avisos como .notice del prototipo.
+   ========================================= */
+
+.notificaciones {
+    max-width: 860px;
+}
+
+.notificaciones__cargando {
+    padding: var(--space-6) var(--space-5);
+    text-align: center;
+}
+
+.notificaciones__lista {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.notice {
+    position: relative;
+    padding: var(--space-4) var(--space-5);
+    border-top: 1px solid var(--border);
+}
+
+.notice:first-child {
+    border-top: 0;
+}
+
+/* No leída: barra de acento a la izquierda y fondo suave */
+.notice--no-leida {
+    background: color-mix(in srgb, var(--primary-soft) 55%, transparent);
+}
+
+.notice--no-leida::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: var(--space-3);
+    bottom: var(--space-3);
+    width: 3px;
+    border-radius: 0 3px 3px 0;
+    background: var(--primary);
+}
+
+.notice-cabecera {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+}
+
+.notice time {
+    font: 600 12px/16px var(--font-sans);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--ink-subtle);
+}
+
+.notice h3 {
+    margin-top: var(--space-2);
+    font: 600 16px/24px var(--font-sans);
+    color: var(--ink);
+}
+
+.notice p {
+    margin-top: 2px;
+    font-size: 15px;
+    line-height: 22px;
+    color: var(--ink-muted);
+}
+
+.notice-pie {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+    margin-top: var(--space-3);
+    font-size: 13px;
+}

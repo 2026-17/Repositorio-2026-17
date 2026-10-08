@@ -6,6 +6,7 @@ import {
 } from "react-router-dom";
 
 import Login from "./pages/Publico/login";
+import RecuperarContrasena from "./pages/Publico/RecuperarContrasena";
 import Notificaciones from "./pages/Estudiante/Notificaciones";
 import ConsultaCursos from "./pages/Estudiante/ConsultaCursos";
 import SeleccionCursos from "./pages/Estudiante/SeleccionCursos";
@@ -25,24 +26,16 @@ import ModificarPeriodoAcademico from "./pages/DirectorAcademico/ModificarPeriod
 import BecasPagos from "./pages/Administrativa/Estudiantes.jsx";
 import Matricula from "./pages/Administrativa/Matricula.jsx";
 import Profesores from "./pages/DirectorAcademico/Profesores.jsx";
+import RegistrarProfesor from "./pages/DirectorAcademico/RegistrarProfesor.jsx";
 import Reportes from "./pages/Administrativa/Reportes.jsx";
 
 import Header from "./components/Header";
-import Footer from "./components/Footer";
-
-import "./components/layout.css";
 
 function Layout() {
     return (
-        <div className="sigac-app">
-            <Header />
-
-            <main className="app-main">
-                <Outlet />
-            </main>
-
-            <Footer />
-        </div>
+        <Header>
+            <Outlet />
+        </Header>
     );
 }
 
@@ -62,6 +55,11 @@ function App() {
                 <Route
                     path="/login"
                     element={<Login />}
+                />
+
+                <Route
+                    path="/recuperar-contrasena"
+                    element={<RecuperarContrasena />}
                 />
 
                 {/* =====================================================
@@ -118,6 +116,10 @@ function App() {
                     <Route
                         path="/director-academico/profesores"
                         element={<Profesores />}
+                    />
+                    <Route
+                        path="/director-academico/profesores/registrar"
+                        element={<RegistrarProfesor />}
                     />
 
                     {/* =================================================

@@ -1,6 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 
+import { BookOpen, CalendarDays, Check, CircleX, Plus, User } from "lucide-react";
 import { useDialog } from "../../components/dialog/useDialog";
+import Alert from "../../components/ui/Alert";
+import EmptyState from "../../components/ui/EmptyState";
+import PageHead from "../../components/ui/PageHead";
+import StatusBadge from "../../components/ui/StatusBadge";
 import { confirmarMatricula, consultarMiOferta } from "../../utils/matriculaApi";
 import {
     formatearHorarios,
@@ -176,213 +181,211 @@ function SeleccionCursos() {
 
     const habilitado = Boolean(datos?.habilitado);
 
-    return (
-        <div className="container seleccion-cursos-page">
-            <div className="seleccion-cursos-page__header">
-                <h1>Matrícula de cursos</h1>
-                <p>
-                    Seleccione los cursos autorizados del período vigente y confirme su matrícula.
-                </p>
-            </div>
+    function insigniaCupos(grupo) {
+        if (grupo.cupoDisponible <= 0) return <StatusBadge tone="neutral">Sin cupos</StatusBadge>;
+        if (grupo.cupoDisponible <= 2) {
+            return <StatusBadge tone="warning">{grupo.cupoDisponible === 1 ? "Queda 1 cupo" : `Quedan ${grupo.cupoDisponible} cupos`}</StatusBadge>;
+        }
+        return <StatusBadge tone="success" icon={null}>{grupo.cupoDisponible} de {grupo.cupoMaximo} cupos</StatusBadge>;
+    }
 
-            {cargando && <p>Cargando información de matrícula…</p>}
-            {errorCarga && <p className="alert alert--error">{errorCarga}</p>}
+    return (
+        <div className="seleccion-cursos-page">
+            <PageHead
+                title="Matrícula de cursos"
+                sub="Seleccione los cursos autorizados del período vigente y confirme su matrícula."
+            />
+
+            {cargando && <p className="muted">Cargando información de matrícula…</p>}
+            {errorCarga && <Alert tone="danger" title={errorCarga} className="bloque" />}
 
             {!cargando && datos && (
                 <>
-                    <div className="resumen-matricula">
+                    <section className="panel resumen-matricula" aria-label="Resumen de la matrícula">
                         <div>
-                            <span className="resumen-matricula__label">Estudiante</span>
-                            <strong>{datos.estudiante.nombreCompleto}</strong>
-                            <span>{datos.estudiante.numeroIdentificacion}</span>
+                            <p className="kpi-label"><User size={18} strokeWidth={1.75} aria-hidden="true" />Estudiante</p>
+                            <p className="resumen-valor">{datos.estudiante.nombreCompleto}</p>
+                            <p className="kpi-note tnum">{datos.estudiante.numeroIdentificacion}</p>
                         </div>
 
                         {datos.periodo && (
                             <div>
-                                <span className="resumen-matricula__label">Período en matrícula</span>
-                                <strong>{datos.periodo.nombre} ({datos.periodo.codigo})</strong>
+                                <p className="kpi-label"><CalendarDays size={18} strokeWidth={1.75} aria-hidden="true" />Período en matrícula</p>
+                                <p className="resumen-valor">{datos.periodo.nombre} ({datos.periodo.codigo})</p>
                                 {datos.periodo.fechaInicioMatricula && datos.periodo.fechaFinMatricula && (
-                                    <span>
-                                        Matrícula del {formatearFecha(datos.periodo.fechaInicioMatricula)} al{" "}
-                                        {formatearFecha(datos.periodo.fechaFinMatricula)}
-                                    </span>
+                                    <p className="kpi-note">
+                                        Del {formatearFecha(datos.periodo.fechaInicioMatricula)} al {formatearFecha(datos.periodo.fechaFinMatricula)}
+                                    </p>
                                 )}
                             </div>
                         )}
 
                         {habilitado && datos.planes.length > 0 && (
                             <div>
-                                <span className="resumen-matricula__label">Planes de estudio</span>
+                                <p className="kpi-label"><BookOpen size={18} strokeWidth={1.75} aria-hidden="true" />Planes de estudio</p>
                                 {datos.planes.map((plan) => (
-                                    <strong key={plan.id}>{plan.nombre}</strong>
+                                    <p className="resumen-valor" key={plan.id}>{plan.nombre}</p>
                                 ))}
                             </div>
                         )}
-                    </div>
+                    </section>
 
                     {!habilitado && (
-                        <p className="alert alert--info">{datos.motivoNoHabilitado}</p>
+                        <Alert tone="info" title="Matrícula no habilitada" className="bloque">
+                            {datos.motivoNoHabilitado}
+                        </Alert>
                     )}
 
                     {habilitado && confirmacion && (
-                        <div className="matricula-confirmada">
-                            <h2>Matrícula confirmada</h2>
-                            <p>
-                                Matrícula #{confirmacion.idMatricula} ·{" "}
-                                <span className="badge badge--registrada">Registrada</span>
-                            </p>
-                            <p>
-                                Quedó matriculado en los siguientes cursos de {confirmacion.periodo.nombre}.
-                                Los cupos ya fueron actualizados.
-                            </p>
+                        <div className="panel bloque">
+                            <div className="success-screen">
+                                <span className="success-mark"><Check size={32} strokeWidth={1.75} aria-hidden="true" /></span>
+                                <h2 id="page-title" tabIndex={-1}>Matrícula confirmada</h2>
+                                <p className="muted">
+                                    Quedó matriculado en los siguientes cursos de {confirmacion.periodo.nombre}. Los cupos ya fueron actualizados.
+                                </p>
+                                <p className="receipt">Matrícula <b>#{confirmacion.idMatricula}</b> · <StatusBadge tone="success">Registrada</StatusBadge></p>
+                            </div>
 
-                            <div className="oferta-tabla-wrap">
-                                <table className="oferta-tabla">
+                            <div className="table-wrap">
+                                <table className="dtable dtable--cards">
+                                    <caption className="sr-only">Cursos matriculados</caption>
                                     <thead>
                                         <tr>
-                                            <th>Código</th>
-                                            <th>Curso</th>
-                                            <th>Horario</th>
-                                            <th>Profesor</th>
-                                            <th>Cupos restantes</th>
+                                            <th scope="col">Curso</th>
+                                            <th scope="col">Horario</th>
+                                            <th scope="col">Profesor</th>
+                                            <th scope="col" className="num">Cupos restantes</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {confirmacion.cursos.map((curso) => (
                                             <tr key={curso.idGrupo}>
-                                                <td className="oferta-tabla__codigo">{curso.codigo}</td>
-                                                <td>{curso.nombreCurso}</td>
-                                                <td>{formatearHorarios(curso.horarios)}</td>
-                                                <td>{textoProfesor(curso)}</td>
-                                                <td>{curso.cupoDisponible}/{curso.cupoMaximo}</td>
+                                                <td className="c-main"><b>{curso.nombreCurso}</b><span className="sub">{curso.codigo}</span></td>
+                                                <td data-label="Horario">{formatearHorarios(curso.horarios)}</td>
+                                                <td data-label="Profesor">{textoProfesor(curso)}</td>
+                                                <td className="num" data-label="Cupos">{curso.cupoDisponible}/{curso.cupoMaximo}</td>
                                             </tr>
                                         ))}
                                     </tbody>
                                 </table>
                             </div>
 
-                            <button className="btn btn--secondary" onClick={handleMatricularMas}>
-                                Matricular más cursos
-                            </button>
+                            <div className="panel-foot">
+                                <button type="button" className="sg-btn sg-btn--secondary" onClick={handleMatricularMas}>
+                                    <Plus size={18} strokeWidth={1.75} aria-hidden="true" />
+                                    Matricular más cursos
+                                </button>
+                            </div>
                         </div>
                     )}
 
                     {habilitado && !confirmacion && (
                         <>
                             {datos.matriculados.length > 0 && (
-                                <>
-                                    <h2 className="seccion-titulo">Cursos ya matriculados en este período</h2>
-                                    <div className="oferta-tabla-wrap">
-                                        <table className="oferta-tabla">
+                                <section className="panel bloque">
+                                    <div className="panel-head"><h2>Cursos ya matriculados en este período</h2></div>
+                                    <div className="table-wrap">
+                                        <table className="dtable dtable--cards">
+                                            <caption className="sr-only">Cursos ya matriculados</caption>
                                             <thead>
                                                 <tr>
-                                                    <th>Código</th>
-                                                    <th>Curso</th>
-                                                    <th>Horario</th>
-                                                    <th>Profesor</th>
+                                                    <th scope="col">Curso</th>
+                                                    <th scope="col">Horario</th>
+                                                    <th scope="col">Profesor</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
                                                 {datos.matriculados.map((grupo) => (
                                                     <tr key={grupo.idGrupo}>
-                                                        <td className="oferta-tabla__codigo">{grupo.codigo}</td>
-                                                        <td>{grupo.nombreCurso}</td>
-                                                        <td>{formatearHorarios(grupo.horarios)}</td>
-                                                        <td>{textoProfesor(grupo)}</td>
+                                                        <td className="c-main"><b>{grupo.nombreCurso}</b><span className="sub">{grupo.codigo}</span></td>
+                                                        <td data-label="Horario">{formatearHorarios(grupo.horarios)}</td>
+                                                        <td data-label="Profesor">{textoProfesor(grupo)}</td>
                                                     </tr>
                                                 ))}
                                             </tbody>
                                         </table>
                                     </div>
-                                </>
+                                </section>
                             )}
 
-                            <h2 className="seccion-titulo">Cursos disponibles</h2>
-                            <div className="oferta-tabla-wrap">
-                                <table className="oferta-tabla">
-                                    <thead>
-                                        <tr>
-                                            <th></th>
-                                            <th>Código</th>
-                                            <th>Curso</th>
-                                            <th>Nivel</th>
-                                            <th>Horario</th>
-                                            <th>Profesor</th>
-                                            <th>Cupos</th>
-                                            <th>Validación</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {datos.oferta.map((grupo) => {
-                                            const bloqueo = bloqueosEstaticos[grupo.idGrupo];
-                                            const seleccionado = seleccionados.includes(grupo.idGrupo);
-                                            const erroresDinamicos = erroresPorGrupo[grupo.idGrupo] ?? [];
-                                            const sinCupos = grupo.cupoDisponible <= 0;
+                            <section className="panel bloque">
+                                <div className="panel-head">
+                                    <div>
+                                        <h2>Cursos disponibles</h2>
+                                        <p className="panel-head-sub">Los grupos sin cupo o con requisitos pendientes aparecen deshabilitados.</p>
+                                    </div>
+                                </div>
 
-                                            return (
-                                                <tr
-                                                    key={grupo.idGrupo}
-                                                    className={
-                                                        erroresDinamicos.length > 0
-                                                            ? "fila--error"
-                                                            : seleccionado
-                                                                ? "fila--seleccionada"
-                                                                : ""
-                                                    }
-                                                >
-                                                    <td>
+                                {datos.oferta.length === 0 ? (
+                                    <EmptyState
+                                        icon={BookOpen}
+                                        title="Sin oferta disponible"
+                                        description="No hay cursos autorizados con oferta disponible en este período."
+                                    />
+                                ) : (
+                                    <fieldset className="fieldset panel-body">
+                                        <legend className="sr-only">Seleccione los cursos a matricular</legend>
+                                        <div className="choice-list">
+                                            {datos.oferta.map((grupo) => {
+                                                const bloqueo = bloqueosEstaticos[grupo.idGrupo];
+                                                const seleccionado = seleccionados.includes(grupo.idGrupo);
+                                                const erroresDinamicos = erroresPorGrupo[grupo.idGrupo] ?? [];
+                                                const mensajes = [bloqueo, ...erroresDinamicos].filter(Boolean);
+
+                                                return (
+                                                    <label
+                                                        key={grupo.idGrupo}
+                                                        className={`choice opcion-curso${seleccionado ? " is-checked" : ""}${bloqueo ? " is-disabled" : ""}${erroresDinamicos.length > 0 ? " has-error" : ""}`}
+                                                    >
                                                         <input
                                                             type="checkbox"
-                                                            aria-label={`Seleccionar ${grupo.nombreCurso}`}
                                                             checked={seleccionado}
                                                             disabled={Boolean(bloqueo)}
                                                             onChange={() => toggleSeleccion(grupo)}
+                                                            aria-describedby={mensajes.length > 0 ? `validacion-${grupo.idGrupo}` : undefined}
                                                         />
-                                                    </td>
-                                                    <td className="oferta-tabla__codigo">{grupo.codigo}</td>
-                                                    <td>
-                                                        {grupo.nombreCurso}
-                                                        {grupo.nombrePlan && (
-                                                            <small className="oferta-tabla__plan">{grupo.nombrePlan}</small>
-                                                        )}
-                                                    </td>
-                                                    <td>{grupo.nivel ?? "—"}</td>
-                                                    <td>{formatearHorarios(grupo.horarios)}</td>
-                                                    <td>{textoProfesor(grupo)}</td>
-                                                    <td>
-                                                        {sinCupos ? (
-                                                            <span className="badge badge--sin-cupos">Sin cupos</span>
-                                                        ) : (
-                                                            `${grupo.cupoDisponible}/${grupo.cupoMaximo}`
-                                                        )}
-                                                    </td>
-                                                    <td className="oferta-tabla__validacion">
-                                                        {bloqueo && <span className="texto-error">{bloqueo}</span>}
-                                                        {erroresDinamicos.map((msg) => (
-                                                            <span className="texto-error" key={msg}>
-                                                                {msg}
+                                                        <span className="choice-main">
+                                                            <b>{grupo.nombreCurso}</b>
+                                                            <span>
+                                                                {[grupo.codigo, grupo.nivel != null ? `Nivel ${grupo.nivel}` : null, formatearHorarios(grupo.horarios), textoProfesor(grupo)].filter(Boolean).join(" · ")}
                                                             </span>
-                                                        ))}
-                                                    </td>
-                                                </tr>
-                                            );
-                                        })}
-                                    </tbody>
-                                </table>
-                                {datos.oferta.length === 0 && (
-                                    <p className="oferta-tabla-empty">
-                                        No hay cursos autorizados con oferta disponible en este período.
-                                    </p>
+                                                            {grupo.nombrePlan && <span className="opcion-plan">{grupo.nombrePlan}</span>}
+                                                            {mensajes.length > 0 && (
+                                                                <span className="opcion-errores" id={`validacion-${grupo.idGrupo}`}>
+                                                                    {mensajes.map((msg) => (
+                                                                        <span className="sg-field__error" key={msg}>
+                                                                            <CircleX size={16} strokeWidth={1.75} aria-hidden="true" />
+                                                                            {msg}
+                                                                        </span>
+                                                                    ))}
+                                                                </span>
+                                                            )}
+                                                        </span>
+                                                        {insigniaCupos(grupo)}
+                                                    </label>
+                                                );
+                                            })}
+                                        </div>
+                                    </fieldset>
                                 )}
-                            </div>
+                            </section>
 
-                            <div className="seleccion-cursos-page__acciones">
-                                <p>
-                                    {seleccionados.length} curso(s) seleccionado(s)
-                                    {hayValidacionesPendientes && " — corrija las validaciones marcadas para poder confirmar."}
-                                </p>
-                                <button className="btn btn--primary" disabled={!puedeConfirmar} onClick={handleConfirmar}>
-                                    {enviando ? "Registrando..." : "Confirmar matrícula"}
+                            <div className="panel sticky-save bloque">
+                                <span className={hayValidacionesPendientes ? "dirty" : "muted conteo-seleccion"} aria-live="polite">
+                                    {hayValidacionesPendientes && <i aria-hidden="true" />}
+                                    {seleccionados.length === 1 ? "1 curso seleccionado" : `${seleccionados.length} cursos seleccionados`}
+                                    {hayValidacionesPendientes && " — corrija las validaciones marcadas"}
+                                </span>
+                                <button
+                                    type="button"
+                                    className={`sg-btn sg-btn--primary${enviando ? " is-loading" : ""}`}
+                                    disabled={!puedeConfirmar}
+                                    onClick={handleConfirmar}
+                                    aria-busy={enviando || undefined}
+                                >
+                                    {enviando ? <span className="sg-spinner" aria-hidden="true" /> : <Check size={18} strokeWidth={1.75} aria-hidden="true" />}
+                                    {enviando ? "Registrando…" : "Confirmar matrícula"}
                                 </button>
                             </div>
                         </>
