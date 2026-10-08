@@ -216,6 +216,11 @@ textarea {
     margin: 0;
     font: 600 17px/24px var(--font-sans);
     color: var(--ink);
+    margin-bottom: var(--space-4);
+}
+
+.card-title + .card-subtitle {
+    margin-top: calc(-1 * var(--space-4) + 2px);
 }
 
 .card-subtitle {

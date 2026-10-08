@@ -1,7 +1,11 @@
+/* =====================================================================
+   SIGAC — layout de las páginas internas
+   Menú lateral (Header.jsx → <aside class="sidebar">), barra superior
+   (Header.jsx → <header class="header">), contenido y pie de página.
+   Todas las reglas van bajo .sigac-app para no chocar con las clases
+   del mismo nombre que usan las pantallas públicas (login).
+   ===================================================================== */
 
-/* =========================================
-   Variables de Marca y Tema (ACUSAB / SIGAC)
-   ========================================= */
 /* deprecated: usar tokens.css — estas variables son alias de los tokens nuevos */
 :root {
     --primary-purple: var(--primary);
@@ -17,120 +21,656 @@
     --font-family: var(--font-sans);
 }
 
-/* Reset y Estilos Base */
-* {
-    box-sizing: border-box;
-}
-
-body {
-    margin: 0;
-    font-family: var(--font-family);
-    color: var(--neutral-text);
-    background-color: var(--neutral-light);
-    -webkit-font-smoothing: antialiased;
-}
-
 .container {
     width: 100%;
-    max-width: 1200px;
+    max-width: 1280px;
     margin: 0 auto;
-    padding: 0 24px;
-    box-sizing: border-box;
-}
-/* Botones globales (.btn, .btn--primary, .btn--secondary, .btn--danger):
-   ver src/styles/components.css */
-
-/* Contenido entre el Header (sticky) y el Footer Fijo.
-   El header ya no es "fixed": ocupa su propio espacio en el flujo, así
-   que solo se reserva espacio inferior para que el footer fijo no lo tape. */
-.app-main {
-    margin-bottom: 56px;
-    min-height: calc(100vh - 56px);
-    box-sizing: border-box;
+    padding: 0 var(--space-6);
 }
 
-/* =========================================
-   Footer Fijo Institucional
-   ========================================= */
-.footer {
-    position: fixed;
-    bottom: 0;
-    left: 0;
+/* ---------- Estructura: menú | (barra superior, contenido, pie) ---------- */
+.sigac-app {
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-rows: auto 1fr auto;
+    grid-template-areas:
+        "sidebar topbar"
+        "sidebar main"
+        "sidebar footer";
+    background: var(--bg);
+}
+
+.sigac-app > .sidebar { grid-area: sidebar; }
+.sigac-app > .header { grid-area: topbar; }
+.sigac-app > .app-main { grid-area: main; }
+.sigac-app > .footer { grid-area: footer; }
+
+.sigac-app .app-main {
+    min-width: 0;
+}
+
+/* ---------- Menú lateral ---------- */
+.sigac-app .sidebar {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    display: flex;
+    flex-direction: column;
+    width: 248px;
+    height: 100vh;
+    background: var(--sidebar-bg);
+    color: var(--sidebar-ink);
+    transition: width var(--duration-base) cubic-bezier(0.2, 0, 0, 1);
+}
+
+.sigac-app .sidebar--collapsed {
+    width: 76px;
+}
+
+.sigac-app .sidebar-brand {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    min-height: 76px;
+    padding: var(--space-5) var(--space-5) var(--space-4);
+}
+
+.sigac-app .sidebar .header-logo {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-md);
+    background: var(--sidebar-active);
+    color: var(--sidebar-focus);
+    font: 700 12px/1 var(--font-sans);
+    letter-spacing: 0.02em;
+}
+
+.sigac-app .sidebar .header-brand {
+    font: 600 22px/24px var(--font-display);
+    letter-spacing: -0.01em;
+    color: var(--sidebar-ink);
+}
+
+.sigac-app .sidebar .subnav {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: var(--space-2) var(--space-3);
+}
+
+.sigac-app .subnav-toggle {
+    display: none;
+}
+
+.sigac-app .subnav-links {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.sigac-app .subnav-item {
+    position: relative;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    min-height: 44px;
+    padding: 0 var(--space-3);
+    border: 0;
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--sidebar-muted);
+    font: 500 15px/20px var(--font-sans);
+    text-align: left;
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background-color var(--duration-fast) ease, color var(--duration-fast) ease;
+}
+
+.sigac-app .subnav-item svg {
+    flex: none;
+}
+
+.sigac-app .subnav-item:hover {
+    background: var(--sidebar-active);
+    color: var(--sidebar-ink);
+}
+
+.sigac-app .subnav-item.active {
+    background: var(--sidebar-active);
+    color: var(--sidebar-ink);
+    font-weight: 600;
+}
+
+.sigac-app .subnav-item.active::before {
+    content: "";
+    position: absolute;
+    left: -12px;
+    top: 10px;
+    bottom: 10px;
+    width: 3px;
+    border-radius: 0 3px 3px 0;
+    background: var(--sidebar-focus);
+}
+
+.sigac-app .sidebar :focus-visible {
+    outline: 2px solid var(--sidebar-focus);
+    outline-offset: 2px;
+}
+
+.sigac-app .subnav-dropdown {
+    position: relative;
+}
+
+.sigac-app .subnav-dropdown-chevron {
+    margin-left: auto;
+    transition: transform var(--duration-fast) ease;
+}
+
+.sigac-app .subnav-dropdown-chevron--open {
+    transform: rotate(180deg);
+}
+
+/* En el menú lateral el submenú se abre debajo de su sección (acordeón).
+   Header.jsx le pone una posición fija pensada para la barra horizontal;
+   aquí se anula para que fluya dentro del menú. */
+.sigac-app .subnav-dropdown-panel {
+    position: static !important;
+    top: auto !important;
+    left: auto !important;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 2px 0 var(--space-2) 44px;
+    animation: dropdown-in var(--duration-fast) ease-out;
+}
+
+.sigac-app .subnav-dropdown-link {
+    display: flex;
+    align-items: center;
+    min-height: 40px;
+    padding: 0 var(--space-3);
+    border-radius: var(--radius-md);
+    color: var(--sidebar-muted);
+    font: 500 14px/20px var(--font-sans);
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.sigac-app .subnav-dropdown-link:hover {
+    background: var(--sidebar-active);
+    color: var(--sidebar-ink);
+}
+
+.sigac-app .subnav-dropdown-link.active {
+    background: var(--sidebar-active);
+    color: var(--sidebar-ink);
+    font-weight: 600;
+}
+
+.sigac-app .sidebar-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-3);
+    min-height: 40px;
+    margin: var(--space-3);
+    padding: 0 var(--space-3);
+    border: 0;
+    border-top: 1px solid var(--sidebar-active);
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--sidebar-muted);
+    cursor: pointer;
+}
+
+.sigac-app .sidebar-toggle:hover {
+    background: var(--sidebar-active);
+    color: var(--sidebar-ink);
+}
+
+/* Menú contraído: solo íconos. El texto queda oculto a la vista pero
+   disponible para lectores de pantalla. */
+.sigac-app .sidebar--collapsed .sidebar-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+.sigac-app .sidebar--collapsed .sidebar-brand {
+    justify-content: center;
+    padding-left: 0;
+    padding-right: 0;
+}
+
+.sigac-app .sidebar--collapsed .subnav {
+    overflow: visible;
+}
+
+.sigac-app .sidebar--collapsed .subnav-item {
+    justify-content: center;
+    padding: 0;
+}
+
+.sigac-app .sidebar--collapsed .subnav-dropdown-chevron {
+    display: none;
+}
+
+/* Contraído, el submenú sale a la derecha como panel flotante */
+.sigac-app .sidebar--collapsed .subnav-dropdown-panel {
+    position: absolute !important;
+    top: 0 !important;
+    left: calc(100% + 12px) !important;
+    z-index: 50;
+    min-width: 220px;
+    padding: 6px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-2);
+}
+
+.sigac-app .sidebar--collapsed .subnav-dropdown-link {
+    color: var(--ink);
+}
+
+.sigac-app .sidebar--collapsed .subnav-dropdown-link:hover,
+.sigac-app .sidebar--collapsed .subnav-dropdown-link.active {
+    background: var(--primary-soft);
+    color: var(--primary);
+}
+
+@keyframes dropdown-in {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+}
+
+/* ---------- Barra superior ---------- */
+.sigac-app .header {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    height: 64px;
+    padding: 0 var(--space-6);
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+}
+
+.sigac-app .header-title {
+    flex: 1;
+    min-width: 0;
+    font: 600 14px/20px var(--font-sans);
+    color: var(--ink);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sigac-app .header-right {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin-left: auto;
+}
+
+.sigac-app .header-user {
+    position: relative;
+}
+
+.sigac-app .header-user-trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    height: 40px;
+    padding: 0 var(--space-3);
+    border: 1px solid transparent;
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--ink);
+    font: 600 14px/20px var(--font-sans);
+    cursor: pointer;
+}
+
+.sigac-app .header-user-trigger:hover,
+.sigac-app .header-user-trigger[aria-expanded="true"] {
+    background: var(--surface);
+    border-color: var(--border);
+}
+
+.sigac-app .header-user-trigger .chevron {
+    color: var(--ink-muted);
+    transition: transform var(--duration-fast) ease;
+}
+
+.sigac-app .header-user-trigger[aria-expanded="true"] .chevron {
+    transform: rotate(180deg);
+}
+
+.sigac-app .user-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
     right: 0;
-    height: 56px;
-    background-color: var(--neutral-dark);
-    color: var(--white);
-    z-index: 1000;
-    font-family: var(--font-family);
-    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+    z-index: 60;
+    min-width: 240px;
+    padding: var(--space-2);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-2);
+    animation: dropdown-in var(--duration-fast) ease-out;
+}
+
+.sigac-app .user-dropdown-name {
+    margin: 0;
+    padding: var(--space-2) var(--space-3) 0;
+    font: 600 15px/22px var(--font-sans);
+    color: var(--ink);
+}
+
+.sigac-app .user-dropdown-role {
+    margin: 0;
+    padding: 0 var(--space-3);
+    font-size: 13px;
+    line-height: 18px;
+    color: var(--ink-muted);
+}
+
+.sigac-app .user-dropdown-email {
+    display: block;
+    padding: var(--space-1) var(--space-3) var(--space-2);
+    font-size: 14px;
+    line-height: 20px;
+    color: var(--primary);
+    overflow-wrap: anywhere;
+}
+
+.sigac-app .user-dropdown-divider {
+    margin: var(--space-1) 0;
+    border: 0;
+    border-top: 1px solid var(--border);
+}
+
+.sigac-app .user-dropdown-logout {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    width: 100%;
+    min-height: 40px;
+    padding: 0 var(--space-3);
+    border: 0;
+    border-radius: var(--radius-md);
+    background: transparent;
+    color: var(--danger);
+    font: 600 14px/20px var(--font-sans);
+    text-align: left;
+    cursor: pointer;
+}
+
+.sigac-app .user-dropdown-logout:hover {
+    background: var(--danger-soft);
+}
+
+/* ---------- Pie de página ---------- */
+.sigac-app .footer {
+    padding: var(--space-4) 0;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    color: var(--ink-muted);
+    font-family: var(--font-sans);
 }
 
 .footer__inner {
-    height: 100%;
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
-    gap: 16px;
+    gap: var(--space-3);
 }
 
 .footer__top {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: var(--space-4);
 }
 
 .footer__logo {
-    font-weight: 700;
-    font-size: 0.95rem;
-    letter-spacing: 0.5px;
-    color: var(--white);
+    font: 600 16px/20px var(--font-display);
+    color: var(--ink);
 }
 
 .footer__contact {
-    color: #e0e0e0;
-    text-decoration: none;
-    font-size: 0.85rem;
     display: flex;
     align-items: center;
     gap: 6px;
-    transition: color 0.2s ease;
+    color: var(--primary);
+    font-size: 14px;
+    text-decoration: none;
 }
 
 .footer__contact:hover {
-    color: var(--white);
     text-decoration: underline;
 }
 
 .footer__contact-icon {
-    font-size: 0.9rem;
+    font-size: 14px;
 }
 
 .footer__copy {
     margin: 0;
-    font-size: 0.8rem;
-    color: #cccccc;
+    font-size: 13px;
+    line-height: 18px;
+    color: var(--ink-muted);
 }
 
-/* =========================================
-   MEDIA QUERIES (Responsividad)
-   ========================================= */
+/* ---------- Movimiento reducido ---------- */
+@media (prefers-reduced-motion: reduce) {
+    .sigac-app .sidebar,
+    .sigac-app .subnav-dropdown-panel,
+    .sigac-app .user-dropdown,
+    .sigac-app .subnav-links {
+        transition: none;
+        animation: none;
+    }
+}
 
-@media screen and (max-width: 768px) {
-    .container {
-        padding: 0 16px;
+/* ---------- Tablet y móvil: menú como cajón ---------- */
+@media (max-width: 900px) {
+    .sigac-app {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-areas:
+            "topbar"
+            "main"
+            "footer";
+    }
+
+    /* El aside deja de ocupar espacio; sus piezas se ubican fijas */
+    .sigac-app .sidebar,
+    .sigac-app .sidebar--collapsed {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 0;
+        height: 0;
+        background: none;
+        transition: none;
+    }
+
+    .sigac-app .sidebar-toggle {
+        display: none;
+    }
+
+    /* Marca en la barra superior */
+    .sigac-app .sidebar-brand,
+    .sigac-app .sidebar--collapsed .sidebar-brand {
+        position: fixed;
+        top: 14px;
+        left: var(--space-4);
+        z-index: 46;
+        min-height: 0;
+        padding: 0;
+        justify-content: flex-start;
+    }
+
+    .sigac-app:has(.subnav-toggle) .sidebar-brand {
+        left: 64px;
+    }
+
+    .sigac-app .sidebar .header-logo {
+        background: var(--primary-soft);
+        color: var(--primary);
+    }
+
+    .sigac-app .sidebar .header-brand {
+        color: var(--ink);
+    }
+
+    .sigac-app .sidebar--collapsed .sidebar-label {
+        position: static;
+        width: auto;
+        height: auto;
+        margin: 0;
+        overflow: visible;
+        clip: auto;
+    }
+
+    .sigac-app .header {
+        padding-left: 150px;
+        padding-right: var(--space-4);
+    }
+
+    .sigac-app:has(.subnav-toggle) .header {
+        padding-left: 200px;
+    }
+
+    .sigac-app .sidebar .subnav,
+    .sigac-app .sidebar--collapsed .subnav {
+        padding: 0;
+        overflow: visible;
+    }
+
+    .sigac-app .subnav-toggle {
+        position: fixed;
+        top: 12px;
+        left: var(--space-3);
+        z-index: 47;
+        display: grid;
+        place-items: center;
+        width: 40px;
+        height: 40px;
+        border: 1px solid transparent;
+        border-radius: var(--radius-md);
+        background: transparent;
+        color: var(--ink-muted);
+        cursor: pointer;
+    }
+
+    .sigac-app .subnav-toggle:hover {
+        background: var(--surface);
+        border-color: var(--border);
+        color: var(--ink);
+    }
+
+    .sigac-app .subnav-toggle[aria-expanded="true"] {
+        color: var(--sidebar-ink);
+    }
+
+    .sigac-app .subnav-toggle[aria-expanded="true"]:hover {
+        background: var(--sidebar-active);
+        border-color: transparent;
+    }
+
+    /* Cajón */
+    .sigac-app .subnav-links {
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        z-index: 45;
+        width: 280px;
+        max-width: 85vw;
+        padding: 72px var(--space-3) var(--space-4);
+        overflow-y: auto;
+        background: var(--sidebar-bg);
+        visibility: hidden;
+        transform: translateX(-100%);
+        transition: transform var(--duration-base) cubic-bezier(0.2, 0, 0, 1), visibility var(--duration-base);
+    }
+
+    /* Abierto: la sombra extendida oscurece el resto de la página;
+       un clic fuera lo cierra (lógica existente en Header.jsx). */
+    .sigac-app .subnav-links--open {
+        visibility: visible;
+        transform: none;
+        box-shadow: var(--shadow-3), 0 0 0 100vmax rgba(20, 10, 26, 0.5);
+    }
+
+    .sigac-app:has(.subnav-links--open) .sidebar .header-logo {
+        background: var(--sidebar-active);
+        color: var(--sidebar-focus);
+    }
+
+    .sigac-app:has(.subnav-links--open) .sidebar .header-brand {
+        color: var(--sidebar-ink);
+    }
+
+    .sigac-app .sidebar--collapsed .subnav-item {
+        justify-content: flex-start;
+        padding: 0 var(--space-3);
+    }
+
+    .sigac-app .sidebar--collapsed .subnav-dropdown-chevron {
+        display: block;
+    }
+
+    .sigac-app .sidebar--collapsed .subnav-dropdown-panel {
+        position: static !important;
+        min-width: 0;
+        padding: 2px 0 var(--space-2) 44px;
+        background: none;
+        border: 0;
+        box-shadow: none;
+    }
+
+    .sigac-app .sidebar--collapsed .subnav-dropdown-link {
+        color: var(--sidebar-muted);
+    }
+
+    .sigac-app .container {
+        padding: 0 var(--space-4);
+    }
+}
+
+@media (max-width: 640px) {
+    .sigac-app .header-user-trigger {
+        max-width: 160px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
 
     .footer__inner {
         justify-content: center;
+        text-align: center;
     }
 
     .footer__copy {
         display: none;
-    }
-}
-
-@media screen and (max-width: 480px) {
-    .footer__contact {
-        font-size: 0.8rem;
     }
 }
