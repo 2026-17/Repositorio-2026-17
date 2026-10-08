@@ -905,3 +905,68 @@ select.input[multiple] {
     max-width: none;
     padding: 0;
 }
+
+/* Nombres de botón usados por las pantallas de cursos y requisitos */
+.btn-principal,
+.btn-secundario {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    height: 40px;
+    padding: 0 var(--space-4);
+    border: 1px solid transparent;
+    border-radius: var(--radius-md);
+    font: 600 14px/20px var(--font-sans);
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background-color var(--duration-fast) ease, border-color var(--duration-fast) ease;
+}
+
+.btn-principal {
+    background: var(--primary-fill);
+    color: var(--on-primary);
+}
+
+.btn-principal:hover:not(:disabled) {
+    background: var(--primary-fill-hover);
+}
+
+.btn-secundario {
+    background: var(--surface);
+    color: var(--ink);
+    border-color: var(--border-strong);
+}
+
+.btn-secundario:hover:not(:disabled) {
+    background: var(--surface-raised);
+    border-color: var(--ink-muted);
+}
+
+.btn-principal:active:not(:disabled),
+.btn-secundario:active:not(:disabled) {
+    transform: translateY(1px);
+}
+
+.btn-principal:disabled,
+.btn-secundario:disabled {
+    background: var(--surface-sunken);
+    color: var(--ink-disabled);
+    border-color: transparent;
+    cursor: not-allowed;
+}
+
+@media (pointer: coarse) {
+    .btn-principal,
+    .btn-secundario {
+        height: 44px;
+    }
+}
+
+/* Si la barra de filtros no va pegada a la tabla (p. ej. hay un formulario
+   abierto en medio), se dibuja como un panel independiente */
+.page-toolbar:not(:has(+ .table-wrap)) {
+    margin-bottom: var(--space-5);
+    border-bottom: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+}

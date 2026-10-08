@@ -1,77 +1,73 @@
 /* =========================================
    HU-028 - Crear curso en la malla curricular
+   (también lo usan Crear y Modificar período académico)
    ========================================= */
 
 .curso-page {
-    padding: 36px 0 48px;
+    padding: var(--space-6) 0 var(--space-8);
 }
 
-/* Encabezado */
+/* Encabezado (como .page-head del prototipo) */
 .curso-page__header {
-    margin-bottom: 24px;
+    margin-bottom: var(--space-6);
 }
 
 .curso-page__header h1 {
-    margin: 0 0 8px;
-    color: var(--primary-purple);
-    font-size: 2rem;
-    font-weight: 700;
+    margin: 0 0 var(--space-1);
+    font: 600 26px/32px var(--font-display);
+    color: var(--ink);
 }
 
 .curso-page__header p {
     margin: 0;
-    color: #666666;
-    line-height: 1.6;
-    font-size: 0.95rem;
+    font-size: 15px;
+    line-height: 22px;
+    color: var(--ink-muted);
 }
 
 /* =========================================
-   Mensajes de estado
+   Mensajes de estado (como .sg-alert)
    ========================================= */
 
 .curso-message {
-    margin-bottom: 20px;
-    padding: 14px 16px;
-    border-radius: 8px;
-    border: 1px solid transparent;
-    font-size: 0.92rem;
-    font-weight: 500;
-    line-height: 1.5;
+    margin-bottom: var(--space-5);
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    font: 500 14px/20px var(--font-sans);
 }
 
 .curso-message--info {
-    background-color: #f1eef8;
-    border-color: #cfc2dc;
-    color: var(--primary-purple-dark);
+    background: var(--info-soft);
+    color: var(--info);
 }
 
 .curso-message--success {
-    background-color: #edf8f1;
-    border-color: #a8d9bc;
-    color: #1f6f43;
+    background: var(--success-soft);
+    color: var(--success);
 }
 
 .curso-message--error {
-    background-color: #fff0f1;
-    border-color: #e5a7ab;
-    color: var(--primary-red-dark);
+    background: var(--danger-soft);
+    color: var(--danger-strong);
+    border: 2px solid var(--danger);
 }
 
 /* =========================================
-   Formulario
+   Formulario (panel con secciones)
    ========================================= */
 
 .curso-form {
-    background-color: var(--white);
-    border: 1px solid var(--border-color);
-    border-radius: 12px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-1);
     overflow: hidden;
 }
 
 .curso-form__section {
-    padding: 28px;
-    border-bottom: 1px solid var(--border-color);
+    padding: var(--space-5);
+    border-bottom: 1px solid var(--border);
 }
 
 .curso-form__section:last-of-type {
@@ -79,26 +75,25 @@
 }
 
 .curso-form__section h2 {
-    margin: 0 0 22px;
-    color: var(--primary-purple-dark);
-    font-size: 1.2rem;
-    font-weight: 700;
+    margin: 0 0 var(--space-5);
+    font: 600 19px/26px var(--font-sans);
+    color: var(--ink);
 }
 
 .curso-form__grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 22px;
+    gap: var(--space-5);
 }
 
 /* =========================================
-   Campos
+   Campos (como .sg-field)
    ========================================= */
 
 .curso-field {
     display: flex;
     flex-direction: column;
-    gap: 7px;
+    gap: var(--space-1);
 }
 
 .curso-field--full {
@@ -106,162 +101,163 @@
 }
 
 .curso-field label {
-    color: var(--neutral-text);
-    font-size: 0.9rem;
-    font-weight: 600;
+    font: 600 14px/20px var(--font-sans);
+    color: var(--ink);
 }
 
 .curso-field input,
 .curso-field select,
 .curso-field textarea {
     width: 100%;
-    padding: 11px 12px;
-    border: 1px solid #cfcfcf;
-    border-radius: 8px;
-    background-color: var(--white);
-    color: var(--neutral-text);
-    font-family: var(--font-family);
-    font-size: 0.92rem;
-    transition:
-            border-color 0.2s ease,
-            box-shadow 0.2s ease;
+    min-height: 40px;
+    padding: 7px var(--space-3);
+    background: var(--surface);
+    color: var(--ink);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-md);
+    font: 400 16px/24px var(--font-sans);
+    transition: border-color var(--duration-fast) ease;
+}
+
+.curso-field select {
+    appearance: none;
+    padding-right: 40px;
+    cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%2357505C' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
 }
 
 .curso-field textarea {
+    min-height: 104px;
     resize: vertical;
-    min-height: 105px;
 }
 
 .curso-field input::placeholder,
 .curso-field textarea::placeholder {
-    color: #999999;
+    color: var(--ink-subtle);
 }
 
-.curso-field input:hover,
-.curso-field select:hover,
-.curso-field textarea:hover {
-    border-color: #a7a7a7;
+.curso-field input:hover:not(:disabled),
+.curso-field select:hover:not(:disabled),
+.curso-field textarea:hover:not(:disabled) {
+    border-color: var(--ink-muted);
 }
 
 .curso-field input:focus,
 .curso-field select:focus,
 .curso-field textarea:focus {
     outline: none;
-    border-color: var(--primary-purple);
-    box-shadow: 0 0 0 3px rgba(102, 36, 131, 0.12);
+}
+
+.curso-field input:focus-visible,
+.curso-field select:focus-visible,
+.curso-field textarea:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+    border-color: var(--primary);
 }
 
 .curso-field select:disabled,
 .curso-field input:disabled,
 .curso-field textarea:disabled {
-    background-color: #eeeeee;
+    background-color: var(--surface-sunken);
+    color: var(--ink-disabled);
     cursor: not-allowed;
-    opacity: 0.75;
 }
 
 .curso-field small {
-    color: #777777;
-    font-size: 0.78rem;
-    line-height: 1.4;
+    font-size: 14px;
+    line-height: 20px;
+    color: var(--ink-muted);
 }
 
 /* =========================================
-Campos con error de validación
-========================================= */
-
-.curso-field--error label {
-    color: var(--primary-red-dark);
-}
+   Campos con error de validación
+   ========================================= */
 
 .curso-field--error input,
 .curso-field--error select,
 .curso-field--error textarea {
-    border-color: var(--primary-red-dark);
+    border: 2px solid var(--danger);
+    padding-left: calc(var(--space-3) - 1px);
 }
 
-.curso-field--error input:focus,
-.curso-field--error select:focus,
-.curso-field--error textarea:focus {
-    border-color: var(--primary-red-dark);
-    box-shadow: 0 0 0 3px rgba(190, 22, 34, 0.14);
+.curso-field--error input:focus-visible,
+.curso-field--error select:focus-visible,
+.curso-field--error textarea:focus-visible {
+    border-color: var(--danger);
 }
 
 .curso-field__error {
-    color: var(--primary-red-dark);
-    font-size: 0.78rem;
-    font-weight: 500;
-    line-height: 1.4;
+    font: 500 14px/20px var(--font-sans);
+    color: var(--danger);
 }
 
 /* =========================================
-
    Campos obligatorios y acciones
    ========================================= */
 
 .curso-required {
     margin: 0;
-    padding: 18px 28px 0;
-    color: #777777;
-    font-size: 0.78rem;
+    padding: var(--space-4) var(--space-5) 0;
+    font-size: 14px;
+    line-height: 20px;
+    color: var(--ink-muted);
 }
 
 .curso-form__actions {
     display: flex;
     justify-content: flex-end;
     align-items: center;
-    gap: 12px;
-    padding: 20px 28px 28px;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    padding: var(--space-4) var(--space-5) var(--space-5);
 }
 
-.curso-btn--secondary {
-    background-color: var(--white);
-    color: var(--primary-purple);
-    border: 1.5px solid var(--primary-purple);
+/* Botón secundario de la página (como .btn-secondary) */
+.btn.curso-btn--secondary {
+    background: var(--surface);
+    color: var(--ink);
+    border: 1px solid var(--border-strong);
 }
 
-.curso-btn--secondary:hover:not(:disabled) {
-    background-color: #f4eef7;
-    color: var(--primary-purple-dark);
-}
-
-.curso-form__actions .btn:disabled {
-    cursor: not-allowed;
-    opacity: 0.6;
-}
-
-/* =========================================
-   Accesibilidad
-   ========================================= */
-
-.curso-field input:focus-visible,
-.curso-field select:focus-visible,
-.curso-field textarea:focus-visible,
-.curso-form__actions .btn:focus-visible {
-    outline: 3px solid rgba(102, 36, 131, 0.25);
-    outline-offset: 2px;
+.btn.curso-btn--secondary:hover:not(:disabled) {
+    background: var(--surface-raised);
+    color: var(--ink);
+    border-color: var(--ink-muted);
 }
 
 /* =========================================
-   Responsividad
+   Responsive
    ========================================= */
 
-@media screen and (max-width: 768px) {
-
-    .curso-page {
-        padding: 24px 0 36px;
+@media (pointer: coarse) {
+    .curso-field input,
+    .curso-field select {
+        min-height: 44px;
     }
+}
 
+@media (max-width: 900px) {
+    .curso-page {
+        padding: var(--space-5) 0 var(--space-7);
+    }
+}
+
+@media (max-width: 640px) {
     .curso-page__header h1 {
-        font-size: 1.65rem;
+        font-size: 24px;
+        line-height: 30px;
     }
 
     .curso-form__section {
-        padding: 22px 20px;
+        padding: var(--space-4);
     }
 
     .curso-form__grid {
         grid-template-columns: 1fr;
-        gap: 18px;
+        gap: var(--space-4);
     }
 
     .curso-field--full {
@@ -269,31 +265,13 @@ Campos con error de validación
     }
 
     .curso-required {
-        padding: 16px 20px 0;
-    }
-
-    .curso-form__actions {
-        padding: 18px 20px 22px;
-    }
-}
-
-@media screen and (max-width: 480px) {
-
-    .curso-page__header h1 {
-        font-size: 1.45rem;
-    }
-
-    .curso-form {
-        border-radius: 8px;
-    }
-
-    .curso-form__section h2 {
-        font-size: 1.05rem;
+        padding: var(--space-4) var(--space-4) 0;
     }
 
     .curso-form__actions {
         flex-direction: column-reverse;
         align-items: stretch;
+        padding: var(--space-4);
     }
 
     .curso-form__actions .btn {

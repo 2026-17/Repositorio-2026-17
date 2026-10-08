@@ -1,120 +1,156 @@
+/* =========================================
+   Requisitos de curso (obligatorios / opcionales y rango de edad)
+   Botones .btn-principal / .btn-secundario: ver src/styles/components.css
+   ========================================= */
+
 .requisitos-curso {
     width: min(920px, 100%);
-    margin: 28px auto 40px;
+    margin: var(--space-6) auto var(--space-7);
 }
 
-.requisitos-curso--integrado { width: 100%; margin: 24px 0; }
+.requisitos-curso--integrado {
+    width: 100%;
+    margin: var(--space-5) 0;
+}
 
-/* Dentro del formulario de curso t-odo el bloque va alineado a la izquierda. */
+/* Dentro del formulario de curso todo el bloque va alineado a la izquierda. */
 .requisitos-curso--integrado .requisitos-curso__header {
     text-align: left;
-    margin-bottom: 14px;
+    margin-bottom: var(--space-3);
 }
 
-.requisitos-curso__header h2 { margin: 0 0 6px; font-size: 22px; }
+.requisitos-curso__header {
+    text-align: center;
+    margin-bottom: var(--space-5);
+}
 
-/* Misma tarjeta (relleno, borde y sombra) que la cuadrícula de cursos. */
+.requisitos-curso__header h1 {
+    margin: 0 0 var(--space-1);
+    font: 600 26px/32px var(--font-display);
+    color: var(--ink);
+}
+
+.requisitos-curso__header h2 {
+    margin: 0 0 var(--space-1);
+    font: 600 19px/26px var(--font-sans);
+    color: var(--ink);
+}
+
+.requisitos-curso__header p {
+    margin: 0;
+    font-size: 15px;
+    line-height: 22px;
+    color: var(--ink-muted);
+}
+
+/* Paneles (rango de edad y cuadrícula de requisitos) */
+.requisitos-curso__edad,
+.requisitos-curso__grid {
+    padding: var(--space-5);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-1);
+}
+
 .requisitos-curso__edad {
-    margin: 20px 0;
-    padding: 24px;
-    border: 1px solid #e0dce0;
-    border-radius: 12px;
-    background: #fff;
-    box-shadow: 0 1px 3px rgba(0,0,0,.03);
+    margin: var(--space-5) 0;
 }
 
-.requisitos-curso__edad h2 { margin: 0 0 2px; font-size: 17px; color: #171717; }
-.requisitos-curso__edad p { margin: 0 0 14px; font-size: 13px; color: #888; }
-.requisitos-curso__edad .requisitos-curso__selectores { margin-bottom: 0; column-gap: 48px; }
+.requisitos-curso__edad h2,
+.requisitos-curso__grid h2 {
+    margin: 0 0 2px;
+    font: 600 17px/24px var(--font-sans);
+    color: var(--ink);
+}
 
-.requisitos-curso__selectores input {
-    min-width: 0;
-    height: 42px;
-    border: 1px solid #d9d3dc;
-    border-radius: 8px;
-    background: #fff;
-    padding: 0 12px;
+.requisitos-curso__edad p,
+.requisitos-curso__grid section > p {
+    margin: 0 0 var(--space-4);
     font-size: 14px;
-    color: #222;
+    line-height: 20px;
+    color: var(--ink-muted);
+}
+
+.requisitos-curso__edad .requisitos-curso__selectores {
+    margin-bottom: 0;
+    column-gap: var(--space-7);
+}
+
+/* Selectores de programa / plan / edad */
+.requisitos-curso__selectores {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-4);
+    margin-bottom: var(--space-5);
+}
+
+.requisitos-curso__selectores label {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    font: 600 14px/20px var(--font-sans);
+    color: var(--ink);
+}
+
+.requisitos-curso__selectores input,
+.requisitos-curso__selectores select {
+    min-width: 0;
+    height: 40px;
+    padding: 0 var(--space-3);
+    background: var(--surface);
+    color: var(--ink);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-md);
+    font: 400 16px/24px var(--font-sans);
     outline: none;
+    transition: border-color var(--duration-fast) ease;
 }
 
-.requisitos-curso__selectores input:focus {
-    border-color: #70268f;
-    box-shadow: 0 0 0 2px rgba(112, 38, 143, .1);
+.requisitos-curso__selectores select {
+    appearance: none;
+    padding-right: 40px;
+    cursor: pointer;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%2357505C' stroke-width='1.75' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
 }
 
-.requisitos-curso__nota { margin: 0; font-size: 13px; color: #888; }
+.requisitos-curso__selectores input:hover,
+.requisitos-curso__selectores select:hover {
+    border-color: var(--ink-muted);
+}
+
+.requisitos-curso__selectores input:focus-visible,
+.requisitos-curso__selectores select:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+    border-color: var(--primary);
+}
+
+.requisitos-curso__nota {
+    margin: 0;
+    font-size: 14px;
+    line-height: 20px;
+    color: var(--ink-muted);
+}
 
 /* Pie: nota a la izquierda y acción a la derecha, en una sola fila. */
 .requisitos-curso__pie {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
     flex-wrap: wrap;
-    padding-top: 16px;
+    gap: var(--space-3);
+    padding-top: var(--space-4);
 }
 
-.requisitos-curso__header {
-    text-align: center;
-    margin-bottom: 20px;
-}
-
-.requisitos-curso__header h1 {
-    margin: 0 0 6px;
-    font-size: 25px;
-    color: #171717;
-}
-
-.requisitos-curso__header p {
-    margin: 0;
-    color: #8a8a8a;
-    font-size: 14px;
-}
-
-.requisitos-curso__selectores {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 14px;
-    margin-bottom: 18px;
-}
-
-.requisitos-curso__selectores label {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    font-size: 13px;
-    font-weight: 600;
-    color: #333;
-}
-
-.requisitos-curso__selectores select {
-    height: 42px;
-    border: 1px solid #d9d3dc;
-    border-radius: 8px;
-    background: #fff;
-    padding: 0 12px;
-    font-size: 14px;
-    color: #222;
-    outline: none;
-}
-
-.requisitos-curso__selectores select:focus {
-    border-color: #70268f;
-    box-shadow: 0 0 0 2px rgba(112, 38, 143, .1);
-}
-
+/* Cuadrícula de dos columnas: obligatorios | opcionales */
 .requisitos-curso__grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    column-gap: 48px;
-    row-gap: 20px;
-    background: #fff;
-    border: 1px solid #e0dce0;
-    border-radius: 12px;
-    padding: 24px;
-    box-shadow: 0 1px 3px rgba(0,0,0,.03);
+    column-gap: var(--space-7);
+    row-gap: var(--space-5);
 }
 
 .requisitos-curso__grid section {
@@ -131,55 +167,54 @@
     position: absolute;
     top: 0;
     bottom: 0;
-    left: -24px;
+    left: calc(-1 * var(--space-5));
     width: 1px;
-    background: #e7e3e7;
-}
-
-.requisitos-curso__grid h2 {
-    margin: 0 0 2px;
-    font-size: 17px;
-    color: #171717;
-}
-
-.requisitos-curso__grid section > p {
-    margin: 0 0 14px;
-    font-size: 13px;
-    color: #888;
+    background: var(--border);
 }
 
 .requisitos-curso__lista {
     display: flex;
     flex-direction: column;
-    gap: 9px;
+    gap: var(--space-2);
     max-height: 430px;
     overflow-y: auto;
     padding-right: 3px;
 }
 
+/* Opción con casilla (como .choice del prototipo) */
 .requisito-card {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: var(--space-3);
     min-height: 52px;
-    padding: 8px 12px;
-    border: 1px solid #e6e1e6;
-    border-radius: 8px;
+    padding: var(--space-2) var(--space-3);
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-md);
     cursor: pointer;
-    background: #fff;
-    transition: border-color .15s, background .15s;
+    transition: border-color var(--duration-fast) ease, background-color var(--duration-fast) ease;
 }
 
 .requisito-card:hover {
-    border-color: #b995c5;
-    background: #fcf9fd;
+    border-color: var(--ink-muted);
+}
+
+.requisito-card:has(input:checked) {
+    border: 2px solid var(--primary);
+    background: var(--primary-soft);
+    padding: calc(var(--space-2) - 1px) calc(var(--space-3) - 1px);
+}
+
+.requisito-card:has(input:focus-visible) {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
 }
 
 .requisito-card input {
-    width: 17px;
-    height: 17px;
-    accent-color: #70268f;
     flex: 0 0 auto;
+    width: 18px;
+    height: 18px;
+    accent-color: var(--primary-fill);
 }
 
 .requisito-card span {
@@ -189,79 +224,54 @@
 }
 
 .requisito-card strong {
-    font-size: 14px;
-    color: #171717;
-    font-weight: 600;
+    font: 600 15px/22px var(--font-sans);
+    color: var(--ink);
 }
 
 .requisito-card small {
     margin-top: 2px;
-    font-size: 12px;
-    color: #9a9a9a;
+    font-size: 13px;
+    line-height: 18px;
+    color: var(--ink-muted);
 }
 
 .requisitos-curso__acciones {
     display: flex;
     justify-content: flex-end;
-    gap: 10px;
-    padding: 16px 0 0;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    padding: var(--space-4) 0 0;
 }
 
-.btn-secundario,
-.btn-principal {
-    min-height: 40px;
-    padding: 0 17px;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-}
-
-.btn-secundario {
-    background: #fff;
-    border: 1px solid #70268f;
-    color: #70268f;
-}
-
-.btn-principal {
-    background: #70268f;
-    border: 1px solid #70268f;
-    color: #fff;
-}
-
-.btn-secundario:disabled,
-.btn-principal:disabled {
-    opacity: .55;
-    cursor: not-allowed;
-}
-
+/* Mensajes (como .sg-alert) */
 .requisitos-curso__mensaje {
-    margin: 0 0 14px;
-    padding: 11px 14px;
-    border: 1px solid #d5c0dc;
-    border-radius: 8px;
-    background: #faf5fc;
-    color: #5e2770;
-    font-size: 13px;
+    margin: 0 0 var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    background: var(--info-soft);
+    color: var(--info);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    font: 500 14px/20px var(--font-sans);
 }
 
 .requisitos-curso__mensaje--error {
-    border-color: #e2bebe;
-    background: #fff7f7;
-    color: #9a3030;
+    background: var(--danger-soft);
+    color: var(--danger-strong);
+    border: 2px solid var(--danger);
 }
 
 .requisitos-curso__cargando,
 .requisitos-curso__vacio {
-    padding: 35px 20px;
+    padding: var(--space-6) var(--space-5);
     text-align: center;
-    color: #888;
     font-size: 14px;
+    line-height: 20px;
+    color: var(--ink-muted);
 }
 
-@media (max-width: 768px) {
+@media (max-width: 900px) {
     .requisitos-curso {
-        margin: 20px auto 30px;
+        margin: var(--space-5) auto var(--space-6);
     }
 
     .requisitos-curso__selectores,
@@ -270,12 +280,12 @@
     }
 
     .requisitos-curso__grid {
-        padding: 18px;
-        row-gap: 40px;
+        padding: var(--space-4);
+        row-gap: var(--space-7);
     }
 
     .requisitos-curso__grid section + section::before {
-        top: -20px;
+        top: calc(-1 * var(--space-5));
         bottom: auto;
         left: 0;
         right: 0;
@@ -284,7 +294,7 @@
     }
 
     .requisitos-curso__edad {
-        padding: 18px;
+        padding: var(--space-4);
     }
 
     .requisitos-curso__pie {
@@ -296,8 +306,9 @@
         flex-direction: column-reverse;
     }
 
-    .btn-secundario,
-    .btn-principal {
+    .requisitos-curso__acciones .btn-secundario,
+    .requisitos-curso__acciones .btn-principal,
+    .requisitos-curso__pie .btn-principal {
         width: 100%;
     }
 }
