@@ -1,0 +1,49 @@
+/* Preaprobar requisitos de matrícula. Usa .panel, .tabs, .review-block y
+   los componentes del sistema de diseño; aquí solo lo propio. */
+
+.matricula-admin {
+    max-width: 960px;
+}
+
+.pestanas-matricula {
+    margin: var(--space-6) 0 var(--space-4);
+}
+
+.buscador-estudiante {
+    position: relative;
+}
+
+.requisitos-list--bloque {
+    padding: var(--space-3) var(--space-4) var(--space-4);
+}
+
+/* Fila de "Documentación completa" con casilla a la derecha */
+.requisito-check {
+    cursor: pointer;
+}
+
+.requisito-check input {
+    width: 18px;
+    height: 18px;
+    margin-left: auto;
+    accent-color: var(--primary-fill);
+}
+
+.requisitos-acciones {
+    display: flex;
+    justify-content: flex-end;
+    padding: 0 var(--space-4) var(--space-4);
+}
+
+.review-nota {
+    padding: var(--space-3) var(--space-4);
+    font-size: 14px;
+}
+
+.revision-detalle {
+    font-size: 14px;
+}
+
+.sg-btn.btn-rechazar {
+    color: var(--danger);
+}
