@@ -26,3 +26,8 @@
     white-space: nowrap;
     text-overflow: ellipsis;
 }
+
+/* Registrar profesor: la contraseña temporal no ocupa todo el ancho */
+.cuenta-profesor {
+    max-width: 420px;
+}

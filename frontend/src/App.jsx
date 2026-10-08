@@ -25,6 +25,7 @@ import ModificarPeriodoAcademico from "./pages/DirectorAcademico/ModificarPeriod
 import BecasPagos from "./pages/Administrativa/Estudiantes.jsx";
 import Matricula from "./pages/Administrativa/Matricula.jsx";
 import Profesores from "./pages/DirectorAcademico/Profesores.jsx";
+import RegistrarProfesor from "./pages/DirectorAcademico/RegistrarProfesor.jsx";
 import Reportes from "./pages/Administrativa/Reportes.jsx";
 
 import Header from "./components/Header";
@@ -114,6 +115,10 @@ function App() {
                     <Route
                         path="/director-academico/profesores"
                         element={<Profesores />}
+                    />
+                    <Route
+                        path="/director-academico/profesores/registrar"
+                        element={<RegistrarProfesor />}
                     />
 
                     {/* =================================================

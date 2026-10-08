@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { API_URL } from "../../config/api.js";
 import { ChevronsUpDown, GraduationCap, Pencil, Plus, Save, Search, X } from "lucide-react";
 import "./Profesores.css";
@@ -7,7 +8,6 @@ import EmptyState from "../../components/ui/EmptyState";
 import Field from "../../components/ui/Field";
 import PageHead from "../../components/ui/PageHead";
 import Pagination from "../../components/ui/Pagination";
-import PasswordField from "../../components/ui/PasswordField";
 import StatusBadge from "../../components/ui/StatusBadge";
 import { iniciales, listaErrores, paginar } from "../../components/ui/utilidades";
 
@@ -39,7 +39,6 @@ const initialForm = {
     empleador: "",
     clasePuesto: CLASE_PUESTO_DEFAULT,
     fechaIngreso: "",
-    contrasena: "",
 };
 
 function nombreCompleto(p) {
@@ -185,14 +184,6 @@ function Profesores() {
         setErrores((e) => ({ ...e, especialidades: "" }));
     }
 
-    function abrirNuevo() {
-        setEditingId(null);
-        setForm(initialForm);
-        setErrores({});
-        setFormAbierto(true);
-        requestAnimationFrame(() => formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
-    }
-
     function abrirEditar(p) {
         setEditingId(p.id);
         setForm({
@@ -236,12 +227,6 @@ function Profesores() {
         if (form.ubicacion.idProvincia && !form.ubicacion.codigoDistrito) {
             nuevosErrores.codigoDistrito = "Complete cantón y distrito, o deje la provincia sin seleccionar.";
         }
-        if (!editingId) {
-            if (!form.correo.trim()) nuevosErrores.correo = "El correo es obligatorio para crear la cuenta de usuario.";
-            if (!form.contrasena || form.contrasena.length < 8) {
-                nuevosErrores.contrasena = "Ingrese una contraseña de al menos 8 caracteres.";
-            }
-        }
         setErrores(nuevosErrores);
         if (Object.keys(nuevosErrores).length > 0) {
             setIntento((n) => n + 1);
@@ -271,27 +256,10 @@ function Profesores() {
             fechaIngreso: form.fechaIngreso || null,
         };
 
-        const payload = editingId
-            ? payloadBase
-            : {
-                profesor: payloadBase,
-                usuario: {
-                    cedula: payloadBase.numeroIdentificacion,
-                    nombre: [form.nombres.trim(), form.primerApellido.trim(), form.segundoApellido.trim()]
-                        .filter(Boolean)
-                        .join(" "),
-                    correo: payloadBase.correo,
-                    contrasena: form.contrasena,
-                    // El backend siempre fija el rol PROFESOR y el estado ACTIVO
-                    // (ver ProfesorService.registrar), pero UsuarioCreateRequest
-                    // los exige con @NotNull, así que mandamos un valor cualquiera.
-                    idRol: 1,
-                    idEstadoUsuario: 1,
-                },
-            };
+        const payload = payloadBase;
 
-        const url = editingId ? `${API_URL}/profesores/${editingId}` : `${API_URL}/profesores`;
-        const method = editingId ? "PUT" : "POST";
+        const url = `${API_URL}/profesores/${editingId}`;
+        const method = "PUT";
 
         setGuardando(true);
         try {
@@ -305,7 +273,7 @@ function Profesores() {
                 throw new Error(mensaje);
             }
 
-            dialog.exito(editingId ? "Información del profesor actualizada correctamente." : "Profesor registrado correctamente.");
+            dialog.exito("Información del profesor actualizada correctamente.");
             cerrarFormulario();
             setRecargar((n) => n + 1);
         } catch (e) {
@@ -372,10 +340,10 @@ function Profesores() {
                         Cancelar
                     </button>
                 ) : (
-                    <button type="button" className="sg-btn sg-btn--primary" onClick={abrirNuevo}>
+                    <Link to="/director-academico/profesores/registrar" className="sg-btn sg-btn--primary">
                         <Plus size={18} strokeWidth={1.75} aria-hidden="true" />
                         Nuevo profesor
-                    </button>
+                    </Link>
                 )}
             />
 
@@ -394,7 +362,7 @@ function Profesores() {
 
                     <section className="panel">
                         <div className="panel-head">
-                            <h2>{editingId ? "Modificar profesor" : "Registrar profesor"}</h2>
+                            <h2>Modificar profesor</h2>
                         </div>
 
                         <div className="panel-body">
@@ -429,8 +397,7 @@ function Profesores() {
                                         id={`${P}correo`}
                                         errorKey="correo"
                                         label="Correo de contacto"
-                                        optional={Boolean(editingId)}
-                                        hint={editingId ? undefined : "Se usa para crear la cuenta de usuario."}
+                                        optional
                                         error={errores.correo}
                                         className="span-all"
                                     >
@@ -469,10 +436,9 @@ function Profesores() {
                                     <Field
                                         id={`${P}clasePuesto`}
                                         label="Clase de puesto"
-                                        hint={editingId ? undefined : "Se asigna automáticamente y solo puede modificarse al editar el profesor."}
                                         className="span-all"
                                     >
-                                        <input id={`${P}clasePuesto`} className="sg-input" maxLength={255} value={form.clasePuesto} onChange={(e) => setField("clasePuesto", e.target.value)} disabled={!editingId} />
+                                        <input id={`${P}clasePuesto`} className="sg-input" maxLength={255} value={form.clasePuesto} onChange={(e) => setField("clasePuesto", e.target.value)} />
                                     </Field>
                                     <Field id={`${P}fechaIngreso`} label="Fecha de ingreso" optional hint="Si la deja vacía se usa la fecha de hoy.">
                                         <input id={`${P}fechaIngreso`} className="sg-input" type="date" value={form.fechaIngreso} onChange={(e) => setField("fechaIngreso", e.target.value)} />
@@ -497,31 +463,13 @@ function Profesores() {
                                     </fieldset>
                                 </div>
                             </div>
-
-                            {!editingId && (
-                                <div className="form-section">
-                                    <h3 className="form-section-title">Cuenta de usuario</h3>
-                                    <p className="form-section-sub">Se creará automáticamente con rol Profesor y estado Activo.</p>
-                                    <div className="form-grid">
-                                        <PasswordField
-                                            id={`${P}contrasena`}
-                                            label="Contraseña temporal"
-                                            hint="Mínimo 8 caracteres."
-                                            value={form.contrasena}
-                                            onChange={(e) => setField("contrasena", e.target.value)}
-                                            autoComplete="new-password"
-                                            error={errores.contrasena}
-                                        />
-                                    </div>
-                                </div>
-                            )}
                         </div>
 
                         <div className="panel-foot">
                             <button type="button" className="sg-btn sg-btn--secondary" onClick={cerrarFormulario}>Cancelar</button>
                             <button type="submit" className={`sg-btn sg-btn--primary${guardando ? " is-loading" : ""}`} disabled={guardando} aria-busy={guardando || undefined}>
                                 {guardando ? <span className="sg-spinner" aria-hidden="true" /> : <Save size={18} strokeWidth={1.75} aria-hidden="true" />}
-                                {guardando ? "Guardando…" : editingId ? "Guardar cambios" : "Registrar profesor"}
+                                {guardando ? "Guardando…" : "Guardar cambios"}
                             </button>
                         </div>
                     </section>

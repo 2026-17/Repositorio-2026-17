@@ -61,6 +61,7 @@ const MENU_POR_ROL = {
             titulo: "Académico",
             items: [
                 { to: "/director-academico/profesores", label: "Profesores", icon: GraduationCap },
+                { to: "/director-academico/profesores/registrar", label: "Registrar profesor", icon: UserPlus },
                 { to: "/director-academico/estudiantes/instrumentos", label: "Asignar instrumento", icon: Music },
             ],
         },
