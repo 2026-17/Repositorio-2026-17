@@ -352,6 +352,116 @@ class ConsultaCursosServiceTest {
         assertEquals("PIA-101", resultado.get(0).getCodigoCurso());
     }
 
+    @Test
+    void noDebeListarCursosInactivosAunqueEstenEnLaMalla() {
+
+        MallaCurricularRepository mallas = repositorioFalso(
+                MallaCurricularRepository.class,
+                Map.of("findByIdPlanEstudioAndActivoTrueOrderByNivelAscOrdenEnNivelAsc",
+                        List.of(crearMalla(100L, (short) 1), crearMalla(200L, (short) 1)))
+        );
+
+        Curso cursoInactivo = crearCurso(200L, "TEO-201", "Teoría Musical II");
+        cursoInactivo.setActivo(false);
+
+        CursoRepository cursos = repositorioFalso(
+                CursoRepository.class,
+                Map.of("findAllById", List.of(
+                        crearCurso(100L, "PIA-101", "Piano Individual I"),
+                        cursoInactivo
+                ))
+        );
+
+        Grupo grupoPiano = new Grupo();
+        grupoPiano.setId(300L);
+        grupoPiano.setIdCurso(100L);
+        grupoPiano.setCodigo("PIA-101-A");
+        grupoPiano.setCupoMaximo((short) 10);
+
+        Grupo grupoTeoria = new Grupo();
+        grupoTeoria.setId(400L);
+        grupoTeoria.setIdCurso(200L);
+        grupoTeoria.setCodigo("TEO-201-A");
+        grupoTeoria.setCupoMaximo((short) 10);
+
+        GrupoRepository grupoRepo = repositorioFalso(
+                GrupoRepository.class,
+                Map.of("findByIdPeriodoAndEstadoIn", List.of(grupoPiano, grupoTeoria))
+        );
+
+        HorarioGrupoRepository horarios = repositorioFalso(
+                HorarioGrupoRepository.class,
+                Map.of("findByIdGrupoInOrderByDiaSemanaAscHoraInicioAsc", List.of())
+        );
+
+        MatriculaDetalleRepository matriculaDetalles = repositorioFalso(
+                MatriculaDetalleRepository.class,
+                Map.of("contarCuposOcupados", List.of())
+        );
+
+        ConsultaCursosService service = new ConsultaCursosService(
+                periodoRepositoryValido(), programaRepositoryValido(), planRepositoryValido(),
+                mallas, cursos, grupoRepo, null, horarios, matriculaDetalles
+        );
+
+        // El grupo de Teoría tiene oferta en el período, pero su curso está inactivo.
+        List<CursoDisponibleResponseDTO> resultado =
+                service.consultarDisponibles(2L, 1L, null);
+
+        assertEquals(1, resultado.size());
+        assertEquals("PIA-101", resultado.get(0).getCodigoCurso());
+    }
+
+    @Test
+    void debeListarGrupoSinProfesorAsignadoConProfesorNulo() {
+
+        MallaCurricularRepository mallas = repositorioFalso(
+                MallaCurricularRepository.class,
+                Map.of("findByIdPlanEstudioAndActivoTrueOrderByNivelAscOrdenEnNivelAsc",
+                        List.of(crearMalla(100L, (short) 1)))
+        );
+
+        CursoRepository cursos = repositorioFalso(
+                CursoRepository.class,
+                Map.of("findAllById", List.of(crearCurso(100L, "PIA-101", "Piano Individual I")))
+        );
+
+        // Grupo creado en HU-028 que aún no tiene profesor.
+        Grupo grupo = new Grupo();
+        grupo.setId(300L);
+        grupo.setIdCurso(100L);
+        grupo.setCodigo("PIA-101-A");
+        grupo.setCupoMaximo((short) 10);
+
+        GrupoRepository grupoRepo = repositorioFalso(
+                GrupoRepository.class,
+                Map.of("findByIdPeriodoAndEstadoIn", List.of(grupo))
+        );
+
+        HorarioGrupoRepository horarios = repositorioFalso(
+                HorarioGrupoRepository.class,
+                Map.of("findByIdGrupoInOrderByDiaSemanaAscHoraInicioAsc", List.of())
+        );
+
+        MatriculaDetalleRepository matriculaDetalles = repositorioFalso(
+                MatriculaDetalleRepository.class,
+                Map.of("contarCuposOcupados", List.of())
+        );
+
+        // ProfesorRepository en null: sin profesores asignados no debe consultarse.
+        ConsultaCursosService service = new ConsultaCursosService(
+                periodoRepositoryValido(), programaRepositoryValido(), planRepositoryValido(),
+                mallas, cursos, grupoRepo, null, horarios, matriculaDetalles
+        );
+
+        List<CursoDisponibleResponseDTO> resultado =
+                service.consultarDisponibles(2L, 1L, null);
+
+        assertEquals(1, resultado.size());
+        assertNull(resultado.get(0).getProfesor());
+        assertEquals(10, resultado.get(0).getCupoDisponible());
+    }
+
     /*
      * ============================================================
      * Métodos auxiliares para las pruebas
