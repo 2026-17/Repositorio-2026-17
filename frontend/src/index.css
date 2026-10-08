@@ -1,31 +1,26 @@
-@import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap");
 
+/* deprecated: usar tokens.css — estas variables son alias de los tokens nuevos */
 :root {
-    --morado: #662483;
-    --verde: #2fac66;
-    --verde-dark: #278f52;
-    --rojo: #be1622;
-    --naranja: #e7781e;
+    --morado: var(--primary);
+    --verde: var(--success);
+    --verde-dark: #145c35;
+    --rojo: var(--danger);
+    --naranja: var(--warning);
     --amarillo: #f9e842;
-    --blanco: #ffffff;
-    --texto: #1a1a1a;
-    --suave: #777777;
-    --borde: #d8d5cf;
-    --fondo: #f7f5f0;
-
-    /*
-     * Alias utilizados por las pantallas nuevas del SIGAC.
-     * Mantienen la misma identidad visual existente.
-     */
-    --primary-purple: var(--morado);
-    --primary-purple-dark: #4b1a61;
-    --primary-red: var(--rojo);
-    --primary-red-dark: #94121b;
-    --green-active: var(--verde);
-    --white: var(--blanco);
-    --neutral-text: var(--texto);
-    --border-color: var(--borde);
-    --font-family: "Montserrat", sans-serif;
+    --blanco: var(--surface);
+    --texto: var(--ink);
+    --suave: var(--ink-muted);
+    --borde: var(--border);
+    --fondo: var(--bg);
+    --primary-purple: var(--primary);
+    --primary-purple-dark: var(--primary-fill-hover);
+    --primary-red: var(--danger);
+    --primary-red-dark: var(--danger-strong);
+    --green-active: var(--success);
+    --white: var(--surface);
+    --neutral-text: var(--ink);
+    --border-color: var(--border);
+    --font-family: var(--font-sans);
 }
 
 * {
@@ -34,7 +29,7 @@
 
 body {
     margin: 0;
-    font-family: "Montserrat", sans-serif;
+    font-family: var(--font-sans);
     background: var(--fondo);
     color: var(--texto);
 }

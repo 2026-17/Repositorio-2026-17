@@ -1,10 +1,9 @@
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,500;0,600;0,700&display=swap');
 
 /* =========================================
    Estilos Base y Generales (Escritorio por defecto)
    ========================================= */
 .app-container {
-    font-family: 'Montserrat', sans-serif;
+    font-family: var(--font-sans);
     height: 100vh;
     display: flex;
     flex-direction: column;
@@ -99,7 +98,7 @@
     padding: 12px;
     border: 1.5px solid #e0e0e0;
     border-radius: 8px;
-    font-family: 'Montserrat', sans-serif;
+    font-family: var(--font-sans);
     font-size: 1rem;
     box-sizing: border-box;
     transition: all 0.3s ease;
@@ -136,7 +135,7 @@
     border: none;
     border-radius: 8px;
     padding: 12px 28px;
-    font-family: 'Montserrat', sans-serif;
+    font-family: var(--font-sans);
     font-weight: 600;
     font-size: 1rem;
     cursor: pointer;

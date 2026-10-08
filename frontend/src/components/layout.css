@@ -1,20 +1,20 @@
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,500;0,600;0,700&display=swap');
 
 /* =========================================
    Variables de Marca y Tema (ACUSAB / SIGAC)
    ========================================= */
+/* deprecated: usar tokens.css — estas variables son alias de los tokens nuevos */
 :root {
-    --primary-purple: #662483;     /* Morado 01 */
-    --primary-purple-dark: #47245f; /* Morado 02 */
-    --primary-red: #be1622;        /* Rojo 01 */
-    --primary-red-dark: #821720;   /* Rojo 02 */
-    --green-active: #2fac66;       /* Verde 01 */
-    --neutral-dark: #2b2b2b;
-    --neutral-text: #333333;
-    --neutral-light: #f4f4f9;
-    --border-color: #e0e0e0;
-    --white: #ffffff;
-    --font-family: 'Montserrat', sans-serif;
+    --primary-purple: var(--primary);
+    --primary-purple-dark: var(--primary-fill-hover);
+    --primary-red: var(--danger);
+    --primary-red-dark: var(--danger-strong);
+    --green-active: var(--success);
+    --neutral-dark: var(--sidebar-bg);
+    --neutral-text: var(--ink);
+    --neutral-light: var(--bg);
+    --border-color: var(--border);
+    --white: var(--surface);
+    --font-family: var(--font-sans);
 }
 
 /* Reset y Estilos Base */

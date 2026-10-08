@@ -20,7 +20,7 @@
     background: none;
     border: none;
     color: #662483;
-    font-family: 'Montserrat', sans-serif;
+    font-family: var(--font-sans);
     font-weight: 600;
     font-size: 0.85rem;
     cursor: pointer;
@@ -102,7 +102,7 @@
     border: none;
     text-align: center;
     color: #662483;
-    font-family: 'Montserrat', sans-serif;
+    font-family: var(--font-sans);
     font-weight: 600;
     font-size: 0.85rem;
     cursor: pointer;

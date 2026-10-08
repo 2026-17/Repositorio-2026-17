@@ -8,22 +8,22 @@
    (ver "HU-002" más abajo como ejemplo) para mantener todo unificado.
    ============ */
 
-@import url("https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap");
 
+/* deprecated: usar tokens.css — estas variables son alias de los tokens nuevos */
 :root {
-    --morado-01: #662483;
-    --verde-01: #2fac66;
-    --verde-02: #278f52;
-    --rojo-01: #be1622;
-    --naranja-01: #e7781e;
-    --naranja-02: #c96518;
+    --morado-01: var(--primary);
+    --verde-01: var(--success);
+    --verde-02: #145c35;
+    --rojo-01: var(--danger);
+    --naranja-01: var(--warning);
+    --naranja-02: #5c3c00;
     --amarillo-01: #f9e842;
-    --blanco: #ffffff;
+    --blanco: var(--surface);
     --negro: #000000;
-    --texto: #1a1a1a;
-    --texto-suave: #8a8a8a;
-    --borde: #d8d5cf;
-    --fondo: #f7f5f0;
+    --texto: var(--ink);
+    --texto-suave: var(--ink-muted);
+    --borde: var(--border);
+    --fondo: var(--bg);
 }
 
 * {
@@ -32,7 +32,7 @@
 
 body {
     margin: 0;
-    font-family: "Montserrat", sans-serif;
+    font-family: var(--font-sans);
     background: var(--fondo);
 }
 
@@ -99,7 +99,7 @@ body {
     background: none;
     border: none;
     color: rgba(255, 255, 255, 0.85);
-    font-family: "Montserrat", sans-serif;
+    font-family: var(--font-sans);
     font-size: 13px;
     font-weight: 500;
     text-decoration: none;
@@ -358,7 +358,7 @@ body {
     width: 100%;
     height: 40px;
     padding: 0 12px;
-    font-family: "Montserrat", sans-serif;
+    font-family: var(--font-sans);
     font-size: 14px;
     color: var(--texto);
     background: var(--blanco);
@@ -419,7 +419,7 @@ body {
     gap: 8px;
     height: 40px;
     padding: 0 18px;
-    font-family: "Montserrat", sans-serif;
+    font-family: var(--font-sans);
     font-weight: 500;
     font-size: 14px;
     border-radius: 8px;
@@ -560,7 +560,7 @@ body {
     border-radius: 8px;
     padding: 6px 12px;
     color: var(--blanco);
-    font-family: "Montserrat", sans-serif;
+    font-family: var(--font-sans);
     font-weight: 600;
     font-size: 13.5px;
     cursor: pointer;
@@ -641,7 +641,7 @@ body {
     background: none;
     border: none;
     padding: 10px 0 12px;
-    font-family: "Montserrat", sans-serif;
+    font-family: var(--font-sans);
     font-weight: 600;
     font-size: 13.5px;
     color: var(--rojo-01);
@@ -747,7 +747,7 @@ body {
     border: none;
     border-bottom: 1px solid #f0eee9;
     text-align: left;
-    font-family: "Montserrat", sans-serif;
+    font-family: var(--font-sans);
     font-size: 13.5px;
     color: var(--texto);
     cursor: pointer;
@@ -846,7 +846,7 @@ body {
     border-bottom: 2px solid transparent;
     padding: 10px 4px;
     margin-bottom: -1px;
-    font-family: "Montserrat", sans-serif;
+    font-family: var(--font-sans);
     font-weight: 600;
     font-size: 13.5px;
     color: var(--texto-suave);
