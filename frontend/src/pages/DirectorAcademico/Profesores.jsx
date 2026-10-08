@@ -322,7 +322,7 @@ function Profesores() {
     }
 
     return (
-        <div className="container">
+        <div className="container profesores">
             <div className="page-title">
                 <h1>Profesores</h1>
                 <p>Registre, consulte y administre la información académica y de contacto de los profesores.</p>

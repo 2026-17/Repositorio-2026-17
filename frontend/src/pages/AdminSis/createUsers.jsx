@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { API_URL } from "../../config/api";
+import "./styles/createUsers.css";
 
 function CreateUsers() {
 
@@ -91,7 +92,7 @@ function CreateUsers() {
     }
 
     return (
-        <div className="container">
+        <div className="container crear-usuario">
             <h2>Crear usuario</h2>
             {error && <p>{error}</p>}
 
