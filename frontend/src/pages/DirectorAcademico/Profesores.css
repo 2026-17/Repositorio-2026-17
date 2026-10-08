@@ -26,11 +26,3 @@
     white-space: nowrap;
     text-overflow: ellipsis;
 }
-
-.sg-btn.btn-peligro {
-    color: var(--danger);
-}
-
-.sg-btn.btn-peligro:hover:not(:disabled) {
-    background: var(--danger-soft);
-}

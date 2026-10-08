@@ -357,3 +357,15 @@ a.sg-btn { text-decoration: none; }
 .dtable .who { min-width: 200px; }
 /* Tablas con muchas columnas: menos relleno horizontal */
 .dtable--compacta th, .dtable--compacta td { padding-left: var(--space-4); padding-right: var(--space-4); }
+/* Acción destructiva dentro de una tabla (botón fantasma en rojo) */
+.sg-btn.btn-peligro { color: var(--danger); }
+.sg-btn.btn-peligro:hover:not(:disabled) { background: var(--danger-soft); }
+/* Barra fija de guardado con indicador de cambios (como el prototipo) */
+.sticky-save { position: sticky; bottom: var(--space-3); z-index: 5; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-3) var(--space-5); box-shadow: var(--shadow-2); }
+.dirty { white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: var(--warning); font-weight: 600; }
+.dirty i { width: 8px; height: 8px; border-radius: 50%; background: var(--warning); }
+@media (max-width: 640px) {
+  .sticky-save { padding: var(--space-3) var(--space-4); }
+  .sticky-save .inline-actions { width: 100%; }
+  .sticky-save .inline-actions .sg-btn { flex: 1 1 100%; }
+}

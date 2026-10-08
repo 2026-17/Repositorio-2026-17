@@ -1,314 +1,99 @@
 /* =========================================
-   Requisitos de curso (obligatorios / opcionales y rango de edad)
-   Botones .btn-principal / .btn-secundario: ver src/styles/components.css
+   Requisitos de curso (prerrequisitos, correquisitos y edad).
+   Usa .panel, .form-section, .form-grid y .choice de src/styles/app.css.
    ========================================= */
 
-.requisitos-curso {
-    width: min(920px, 100%);
-    margin: var(--space-6) auto var(--space-7);
+.requisitos-panel .panel-head h2 .sg-field__optional {
+    font-weight: 400;
+    font-size: 14px;
 }
 
-.requisitos-curso--integrado {
-    width: 100%;
-    margin: var(--space-5) 0;
+.requisitos-panel .girar {
+    transform: rotate(180deg);
 }
 
-/* Dentro del formulario de curso todo el bloque va alineado a la izquierda. */
-.requisitos-curso--integrado .requisitos-curso__header {
-    text-align: left;
-    margin-bottom: var(--space-3);
+/* Dos columnas: prerrequisitos | correquisitos */
+.requisitos-curso__grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-6);
 }
 
-.requisitos-curso__header {
+.requisitos-curso__lista {
+    max-height: 430px;
+    overflow-y: auto;
+    padding: 2px;
+}
+
+.requisitos-curso__pie {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    margin-top: var(--space-5);
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--border);
+    font-size: 14px;
+}
+
+.requisitos-curso__cargando,
+.requisitos-curso__vacio {
+    margin: 0;
+    padding: var(--space-5) 0;
     text-align: center;
-    margin-bottom: var(--space-5);
+    font-size: 14px;
+}
+
+/* Página independiente "Configurar requisitos" (RequisitosCurso.jsx) */
+.requisitos-curso {
+    max-width: 920px;
 }
 
 .requisitos-curso__header h1 {
-    margin: 0 0 var(--space-1);
     font: 600 26px/32px var(--font-display);
     color: var(--ink);
 }
 
-.requisitos-curso__header h2 {
-    margin: 0 0 var(--space-1);
-    font: 600 19px/26px var(--font-sans);
-    color: var(--ink);
-}
-
 .requisitos-curso__header p {
-    margin: 0;
-    font-size: 15px;
-    line-height: 22px;
+    margin: var(--space-1) 0 var(--space-6);
     color: var(--ink-muted);
 }
 
-/* Paneles (rango de edad y cuadrícula de requisitos) */
-.requisitos-curso__edad,
-.requisitos-curso__grid {
-    padding: var(--space-5);
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-1);
-}
-
-.requisitos-curso__edad {
-    margin: var(--space-5) 0;
-}
-
-.requisitos-curso__edad h2,
-.requisitos-curso__grid h2 {
-    margin: 0 0 2px;
-    font: 600 17px/24px var(--font-sans);
-    color: var(--ink);
-}
-
-.requisitos-curso__edad p,
-.requisitos-curso__grid section > p {
-    margin: 0 0 var(--space-4);
-    font-size: 14px;
-    line-height: 20px;
-    color: var(--ink-muted);
-}
-
-.requisitos-curso__edad .requisitos-curso__selectores {
-    margin-bottom: 0;
-    column-gap: var(--space-7);
-}
-
-/* Selectores de programa / plan / edad */
 .requisitos-curso__selectores {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: var(--space-4);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-5);
     margin-bottom: var(--space-5);
 }
 
 .requisitos-curso__selectores label {
-    display: flex;
-    flex-direction: column;
+    display: grid;
     gap: var(--space-1);
     font: 600 14px/20px var(--font-sans);
-    color: var(--ink);
 }
 
-.requisitos-curso__selectores input,
 .requisitos-curso__selectores select {
-    min-width: 0;
     height: 40px;
-    padding: 0 var(--space-3);
-    background: var(--surface);
+    padding: 0 40px 0 var(--space-3);
+    appearance: none;
+    background: var(--surface) var(--icon-chevron) no-repeat right 12px center;
     color: var(--ink);
     border: 1px solid var(--border-strong);
     border-radius: var(--radius-md);
     font: 400 16px/24px var(--font-sans);
-    outline: none;
-    transition: border-color var(--duration-fast) ease;
-}
-
-.requisitos-curso__selectores select {
-    appearance: none;
-    padding-right: 40px;
-    cursor: pointer;
-    background-image: var(--icon-chevron);
-    background-repeat: no-repeat;
-    background-position: right 12px center;
-}
-
-.requisitos-curso__selectores input:hover,
-.requisitos-curso__selectores select:hover {
-    border-color: var(--ink-muted);
-}
-
-.requisitos-curso__selectores input:focus-visible,
-.requisitos-curso__selectores select:focus-visible {
-    outline: 2px solid var(--focus);
-    outline-offset: 2px;
-    border-color: var(--primary);
-}
-
-.requisitos-curso__nota {
-    margin: 0;
-    font-size: 14px;
-    line-height: 20px;
-    color: var(--ink-muted);
-}
-
-/* Pie: nota a la izquierda y acción a la derecha, en una sola fila. */
-.requisitos-curso__pie {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: var(--space-3);
-    padding-top: var(--space-4);
-}
-
-/* Cuadrícula de dos columnas: obligatorios | opcionales */
-.requisitos-curso__grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    column-gap: var(--space-7);
-    row-gap: var(--space-5);
-}
-
-.requisitos-curso__grid section {
-    min-width: 0;
-}
-
-.requisitos-curso__grid section + section {
-    position: relative;
-}
-
-/* Divisor centrado en el espacio entre columnas (no ocupa ancho). */
-.requisitos-curso__grid section + section::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: calc(-1 * var(--space-5));
-    width: 1px;
-    background: var(--border);
-}
-
-.requisitos-curso__lista {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-2);
-    max-height: 430px;
-    overflow-y: auto;
-    padding-right: 3px;
-}
-
-/* Opción con casilla (como .choice del prototipo) */
-.requisito-card {
-    display: flex;
-    align-items: center;
-    gap: var(--space-3);
-    min-height: 52px;
-    padding: var(--space-2) var(--space-3);
-    background: var(--surface);
-    border: 1px solid var(--border-strong);
-    border-radius: var(--radius-md);
-    cursor: pointer;
-    transition: border-color var(--duration-fast) ease, background-color var(--duration-fast) ease;
-}
-
-.requisito-card:hover {
-    border-color: var(--ink-muted);
-}
-
-.requisito-card:has(input:checked) {
-    border: 2px solid var(--primary);
-    background: var(--primary-soft);
-    padding: calc(var(--space-2) - 1px) calc(var(--space-3) - 1px);
-}
-
-.requisito-card:has(input:focus-visible) {
-    outline: 2px solid var(--focus);
-    outline-offset: 2px;
-}
-
-.requisito-card input {
-    flex: 0 0 auto;
-    width: 18px;
-    height: 18px;
-    accent-color: var(--primary-fill);
-}
-
-.requisito-card span {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-}
-
-.requisito-card strong {
-    font: 600 15px/22px var(--font-sans);
-    color: var(--ink);
-}
-
-.requisito-card small {
-    margin-top: 2px;
-    font-size: 13px;
-    line-height: 18px;
-    color: var(--ink-muted);
 }
 
 .requisitos-curso__acciones {
     display: flex;
     justify-content: flex-end;
-    flex-wrap: wrap;
     gap: var(--space-2);
-    padding: var(--space-4) 0 0;
-}
-
-/* Mensajes (como .sg-alert) */
-.requisitos-curso__mensaje {
-    margin: 0 0 var(--space-3);
-    padding: var(--space-3) var(--space-4);
-    background: var(--info-soft);
-    color: var(--info);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    font: 500 14px/20px var(--font-sans);
-}
-
-.requisitos-curso__mensaje--error {
-    background: var(--danger-soft);
-    color: var(--danger-strong);
-    border: 2px solid var(--danger);
-}
-
-.requisitos-curso__cargando,
-.requisitos-curso__vacio {
-    padding: var(--space-6) var(--space-5);
-    text-align: center;
-    font-size: 14px;
-    line-height: 20px;
-    color: var(--ink-muted);
+    margin-top: var(--space-5);
 }
 
 @media (max-width: 900px) {
-    .requisitos-curso {
-        margin: var(--space-5) auto var(--space-6);
-    }
-
-    .requisitos-curso__selectores,
-    .requisitos-curso__grid {
+    .requisitos-curso__grid,
+    .requisitos-curso__selectores {
         grid-template-columns: 1fr;
-    }
-
-    .requisitos-curso__grid {
-        padding: var(--space-4);
-        row-gap: var(--space-7);
-    }
-
-    .requisitos-curso__grid section + section::before {
-        top: calc(-1 * var(--space-5));
-        bottom: auto;
-        left: 0;
-        right: 0;
-        width: auto;
-        height: 1px;
-    }
-
-    .requisitos-curso__edad {
-        padding: var(--space-4);
-    }
-
-    .requisitos-curso__pie {
-        flex-direction: column-reverse;
-        align-items: stretch;
-    }
-
-    .requisitos-curso__acciones {
-        flex-direction: column-reverse;
-    }
-
-    .requisitos-curso__acciones .btn-secundario,
-    .requisitos-curso__acciones .btn-principal,
-    .requisitos-curso__pie .btn-principal {
-        width: 100%;
     }
 }

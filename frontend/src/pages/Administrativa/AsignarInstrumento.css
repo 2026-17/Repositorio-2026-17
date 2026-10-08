@@ -1,7 +1,32 @@
-/* Asignar instrumento (HU-026): lo propio de esta pantalla.
-   La tabla y los botones usan .table / .btn-sm de src/styles/components.css. */
+/* Asignar instrumento (HU-026). Usa .panel, .dtable, .form-grid y los
+   componentes del sistema de diseño; aquí solo lo propio de la pantalla. */
 
-.asignar-instrumento-buscar-btn {
+.asignar-instrumento {
+    max-width: 1080px;
+}
+
+.asignar-instrumento .form-alert {
+    margin-bottom: var(--space-5);
+}
+
+/* Buscador del estudiante: campo + botón en una fila */
+.busqueda-estudiante {
     display: flex;
+    flex-wrap: wrap;
     align-items: flex-end;
+    gap: var(--space-3);
+}
+
+.busqueda-estudiante .sg-field {
+    flex: 1 1 280px;
+    max-width: 420px;
+}
+
+/* Si el campo tiene error, el botón se alinea con el campo, no con el mensaje */
+.busqueda-estudiante:has(.has-error) {
+    align-items: center;
+}
+
+.panel-foot.ficha-estudiante {
+    justify-content: flex-start;
 }

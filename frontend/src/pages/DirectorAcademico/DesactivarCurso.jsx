@@ -1,12 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
-import { Search, Users, GraduationCap, UserRound, Music2 } from "lucide-react";
+import { Ban, BookOpen, Music2, Search, X } from "lucide-react";
 import { API_URL } from "../../config/api";
 import "./desactivarCurso.css";
+import EmptyState from "../../components/ui/EmptyState";
+import Field from "../../components/ui/Field";
+import PageHead from "../../components/ui/PageHead";
+import Pagination from "../../components/ui/Pagination";
 
 
 import { useDialog } from "../../components/dialog/useDialog";
 
-const PAGE_SIZE = 5;
+const PAGE_SIZE = 10;
 
 function DesactivarCurso() {
     const dialog = useDialog();
@@ -103,11 +107,6 @@ function DesactivarCurso() {
         });
     }, [cursos, busqueda, categoria]);
 
-    const totalPaginas = Math.max(
-        1,
-        Math.ceil(cursosFiltrados.length / PAGE_SIZE)
-    );
-
     const cursosPagina = cursosFiltrados.slice(
         (pagina - 1) * PAGE_SIZE,
         pagina * PAGE_SIZE
@@ -201,121 +200,132 @@ function DesactivarCurso() {
         }
     }
 
+    const hayFiltros = Boolean(busqueda.trim()) || categoria !== "Todas";
+
+    function quitarFiltros() {
+        setBusqueda("");
+        setCategoria("Todas");
+        setPagina(1);
+    }
+
     return (
-        <div className="container">
+        <div className="desactivar-curso">
+            <PageHead
+                title="Desactivar curso"
+                sub="Desactive un curso de la malla curricular sin eliminar su información histórica."
+            />
 
-            <div className="desactivar-curso">
-
-                <header className="desactivar-curso__header">
-                    <h1>Desactivar curso</h1>
-                    <p>
-                        Desactive un curso de la malla curricular sin
-                        eliminar su información histórica.
-                    </p>
-                </header>
-
-                <div className="desactivar-curso__filtros">
-                    <div className="desactivar-curso__buscar">
-                        <Search size={18} />
+            <div className="panel">
+                <div className="filters" role="search">
+                    <Field id="txtBuscarCurso" label="Buscar" icon={Search} className="f-search">
                         <input
-                            type="text"
-                            placeholder="Buscar por nombre o código"
+                            id="txtBuscarCurso"
+                            type="search"
+                            className="sg-input"
+                            placeholder="Nombre o código del curso"
                             value={busqueda}
                             onChange={handleBusqueda}
                         />
-                    </div>
-                    <select value={categoria} onChange={handleCategoria}>
-                        {categorias.map((c) => (
-                            <option key={c} value={c}>{c}</option>
-                        ))}
-                    </select>
+                    </Field>
+                    <Field id="cmbCategoriaCurso" label="Categoría" select>
+                        <select id="cmbCategoriaCurso" className="sg-input sg-select" value={categoria} onChange={handleCategoria}>
+                            {categorias.map((c) => (
+                                <option key={c} value={c}>{c}</option>
+                            ))}
+                        </select>
+                    </Field>
                 </div>
 
-                <div className="desactivar-curso__lista">
-
-                    {cargando && (
-                        <div className="desactivar-curso__vacio">
-                            Cargando cursos...
-                        </div>
-                    )}
-
-                    {!cargando && cursosPagina.length === 0 && (
-                        <div className="desactivar-curso__vacio">
-                            No hay cursos activos que coincidan con la
-                            búsqueda.
-                        </div>
-                    )}
-
-                    {!cargando && cursosPagina.map((curso) => (
-                        <div className="curso-card" key={curso.idCurso}>
-                            <div className="curso-card__info">
-                                <div className="curso-card__titulo">
-                                    <Music2
-                                        size={18}
-                                        className="curso-card__icono"
-                                    />
-                                    <div>
-                                        <h3>{curso.nombre}</h3>
-                                        <span className="curso-card__codigo">
-                                            {curso.codigo}
-                                        </span>
-                                    </div>
-                                </div>
-                                <div className="curso-card__detalles">
-                                    {curso.categoria && (
-                                        <span>
-                                            <GraduationCap size={14} />
-                                            {curso.categoria}
-                                        </span>
-                                    )}
-                                    {curso.docente && (
-                                        <span>
-                                            <UserRound size={14} />
-                                            Docente: {curso.docente}
-                                        </span>
-                                    )}
-                                    {curso.cupoMaximo != null && (
-                                        <span>
-                                            <Users size={14} />
-                                            Cupo máximo: {curso.cupoMaximo}
-                                        </span>
-                                    )}
-                                </div>
-                            </div>
-                            <button
-                                className="btn-desactivar"
-                                onClick={() => desactivarCurso(curso)}
-                                disabled={desactivando}
-                            >
-                                Desactivar
+                <div className="chips">
+                    <span className="result-count" aria-live="polite">
+                        <b>{cursosFiltrados.length}</b>
+                        {cursosFiltrados.length === 1 ? " curso activo" : " cursos activos"}
+                    </span>
+                    {busqueda.trim() && (
+                        <span className="chip">
+                            Búsqueda: {busqueda.trim()}
+                            <button type="button" aria-label="Quitar filtro de búsqueda" onClick={() => { setBusqueda(""); setPagina(1); }}>
+                                <X size={14} strokeWidth={1.75} aria-hidden="true" />
                             </button>
-                        </div>
-                    ))}
-
+                        </span>
+                    )}
+                    {categoria !== "Todas" && (
+                        <span className="chip">
+                            Categoría: {categoria}
+                            <button type="button" aria-label="Quitar filtro de categoría" onClick={() => { setCategoria("Todas"); setPagina(1); }}>
+                                <X size={14} strokeWidth={1.75} aria-hidden="true" />
+                            </button>
+                        </span>
+                    )}
+                    {hayFiltros && (
+                        <button type="button" className="link-btn chips-clear" onClick={quitarFiltros}>Quitar filtros</button>
+                    )}
                 </div>
 
-                {!cargando && totalPaginas > 1 && (
-                    <div className="desactivar-curso__paginacion">
-                        <button
-                            disabled={pagina === 1}
-                            onClick={() => setPagina((p) => p - 1)}
-                        >
-                            Anterior
-                        </button>
-                        <span>
-                            Página {pagina} de {totalPaginas}
-                        </span>
-                        <button
-                            disabled={pagina === totalPaginas}
-                            onClick={() => setPagina((p) => p + 1)}
-                        >
-                            Siguiente
-                        </button>
+                {cargando ? (
+                    <p className="muted lista-cargando" role="status">Cargando cursos...</p>
+                ) : cursosPagina.length === 0 ? (
+                    <EmptyState
+                        icon={BookOpen}
+                        title={busqueda.trim() ? `Ningún curso coincide con «${busqueda.trim()}»` : "No hay cursos activos con estos filtros"}
+                        description="Revise la ortografía, busque por código o quite algún filtro."
+                        action={hayFiltros && <button type="button" className="sg-btn sg-btn--secondary" onClick={quitarFiltros}>Quitar filtros</button>}
+                    />
+                ) : (
+                    <div className="table-wrap">
+                        <table className="dtable dtable--cards">
+                            <caption className="sr-only">Cursos activos, página {pagina}</caption>
+                            <thead>
+                                <tr>
+                                    <th scope="col">Curso</th>
+                                    <th scope="col">Categoría</th>
+                                    <th scope="col">Docente</th>
+                                    <th scope="col" className="num">Cupo máximo</th>
+                                    <th scope="col" className="actions"><span className="sr-only">Acciones</span></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {cursosPagina.map((curso) => (
+                                    <tr key={curso.idCurso}>
+                                        <td className="c-main">
+                                            <div className="who">
+                                                <span className="avatar avatar--sm avatar--icono" aria-hidden="true">
+                                                    <Music2 size={16} strokeWidth={1.75} />
+                                                </span>
+                                                <div>
+                                                    <b>{curso.nombre}</b>
+                                                    <span>{curso.codigo}</span>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td data-label="Categoría">{curso.categoria ? <span className="inst">{curso.categoria}</span> : "—"}</td>
+                                        <td data-label="Docente">{curso.docente || "—"}</td>
+                                        <td className="num" data-label="Cupo máximo">{curso.cupoMaximo ?? "—"}</td>
+                                        <td className="actions">
+                                            <button
+                                                type="button"
+                                                className="sg-btn sg-btn--ghost sg-btn--sm btn-peligro"
+                                                onClick={() => desactivarCurso(curso)}
+                                                disabled={desactivando}
+                                                aria-label={`Desactivar ${curso.nombre}`}
+                                            >
+                                                <Ban size={16} strokeWidth={1.75} aria-hidden="true" />
+                                                Desactivar
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
                     </div>
                 )}
 
+                {!cargando && cursosFiltrados.length > 0 && (
+                    <div className="table-foot">
+                        <Pagination page={pagina} pageSize={PAGE_SIZE} total={cursosFiltrados.length} onChange={setPagina} />
+                    </div>
+                )}
             </div>
-
         </div>
     );
 }
