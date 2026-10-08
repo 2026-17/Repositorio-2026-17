@@ -5,6 +5,8 @@ import "./styles/admin_Sis.css";
 import "./styles/Estudiantes.css";
 
 import { useDialog } from "../../components/dialog/useDialog";
+import UbicacionSelects from "../../components/UbicacionSelects";
+import { UBICACION_VACIA, ubicacionDesdeRespuesta } from "../../components/ubicacion";
 
 const GENEROS = ["MASCULINO", "FEMENINO", "OTRO"];
 const NIVELES = ["Preescolar", "Primaria", "Secundaria", "Universitaria", "Ninguno"];
@@ -27,7 +29,7 @@ function todayISO() {
 
 const initialForm = {
     idTipoIdentificacion: "", numeroIdentificacion: "", nombres: "", primerApellido: "", segundoApellido: "",
-    fechaNacimiento: "", genero: "", direccion: "", telefono: "", correo: "", nivelEscolar: "",
+    fechaNacimiento: "", genero: "", ubicacion: UBICACION_VACIA, direccion: "", telefono: "", correo: "", nivelEscolar: "",
     idCentroEducativo: "", condicionesRelevantes: "", idInstrumento: "", idsPlanEstudio: [],
 };
 
@@ -65,7 +67,7 @@ function EditarEstudiante({ studentId, onCancel, onSuccess } = {}) {
                 setForm({
                     idTipoIdentificacion: String(student.idTipoIdentificacion ?? ""), numeroIdentificacion: student.numeroIdentificacion ?? "",
                     nombres: student.nombres ?? "", primerApellido: student.primerApellido ?? "", segundoApellido: student.segundoApellido ?? "",
-                    fechaNacimiento: student.fechaNacimiento ?? "", genero: student.genero ?? "", direccion: student.direccion ?? "",
+                    fechaNacimiento: student.fechaNacimiento ?? "", genero: student.genero ?? "", ubicacion: ubicacionDesdeRespuesta(student.ubicacion), direccion: student.direccion ?? "",
                     telefono: student.telefono ?? "", correo: student.correo ?? "", nivelEscolar: student.nivelEscolar ?? "",
                     idCentroEducativo: student.idCentroEducativo == null ? "" : String(student.idCentroEducativo),
                     condicionesRelevantes: student.condicionesRelevantes ?? "", idInstrumento: student.idInstrumento == null ? "" : String(student.idInstrumento),
@@ -109,10 +111,13 @@ function EditarEstudiante({ studentId, onCancel, onSuccess } = {}) {
         const required = [
             ["idTipoIdentificacion", "Seleccione el tipo de identificación."], ["numeroIdentificacion", "Ingrese el número de identificación."],
             ["nombres", "Ingrese los nombres."], ["primerApellido", "Ingrese el primer apellido."], ["fechaNacimiento", "Ingrese la fecha de nacimiento."],
-            ["genero", "Seleccione el género."], ["direccion", "Ingrese la dirección exacta de residencia."], ["nivelEscolar", "Seleccione el nivel escolar."], ["idInstrumento", "Seleccione el instrumento musical."],
+            ["genero", "Seleccione el género."], ["direccion", "Ingrese las señas exactas de residencia."], ["nivelEscolar", "Seleccione el nivel escolar."], ["idInstrumento", "Seleccione el instrumento musical."],
         ];
         required.forEach(([name, message]) => { if (!String(form[name] ?? "").trim()) nextErrors[name] = message; });
         if (edad === null && form.fechaNacimiento) nextErrors.fechaNacimiento = "La fecha de nacimiento no es válida.";
+        if (!form.ubicacion.idProvincia) nextErrors.idProvincia = "Seleccione la provincia.";
+        if (!form.ubicacion.codigoCanton) nextErrors.codigoCanton = "Seleccione el cantón.";
+        if (!form.ubicacion.codigoDistrito) nextErrors.codigoDistrito = "Seleccione el distrito.";
         if (form.idsPlanEstudio.length === 0) nextErrors.idsPlanEstudio = "Seleccione al menos un plan de estudio.";
         if (requiereCentro && !form.idCentroEducativo) nextErrors.idCentroEducativo = "Seleccione el centro educativo.";
         if (form.correo && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.correo)) nextErrors.correo = "Ingrese un correo electrónico válido.";
@@ -124,7 +129,8 @@ function EditarEstudiante({ studentId, onCancel, onSuccess } = {}) {
             return;
         }
 
-        const payload = { ...form, idTipoIdentificacion: Number(form.idTipoIdentificacion), idInstrumento: Number(form.idInstrumento), idCentroEducativo: form.idCentroEducativo ? Number(form.idCentroEducativo) : null };
+        const { ubicacion, ...datos } = form;
+        const payload = { ...datos, codigoDistrito: Number(ubicacion.codigoDistrito), idTipoIdentificacion: Number(form.idTipoIdentificacion), idInstrumento: Number(form.idInstrumento), idCentroEducativo: form.idCentroEducativo ? Number(form.idCentroEducativo) : null };
         try {
             setSaving(true);
             const token = localStorage.getItem("token");
@@ -170,8 +176,12 @@ function EditarEstudiante({ studentId, onCancel, onSuccess } = {}) {
                         <Field label="Fecha de nacimiento" required error={errors.fechaNacimiento} errorKey="fechaNacimiento"><input id="txtFechaNacimiento" className={`input ${errors.fechaNacimiento ? "input-error" : ""}`} type="date" max={todayISO()} value={form.fechaNacimiento} onChange={e => setField("fechaNacimiento", e.target.value)} /></Field>
                         <div className="age-box"><small>Edad calculada automáticamente</small><strong>{edad === null ? "—" : `${edad} años`}</strong>{edad !== null && <span>{edad < 18 ? "Menor de edad" : "Mayor de edad"}</span>}</div>
                     </div>
+                    <UbicacionSelects required value={form.ubicacion} errors={errors} onChange={ubicacion => {
+                        setForm(current => ({ ...current, ubicacion }));
+                        setErrors(current => ({ ...current, idProvincia: "", codigoCanton: "", codigoDistrito: "" }));
+                    }} />
                     <div className="grid-2">
-                        <Field label="Dirección exacta de residencia" required error={errors.direccion} errorKey="direccion"><textarea id="txtDireccion" className={`input textarea ${errors.direccion ? "input-error" : ""}`} maxLength={500} value={form.direccion} onChange={e => setField("direccion", e.target.value)} /></Field>
+                        <Field label="Dirección exacta (señas)" required error={errors.direccion} errorKey="direccion"><textarea id="txtDireccion" className={`input textarea ${errors.direccion ? "input-error" : ""}`} maxLength={500} value={form.direccion} onChange={e => setField("direccion", e.target.value)} placeholder="Ej.: 200 m norte de la iglesia, casa verde a mano derecha" /></Field>
                         <Field label="Condiciones relevantes" hint="Opcional."><textarea id="txtCondicionesRelevantes" className="input textarea" value={form.condicionesRelevantes} onChange={e => setField("condicionesRelevantes", e.target.value)} /></Field>
                     </div>
                     <div className="grid-2">

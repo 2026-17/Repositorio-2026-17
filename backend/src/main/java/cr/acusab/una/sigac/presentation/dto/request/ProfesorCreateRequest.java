@@ -46,6 +46,9 @@ public class ProfesorCreateRequest {
     @Size(max = 254)
     private String correo;
 
+    // Opcional, igual que la direccion: provincia y canton se deducen del distrito
+    private Integer codigoDistrito;
+
     @Size(max = 500)
     private String direccion;
 

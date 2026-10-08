@@ -134,6 +134,27 @@ CREATE TABLE tipos_identificacion (
   CONSTRAINT uq_tipos_identificacion_nombre UNIQUE (nombre)
 );
 
+-- División territorial de Costa Rica para la dirección de las personas.
+-- Los datos (provincias, cantones y distritos) se cargan aparte.
+CREATE TABLE IF NOT EXISTS provincia (
+  id     TINYINT     NOT NULL PRIMARY KEY,
+  nombre VARCHAR(20) NOT NULL
+) DEFAULT CHARSET = utf8mb4;
+
+CREATE TABLE IF NOT EXISTS canton (
+  codigo       SMALLINT    NOT NULL PRIMARY KEY,
+  provincia_id TINYINT     NOT NULL,
+  nombre       VARCHAR(50) NOT NULL,
+  CONSTRAINT fk_canton_provincia FOREIGN KEY (provincia_id) REFERENCES provincia (id)
+) DEFAULT CHARSET = utf8mb4;
+
+CREATE TABLE IF NOT EXISTS distrito (
+  codigo        INT         NOT NULL PRIMARY KEY,
+  canton_codigo SMALLINT    NOT NULL,
+  nombre        VARCHAR(60) NOT NULL,
+  CONSTRAINT fk_distrito_canton FOREIGN KEY (canton_codigo) REFERENCES canton (codigo)
+) DEFAULT CHARSET = utf8mb4;
+
 -- Centros educativos (escuelas/colegios) de donde vienen los estudiantes
 CREATE TABLE centros_educativos (
   id_centro_educativo INT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -430,6 +451,8 @@ CREATE TABLE profesores (
     segundo_apellido               VARCHAR(80),
     telefono                       VARCHAR(30),
     correo                         VARCHAR(254),
+    codigo_distrito                INT,
+    -- Señas exactas; provincia y cantón se deducen del distrito
     direccion                      VARCHAR(500),
     grado_academico                VARCHAR(120),
     especialidad                   VARCHAR(180),
@@ -448,6 +471,7 @@ CREATE TABLE profesores (
     INDEX idx_profesores_nombre (primer_apellido, segundo_apellido, nombres),
     INDEX idx_profesores_activo (activo),
     CONSTRAINT fk_profesores_usuarios FOREIGN KEY (id_usuario) REFERENCES usuarios (id_usuario) ON DELETE SET NULL,
+    CONSTRAINT fk_profesores_distrito FOREIGN KEY (codigo_distrito) REFERENCES distrito (codigo),
     CONSTRAINT fk_profesores_tipos_identificacion FOREIGN KEY (id_tipo_identificacion)
         REFERENCES tipos_identificacion (id_tipo_identificacion),
     CONSTRAINT fk_profesores_usuario_modifica FOREIGN KEY (id_usuario_ultima_modificacion)
@@ -468,6 +492,8 @@ CREATE TABLE estudiantes (
      genero                         VARCHAR(30),
      telefono                       VARCHAR(30),
      correo                         VARCHAR(254),
+     codigo_distrito                INT,
+     -- Señas exactas; provincia y cantón se deducen del distrito
      direccion                      VARCHAR(500),
      nivel_escolar                  VARCHAR(80),
      id_centro_educativo            INT UNSIGNED,
@@ -492,6 +518,7 @@ CREATE TABLE estudiantes (
      INDEX idx_estudiantes_nombre (primer_apellido, segundo_apellido, nombres),
      INDEX idx_estudiantes_activo (activo),
      CONSTRAINT fk_estudiantes_usuarios FOREIGN KEY (id_usuario) REFERENCES usuarios (id_usuario) ON DELETE SET NULL,
+     CONSTRAINT fk_estudiantes_distrito FOREIGN KEY (codigo_distrito) REFERENCES distrito (codigo),
      CONSTRAINT fk_estudiantes_tipos_identificacion FOREIGN KEY (id_tipo_identificacion)
          REFERENCES tipos_identificacion (id_tipo_identificacion),
      CONSTRAINT fk_estudiantes_centros FOREIGN KEY (id_centro_educativo)

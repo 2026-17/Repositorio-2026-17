@@ -3,6 +3,8 @@ import { API_URL } from "../../config/api";
 import "../../index.css";
 import "./styles/CreateStudent.css";
 import { useDialog } from "../../components/dialog/useDialog";
+import UbicacionSelects from "../../components/UbicacionSelects";
+import { UBICACION_VACIA } from "../../components/ubicacion";
 
 const MAX_PDF = 50 * 1024 * 1024;
 const GENEROS = ["MASCULINO", "FEMENINO", "OTRO"];
@@ -56,6 +58,7 @@ const initialForm = {
   genero: "",
   telefono: "",
   correo: "",
+  ubicacion: UBICACION_VACIA,
   direccion: "",
   nivelEscolar: "",
   centroEducativo: "",
@@ -214,7 +217,7 @@ export default function CreateStudent({ onCancel, onSuccess } = {}) {
       ["primerApellido", "Ingrese el primer apellido."],
       ["genero", "Seleccione el género."],
       ["fechaNacimiento", "Ingrese la fecha de nacimiento."],
-      ["direccion", "Ingrese la dirección exacta de residencia."],
+      ["direccion", "Ingrese las señas exactas de residencia."],
       ["correo", "Ingrese el correo electrónico."],
       ["nivelEscolar", "Seleccione el nivel escolar."],
       ["idInstrumento", "Seleccione el instrumento musical."],
@@ -224,6 +227,9 @@ export default function CreateStudent({ onCancel, onSuccess } = {}) {
       if (!String(form[name] ?? "").trim()) nextErrors[name] = message;
     });
 
+    if (!form.ubicacion.idProvincia) nextErrors.idProvincia = "Seleccione la provincia.";
+    if (!form.ubicacion.codigoCanton) nextErrors.codigoCanton = "Seleccione el cantón.";
+    if (!form.ubicacion.codigoDistrito) nextErrors.codigoDistrito = "Seleccione el distrito.";
     if (form.idsPlanEstudio.length === 0) nextErrors.idsPlanEstudio = "Seleccione al menos un plan de estudio.";
     if (edad === null && form.fechaNacimiento) nextErrors.fechaNacimiento = "La fecha de nacimiento no es válida.";
     if (requiereCentro && !form.centroEducativo.trim()) nextErrors.centroEducativo = "Ingrese el centro educativo.";
@@ -265,8 +271,10 @@ export default function CreateStudent({ onCancel, onSuccess } = {}) {
       return;
     }
 
+    const { ubicacion, ...datos } = form;
     const payload = {
-      ...form,
+      ...datos,
+      codigoDistrito: Number(ubicacion.codigoDistrito),
       idTipoIdentificacion: Number(form.idTipoIdentificacion),
       idInstrumento: Number(form.idInstrumento),
       idProfesor: form.idProfesor ? Number(form.idProfesor) : null,
@@ -368,9 +376,18 @@ export default function CreateStudent({ onCancel, onSuccess } = {}) {
               {edad !== null && <span>{menor ? "Menor de edad" : "Mayor de edad"}</span>}
             </div>
           </div>
+          <UbicacionSelects
+            required
+            value={form.ubicacion}
+            errors={errors}
+            onChange={(ubicacion) => {
+              setForm((f) => ({ ...f, ubicacion }));
+              setErrors((e) => ({ ...e, idProvincia: "", codigoCanton: "", codigoDistrito: "" }));
+            }}
+          />
           <div className="grid-2">
-            <Field label="Dirección exacta de residencia" required error={errors.direccion} errorKey="direccion">
-              <textarea className={`input textarea ${errors.direccion ? "input-error" : ""}`} maxLength={500} value={form.direccion} onChange={(e) => setField("direccion", e.target.value)} placeholder="Provincia, cantón, distrito y señas exactas" />
+            <Field label="Dirección exacta (señas)" required error={errors.direccion} errorKey="direccion">
+              <textarea className={`input textarea ${errors.direccion ? "input-error" : ""}`} maxLength={500} value={form.direccion} onChange={(e) => setField("direccion", e.target.value)} placeholder="Ej.: 200 m norte de la iglesia, casa verde a mano derecha" />
             </Field>
             <Field label="Condiciones relevantes" hint="Opcional.">
               <textarea className="input textarea" value={form.condicionesRelevantes} onChange={(e) => setField("condicionesRelevantes", e.target.value)} placeholder="Padecimientos médicos, alergias u otras condiciones" />

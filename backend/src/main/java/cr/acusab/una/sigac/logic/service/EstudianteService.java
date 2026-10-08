@@ -10,6 +10,7 @@ import cr.acusab.una.sigac.presentation.dto.response.BecaResponse;
 import cr.acusab.una.sigac.presentation.dto.response.EstudianteBusquedaResponse;
 import cr.acusab.una.sigac.presentation.dto.response.EstudianteResponse;
 import cr.acusab.una.sigac.presentation.dto.response.EstudianteListadoResponse;
+import cr.acusab.una.sigac.presentation.dto.response.UbicacionResponse;
 import cr.acusab.una.sigac.presentation.dto.request.EstudianteUpdateRequest;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
@@ -55,6 +56,7 @@ public class EstudianteService {
     private final PasswordEncoder passwordEncoder;
     private final BecaService becaService;
     private final InscripcionPlanEstudioService inscripcionPlanService;
+    private final DistritoRepository distritoRepository;
 
     @Value("${sigac.storage.documents:./storage/documents}")
     private String storageDirectory;
@@ -74,7 +76,8 @@ public class EstudianteService {
                              EstadoUsuarioRepository estadoUsuarioRepository,
                              PasswordEncoder passwordEncoder,
                              BecaService becaService,
-                             InscripcionPlanEstudioService inscripcionPlanService) {
+                             InscripcionPlanEstudioService inscripcionPlanService,
+                             DistritoRepository distritoRepository) {
         this.estudianteRepository = estudianteRepository;
         this.encargadoRepository = encargadoRepository;
         this.estudianteEncargadoRepository = estudianteEncargadoRepository;
@@ -91,6 +94,7 @@ public class EstudianteService {
         this.passwordEncoder = passwordEncoder;
         this.becaService = becaService;
         this.inscripcionPlanService = inscripcionPlanService;
+        this.distritoRepository = distritoRepository;
     }
 
     @Transactional
@@ -119,11 +123,13 @@ public class EstudianteService {
         TiposDocumento tipoPoliza = tipoDocumentoRepository.findByCodigoAndActivoTrue("POLIZA")
                 .orElseThrow(() -> new BusinessException("No está configurado el tipo de documento POLIZA activo"));
 
+        Distrito distrito = obtenerDistrito(request.codigoDistrito());
+
         Usuario usuario = crearUsuarioEstudiante(request, identificacion);
 
         Estudiante estudiante = new Estudiante();
         aplicarDatos(estudiante, tipo, identificacion, request.nombres(), request.primerApellido(), request.segundoApellido(), request.fechaNacimiento(),
-                request.genero(), request.direccion(), request.telefono(), request.correo(), request.nivelEscolar(), centro, request.condicionesRelevantes());
+                request.genero(), distrito, request.direccion(), request.telefono(), request.correo(), request.nivelEscolar(), centro, request.condicionesRelevantes());
         estudiante.setUsuario(usuario);
         estudiante.setFechaIngreso(LocalDate.now());
         estudiante.setActivo(true);
@@ -292,9 +298,10 @@ public class EstudianteService {
                 .orElseThrow(() -> new BusinessException("El instrumento indicado no existe o está inactivo"));
         TiposIdentificacion tipo = tipoIdentificacionRepository.findByIdAndActivoTrue(request.idTipoIdentificacion())
                 .orElseThrow(() -> new BusinessException("El tipo de identificación indicado no existe o está inactivo"));
+        Distrito distrito = obtenerDistrito(request.codigoDistrito());
 
         aplicarDatos(estudiante, tipo, identificacion, request.nombres(), request.primerApellido(), request.segundoApellido(), request.fechaNacimiento(),
-                request.genero(), request.direccion(), request.telefono(), request.correo(), request.nivelEscolar(), centro, request.condicionesRelevantes());
+                request.genero(), distrito, request.direccion(), request.telefono(), request.correo(), request.nivelEscolar(), centro, request.condicionesRelevantes());
         estudiante.setActualizadoEn(Instant.now());
         estudianteRepository.save(estudiante);
 
@@ -309,8 +316,8 @@ public class EstudianteService {
 
     private void aplicarDatos(Estudiante e, TiposIdentificacion tipo, String identificacion, String nombres,
                               String primerApellido, String segundoApellido, LocalDate nacimiento, String genero,
-                              String direccion, String telefono, String correo, String nivel, String centro,
-                              String condiciones) {
+                              Distrito distrito, String direccion, String telefono, String correo, String nivel,
+                              String centro, String condiciones) {
         e.setIdTipoIdentificacion(tipo);
         e.setNumeroIdentificacion(identificacion);
         e.setNombres(normalizar(nombres));
@@ -318,12 +325,19 @@ public class EstudianteService {
         e.setSegundoApellido(normalizarNullable(segundoApellido));
         e.setFechaNacimiento(nacimiento);
         e.setGenero(normalizar(genero).toUpperCase(Locale.ROOT));
+        e.setDistrito(distrito);
         e.setDireccion(normalizar(direccion));
         e.setTelefono(normalizarNullable(telefono));
         e.setCorreo(normalizar(correo));
         e.setNivelEscolar(normalizar(nivel));
         e.setCentroEducativo(centro);
         e.setCondicionesRelevantes(normalizarNullable(condiciones));
+    }
+
+    private Distrito obtenerDistrito(Integer codigoDistrito) {
+        if (codigoDistrito == null) throw new BusinessException("El distrito es obligatorio");
+        return distritoRepository.findById(codigoDistrito)
+                .orElseThrow(() -> new BusinessException("El distrito indicado no existe"));
     }
 
     private void crearRelacionInstrumento(Estudiante estudiante, Instrumento instrumento, Profesor profesor) {
@@ -366,7 +380,8 @@ public class EstudianteService {
     private EstudianteResponse respuesta(Estudiante e, Integer instrumentoId, int edad, BecaResponse beca,
                                          List<Long> idsPlanEstudio) {
         return new EstudianteResponse(e.getId(), e.getNumeroIdentificacion(), e.getNombres(), e.getPrimerApellido(),
-                e.getSegundoApellido(), e.getFechaNacimiento(), edad, e.getGenero(), e.getDireccion(), e.getTelefono(),
+                e.getSegundoApellido(), e.getFechaNacimiento(), edad, e.getGenero(), e.getDireccion(),
+                UbicacionResponse.de(e.getDistrito()), e.getTelefono(),
                 e.getCorreo(), e.getNivelEscolar(), e.getCentroEducativo(),
                 instrumentoId, edad < 18, beca, idsPlanEstudio);
     }

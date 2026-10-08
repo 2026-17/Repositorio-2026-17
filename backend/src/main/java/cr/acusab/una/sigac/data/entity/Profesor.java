@@ -58,9 +58,14 @@ public class Profesor {
     @Column(name = "correo", length = 254)
     private String correo;
 
+    // Señas exactas; la provincia y el cantón se deducen del distrito.
     @Size(max = 500)
     @Column(name = "direccion", length = 500)
     private String direccion;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "codigo_distrito")
+    private Distrito distrito;
 
     @Size(max = 120)
     @Column(name = "grado_academico", length = 120)

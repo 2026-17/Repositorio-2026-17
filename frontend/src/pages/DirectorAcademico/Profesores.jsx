@@ -7,6 +7,8 @@ const CLASE_PUESTO_DEFAULT =
     "Profesor de Enseñanza Técnica Profesional(III y IV Ciclos, Enseñanza Especial y Escuela Laboratorio) (G. de E)";
 
 import { useDialog } from "../../components/dialog/useDialog";
+import UbicacionSelects from "../../components/UbicacionSelects";
+import { UBICACION_VACIA, ubicacionDesdeRespuesta } from "../../components/ubicacion";
 
 const initialForm = {
     idTipoIdentificacion: "",
@@ -16,6 +18,7 @@ const initialForm = {
     segundoApellido: "",
     telefono: "",
     correo: "",
+    ubicacion: UBICACION_VACIA,
     direccion: "",
     gradoAcademico: "",
     especialidades: [],
@@ -174,6 +177,7 @@ function Profesores() {
             segundoApellido: p.segundoApellido || "",
             telefono: p.telefono || "",
             correo: p.correo || "",
+            ubicacion: ubicacionDesdeRespuesta(p.ubicacion),
             direccion: p.direccion || "",
             gradoAcademico: p.gradoAcademico || "",
             especialidades: especialidadesDesdeTexto(p.especialidad),
@@ -202,6 +206,10 @@ function Profesores() {
         if (form.correo && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.correo)) {
             nuevosErrores.correo = "Ingrese un correo electrónico válido.";
         }
+        // La ubicación es opcional, pero si se empieza hay que llegar hasta el distrito
+        if (form.ubicacion.idProvincia && !form.ubicacion.codigoDistrito) {
+            nuevosErrores.codigoDistrito = "Complete cantón y distrito, o deje la provincia sin seleccionar.";
+        }
         if (!editingId) {
             if (!form.correo.trim()) nuevosErrores.correo = "El correo es obligatorio para crear la cuenta de usuario.";
             if (!form.contrasena || form.contrasena.length < 8) {
@@ -228,6 +236,7 @@ function Profesores() {
             segundoApellido: form.segundoApellido.trim() || null,
             telefono: form.telefono.trim() || null,
             correo: form.correo.trim() || null,
+            codigoDistrito: form.ubicacion.codigoDistrito ? Number(form.ubicacion.codigoDistrito) : null,
             direccion: form.direccion.trim() || null,
             gradoAcademico: form.gradoAcademico.trim() || null,
             especialidad: especialidadesATexto(form.especialidades) || null,
@@ -431,12 +440,21 @@ function Profesores() {
                             </div>
                         </div>
 
+                        <UbicacionSelects
+                            value={form.ubicacion}
+                            errors={errores}
+                            onChange={(ubicacion) => {
+                                setForm((f) => ({ ...f, ubicacion }));
+                                setErrores((e) => ({ ...e, codigoDistrito: "" }));
+                            }}
+                        />
+
                         <div className="field">
-                            <label className="field-label">Residencia / Dirección</label>
+                            <label className="field-label">Dirección exacta (señas)</label>
                             <textarea
                                 className="input"
                                 maxLength={500}
-                                placeholder="Provincia, cantón, distrito y señas exactas"
+                                placeholder="Ej.: 200 m norte de la iglesia, casa verde a mano derecha"
                                 value={form.direccion}
                                 onChange={(e) => setField("direccion", e.target.value)}
                             />

@@ -1,0 +1,20 @@
+/* Selectores provincia / cantón / distrito (UbicacionSelects.jsx) */
+.ubicacion-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+}
+
+.ubicacion-grid .field-error {
+    margin: 6px 0 0;
+    color: var(--rojo);
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.35;
+}
+
+@media (max-width: 640px) {
+    .ubicacion-grid {
+        grid-template-columns: 1fr;
+    }
+}
