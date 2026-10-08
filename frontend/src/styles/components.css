@@ -681,6 +681,8 @@ select.input[multiple] {
     white-space: nowrap;
     font: 600 13px/20px var(--font-sans);
     color: var(--ink-subtle);
+    text-transform: none;
+    letter-spacing: normal;
 }
 
 .table td {

@@ -1,13 +1,11 @@
 /* ===========
-   SIGAC — Hoja de estilos UNIFICADA según Documento de Estándares v2.0 (D01-D06)
+   SIGAC — estilos compartidos de las pantallas administrativas
    -------------------------------------------------------------------------
-   Este archivo es la base de estilos compartida para TODOS los mockups de
-   pantallas de las Historias de Usuario (HU) del repositorio. No se debe
-   duplicar: cada nueva HU debe reutilizar estas clases y, si necesita
-   componentes nuevos, agregarlos al final en su propia sección comentada
-   (ver "HU-002" más abajo como ejemplo) para mantener todo unificado.
+   Las clases base (.content, .page-title, .card, .field, .input, .btn,
+   .banner, .badge, .table…) viven en src/styles/components.css y el
+   layout (menú lateral, encabezado) en src/components/layout.css.
+   Aquí van los componentes propios de cada HU, en su sección comentada.
    ============ */
-
 
 /* deprecated: usar tokens.css — estas variables son alias de los tokens nuevos */
 :root {
@@ -26,90 +24,91 @@
     --fondo: var(--bg);
 }
 
-* {
-    box-sizing: border-box;
-}
-
-body {
-    margin: 0;
-    font-family: var(--font-sans);
-    background: var(--fondo);
-}
-
-/* Layout general (menú lateral, encabezado y menú de usuario): ver src/components/layout.css */
-
-
 /* ---------- Selector de decisión (radios) ---------- */
 .radio-row {
     display: flex;
-    gap: 22px;
-    align-items: center;
     flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-5);
 }
+
 .radio-label {
     display: flex;
     align-items: center;
-    gap: 7px;
-    font-size: 14px;
-    color: var(--texto);
+    gap: var(--space-2);
+    font-size: 15px;
+    line-height: 22px;
+    color: var(--ink);
     cursor: pointer;
 }
+
 .radio-label input[type="radio"] {
-    width: 16px;
-    height: 16px;
-    accent-color: var(--morado-01);
     cursor: pointer;
 }
+
 .radio-label.disabled {
-    color: var(--texto-suave);
-    cursor: not-allowed;
-}
-.radio-label.disabled input[type="radio"] {
+    color: var(--ink-disabled);
     cursor: not-allowed;
 }
 
-/* Layout, tarjetas, grid, campos, botones y banners: ver src/styles/components.css */
+.radio-label.disabled input[type="radio"] {
+    cursor: not-allowed;
+}
 
 /* ---------- Switch (toggle de beca) ---------- */
 .switch {
     position: relative;
     display: inline-block;
-    width: 42px;
-    height: 24px;
     flex-shrink: 0;
+    width: 44px;
+    height: 24px;
 }
+
 .switch input {
+    position: absolute;
     opacity: 0;
     width: 0;
     height: 0;
 }
+
 .slider {
     position: absolute;
+    inset: 0;
+    background: var(--border-strong);
+    border-radius: var(--radius-pill);
     cursor: pointer;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: var(--borde);
-    border-radius: 999px;
-    transition: 0.15s;
+    transition: background-color var(--duration-fast) ease;
 }
+
 .slider::before {
-    position: absolute;
     content: "";
-    height: 18px;
-    width: 18px;
-    left: 3px;
+    position: absolute;
     top: 3px;
-    background-color: var(--blanco);
+    left: 3px;
+    width: 18px;
+    height: 18px;
     border-radius: 50%;
-    transition: 0.15s;
+    background: var(--surface);
+    box-shadow: var(--shadow-1);
+    transition: transform var(--duration-fast) ease;
 }
+
 .switch input:checked + .slider {
-    background-color: var(--morado-01);
+    background: var(--primary-fill);
 }
+
 .switch input:checked + .slider::before {
-    transform: translateX(18px);
+    transform: translateX(20px);
+}
+
+.switch input:focus-visible + .slider {
+    outline: 2px solid var(--focus);
+    outline-offset: 2px;
+}
+
+.switch input:disabled + .slider {
+    background: var(--surface-sunken);
+    cursor: not-allowed;
 }
 
 /* ===========================================================
@@ -119,112 +118,125 @@ body {
 
 .inline-icon {
     vertical-align: -3px;
-    margin-right: 4px;
+    margin-right: var(--space-1);
 }
 
 /* Resultados del buscador de estudiantes */
 .search-results {
     position: absolute;
+    top: calc(100% + 4px);
     left: 0;
     right: 0;
-    top: calc(100% + 4px);
-    background: var(--blanco);
-    border: 1px solid var(--borde);
-    border-radius: 8px;
-    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12);
+    z-index: 5;
     max-height: 260px;
     overflow-y: auto;
-    z-index: 5;
+    padding: 6px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-2);
 }
+
 .search-results__item {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: var(--space-3);
     width: 100%;
-    padding: 10px 14px;
+    min-height: 44px;
+    padding: var(--space-2) var(--space-3);
     background: none;
     border: none;
-    border-bottom: 1px solid #f0eee9;
+    border-radius: var(--radius-md);
     text-align: left;
-    font-family: var(--font-sans);
-    font-size: 13.5px;
-    color: var(--texto);
+    font: 500 15px/22px var(--font-sans);
+    color: var(--ink);
     cursor: pointer;
 }
-.search-results__item:last-child {
-    border-bottom: none;
-}
+
 .search-results__item:hover {
-    background: #faf7fc;
-    color: var(--morado-01);
-}
-.search-results__cedula {
-    font-size: 12px;
-    color: var(--texto-suave);
-}
-.search-results__empty {
-    padding: 12px 14px;
-    font-size: 13px;
-    color: var(--texto-suave);
+    background: var(--primary-soft);
+    color: var(--primary);
 }
 
-/* Encabezado del perfil del estudiante */
+.search-results__cedula {
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+    color: var(--ink-muted);
+}
+
+.search-results__empty {
+    padding: var(--space-3);
+    font-size: 14px;
+    color: var(--ink-muted);
+}
+
+/* Encabezado del perfil del estudiante (como .profile-head del prototipo) */
 .student-header {
     display: flex;
     align-items: center;
-    gap: 14px;
-    margin-bottom: 4px;
+    gap: var(--space-4);
+    margin-bottom: var(--space-1);
 }
+
 .student-header__avatar {
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    background: #f4f0f8;
-    color: var(--morado-01);
+    flex-shrink: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    flex-shrink: 0;
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-pill);
+    background: var(--primary-soft);
+    color: var(--primary);
 }
 
 /* Lista de becas activas */
 .beca-list {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--space-2);
 }
+
 .beca-list__item {
     display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 14px;
-    background: #f4f0f8;
-    border-radius: 8px;
-    font-size: 13.5px;
-    color: var(--texto);
     flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    background: var(--primary-soft);
+    border-radius: var(--radius-md);
+    font-size: 15px;
+    line-height: 22px;
+    color: var(--ink);
 }
+
 .beca-list__monto {
     margin-left: auto;
     font-weight: 600;
-    color: var(--morado-01);
+    font-variant-numeric: tabular-nums;
+    color: var(--primary);
 }
 
 /* Historial de pagos */
 .pago-list {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: var(--space-2);
 }
+
 .pago-list__item {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 9px 14px;
-    background: #fbfaf7;
-    border: 1px solid #ece9e2;
-    border-radius: 8px;
-    font-size: 13.5px;
+    gap: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    font-size: 15px;
+    line-height: 22px;
+    font-variant-numeric: tabular-nums;
 }
 
 /* ===========================================================
@@ -232,83 +244,85 @@ body {
    Componente: src/pages/Administrativa/Matricula.jsx
    ============================================================ */
 
-/* Pestañas Pendientes / Historial */
+/* Pestañas Pendientes / Historial (como .tabs del prototipo) */
 .tabs {
-    display: flex;
-    gap: 6px;
-    margin-bottom: 20px;
-    border-bottom: 1px solid #e5e2da;
-}
-.tab {
-    background: none;
-    border: none;
-    border-bottom: 2px solid transparent;
-    padding: 10px 4px;
-    margin-bottom: -1px;
-    font-family: var(--font-sans);
-    font-weight: 600;
-    font-size: 13.5px;
-    color: var(--texto-suave);
-    cursor: pointer;
-}
-.tab:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-.tab--active {
-    color: var(--morado-01);
-    border-bottom-color: var(--morado-01);
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 2px;
+    margin-bottom: var(--space-5);
+    padding: 3px;
+    background: var(--surface-sunken);
+    border-radius: var(--radius-md);
 }
 
-/* Estado de una preaprobación */
-.badge {
-    display: inline-block;
-    padding: 3px 10px;
-    border-radius: 999px;
-    font-size: 12px;
-    font-weight: 600;
-    white-space: nowrap;
+.tab {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    height: 36px;
+    padding: 0 var(--space-4);
+    background: transparent;
+    border: 0;
+    border-radius: 6px;
+    font: 600 14px/20px var(--font-sans);
+    color: var(--ink-muted);
+    cursor: pointer;
 }
-.badge-pendiente {
-    background: #fdf1e6;
-    color: var(--naranja-02);
+
+.tab:hover:not(:disabled) {
+    color: var(--ink);
 }
-.badge-autorizada {
-    background: #eaf7f0;
-    color: var(--verde-02);
+
+.tab:disabled {
+    color: var(--ink-disabled);
+    cursor: not-allowed;
 }
-.badge-rechazada {
-    background: #fbeaec;
-    color: var(--rojo-01);
+
+.tab--active,
+.tab--active:hover:not(:disabled) {
+    background: var(--surface);
+    color: var(--primary);
+    box-shadow: var(--shadow-1);
 }
 
 /* Lista de comprobaciones (activo, datos, mensualidades, pago...) */
 .requisitos-list {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: var(--space-2);
 }
+
 .requisitos-list__item {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 9px 14px;
-    background: #fbfaf7;
-    border: 1px solid #ece9e2;
-    border-radius: 8px;
-    font-size: 13.5px;
-    color: var(--texto);
+    gap: var(--space-2);
+    padding: var(--space-3) var(--space-4);
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    font-size: 15px;
+    line-height: 22px;
+    color: var(--ink);
 }
+
+.requisitos-list__item svg {
+    flex: none;
+}
+
 .requisitos-list__item--ok {
-    color: var(--verde-02);
+    color: var(--success);
 }
+
 .requisitos-list__item--pending {
-    color: var(--naranja-02);
+    color: var(--warning);
 }
+
 .requisitos-list__label {
     margin-left: 2px;
 }
+
 .requisitos-list__value {
     margin-left: auto;
     font-weight: 600;
+    font-variant-numeric: tabular-nums;
 }
