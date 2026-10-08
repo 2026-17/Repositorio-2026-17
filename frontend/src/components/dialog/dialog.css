@@ -1,89 +1,65 @@
 /* =========================================
-   Diálogo central del SIGAC
-   Avisos, errores, éxitos y confirmaciones
+   Diálogo central del SIGAC (avisos, errores y confirmaciones)
+   La caja (.dialog-backdrop, .dialog, .dialog-head/body/foot) viene de
+   src/styles/app.css, igual que en el prototipo. Aquí solo el color
+   del ícono según el tipo, el mensaje y la lista de detalles.
    ========================================= */
 
-.dialog-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 5000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: var(--space-4);
-    background: rgba(20, 10, 26, 0.55);
-    animation: dialog-fade var(--duration-base) ease;
-}
-
-.dialog-box {
+.dialog {
     --dialog-color: var(--primary);
     --dialog-fondo: var(--primary-soft);
-
-    width: 100%;
-    max-width: 440px;
-    max-height: calc(100vh - 32px);
-    overflow-y: auto;
-    padding: var(--space-6) var(--space-5) var(--space-5);
-    background: var(--surface);
-    color: var(--ink);
-    border-radius: var(--radius-lg);
-    border-top: 4px solid var(--dialog-color);
-    box-shadow: var(--shadow-3);
-    text-align: center;
+    max-width: 480px;
     font-family: var(--font-sans);
-    animation: dialog-pop var(--duration-base) cubic-bezier(0.2, 0, 0, 1);
 }
 
-.dialog-box:focus {
-    outline: none;
-}
-
-.dialog-box--exito {
+.dialog--exito {
     --dialog-color: var(--success);
     --dialog-fondo: var(--success-soft);
 }
 
-.dialog-box--error,
-.dialog-box--peligro {
+.dialog--error,
+.dialog--peligro {
     --dialog-color: var(--danger);
     --dialog-fondo: var(--danger-soft);
 }
 
-.dialog-box--aviso,
-.dialog-box--validacion {
+.dialog--aviso,
+.dialog--validacion {
     --dialog-color: var(--warning);
     --dialog-fondo: var(--warning-soft);
 }
 
-.dialog-box--info,
-.dialog-box--confirmar {
+.dialog--info,
+.dialog--confirmar {
     --dialog-color: var(--primary);
     --dialog-fondo: var(--primary-soft);
 }
 
-.dialog-icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 56px;
-    height: 56px;
-    margin-bottom: var(--space-3);
+.dialog-head {
+    justify-content: flex-start;
+}
+
+.dialog-head h2 {
+    flex: 1;
+    min-width: 0;
+    color: var(--ink);
+}
+
+.dialog-head-icon {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
     border-radius: var(--radius-pill);
     background: var(--dialog-fondo);
     color: var(--dialog-color);
 }
 
-.dialog-title {
-    margin: 0 0 var(--space-2);
-    font: 600 19px/26px var(--font-sans);
-    color: var(--ink);
-}
-
 .dialog-message {
-    margin: 0;
     font-size: 15px;
     line-height: 22px;
-    color: var(--ink-muted);
+    color: var(--ink);
     overflow-wrap: anywhere;
     white-space: pre-line;
 }
@@ -91,111 +67,22 @@
 .dialog-list {
     margin: var(--space-3) 0 0;
     padding: var(--space-3) var(--space-4) var(--space-3) var(--space-6);
-    max-height: 200px;
+    max-height: 240px;
     overflow-y: auto;
-    text-align: left;
     font-size: 14px;
     line-height: 22px;
     color: var(--ink);
-    background: var(--dialog-fondo);
-    border-radius: var(--radius-md);
-}
-
-.dialog-actions {
-    display: flex;
-    justify-content: center;
-    gap: var(--space-2);
-    margin-top: var(--space-5);
-}
-
-.dialog-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 110px;
-    height: 40px;
-    padding: 0 var(--space-4);
-    border: 1px solid transparent;
-    border-radius: var(--radius-md);
-    font: 600 14px/20px var(--font-sans);
-    cursor: pointer;
-    transition: background-color var(--duration-fast) ease, border-color var(--duration-fast) ease, filter var(--duration-fast) ease;
-}
-
-.dialog-btn:focus-visible {
-    outline: 2px solid var(--focus);
-    outline-offset: 2px;
-}
-
-.dialog-btn:active {
-    transform: translateY(1px);
-}
-
-.dialog-btn--primary {
-    background: var(--primary-fill);
-    color: var(--on-primary);
-}
-
-.dialog-btn--primary:hover {
-    background: var(--primary-fill-hover);
-}
-
-.dialog-btn--danger {
-    background: var(--danger-fill);
-    color: var(--on-danger);
-}
-
-.dialog-btn--danger:hover {
-    filter: brightness(0.92);
-}
-
-.dialog-btn--secondary {
-    background: var(--surface);
-    color: var(--ink);
-    border-color: var(--border-strong);
-}
-
-.dialog-btn--secondary:hover {
     background: var(--surface-raised);
-    border-color: var(--ink-muted);
-}
-
-@keyframes dialog-fade {
-    from {
-        opacity: 0;
-    }
-}
-
-@keyframes dialog-pop {
-    from {
-        opacity: 0;
-        transform: translateY(12px);
-    }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .dialog-overlay,
-    .dialog-box {
-        animation: none;
-    }
-}
-
-@media (pointer: coarse) {
-    .dialog-btn {
-        height: 44px;
-    }
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
 }
 
 @media (max-width: 640px) {
-    .dialog-box {
-        padding: var(--space-5) var(--space-4) var(--space-4);
-    }
-
-    .dialog-actions {
+    .dialog-foot {
         flex-direction: column-reverse;
     }
 
-    .dialog-btn {
+    .dialog-foot .sg-btn {
         width: 100%;
     }
 }

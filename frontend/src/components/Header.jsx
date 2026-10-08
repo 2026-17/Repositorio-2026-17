@@ -68,7 +68,7 @@ const MENU_POR_ROL = {
 
     [ROLES.ADMINISTRATIVO]: [
         {
-            titulo: "Estudiantes",
+            titulo: "Académico",
             items: [
                 { to: "/admin/administracion/estudiantes", label: "Estudiantes", icon: Users },
                 { to: "/admin/administracion/estudiantes/crear", label: "Registrar estudiante", icon: UserPlus },

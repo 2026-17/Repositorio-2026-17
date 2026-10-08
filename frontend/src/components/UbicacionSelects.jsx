@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { API_URL } from "../config/api";
+import Field from "./ui/Field";
 import "./ubicacion.css";
 
 // Selectores en cascada provincia -> cantón -> distrito (catálogos de la BD).
 // value: { idProvincia, codigoCanton, codigoDistrito } (strings, "" = sin elegir)
 // onChange recibe el objeto completo; al cambiar un nivel se limpian los de abajo.
 // Lo que se guarda en el backend es solo codigoDistrito.
+// idPrefix: prefijo de los ids de los <select> (para enlazar el resumen de errores).
 
 function cargar(ruta) {
   const token = localStorage.getItem("token");
@@ -34,7 +36,7 @@ function useListaHija(padre, ruta) {
 const rutaCantones = (idProvincia) => `provincias/${idProvincia}/cantones`;
 const rutaDistritos = (codigoCanton) => `cantones/${codigoCanton}/distritos`;
 
-export default function UbicacionSelects({ value, onChange, errors = {}, required = false }) {
+export default function UbicacionSelects({ value, onChange, errors = {}, required = false, idPrefix = "" }) {
   const [provincias, setProvincias] = useState([]);
   const cantones = useListaHija(value.idProvincia, rutaCantones);
   const distritos = useListaHija(value.codigoCanton, rutaDistritos);
@@ -43,21 +45,25 @@ export default function UbicacionSelects({ value, onChange, errors = {}, require
     cargar("provincias").then(setProvincias).catch(() => setProvincias([]));
   }, []);
 
-  const select = (campo, etiqueta, opciones, deshabilitado, alCambiar) => (
-    <div className="field" data-error-field={campo}>
-      <label className="field-label">{etiqueta} {required && <span className="required">*</span>}</label>
-      <select
-        className={`input ${errors[campo] ? "input-error" : ""}`}
-        value={value[campo]}
-        disabled={deshabilitado}
-        onChange={(e) => alCambiar(e.target.value)}
-      >
-        <option value="">Seleccione una opción</option>
-        {opciones.map((o) => <option key={o.id} value={o.id}>{o.nombre}</option>)}
-      </select>
-      {errors[campo] && <p className="field-error">{errors[campo]}</p>}
-    </div>
-  );
+  const select = (campo, etiqueta, opciones, deshabilitado, alCambiar) => {
+    const id = `${idPrefix}${campo}`;
+    return (
+      <Field id={id} errorKey={campo} label={etiqueta} optional={!required} error={errors[campo]} select>
+        <select
+          id={id}
+          className="sg-input sg-select"
+          value={value[campo]}
+          disabled={deshabilitado}
+          onChange={(e) => alCambiar(e.target.value)}
+          aria-invalid={errors[campo] ? "true" : undefined}
+          aria-describedby={errors[campo] ? `${id}-error` : undefined}
+        >
+          <option value="">Seleccione</option>
+          {opciones.map((o) => <option key={o.id} value={o.id}>{o.nombre}</option>)}
+        </select>
+      </Field>
+    );
+  };
 
   return (
     <div className="ubicacion-grid">

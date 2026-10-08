@@ -1,8 +1,43 @@
-/* Registrar estudiante: lo propio de esta pantalla.
-   .input-error y .field-error están en src/styles/components.css. */
+/* Registrar estudiante (asistente por pasos).
+   La estructura (.wizard, .stepper, .form-grid, .choice, .review…)
+   viene de src/styles/app.css; aquí solo los ajustes propios. */
 
-.file-input-error {
-    border: 2px solid var(--danger) !important;
-    background: var(--danger-soft);
-    color: var(--danger-strong);
+.form-alert {
+    margin-bottom: var(--space-5);
+}
+
+.wizard-titulo {
+    margin-bottom: var(--space-4);
+}
+
+.plan-hint {
+    margin-bottom: var(--space-2);
+}
+
+.plan-error {
+    margin-bottom: var(--space-2);
+}
+
+.guardian-add {
+    margin-top: var(--space-4);
+}
+
+.beca-bloque {
+    display: grid;
+    gap: var(--space-1);
+}
+
+/* Pares dt/dd agrupados (lista de encargados en la revisión) */
+.review-pair {
+    display: contents;
+}
+
+.review-empty {
+    padding: var(--space-4);
+    font-size: 14px;
+}
+
+.success-actions {
+    justify-content: center;
+    margin-top: var(--space-3);
 }
