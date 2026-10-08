@@ -28,21 +28,12 @@ import Profesores from "./pages/DirectorAcademico/Profesores.jsx";
 import Reportes from "./pages/Administrativa/Reportes.jsx";
 
 import Header from "./components/Header";
-import Footer from "./components/Footer";
-
-import "./components/layout.css";
 
 function Layout() {
     return (
-        <div className="sigac-app">
-            <Header />
-
-            <main className="app-main">
-                <Outlet />
-            </main>
-
-            <Footer />
-        </div>
+        <Header>
+            <Outlet />
+        </Header>
     );
 }
 
