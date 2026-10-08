@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { API_URL } from "../../config/api";
+import { Bell, Check, RefreshCw } from "lucide-react";
 import "./notificaciones.css";
+import EmptyState from "../../components/ui/EmptyState";
+import PageHead from "../../components/ui/PageHead";
+import StatusBadge from "../../components/ui/StatusBadge";
 
 import { useDialog } from "../../components/dialog/useDialog";
 
@@ -169,151 +173,104 @@ function Notificaciones() {
         return "Notificación";
     }
 
+    // Color de la insignia según el resultado
+    function tonoResultado(tipo) {
+        if (tipo === "MATRICULA_APROBADA") return "success";
+        if (tipo === "MATRICULA_RECHAZADA") return "danger";
+        return "info";
+    }
+
+    const noLeidas = notificaciones.filter((n) => !n.leida).length;
+
     return (
-        <div className="content">
-            <div className="page-title">
-                <h1>Mis notificaciones</h1>
+        <div className="notificaciones">
+            <PageHead
+                title="Mis notificaciones"
+                sub="Consulte las novedades relacionadas con sus solicitudes de matrícula."
+                actions={(
+                    <button
+                        type="button"
+                        className="sg-btn sg-btn--secondary"
+                        onClick={() => {
+                            void cargarNotificaciones();
+                        }}
+                        disabled={cargando || procesandoId !== null}
+                    >
+                        <RefreshCw size={18} strokeWidth={1.75} aria-hidden="true" />
+                        {cargando ? "Actualizando…" : "Actualizar notificaciones"}
+                    </button>
+                )}
+            />
 
-                <p>
-                    Consulte las novedades relacionadas con
-                    sus solicitudes de matrícula.
-                </p>
-            </div>
-
-            <div className="notificaciones__barra">
-                <button
-                    type="button"
-                    className="btn btn-secondary"
-                    onClick={() => {
-                        void cargarNotificaciones();
-                    }}
-                    disabled={
-                        cargando ||
-                        procesandoId !== null
-                    }
-                >
-                    {cargando
-                        ? "Actualizando..."
-                        : "Actualizar notificaciones"}
-                </button>
-            </div>
-
-            {cargando ? (
-                <p className="notificaciones__cargando">Cargando notificaciones...</p>
-            ) : notificaciones.length === 0 ? (
-                <div className="notificaciones__vacio">
-                    <h2>
-                        Sin notificaciones
-                    </h2>
-
-                    <p>
-                        Actualmente no tiene notificaciones
-                        relacionadas con sus solicitudes de
-                        matrícula.
-                    </p>
-                </div>
-            ) : (
-                <div className="notificaciones__lista">
-                    {notificaciones.map(
-                        (notificacion) => {
-                            const procesando =
-                                procesandoId ===
-                                notificacion.idNotificacion;
-
-                            return (
-                                <section
-                                    key={
-                                        notificacion.idNotificacion
-                                    }
-                                    className={
-                                        notificacion.leida
-                                            ? "notificacion"
-                                            : "notificacion notificacion--no-leida"
-                                    }
-                                >
-                                    <div className="notificacion__encabezado">
-                                        <div>
-                                            <h2>
-                                                {
-                                                    notificacion.asunto
-                                                }
-                                            </h2>
-
-                                            <p>
-                                                <strong>
-                                                    Resultado:
-                                                </strong>{" "}
-                                                {textoResultado(
-                                                    notificacion.tipo
-                                                )}
-                                            </p>
-
-                                            <p>
-                                                <strong>
-                                                    Estado:
-                                                </strong>{" "}
-                                                {notificacion.leida
-                                                    ? "Leída"
-                                                    : "No leída"}
-                                            </p>
-
-                                            <p>
-                                                <strong>
-                                                    Fecha:
-                                                </strong>{" "}
-                                                {formatearFecha(
-                                                    notificacion.fechaNotificacion
-                                                )}
-                                            </p>
-
-                                            {notificacion.leida &&
-                                                notificacion.fechaLectura && (
-                                                    <p>
-                                                        <strong>
-                                                            Leída el:
-                                                        </strong>{" "}
-                                                        {formatearFecha(
-                                                            notificacion.fechaLectura
-                                                        )}
-                                                    </p>
-                                                )}
-                                        </div>
-                                    </div>
-
-                                    <div className="notificacion__mensaje">
-                                        <p>
-                                            {
-                                                notificacion.mensaje
-                                            }
-                                        </p>
-                                    </div>
-
-                                    {!notificacion.leida && (
-                                        <div className="notificacion__acciones">
-                                            <button
-                                                type="button"
-                                                className="btn btn-primary"
-                                                onClick={() =>
-                                                    marcarComoLeida(
-                                                        notificacion
-                                                    )
-                                                }
-                                                disabled={
-                                                    procesando
-                                                }
-                                            >
-                                                {procesando
-                                                    ? "Actualizando..."
-                                                    : "Marcar como leída"}
-                                            </button>
-                                        </div>
-                                    )}
-                                </section>
-                            );
-                        }
+            <section className="panel" aria-labelledby="titulo-avisos">
+                <div className="panel-head">
+                    <h2 id="titulo-avisos">Avisos</h2>
+                    {noLeidas > 0 && (
+                        <StatusBadge tone="primary" icon={null}>
+                            {noLeidas === 1 ? "1 sin leer" : `${noLeidas} sin leer`}
+                        </StatusBadge>
                     )}
                 </div>
-            )}
+
+                {cargando ? (
+                    <p className="muted notificaciones__cargando">Cargando notificaciones...</p>
+                ) : notificaciones.length === 0 ? (
+                    <EmptyState
+                        icon={Bell}
+                        title="Sin notificaciones"
+                        description="Actualmente no tiene notificaciones relacionadas con sus solicitudes de matrícula."
+                    />
+                ) : (
+                    <ul className="notificaciones__lista">
+                        {notificaciones.map((notificacion) => {
+                            const procesando = procesandoId === notificacion.idNotificacion;
+
+                            return (
+                                <li
+                                    key={notificacion.idNotificacion}
+                                    className={notificacion.leida ? "notice" : "notice notice--no-leida"}
+                                >
+                                    <div className="notice-cabecera">
+                                        <time dateTime={notificacion.fechaNotificacion}>
+                                            {formatearFecha(notificacion.fechaNotificacion)}
+                                        </time>
+                                        <span className="inline-actions">
+                                            <StatusBadge tone={tonoResultado(notificacion.tipo)}>
+                                                {textoResultado(notificacion.tipo)}
+                                            </StatusBadge>
+                                            {!notificacion.leida && (
+                                                <StatusBadge tone="primary" icon={null}>No leída</StatusBadge>
+                                            )}
+                                        </span>
+                                    </div>
+
+                                    <h3>{notificacion.asunto}</h3>
+                                    <p>{notificacion.mensaje}</p>
+
+                                    <div className="notice-pie">
+                                        <span className="muted">
+                                            {notificacion.leida
+                                                ? `Leída${notificacion.fechaLectura ? ` el ${formatearFecha(notificacion.fechaLectura)}` : ""}`
+                                                : "Pendiente de leer"}
+                                        </span>
+                                        {!notificacion.leida && (
+                                            <button
+                                                type="button"
+                                                className="sg-btn sg-btn--ghost sg-btn--sm"
+                                                onClick={() => marcarComoLeida(notificacion)}
+                                                disabled={procesando}
+                                            >
+                                                <Check size={16} strokeWidth={1.75} aria-hidden="true" />
+                                                {procesando ? "Actualizando…" : "Marcar como leída"}
+                                            </button>
+                                        )}
+                                    </div>
+                                </li>
+                            );
+                        })}
+                    </ul>
+                )}
+            </section>
         </div>
     );
 }
