@@ -353,3 +353,7 @@ input[type="date"].sg-input, input[type="file"].sg-input { padding-right: var(--
   .wizard-foot .right .sg-btn { flex: 1; }
 }
 a.sg-btn { text-decoration: none; }
+.who b { white-space: nowrap; }
+.dtable .who { min-width: 200px; }
+/* Tablas con muchas columnas: menos relleno horizontal */
+.dtable--compacta th, .dtable--compacta td { padding-left: var(--space-4); padding-right: var(--space-4); }
