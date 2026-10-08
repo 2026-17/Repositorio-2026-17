@@ -8,6 +8,7 @@ import {
 import Login from "./pages/Publico/login";
 import RecuperarContrasena from "./pages/Publico/RecuperarContrasena";
 import Notificaciones from "./pages/Estudiante/Notificaciones";
+import ConsultaCursos from "./pages/Estudiante/ConsultaCursos";
 import SeleccionCursos from "./pages/Estudiante/SeleccionCursos";
 import CreateUsers from "./pages/AdminSis/createUsers";
 import CreateStudent from "./pages/AdminSis/createStudent";
@@ -172,6 +173,12 @@ function App() {
                     <Route
                         path="/estudiante/notificaciones"
                         element={<Notificaciones />}
+                    />
+
+                    {/* HU-10 - Consultar cursos disponibles de un período académico */}
+                    <Route
+                        path="/estudiante/cursos-disponibles"
+                        element={<ConsultaCursos />}
                     />
 
                     {/* HU-002 - Solicitar matrícula de cursos */}

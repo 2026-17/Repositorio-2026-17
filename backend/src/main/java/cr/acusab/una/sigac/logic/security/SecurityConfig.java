@@ -269,6 +269,19 @@ public class SecurityConfig {
 
                         /*
                          * =====================================================
+                         * HU-10 - Consultar cursos disponibles de un período
+                         * académico (previo a solicitar matrícula)
+                         * Rol: ESTUDIANTE
+                         * =====================================================
+                         */
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/consulta-cursos"
+                        )
+                        .hasRole("ESTUDIANTE")
+
+                        /*
+                         * =====================================================
                          * Historia 2 - Matricular cursos autorizados
                          * Rol: ESTUDIANTE
                          *
