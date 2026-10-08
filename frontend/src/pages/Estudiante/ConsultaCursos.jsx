@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 
-import { useDialog } from "../../components/dialog/useDialog";
 import {
     consultarCursosDisponibles,
     consultarPeriodos,
@@ -18,13 +17,24 @@ function textoProfesor(curso) {
     return curso.profesor ?? "Por definir";
 }
 
+// Antes de solicitar matrícula interesa el período que está en matrícula;
+// si no hay ninguno, el más reciente (la lista viene ordenada así).
+function periodoPorDefecto(periodos) {
+    const enMatricula = periodos.find((periodo) => periodo.estado === "MATRICULA");
+    return enMatricula ?? periodos[0];
+}
+
+function horaActual() {
+    return new Date().toLocaleTimeString("es-CR", { hour: "2-digit", minute: "2-digit" });
+}
+
 function ConsultaCursos() {
-    const dialog = useDialog();
     const token = localStorage.getItem("token");
 
     const [programas, setProgramas] = useState([]);
     const [periodos, setPeriodos] = useState([]);
     const [cargandoFiltros, setCargandoFiltros] = useState(true);
+    const [errorFiltros, setErrorFiltros] = useState("");
 
     const [idPrograma, setIdPrograma] = useState("");
     const [idPeriodo, setIdPeriodo] = useState("");
@@ -33,6 +43,7 @@ function ConsultaCursos() {
     const [cursos, setCursos] = useState([]);
     const [buscando, setBuscando] = useState(false);
     const [haBuscado, setHaBuscado] = useState(false);
+    const [horaConsulta, setHoraConsulta] = useState("");
     const [error, setError] = useState("");
 
     useEffect(() => {
@@ -40,6 +51,7 @@ function ConsultaCursos() {
 
         async function cargarFiltros() {
             setCargandoFiltros(true);
+            setErrorFiltros("");
 
             try {
                 const [programasData, periodosData] = await Promise.all([
@@ -49,16 +61,17 @@ function ConsultaCursos() {
 
                 if (cancelado) return;
 
-                setProgramas(Array.isArray(programasData) ? programasData : []);
-                setPeriodos(Array.isArray(periodosData) ? periodosData : []);
+                const listaPeriodos = Array.isArray(periodosData) ? periodosData : [];
 
-                // El período más reciente es el primero de la lista.
-                if (Array.isArray(periodosData) && periodosData.length > 0) {
-                    setIdPeriodo(String(periodosData[0].id));
+                setProgramas(Array.isArray(programasData) ? programasData : []);
+                setPeriodos(listaPeriodos);
+
+                if (listaPeriodos.length > 0) {
+                    setIdPeriodo(String(periodoPorDefecto(listaPeriodos).id));
                 }
             } catch (e) {
                 if (!cancelado) {
-                    dialog.error(
+                    setErrorFiltros(
                         e.message || "No fue posible cargar los períodos y programas académicos."
                     );
                 }
@@ -72,7 +85,7 @@ function ConsultaCursos() {
         return () => {
             cancelado = true;
         };
-    }, [token, dialog]);
+    }, [token]);
 
     const puedeBuscar = Boolean(idPeriodo) && Boolean(idPrograma) && !buscando && !cargandoFiltros;
 
@@ -110,6 +123,7 @@ function ConsultaCursos() {
 
             setCursos(Array.isArray(resultado) ? resultado : []);
             setHaBuscado(true);
+            setHoraConsulta(horaActual());
         } catch (e) {
             setCursos([]);
             setHaBuscado(false);
@@ -119,12 +133,31 @@ function ConsultaCursos() {
         }
     }
 
-    function handleLimpiar() {
-        setTexto("");
+    // Los resultados mostrados siempre deben corresponder al período y
+    // programa seleccionados: al cambiar cualquiera de ellos se descartan.
+    function limpiarResultados() {
         setCursos([]);
         setHaBuscado(false);
+        setHoraConsulta("");
         setError("");
     }
+
+    function handleCambiarPeriodo(event) {
+        setIdPeriodo(event.target.value);
+        limpiarResultados();
+    }
+
+    function handleCambiarPrograma(event) {
+        setIdPrograma(event.target.value);
+        limpiarResultados();
+    }
+
+    function handleLimpiar() {
+        setTexto("");
+        limpiarResultados();
+    }
+
+    const sinPeriodos = !cargandoFiltros && !errorFiltros && periodos.length === 0;
 
     return (
         <div className="container consulta-cursos-page">
@@ -148,7 +181,7 @@ function ConsultaCursos() {
                             id="idPeriodo"
                             className="input"
                             value={idPeriodo}
-                            onChange={(event) => setIdPeriodo(event.target.value)}
+                            onChange={handleCambiarPeriodo}
                             disabled={cargandoFiltros}
                             aria-required="true"
                         >
@@ -171,7 +204,7 @@ function ConsultaCursos() {
                             id="idPrograma"
                             className="input"
                             value={idPrograma}
-                            onChange={(event) => setIdPrograma(event.target.value)}
+                            onChange={handleCambiarPrograma}
                             disabled={cargandoFiltros}
                             aria-required="true"
                         >
@@ -223,6 +256,16 @@ function ConsultaCursos() {
             </form>
 
             {cargandoFiltros && <p>Cargando períodos y programas académicos...</p>}
+            {errorFiltros && (
+                <p className="alert alert--error" role="alert">
+                    {errorFiltros}
+                </p>
+            )}
+            {sinPeriodos && (
+                <p className="alert alert--info">
+                    No hay períodos académicos disponibles para consulta en este momento.
+                </p>
+            )}
             {error && (
                 <p className="alert alert--error" role="alert">
                     {error}
@@ -233,10 +276,10 @@ function ConsultaCursos() {
                 <>
                     <p className="consulta-cursos-page__resultado" role="status">
                         {cursos.length === 0
-                            ? "No se encontraron cursos disponibles con los filtros seleccionados."
+                            ? "No se encontraron cursos disponibles con los filtros seleccionados. Pruebe con otro período o programa académico."
                             : cursosFiltrados.length === 0
-                                ? `Ningún curso coincide con "${texto.trim()}".`
-                                : `${cursosFiltrados.length} curso(s) disponible(s).`}
+                                ? `Ningún curso coincide con "${texto.trim()}". Pruebe con otro nombre o código, o borre el filtro.`
+                                : `${cursosFiltrados.length} curso(s) disponible(s). Cupos consultados a las ${horaConsulta}; vuelva a buscar para actualizarlos.`}
                     </p>
 
                     {cursosFiltrados.length > 0 && (
@@ -250,7 +293,7 @@ function ConsultaCursos() {
                                         <th>Grupo</th>
                                         <th>Horario</th>
                                         <th>Profesor</th>
-                                        <th>Cupos</th>
+                                        <th>Cupos disponibles</th>
                                     </tr>
                                 </thead>
                                 <tbody>

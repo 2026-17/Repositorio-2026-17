@@ -61,11 +61,35 @@ class ConsultaCursosServiceTest {
     }
 
     @Test
+    void noDebeConsultarSiElPeriodoEstaCerrado() {
+
+        PeriodoAcademicoRepository periodos = repositorioFalso(
+                PeriodoAcademicoRepository.class,
+                Map.of("findById", Optional.of(crearPeriodo("CERRADO")))
+        );
+
+        // ProgramaRepository en null: con el período cerrado no debe consultarse nada más.
+        ConsultaCursosService service = new ConsultaCursosService(
+                periodos, null, null, null, null, null, null, null, null
+        );
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> service.consultarDisponibles(2L, 1L, null)
+        );
+
+        assertEquals(
+                "El período académico seleccionado no está disponible para consulta.",
+                exception.getMessage()
+        );
+    }
+
+    @Test
     void noDebeConsultarSiElProgramaNoExiste() {
 
         PeriodoAcademicoRepository periodos = repositorioFalso(
                 PeriodoAcademicoRepository.class,
-                Map.of("findById", Optional.of(new PeriodoAcademico()))
+                Map.of("findById", Optional.of(crearPeriodo("MATRICULA")))
         );
 
         ProgramaRepository programas = repositorioFalso(
@@ -93,7 +117,7 @@ class ConsultaCursosServiceTest {
 
         PeriodoAcademicoRepository periodos = repositorioFalso(
                 PeriodoAcademicoRepository.class,
-                Map.of("findById", Optional.of(new PeriodoAcademico()))
+                Map.of("findById", Optional.of(crearPeriodo("MATRICULA")))
         );
 
         ProgramaRepository programas = repositorioFalso(
@@ -471,7 +495,7 @@ class ConsultaCursosServiceTest {
     private PeriodoAcademicoRepository periodoRepositoryValido() {
         return repositorioFalso(
                 PeriodoAcademicoRepository.class,
-                Map.of("findById", Optional.of(new PeriodoAcademico()))
+                Map.of("findById", Optional.of(crearPeriodo("MATRICULA")))
         );
     }
 
@@ -493,6 +517,12 @@ class ConsultaCursosServiceTest {
                 PlanEstudioRepository.class,
                 Map.of("findFirstByIdProgramaAndVigenteTrueOrderByFechaVigenciaDesdeDesc", Optional.of(plan))
         );
+    }
+
+    private PeriodoAcademico crearPeriodo(String estado) {
+        PeriodoAcademico periodo = new PeriodoAcademico();
+        periodo.setEstado(estado);
+        return periodo;
     }
 
     private MallaCurricular crearMalla(Long idCurso, Short nivel) {

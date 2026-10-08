@@ -4,6 +4,7 @@ import cr.acusab.una.sigac.data.entity.Curso;
 import cr.acusab.una.sigac.data.entity.Grupo;
 import cr.acusab.una.sigac.data.entity.HorarioGrupo;
 import cr.acusab.una.sigac.data.entity.MallaCurricular;
+import cr.acusab.una.sigac.data.entity.PeriodoAcademico;
 import cr.acusab.una.sigac.data.entity.PlanEstudio;
 import cr.acusab.una.sigac.data.entity.Profesor;
 import cr.acusab.una.sigac.data.entity.Programa;
@@ -50,6 +51,14 @@ public class ConsultaCursosService {
     private static final List<String> ESTADOS_GRUPO_OFERTADOS =
             List.of("PLANIFICADO", "PUBLICADO");
 
+    /*
+     * Mismos estados que ofrece la lista de períodos del estudiante
+     * (PeriodoAcademicoService.listarPeriodosDisponibles): un período
+     * CERRADO o CANCELADO ya no tiene oferta que consultar.
+     */
+    private static final List<String> ESTADOS_PERIODO_CONSULTABLES =
+            List.of("PLANIFICADO", "MATRICULA", "EN_CURSO");
+
     private static final String ESTADO_MATRICULA_REGISTRADA = "REGISTRADA";
 
     private static final DateTimeFormatter FORMATO_HORA =
@@ -94,11 +103,17 @@ public class ConsultaCursosService {
             String texto
     ) {
 
-        periodoAcademicoRepository
+        PeriodoAcademico periodo = periodoAcademicoRepository
                 .findById(idPeriodo)
                 .orElseThrow(() -> new BusinessException(
                         "El período académico indicado no existe."
                 ));
+
+        if (!ESTADOS_PERIODO_CONSULTABLES.contains(periodo.getEstado())) {
+            throw new BusinessException(
+                    "El período académico seleccionado no está disponible para consulta."
+            );
+        }
 
         Programa programa = programaRepository
                 .findById(idPrograma)
