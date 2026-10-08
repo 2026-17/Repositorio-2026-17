@@ -352,3 +352,4 @@ input[type="date"].sg-input, input[type="file"].sg-input { padding-right: var(--
   .wizard-foot .right { width: 100%; }
   .wizard-foot .right .sg-btn { flex: 1; }
 }
+a.sg-btn { text-decoration: none; }

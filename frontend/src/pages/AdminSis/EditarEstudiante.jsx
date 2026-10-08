@@ -3,6 +3,10 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Save } from "lucide-react";
 import "./styles/admin_Sis.css";
 import "./styles/Estudiantes.css";
+import "./styles/CreateStudent.css";
+import Alert from "../../components/ui/Alert";
+import Field from "../../components/ui/Field";
+import PageHead from "../../components/ui/PageHead";
 
 import { useDialog } from "../../components/dialog/useDialog";
 import UbicacionSelects from "../../components/UbicacionSelects";
@@ -27,6 +31,14 @@ function todayISO() {
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
+// id del control de cada campo (para los enlaces del resumen de errores)
+const IDS = {
+    idTipoIdentificacion: "cmbTipoIdentificacion", numeroIdentificacion: "txtNumeroIdentificacion", nombres: "txtNombres",
+    primerApellido: "txtPrimerApellido", genero: "cmbGenero", fechaNacimiento: "txtFechaNacimiento", correo: "txtCorreo",
+    direccion: "txtDireccion", nivelEscolar: "cmbNivelEscolar", idInstrumento: "cmbInstrumento", idCentroEducativo: "cmbCentroEducativo",
+    idsPlanEstudio: "edit-idsPlanEstudio", idProvincia: "edit-idProvincia", codigoCanton: "edit-codigoCanton", codigoDistrito: "edit-codigoDistrito",
+};
+
 const initialForm = {
     idTipoIdentificacion: "", numeroIdentificacion: "", nombres: "", primerApellido: "", segundoApellido: "",
     fechaNacimiento: "", genero: "", ubicacion: UBICACION_VACIA, direccion: "", telefono: "", correo: "", nivelEscolar: "",
@@ -46,6 +58,7 @@ function EditarEstudiante({ studentId, onCancel, onSuccess } = {}) {
     const [errors, setErrors] = useState({});
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [intento, setIntento] = useState(0);
 
     const edad = useMemo(() => ageFromDate(form.fechaNacimiento), [form.fechaNacimiento]);
     const requiereCentro = edad !== null && edad >= 6 && edad < 18;
@@ -123,9 +136,7 @@ function EditarEstudiante({ studentId, onCancel, onSuccess } = {}) {
         if (form.correo && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.correo)) nextErrors.correo = "Ingrese un correo electrónico válido.";
         setErrors(nextErrors);
         if (Object.keys(nextErrors).length > 0) {
-            dialog.validacion(nextErrors);
-            const firstError = Object.keys(nextErrors)[0];
-            requestAnimationFrame(() => document.querySelector(`[data-error-field="${firstError}"]`)?.scrollIntoView({ behavior: "smooth", block: "center" }));
+            setIntento(n => n + 1);
             return;
         }
 
@@ -151,68 +162,153 @@ function EditarEstudiante({ studentId, onCancel, onSuccess } = {}) {
         }
     }
 
-    if (loading) return <main className="content"><div className="banner banner-info">Cargando estudiante...</div></main>;
-    if (!form.numeroIdentificacion) return <main className="content"><Link className="btn btn-secondary" to="/admin/administracion/estudiantes"><ArrowLeft size={16} /> Volver a estudiantes</Link></main>;
+    const resumen = Object.entries(errors)
+        .filter(([, texto]) => texto)
+        .map(([campo, texto]) => ({ href: `#${IDS[campo] || `edit-${campo}`}`, text: texto }));
+    const err = (campo) => ({
+        "aria-invalid": errors[campo] ? "true" : undefined,
+        "aria-describedby": errors[campo] ? `${IDS[campo]}-error` : undefined,
+    });
+
+    if (loading) return <Alert tone="info" title="Cargando estudiante..." />;
+    if (!form.numeroIdentificacion) return <Link className="sg-btn sg-btn--secondary" to="/admin/administracion/estudiantes"><ArrowLeft size={18} strokeWidth={1.75} aria-hidden="true" /> Volver a estudiantes</Link>;
 
     return (
-        <main className="content">
-            <div className="page-title"><h1>Editar estudiante</h1><p>Actualiza la información personal y académica del estudiante.</p></div>
-            <form onSubmit={submit} noValidate>
-                <section className="card">
-                    <h2 className="card-title">Datos personales</h2>
-                    <div className="grid-2">
-                        <Field label="Tipo de identificación" required error={errors.idTipoIdentificacion} errorKey="idTipoIdentificacion"><select id="cmbTipoIdentificacion" className={`input ${errors.idTipoIdentificacion ? "input-error" : ""}`} value={form.idTipoIdentificacion} onChange={e => setField("idTipoIdentificacion", e.target.value)}><option value="">Seleccione una opción</option>{types.map(type => <option key={type.id} value={type.id}>{type.nombre}</option>)}</select></Field>
-                        <Field label="Número de identificación" required error={errors.numeroIdentificacion} errorKey="numeroIdentificacion"><input id="txtNumeroIdentificacion" className={`input ${errors.numeroIdentificacion ? "input-error" : ""}`} maxLength={40} value={form.numeroIdentificacion} onChange={e => setField("numeroIdentificacion", e.target.value)} /></Field>
-                    </div>
-                    <div className="grid-2">
-                        <Field label="Nombres" required error={errors.nombres} errorKey="nombres"><input id="txtNombres" className={`input ${errors.nombres ? "input-error" : ""}`} maxLength={100} value={form.nombres} onChange={e => setField("nombres", e.target.value)} /></Field>
-                        <Field label="Primer apellido" required error={errors.primerApellido} errorKey="primerApellido"><input id="txtPrimerApellido" className={`input ${errors.primerApellido ? "input-error" : ""}`} maxLength={80} value={form.primerApellido} onChange={e => setField("primerApellido", e.target.value)} /></Field>
-                    </div>
-                    <div className="grid-2">
-                        <Field label="Segundo apellido"><input id="txtSegundoApellido" className="input" maxLength={80} value={form.segundoApellido} onChange={e => setField("segundoApellido", e.target.value)} /></Field>
-                        <Field label="Género" required error={errors.genero} errorKey="genero"><select id="cmbGenero" className={`input ${errors.genero ? "input-error" : ""}`} value={form.genero} onChange={e => setField("genero", e.target.value)}><option value="">Seleccione una opción</option>{GENEROS.map(g => <option key={g}>{g}</option>)}</select></Field>
-                    </div>
-                    <div className="grid-2">
-                        <Field label="Fecha de nacimiento" required error={errors.fechaNacimiento} errorKey="fechaNacimiento"><input id="txtFechaNacimiento" className={`input ${errors.fechaNacimiento ? "input-error" : ""}`} type="date" max={todayISO()} value={form.fechaNacimiento} onChange={e => setField("fechaNacimiento", e.target.value)} /></Field>
-                        <div className="age-box"><small>Edad calculada automáticamente</small><strong>{edad === null ? "—" : `${edad} años`}</strong>{edad !== null && <span>{edad < 18 ? "Menor de edad" : "Mayor de edad"}</span>}</div>
-                    </div>
-                    <UbicacionSelects required value={form.ubicacion} errors={errors} onChange={ubicacion => {
-                        setForm(current => ({ ...current, ubicacion }));
-                        setErrors(current => ({ ...current, idProvincia: "", codigoCanton: "", codigoDistrito: "" }));
-                    }} />
-                    <div className="grid-2">
-                        <Field label="Dirección exacta (señas)" required error={errors.direccion} errorKey="direccion"><textarea id="txtDireccion" className={`input textarea ${errors.direccion ? "input-error" : ""}`} maxLength={500} value={form.direccion} onChange={e => setField("direccion", e.target.value)} placeholder="Ej.: 200 m norte de la iglesia, casa verde a mano derecha" /></Field>
-                        <Field label="Condiciones relevantes" hint="Opcional."><textarea id="txtCondicionesRelevantes" className="input textarea" value={form.condicionesRelevantes} onChange={e => setField("condicionesRelevantes", e.target.value)} /></Field>
-                    </div>
-                    <div className="grid-2">
-                        <Field label="Correo electrónico" hint="Opcional." error={errors.correo} errorKey="correo"><input id="txtCorreo" className={`input ${errors.correo ? "input-error" : ""}`} type="email" maxLength={254} value={form.correo} onChange={e => setField("correo", e.target.value)} /></Field>
-                        <Field label="Teléfono" hint="Opcional."><input id="txtTelefono" className="input" maxLength={30} value={form.telefono} onChange={e => setField("telefono", e.target.value)} /></Field>
-                    </div>
-                </section>
-                <section className="card">
-                    <h2 className="card-title">Información académica</h2>
-                    <div className="grid-2">
-                        <Field label="Nivel escolar" required error={errors.nivelEscolar} errorKey="nivelEscolar"><select id="cmbNivelEscolar" className={`input ${errors.nivelEscolar ? "input-error" : ""}`} value={form.nivelEscolar} onChange={e => setField("nivelEscolar", e.target.value)}><option value="">Seleccione una opción</option>{NIVELES.map(level => <option key={level}>{level}</option>)}</select></Field>
-                        <Field label="Instrumento musical" required error={errors.idInstrumento} errorKey="idInstrumento"><select id="cmbInstrumento" className={`input ${errors.idInstrumento ? "input-error" : ""}`} value={form.idInstrumento} onChange={e => setField("idInstrumento", e.target.value)}><option value="">Seleccione una opción</option>{instruments.map(instrument => <option key={instrument.id} value={instrument.id}>{instrument.nombre}</option>)}</select></Field>
-                    </div>
-                    <Field label="Planes de estudio" required error={errors.idsPlanEstudio} errorKey="idsPlanEstudio" hint={planes.length === 0 ? "No hay planes de estudio vigentes." : "Determinan los cursos que el estudiante podrá matricular. Puede seleccionar más de uno."}>
-                        <div className="check-row">
-                            {planes.map(plan => <label key={plan.id}><input type="checkbox" checked={form.idsPlanEstudio.includes(plan.id)} onChange={() => togglePlan(plan.id)} /> {plan.nombre}</label>)}
-                        </div>
-                    </Field>
-                    <Field label="Centro educativo" required={requiereCentro} error={errors.idCentroEducativo} errorKey="idCentroEducativo"><select id="cmbCentroEducativo" className={`input ${errors.idCentroEducativo ? "input-error" : ""}`} value={form.idCentroEducativo} onChange={e => setField("idCentroEducativo", e.target.value)} disabled={!requiereCentro}><option value="">{requiereCentro ? "Seleccione una opción" : "No aplica para esta edad"}</option>{centers.map(center => <option key={center.id} value={center.id}>{center.nombre}</option>)}</select></Field>
-                </section>
-                <div className="actions-row">
-                    {onCancel ? <button type="button" className="btn btn-secondary" onClick={onCancel}><ArrowLeft size={16} /> Cancelar</button> : <Link className="btn btn-secondary" to="/admin/administracion/estudiantes"><ArrowLeft size={16} /> Cancelar</Link>}
-                    <button id="btnGuardarCambios" className="btn btn-primary" type="submit" disabled={saving}><Save size={16} /> {saving ? "Guardando..." : "Guardar cambios"}</button>
-                </div>
-            </form>
-        </main>
-    );
-}
+        <div className="editar-estudiante">
+            {onCancel
+                ? <h2 className="form-section-title editar-titulo">Editar estudiante</h2>
+                : <PageHead title="Editar estudiante" sub="Actualiza la información personal y académica del estudiante." />}
 
-function Field({ label, required, hint, error, errorKey, children }) {
-    return <div className="field" data-error-field={errorKey}><label className="field-label">{label} {required && <span className="required">*</span>}</label>{children}{error ? <p className="error">{error}</p> : hint ? <p className="hint">{hint}</p> : null}</div>;
+            <form onSubmit={submit} noValidate>
+                {resumen.length > 0 && (
+                    <Alert
+                        key={intento}
+                        tone="danger"
+                        autoFocus
+                        className="form-alert"
+                        title={resumen.length === 1 ? "Revise 1 dato antes de guardar" : `Revise ${resumen.length} datos antes de guardar`}
+                        errors={resumen}
+                    />
+                )}
+
+                <section className="panel">
+                    <div className="panel-head"><h2>Datos personales</h2></div>
+                    <div className="panel-body form-grid">
+                        <Field id={IDS.idTipoIdentificacion} errorKey="idTipoIdentificacion" label="Tipo de identificación" error={errors.idTipoIdentificacion} select>
+                            <select id={IDS.idTipoIdentificacion} className="sg-input sg-select" value={form.idTipoIdentificacion} onChange={e => setField("idTipoIdentificacion", e.target.value)} {...err("idTipoIdentificacion")}>
+                                <option value="">Seleccione</option>
+                                {types.map(type => <option key={type.id} value={type.id}>{type.nombre}</option>)}
+                            </select>
+                        </Field>
+                        <Field id={IDS.numeroIdentificacion} errorKey="numeroIdentificacion" label="Número de identificación" error={errors.numeroIdentificacion}>
+                            <input id={IDS.numeroIdentificacion} className="sg-input" maxLength={40} value={form.numeroIdentificacion} onChange={e => setField("numeroIdentificacion", e.target.value)} {...err("numeroIdentificacion")} />
+                        </Field>
+                        <Field id={IDS.nombres} errorKey="nombres" label="Nombres" error={errors.nombres}>
+                            <input id={IDS.nombres} className="sg-input" maxLength={100} value={form.nombres} onChange={e => setField("nombres", e.target.value)} {...err("nombres")} />
+                        </Field>
+                        <Field id={IDS.primerApellido} errorKey="primerApellido" label="Primer apellido" error={errors.primerApellido}>
+                            <input id={IDS.primerApellido} className="sg-input" maxLength={80} value={form.primerApellido} onChange={e => setField("primerApellido", e.target.value)} {...err("primerApellido")} />
+                        </Field>
+                        <Field id="txtSegundoApellido" label="Segundo apellido" optional>
+                            <input id="txtSegundoApellido" className="sg-input" maxLength={80} value={form.segundoApellido} onChange={e => setField("segundoApellido", e.target.value)} />
+                        </Field>
+                        <Field id={IDS.genero} errorKey="genero" label="Género" error={errors.genero} select>
+                            <select id={IDS.genero} className="sg-input sg-select" value={form.genero} onChange={e => setField("genero", e.target.value)} {...err("genero")}>
+                                <option value="">Seleccione</option>
+                                {GENEROS.map(g => <option key={g}>{g}</option>)}
+                            </select>
+                        </Field>
+                        <Field
+                            id={IDS.fechaNacimiento}
+                            errorKey="fechaNacimiento"
+                            label="Fecha de nacimiento"
+                            hint={edad === null ? undefined : `${edad} años · ${edad < 18 ? "menor de edad" : "mayor de edad"}`}
+                            error={errors.fechaNacimiento}
+                        >
+                            <input id={IDS.fechaNacimiento} className="sg-input" type="date" max={todayISO()} value={form.fechaNacimiento} onChange={e => setField("fechaNacimiento", e.target.value)} {...err("fechaNacimiento")} />
+                        </Field>
+                        <Field id={IDS.correo} errorKey="correo" label="Correo electrónico" optional error={errors.correo}>
+                            <input id={IDS.correo} className="sg-input" type="email" maxLength={254} value={form.correo} onChange={e => setField("correo", e.target.value)} {...err("correo")} />
+                        </Field>
+                        <Field id="txtTelefono" label="Teléfono" optional>
+                            <input id="txtTelefono" className="sg-input" type="tel" maxLength={30} value={form.telefono} onChange={e => setField("telefono", e.target.value)} />
+                        </Field>
+                        <div />
+                        <UbicacionSelects required idPrefix="edit-" value={form.ubicacion} errors={errors} onChange={ubicacion => {
+                            setForm(current => ({ ...current, ubicacion }));
+                            setErrors(current => ({ ...current, idProvincia: "", codigoCanton: "", codigoDistrito: "" }));
+                        }} />
+                        <Field id={IDS.direccion} errorKey="direccion" label="Dirección exacta (señas)" className="span-all" error={errors.direccion}>
+                            <textarea id={IDS.direccion} className="sg-input" maxLength={500} value={form.direccion} onChange={e => setField("direccion", e.target.value)} placeholder="Ej.: 200 m norte de la iglesia, casa verde a mano derecha" {...err("direccion")} />
+                        </Field>
+                        <Field id="txtCondicionesRelevantes" label="Condiciones relevantes" optional className="span-all">
+                            <textarea id="txtCondicionesRelevantes" className="sg-input" value={form.condicionesRelevantes} onChange={e => setField("condicionesRelevantes", e.target.value)} />
+                        </Field>
+                    </div>
+                </section>
+
+                <section className="panel">
+                    <div className="panel-head"><h2>Información académica</h2></div>
+                    <div className="panel-body form-grid">
+                        <Field id={IDS.nivelEscolar} errorKey="nivelEscolar" label="Nivel escolar" error={errors.nivelEscolar} select>
+                            <select id={IDS.nivelEscolar} className="sg-input sg-select" value={form.nivelEscolar} onChange={e => setField("nivelEscolar", e.target.value)} {...err("nivelEscolar")}>
+                                <option value="">Seleccione</option>
+                                {NIVELES.map(level => <option key={level}>{level}</option>)}
+                            </select>
+                        </Field>
+                        <Field id={IDS.idInstrumento} errorKey="idInstrumento" label="Instrumento musical" error={errors.idInstrumento} select>
+                            <select id={IDS.idInstrumento} className="sg-input sg-select" value={form.idInstrumento} onChange={e => setField("idInstrumento", e.target.value)} {...err("idInstrumento")}>
+                                <option value="">Seleccione</option>
+                                {instruments.map(instrument => <option key={instrument.id} value={instrument.id}>{instrument.nombre}</option>)}
+                            </select>
+                        </Field>
+                        <Field
+                            id={IDS.idCentroEducativo}
+                            errorKey="idCentroEducativo"
+                            label="Centro educativo"
+                            optional={!requiereCentro}
+                            hint={requiereCentro ? undefined : "No aplica para esta edad."}
+                            error={errors.idCentroEducativo}
+                            select
+                        >
+                            <select id={IDS.idCentroEducativo} className="sg-input sg-select" value={form.idCentroEducativo} onChange={e => setField("idCentroEducativo", e.target.value)} disabled={!requiereCentro} {...err("idCentroEducativo")}>
+                                <option value="">{requiereCentro ? "Seleccione" : "No aplica"}</option>
+                                {centers.map(center => <option key={center.id} value={center.id}>{center.nombre}</option>)}
+                            </select>
+                        </Field>
+                        <div />
+                        <fieldset className="fieldset span-all" id={IDS.idsPlanEstudio} tabIndex={-1} data-error-field="idsPlanEstudio" aria-describedby={errors.idsPlanEstudio ? `${IDS.idsPlanEstudio}-error` : undefined}>
+                            <legend>Planes de estudio</legend>
+                            <p className="sg-field__hint plan-hint">
+                                {planes.length === 0 ? "No hay planes de estudio vigentes." : "Determinan los cursos que el estudiante podrá matricular. Puede seleccionar más de uno."}
+                            </p>
+                            {errors.idsPlanEstudio && <p className="sg-field__error plan-error" id={`${IDS.idsPlanEstudio}-error`}>{errors.idsPlanEstudio}</p>}
+                            <div className="choice-list">
+                                {planes.map(plan => {
+                                    const marcado = form.idsPlanEstudio.includes(plan.id);
+                                    return (
+                                        <label key={plan.id} className={`choice${marcado ? " is-checked" : ""}`}>
+                                            <input type="checkbox" checked={marcado} onChange={() => togglePlan(plan.id)} />
+                                            <span className="choice-main"><b>{plan.nombre}</b></span>
+                                        </label>
+                                    );
+                                })}
+                            </div>
+                        </fieldset>
+                    </div>
+                    <div className="panel-foot">
+                        {onCancel
+                            ? <button type="button" className="sg-btn sg-btn--secondary" onClick={onCancel}>Cancelar</button>
+                            : <Link className="sg-btn sg-btn--secondary" to="/admin/administracion/estudiantes">Cancelar</Link>}
+                        <button id="btnGuardarCambios" className={`sg-btn sg-btn--primary${saving ? " is-loading" : ""}`} type="submit" disabled={saving} aria-busy={saving || undefined}>
+                            {saving ? <span className="sg-spinner" aria-hidden="true" /> : <Save size={18} strokeWidth={1.75} aria-hidden="true" />}
+                            {saving ? "Guardando…" : "Guardar cambios"}
+                        </button>
+                    </div>
+                </section>
+            </form>
+        </div>
+    );
 }
 
 export default EditarEstudiante;
