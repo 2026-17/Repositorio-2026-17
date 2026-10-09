@@ -147,7 +147,7 @@ public class AsignacionProfesorService {
         PeriodoAcademico periodo = periodoRepository.findById(grupo.getIdPeriodo())
                 .orElseThrow(() -> new IllegalArgumentException("El período académico del grupo no existe."));
 
-        if (!LocalDate.now().isBefore(periodo.getFechaInicio())) {
+        if (!LocalDate.now(ZoneId.of("America/Costa_Rica")).isBefore(periodo.getFechaInicio())) {
             throw new IllegalArgumentException("Las asignaciones solo se pueden eliminar antes del inicio del período académico.");
         }
 
