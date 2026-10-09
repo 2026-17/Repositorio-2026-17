@@ -48,6 +48,11 @@ public class ApiExceptionHandler {
         return response(HttpStatus.UNAUTHORIZED, ex.getClass().getSimpleName() + ": " + ex.getMessage(), null);
     }
 
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Map<String, Object>> invalidOperation(IllegalArgumentException ex) {
+        return response(HttpStatus.BAD_REQUEST, ex.getMessage(), null);
+    }
+
     private ResponseEntity<Map<String, Object>> response(HttpStatus status, String message, Object details) {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("status", status.value());
