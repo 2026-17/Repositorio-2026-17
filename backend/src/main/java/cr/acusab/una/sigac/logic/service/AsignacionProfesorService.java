@@ -123,13 +123,12 @@ public class AsignacionProfesorService {
         grupo.setActualizadoEn(java.time.Instant.now());
         grupoRepository.save(grupo);
 
-        // Un curso solo queda habilitado cuando tiene al menos un grupo
-        // con profesor activo asignado. El trigger de cursos registra el cambio.
-        if (!Boolean.TRUE.equals(curso.getActivo())) {
-            curso.setActivo(true);
-            curso.setIdUsuarioUltimaModificacion(idUsuario);
-            curso.setActualizadoEn(java.time.Instant.now());
-            cursoRepository.save(curso);
+        // La asignación habilita el grupo para la oferta académica.
+        // El trigger de grupos registra el profesor anterior y el nuevo.
+        if ("PLANIFICADO".equals(grupo.getEstado())) {
+            grupo.setEstado("PUBLICADO");
+            grupo.setActualizadoEn(java.time.Instant.now());
+            grupoRepository.save(grupo);
         }
 
         return mapear(grupo);
@@ -151,23 +150,14 @@ public class AsignacionProfesorService {
             throw new IllegalArgumentException("Las asignaciones solo se pueden eliminar antes del inicio del período académico.");
         }
 
-        Long idCurso = grupo.getIdCurso();
         Long idUsuario = obtenerIdUsuarioAutenticado();
         grupo.setIdProfesor(null);
+        if ("PUBLICADO".equals(grupo.getEstado())) {
+            grupo.setEstado("PLANIFICADO");
+        }
         grupo.setIdUsuarioUltimaModificacion(idUsuario);
         grupo.setActualizadoEn(java.time.Instant.now());
         grupoRepository.save(grupo);
-
-        // Si ya no quedan grupos con profesor, deshabilitar el curso.
-        boolean quedanAsignaciones = grupoRepository.existsByIdCursoAndIdProfesorIsNotNull(idCurso);
-        if (!quedanAsignaciones) {
-            cursoRepository.findById(idCurso).ifPresent(curso -> {
-                curso.setActivo(false);
-                curso.setIdUsuarioUltimaModificacion(idUsuario);
-                curso.setActualizadoEn(java.time.Instant.now());
-                cursoRepository.save(curso);
-            });
-        }
     }
 
     private void validarConflictos(Grupo destino, Long idProfesor) {
