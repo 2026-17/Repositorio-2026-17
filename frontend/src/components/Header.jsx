@@ -19,6 +19,7 @@ import {
     Sun,
     UserPlus,
     Users,
+    UserRoundCog,
     Wallet,
 } from "lucide-react";
 
@@ -57,6 +58,7 @@ const MENU_POR_ROL = {
                 { to: "/director-academico/cursos/modificar", label: "Modificar curso", icon: BookOpen },
                 { to: "/director-academico/cursos/desactivar", label: "Desactivar curso", icon: BookX },
                 { to: "/director-academico/grupos/crear", label: "Crear grupo", icon: Users },
+                { to: "/director-academico/asignar-profesores", label: "Asignar profesores", icon: UserRoundCog },
             ],
         },
         {
