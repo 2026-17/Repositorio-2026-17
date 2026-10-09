@@ -119,9 +119,8 @@ function AsignarProfesores() {
     return (
         <div className="asignar-profesores-page">
             <PageHead
-                eyebrow="Dirección académica"
                 title="Asignar profesores a cursos y grupos"
-                description="Asigne un profesor responsable a cada grupo y revise los horarios antes de guardar."
+                sub="Asigne un profesor responsable a cada grupo y revise los horarios antes de guardar."
             />
             <div className="asignar-profesores-toolbar">
                 <p><CalendarClock size={17} /> Solo se permiten cambios antes del inicio del período académico.</p>
