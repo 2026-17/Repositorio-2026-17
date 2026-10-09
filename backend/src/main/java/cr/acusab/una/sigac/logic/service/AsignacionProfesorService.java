@@ -20,6 +20,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
@@ -99,7 +100,7 @@ public class AsignacionProfesorService {
             throw new IllegalArgumentException("No se pueden modificar asignaciones de un período cerrado o cancelado.");
         }
 
-        if (!LocalDate.now().isBefore(periodo.getFechaInicio())) {
+        if (!LocalDate.now(ZoneId.of("America/Costa_Rica")).isBefore(periodo.getFechaInicio())) {
             throw new IllegalArgumentException("Las asignaciones solo se pueden modificar antes del inicio del período académico.");
         }
 
