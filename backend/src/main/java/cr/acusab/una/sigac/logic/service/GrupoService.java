@@ -140,6 +140,12 @@ public class GrupoService {
             );
         }
 
+        if ("PUBLICADO".equals(estado) && profesor == null) {
+            throw new IllegalArgumentException(
+                    "Un grupo solo puede publicarse cuando tiene un profesor activo asignado."
+            );
+        }
+
         // 5. Fechas del grupo: opcionales, pero coherentes entre sí
         // y dentro del período académico.
         validarFechas(fechaInicio, fechaFin, periodo);
