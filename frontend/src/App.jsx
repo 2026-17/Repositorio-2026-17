@@ -21,6 +21,7 @@ import CrearCurso from "./pages/DirectorAcademico/CrearCurso";
 import ModificarCurso from "./pages/DirectorAcademico/ModificarCurso";
 import DesactivarCurso from "./pages/DirectorAcademico/DesactivarCurso";
 import CrearGrupo from "./pages/DirectorAcademico/CrearGrupo";
+import AsignarProfesores from "./pages/DirectorAcademico/AsignarProfesores";
 import AsignarInstrumento from "./pages/DirectorAcademico/AsignarInstrumento.jsx";
 import AsignarInstrumentoAdministrativo from "./pages/Administrativa/AsignarInstrumento.jsx";
 import CrearPeriodoAcademico from "./pages/DirectorAcademico/CrearPeriodoAcademico";
@@ -116,6 +117,12 @@ function App() {
                     <Route
                         path="/director-academico/grupos/crear"
                         element={<CrearGrupo />}
+                    />
+
+                    {/* HU-014 - Asignar profesores a cursos y grupos */}
+                    <Route
+                        path="/director-academico/asignar-profesores"
+                        element={<AsignarProfesores />}
                     />
 
                     {/* Crear período académico */}
