@@ -20,15 +20,14 @@ function AsignarProfesores() {
     const [error, setError] = useState("");
     const [mensaje, setMensaje] = useState("");
 
-    const headers = {
-        Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
-        "Content-Type": "application/json",
-    };
-
     const cargar = useCallback(async () => {
         setCargando(true);
         setError("");
         try {
+            const headers = {
+                Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+                "Content-Type": "application/json",
+            };
             const [asignacionesResponse, profesoresResponse] = await Promise.all([
                 fetch(`${API_URL}/asignaciones-profesores`, { headers }),
                 fetch(`${API_URL}/asignaciones-profesores/profesores-activos`, { headers }),
@@ -74,7 +73,10 @@ function AsignarProfesores() {
         try {
             const response = await fetch(`${API_URL}/asignaciones-profesores/grupos/${item.idGrupo}`, {
                 method: "PATCH",
-                headers,
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+                    "Content-Type": "application/json",
+                },
                 body: JSON.stringify({ idProfesor: Number(idProfesor) }),
             });
             const data = await response.json().catch(() => ({}));
@@ -101,7 +103,10 @@ function AsignarProfesores() {
         try {
             const response = await fetch(`${API_URL}/asignaciones-profesores/grupos/${item.idGrupo}`, {
                 method: "DELETE",
-                headers,
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem("token") || ""}`,
+                    "Content-Type": "application/json",
+                },
             });
             if (!response.ok) {
                 const data = await response.json().catch(() => ({}));
