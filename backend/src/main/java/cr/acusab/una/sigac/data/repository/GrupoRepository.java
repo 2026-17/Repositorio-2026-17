@@ -51,6 +51,17 @@ public interface GrupoRepository extends JpaRepository<Grupo, Long> {
 
     boolean existsByIdCursoAndIdProfesorIsNotNull(Long idCurso);
 
+    @Query("""
+            SELECT g FROM Grupo g
+            WHERE g.idPeriodo = :idPeriodo
+              AND g.idProfesor = :idProfesor
+              AND g.estado NOT IN ('CANCELADO', 'CERRADO')
+            """)
+    List<Grupo> findGruposProfesorEnPeriodo(
+            @Param("idProfesor") Long idProfesor,
+            @Param("idPeriodo") Long idPeriodo
+    );
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT g FROM Grupo g WHERE g.id = :id")
     Optional<Grupo> findByIdParaAsignacion(
