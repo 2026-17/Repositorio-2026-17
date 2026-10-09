@@ -38,6 +38,25 @@ public interface GrupoRepository extends JpaRepository<Grupo, Long> {
             Collection<String> estados
     );
 
+    List<Grupo> findByEstadoInOrderByIdPeriodoAscCodigoAsc(
+            Collection<String> estados
+    );
+
+    List<Grupo> findByIdProfesorAndEstadoIn(
+            Long idProfesor,
+            Collection<String> estados
+    );
+
+    List<Grupo> findByIdCursoAndIdProfesorIsNotNull(Long idCurso);
+
+    boolean existsByIdCursoAndIdProfesorIsNotNull(Long idCurso);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT g FROM Grupo g WHERE g.id = :id")
+    Optional<Grupo> findByIdParaAsignacion(
+            @Param("id") Long id
+    );
+
     /*
      * Historia 2 - Bloquea los grupos mientras se verifican y descuentan
      * los cupos, para que dos confirmaciones simultáneas no ocupen el
