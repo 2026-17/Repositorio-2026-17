@@ -120,17 +120,14 @@ public class AsignacionProfesorService {
 
         Long idUsuario = obtenerIdUsuarioAutenticado();
         grupo.setIdProfesor(profesor.getId());
-        grupo.setIdUsuarioUltimaModificacion(idUsuario);
-        grupo.setActualizadoEn(java.time.Instant.now());
-        grupoRepository.save(grupo);
-
         // La asignación habilita el grupo para la oferta académica.
-        // El trigger de grupos registra el profesor anterior y el nuevo.
+        // Un grupo planificado pasa a publicado cuando ya tiene profesor.
         if ("PLANIFICADO".equals(grupo.getEstado())) {
             grupo.setEstado("PUBLICADO");
-            grupo.setActualizadoEn(java.time.Instant.now());
-            grupoRepository.save(grupo);
         }
+        grupo.setIdUsuarioUltimaModificacion(idUsuario);
+        grupo.setActualizadoEn(java.time.Instant.now());
+        // El trigger registra en una sola entrada el cambio de profesor/estado.
 
         return mapear(grupo);
     }
