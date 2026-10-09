@@ -129,8 +129,8 @@ function AsignarProfesores() {
                     <RefreshCw size={16} /> Actualizar
                 </button>
             </div>
-            {error && <Alert tipo="error" mensaje={error} />}
-            {mensaje && <Alert tipo="success" mensaje={mensaje} />}
+            {error && <Alert tone="danger" title="No se pudo completar la operación">{error}</Alert>}
+            {mensaje && <Alert tone="success" title="Operación completada">{mensaje}</Alert>}
             {cargando ? (
                 <div className="asignar-profesores-empty">Cargando grupos y profesores activos…</div>
             ) : asignaciones.length === 0 ? (
