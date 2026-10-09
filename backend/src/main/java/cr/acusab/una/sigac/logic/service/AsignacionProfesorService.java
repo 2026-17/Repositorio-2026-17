@@ -128,6 +128,7 @@ public class AsignacionProfesorService {
         grupo.setIdUsuarioUltimaModificacion(idUsuario);
         grupo.setActualizadoEn(java.time.Instant.now());
         // El trigger registra en una sola entrada el cambio de profesor/estado.
+        grupoRepository.save(grupo);
 
         return mapear(grupo);
     }
