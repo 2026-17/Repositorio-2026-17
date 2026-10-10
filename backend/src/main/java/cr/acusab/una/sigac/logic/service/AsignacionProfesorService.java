@@ -135,7 +135,7 @@ public class AsignacionProfesorService {
 
     @Transactional
     public void eliminarAsignacion(Long idGrupo) {
-        Grupo grupo = grupoRepository.findByIdParaActualizar(idGrupo)
+        Grupo grupo = grupoRepository.findByIdParaAsignacion(idGrupo)
                 .orElseThrow(() -> new IllegalArgumentException("El grupo indicado no existe."));
 
         if (grupo.getIdProfesor() == null) {
