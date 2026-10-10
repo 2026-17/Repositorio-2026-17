@@ -131,4 +131,78 @@ class AsignacionProfesorServiceTest {
         assertTrue(error.getMessage().contains("Conflicto de horario"));
         verify(grupoRepository, never()).save(any(Grupo.class));
     }
+
+    @Test
+    void asignar_publicaGrupoYRegistraElUsuarioQueRealizoLaAsignacion() {
+        Long idGrupo = 10L;
+        Long idProfesor = 4L;
+        Long idPeriodo = 2L;
+        LocalDate inicioPeriodo = LocalDate.now().plusDays(15);
+
+        Grupo grupo = new Grupo();
+        grupo.setId(idGrupo);
+        grupo.setIdPeriodo(idPeriodo);
+        grupo.setIdCurso(3L);
+        grupo.setCodigo("MUS-01-A");
+        grupo.setEstado("PLANIFICADO");
+
+        PeriodoAcademico periodo = new PeriodoAcademico();
+        periodo.setId(idPeriodo);
+        periodo.setNombre("Periodo futuro");
+        periodo.setEstado("PLANIFICADO");
+        periodo.setFechaInicio(inicioPeriodo);
+        periodo.setFechaFin(inicioPeriodo.plusDays(90));
+
+        Curso curso = new Curso();
+        curso.setId(3L);
+        curso.setCodigo("MUS-01");
+        curso.setNombre("Musica");
+        curso.setActivo(true);
+
+        Profesor profesor = new Profesor();
+        profesor.setId(idProfesor);
+        profesor.setActivo(true);
+        profesor.setNombres("Ana");
+        profesor.setPrimerApellido("Mora");
+        profesor.setSegundoApellido("Solís");
+
+        Usuario usuario = new Usuario();
+        usuario.setId(77L);
+
+        HorarioGrupo horario = new HorarioGrupo();
+        horario.setId(50L);
+        horario.setIdGrupo(idGrupo);
+        horario.setDiaSemana((short) 2);
+        horario.setHoraInicio(LocalTime.of(10, 0));
+        horario.setHoraFin(LocalTime.of(11, 0));
+
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(
+                        "cedula-director", "credencial", List.of()
+                )
+        );
+
+        when(grupoRepository.findByIdParaAsignacion(idGrupo)).thenReturn(Optional.of(grupo));
+        when(periodoRepository.findById(idPeriodo)).thenReturn(Optional.of(periodo));
+        when(cursoRepository.findById(3L)).thenReturn(Optional.of(curso));
+        when(profesorRepository.findByIdParaAsignacion(idProfesor)).thenReturn(Optional.of(profesor));
+        when(profesorRepository.findById(idProfesor)).thenReturn(Optional.of(profesor));
+        when(usuarioRepository.findByCedula("cedula-director")).thenReturn(Optional.of(usuario));
+        when(grupoRepository.findGruposProfesorEnPeriodo(
+                eq(idProfesor), eq(idPeriodo), any(LocalDate.class), any(LocalDate.class)
+        )).thenReturn(List.of());
+        when(horarioRepository.findByIdGrupoInOrderByDiaSemanaAscHoraInicioAsc(anyCollection()))
+                .thenReturn(List.of(horario), List.of(horario));
+        when(grupoRepository.save(any(Grupo.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        var resultado = service.asignar(idGrupo, idProfesor);
+
+        assertEquals(idProfesor, resultado.idProfesor());
+        assertEquals("Ana Mora Solís", resultado.nombreProfesor());
+        assertEquals(idProfesor, grupo.getIdProfesor());
+        assertEquals("PUBLICADO", grupo.getEstado());
+        assertEquals(77L, grupo.getIdUsuarioUltimaModificacion());
+        verify(grupoRepository).save(grupo);
+    }
+
 }
