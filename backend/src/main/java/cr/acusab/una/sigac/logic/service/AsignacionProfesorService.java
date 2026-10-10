@@ -89,6 +89,14 @@ public class AsignacionProfesorService {
             throw new IllegalArgumentException("El grupo y el profesor son obligatorios.");
         }
 
+        // Se bloquea primero el profesor: las asignaciones concurrentes a la
+        // misma persona quedan serializadas antes de consultar sus horarios.
+        Profesor profesor = profesorRepository.findByIdParaAsignacion(idProfesor)
+                .orElseThrow(() -> new IllegalArgumentException("El profesor indicado no existe."));
+        if (!Boolean.TRUE.equals(profesor.getActivo())) {
+            throw new IllegalArgumentException("Solo se pueden asignar profesores activos y registrados.");
+        }
+
         Grupo grupo = grupoRepository.findByIdParaAsignacion(idGrupo)
                 .orElseThrow(() -> new IllegalArgumentException("El grupo indicado no existe."));
 
@@ -111,12 +119,6 @@ public class AsignacionProfesorService {
                 .orElseThrow(() -> new IllegalArgumentException("El curso asociado al grupo no existe."));
         if (!Boolean.TRUE.equals(curso.getActivo())) {
             throw new IllegalArgumentException("El curso debe estar activo para asignarle un profesor.");
-        }
-
-        Profesor profesor = profesorRepository.findByIdParaAsignacion(idProfesor)
-                .orElseThrow(() -> new IllegalArgumentException("El profesor indicado no existe."));
-        if (!Boolean.TRUE.equals(profesor.getActivo())) {
-            throw new IllegalArgumentException("Solo se pueden asignar profesores activos y registrados.");
         }
 
         LocalDate fechaInicioDestino = grupo.getFechaInicio() != null
