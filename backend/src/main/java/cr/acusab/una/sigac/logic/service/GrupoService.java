@@ -52,19 +52,22 @@ public class GrupoService {
     private final CursoRepository cursoRepository;
     private final PeriodoAcademicoRepository periodoAcademicoRepository;
     private final ProfesorRepository profesorRepository;
+    private final ValidacionHorarioProfesorService validacionHorarioProfesorService;
 
     public GrupoService(
             GrupoRepository grupoRepository,
             HorarioGrupoRepository horarioGrupoRepository,
             CursoRepository cursoRepository,
             PeriodoAcademicoRepository periodoAcademicoRepository,
-            ProfesorRepository profesorRepository
+            ProfesorRepository profesorRepository,
+            ValidacionHorarioProfesorService validacionHorarioProfesorService
     ) {
         this.grupoRepository = grupoRepository;
         this.horarioGrupoRepository = horarioGrupoRepository;
         this.cursoRepository = cursoRepository;
         this.periodoAcademicoRepository = periodoAcademicoRepository;
         this.profesorRepository = profesorRepository;
+        this.validacionHorarioProfesorService = validacionHorarioProfesorService;
     }
 
     /*
@@ -115,7 +118,7 @@ public class GrupoService {
         if (request.getIdProfesor() != null) {
 
             profesor = profesorRepository
-                    .findById(request.getIdProfesor())
+                    .findByIdParaAsignacion(request.getIdProfesor())
                     .orElseThrow(() -> new IllegalArgumentException(
                             "El profesor seleccionado no existe."
                     ));
@@ -159,6 +162,33 @@ public class GrupoService {
 
         // 7. El horario no puede tener bloques inválidos ni traslapes.
         validarHorarios(request.getHorarios());
+
+        if (profesor != null) {
+            List<ValidacionHorarioProfesorService.BloqueHorario> horariosPropuestos =
+                    request.getHorarios().stream()
+                            .map(horario -> new ValidacionHorarioProfesorService.BloqueHorario(
+                                    horario.getDiaSemana(),
+                                    horario.getHoraInicio(),
+                                    horario.getHoraFin()
+                            ))
+                            .toList();
+
+            LocalDate fechaInicioEfectiva = fechaInicio != null
+                    ? fechaInicio
+                    : periodo.getFechaInicio();
+            LocalDate fechaFinEfectiva = fechaFin != null
+                    ? fechaFin
+                    : periodo.getFechaFin();
+
+            validacionHorarioProfesorService.validarDisponibilidad(
+                    profesor.getId(),
+                    periodo.getId(),
+                    fechaInicioEfectiva,
+                    fechaFinEfectiva,
+                    null,
+                    horariosPropuestos
+            );
+        }
 
         Instant ahora = Instant.now();
 
