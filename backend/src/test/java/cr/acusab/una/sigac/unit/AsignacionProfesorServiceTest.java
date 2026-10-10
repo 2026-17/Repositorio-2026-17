@@ -117,7 +117,9 @@ class AsignacionProfesorServiceTest {
         when(periodoRepository.findById(idPeriodo)).thenReturn(Optional.of(periodo));
         when(cursoRepository.findById(3L)).thenReturn(Optional.of(curso));
         when(profesorRepository.findByIdParaAsignacion(idProfesor)).thenReturn(Optional.of(profesor));
-        when(grupoRepository.findGruposProfesorEnPeriodo(idProfesor, idPeriodo)).thenReturn(List.of(existente));
+        when(grupoRepository.findGruposProfesorEnPeriodo(
+                eq(idProfesor), eq(idPeriodo), any(LocalDate.class), any(LocalDate.class)
+        )).thenReturn(List.of(existente));
         when(horarioRepository.findByIdGrupoInOrderByDiaSemanaAscHoraInicioAsc(anyCollection()))
                 .thenReturn(List.of(nuevo), List.of(ocupado));
 
