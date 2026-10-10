@@ -56,6 +56,7 @@ public interface GrupoRepository extends JpaRepository<Grupo, Long> {
      * se traslapen con el periodo del grupo destino. No limita la validacion
      * al mismo id de periodo, porque dos periodos pueden coincidir en fechas.
      */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
             SELECT g FROM Grupo g, PeriodoAcademico periodoGrupo, PeriodoAcademico periodoDestino
             WHERE g.idProfesor = :idProfesor
