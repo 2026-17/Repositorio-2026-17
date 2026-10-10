@@ -41,6 +41,7 @@ public class AsignacionProfesorService {
     private final PeriodoAcademicoRepository periodoRepository;
     private final HorarioGrupoRepository horarioRepository;
     private final UsuarioRepository usuarioRepository;
+    private final ValidacionHorarioProfesorService validacionHorarioProfesorService;
 
     public AsignacionProfesorService(
             GrupoRepository grupoRepository,
@@ -48,7 +49,8 @@ public class AsignacionProfesorService {
             ProfesorRepository profesorRepository,
             PeriodoAcademicoRepository periodoRepository,
             HorarioGrupoRepository horarioRepository,
-            UsuarioRepository usuarioRepository
+            UsuarioRepository usuarioRepository,
+            ValidacionHorarioProfesorService validacionHorarioProfesorService
     ) {
         this.grupoRepository = grupoRepository;
         this.cursoRepository = cursoRepository;
@@ -56,6 +58,7 @@ public class AsignacionProfesorService {
         this.periodoRepository = periodoRepository;
         this.horarioRepository = horarioRepository;
         this.usuarioRepository = usuarioRepository;
+        this.validacionHorarioProfesorService = validacionHorarioProfesorService;
     }
 
     @Transactional(readOnly = true)
@@ -116,7 +119,31 @@ public class AsignacionProfesorService {
             throw new IllegalArgumentException("Solo se pueden asignar profesores activos y registrados.");
         }
 
-        validarConflictos(grupo, idProfesor, periodo);
+        LocalDate fechaInicioDestino = grupo.getFechaInicio() != null
+                ? grupo.getFechaInicio()
+                : periodo.getFechaInicio();
+        LocalDate fechaFinDestino = grupo.getFechaFin() != null
+                ? grupo.getFechaFin()
+                : periodo.getFechaFin();
+        List<ValidacionHorarioProfesorService.BloqueHorario> horariosPropuestos =
+                horarioRepository.findByIdGrupoInOrderByDiaSemanaAscHoraInicioAsc(
+                                List.of(grupo.getId())
+                        ).stream()
+                        .map(horario -> new ValidacionHorarioProfesorService.BloqueHorario(
+                                horario.getDiaSemana(),
+                                horario.getHoraInicio(),
+                                horario.getHoraFin()
+                        ))
+                        .toList();
+
+        validacionHorarioProfesorService.validarDisponibilidad(
+                idProfesor,
+                grupo.getIdPeriodo(),
+                fechaInicioDestino,
+                fechaFinDestino,
+                grupo.getId(),
+                horariosPropuestos
+        );
 
         Long idUsuario = obtenerIdUsuarioAutenticado();
         grupo.setIdProfesor(profesor.getId());
@@ -165,54 +192,6 @@ public class AsignacionProfesorService {
         grupo.setIdUsuarioUltimaModificacion(idUsuario);
         grupo.setActualizadoEn(java.time.Instant.now());
         grupoRepository.save(grupo);
-    }
-
-    private void validarConflictos(Grupo destino, Long idProfesor, PeriodoAcademico periodoDestino) {
-        List<HorarioGrupo> horariosDestino =
-                horarioRepository.findByIdGrupoInOrderByDiaSemanaAscHoraInicioAsc(
-                        List.of(destino.getId())
-                );
-        if (horariosDestino.isEmpty()) {
-            throw new IllegalArgumentException("El grupo debe tener al menos un horario registrado antes de asignarle un profesor.");
-        }
-
-        LocalDate fechaInicioDestino = destino.getFechaInicio() != null
-                ? destino.getFechaInicio()
-                : periodoDestino.getFechaInicio();
-        LocalDate fechaFinDestino = destino.getFechaFin() != null
-                ? destino.getFechaFin()
-                : periodoDestino.getFechaFin();
-
-        List<Grupo> gruposProfesor = grupoRepository.findGruposProfesorEnPeriodo(
-                idProfesor,
-                destino.getIdPeriodo(),
-                fechaInicioDestino,
-                fechaFinDestino
-        );
-        List<Long> ids = gruposProfesor.stream()
-                .filter(g -> !g.getId().equals(destino.getId()))
-                .map(Grupo::getId)
-                .toList();
-        if (ids.isEmpty()) return;
-
-        List<HorarioGrupo> horariosOcupados =
-                horarioRepository.findByIdGrupoInOrderByDiaSemanaAscHoraInicioAsc(ids);
-        for (HorarioGrupo nuevo : horariosDestino) {
-            for (HorarioGrupo existente : horariosOcupados) {
-                boolean mismoDia = nuevo.getDiaSemana().equals(existente.getDiaSemana());
-                boolean traslape = nuevo.getHoraInicio().isBefore(existente.getHoraFin())
-                        && existente.getHoraInicio().isBefore(nuevo.getHoraFin());
-                if (mismoDia && traslape) {
-                    Grupo grupoConflicto = gruposProfesor.stream()
-                            .filter(g -> g.getId().equals(existente.getIdGrupo()))
-                            .findFirst().orElse(null);
-                    throw new IllegalArgumentException(
-                            "Conflicto de horario: el profesor ya tiene un grupo asignado en ese horario"
-                                    + (grupoConflicto != null ? " (grupo " + grupoConflicto.getCodigo() + ")." : ".")
-                    );
-                }
-            }
-        }
     }
 
     private AsignacionProfesorResponse mapear(Grupo grupo) {
