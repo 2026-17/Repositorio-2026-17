@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.Comparator;
@@ -115,7 +116,7 @@ public class AsignacionProfesorService {
             throw new IllegalArgumentException("Solo se pueden asignar profesores activos y registrados.");
         }
 
-        validarConflictos(grupo, idProfesor);
+        validarConflictos(grupo, idProfesor, periodo);
 
         Long idUsuario = obtenerIdUsuarioAutenticado();
         grupo.setIdProfesor(profesor.getId());
@@ -125,7 +126,7 @@ public class AsignacionProfesorService {
             grupo.setEstado("PUBLICADO");
         }
         grupo.setIdUsuarioUltimaModificacion(idUsuario);
-        grupo.setActualizadoEn(java.time.Instant.now());
+        grupo.setActualizadoEn(Instant.now());
         // El trigger registra en una sola entrada el cambio de profesor/estado.
         grupoRepository.save(grupo);
 
@@ -166,7 +167,7 @@ public class AsignacionProfesorService {
         grupoRepository.save(grupo);
     }
 
-    private void validarConflictos(Grupo destino, Long idProfesor) {
+    private void validarConflictos(Grupo destino, Long idProfesor, PeriodoAcademico periodoDestino) {
         List<HorarioGrupo> horariosDestino =
                 horarioRepository.findByIdGrupoInOrderByDiaSemanaAscHoraInicioAsc(
                         List.of(destino.getId())
@@ -175,9 +176,18 @@ public class AsignacionProfesorService {
             throw new IllegalArgumentException("El grupo debe tener al menos un horario registrado antes de asignarle un profesor.");
         }
 
+        LocalDate fechaInicioDestino = destino.getFechaInicio() != null
+                ? destino.getFechaInicio()
+                : periodoDestino.getFechaInicio();
+        LocalDate fechaFinDestino = destino.getFechaFin() != null
+                ? destino.getFechaFin()
+                : periodoDestino.getFechaFin();
+
         List<Grupo> gruposProfesor = grupoRepository.findGruposProfesorEnPeriodo(
                 idProfesor,
-                destino.getIdPeriodo()
+                destino.getIdPeriodo(),
+                fechaInicioDestino,
+                fechaFinDestino
         );
         List<Long> ids = gruposProfesor.stream()
                 .filter(g -> !g.getId().equals(destino.getId()))
