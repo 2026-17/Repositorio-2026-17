@@ -10,6 +10,7 @@ import org.springframework.data.repository.query.Param;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.time.LocalDate;
 
 public interface GrupoRepository extends JpaRepository<Grupo, Long> {
 
@@ -42,15 +43,6 @@ public interface GrupoRepository extends JpaRepository<Grupo, Long> {
             Collection<String> estados
     );
 
-    List<Grupo> findByIdProfesorAndEstadoIn(
-            Long idProfesor,
-            Collection<String> estados
-    );
-
-    List<Grupo> findByIdCursoAndIdProfesorIsNotNull(Long idCurso);
-
-    boolean existsByIdCursoAndIdProfesorIsNotNull(Long idCurso);
-
     /*
      * HU-014: incluye grupos del profesor en cualquier periodo cuyas fechas
      * se traslapen con el periodo del grupo destino. No limita la validacion
@@ -62,13 +54,15 @@ public interface GrupoRepository extends JpaRepository<Grupo, Long> {
             WHERE g.idProfesor = :idProfesor
               AND g.idPeriodo = periodoGrupo.id
               AND periodoDestino.id = :idPeriodo
-              AND periodoGrupo.fechaInicio <= periodoDestino.fechaFin
-              AND periodoDestino.fechaInicio <= periodoGrupo.fechaFin
+              AND COALESCE(g.fechaInicio, periodoGrupo.fechaInicio) <= :fechaFinDestino
+              AND COALESCE(g.fechaFin, periodoGrupo.fechaFin) >= :fechaInicioDestino
               AND g.estado NOT IN ('CANCELADO', 'CERRADO')
             """)
     List<Grupo> findGruposProfesorEnPeriodo(
             @Param("idProfesor") Long idProfesor,
-            @Param("idPeriodo") Long idPeriodo
+            @Param("idPeriodo") Long idPeriodo,
+            @Param("fechaInicioDestino") LocalDate fechaInicioDestino,
+            @Param("fechaFinDestino") LocalDate fechaFinDestino
     );
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
