@@ -28,7 +28,8 @@ END$$
 
 CREATE TRIGGER trg_grupos_au_bitacora AFTER UPDATE ON grupos FOR EACH ROW
 BEGIN
-    IF NOT (OLD.id_profesor <=> NEW.id_profesor) THEN
+    IF NOT (OLD.id_profesor <=> NEW.id_profesor)
+       OR NOT (OLD.estado <=> NEW.estado) THEN
         INSERT INTO bitacoras
         (id_usuario, tabla_afectada, id_registro, accion, datos_anteriores, datos_nuevos)
         VALUES
