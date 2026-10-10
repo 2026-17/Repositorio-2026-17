@@ -5,14 +5,18 @@ import cr.acusab.una.sigac.data.entity.Grupo;
 import cr.acusab.una.sigac.data.entity.HorarioGrupo;
 import cr.acusab.una.sigac.data.entity.PeriodoAcademico;
 import cr.acusab.una.sigac.data.entity.Profesor;
+import cr.acusab.una.sigac.data.entity.Usuario;
 import cr.acusab.una.sigac.data.repository.CursoRepository;
 import cr.acusab.una.sigac.data.repository.GrupoRepository;
 import cr.acusab.una.sigac.data.repository.HorarioGrupoRepository;
 import cr.acusab.una.sigac.data.repository.PeriodoAcademicoRepository;
 import cr.acusab.una.sigac.data.repository.ProfesorRepository;
+import cr.acusab.una.sigac.data.repository.UsuarioRepository;
 import cr.acusab.una.sigac.presentation.dto.request.GrupoRequestDTO;
 import cr.acusab.una.sigac.presentation.dto.request.HorarioGrupoRequestDTO;
 import cr.acusab.una.sigac.presentation.dto.response.GrupoResponseDTO;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -53,6 +57,7 @@ public class GrupoService {
     private final PeriodoAcademicoRepository periodoAcademicoRepository;
     private final ProfesorRepository profesorRepository;
     private final ValidacionHorarioProfesorService validacionHorarioProfesorService;
+    private final UsuarioRepository usuarioRepository;
 
     public GrupoService(
             GrupoRepository grupoRepository,
@@ -60,7 +65,8 @@ public class GrupoService {
             CursoRepository cursoRepository,
             PeriodoAcademicoRepository periodoAcademicoRepository,
             ProfesorRepository profesorRepository,
-            ValidacionHorarioProfesorService validacionHorarioProfesorService
+            ValidacionHorarioProfesorService validacionHorarioProfesorService,
+            UsuarioRepository usuarioRepository
     ) {
         this.grupoRepository = grupoRepository;
         this.horarioGrupoRepository = horarioGrupoRepository;
@@ -68,6 +74,7 @@ public class GrupoService {
         this.periodoAcademicoRepository = periodoAcademicoRepository;
         this.profesorRepository = profesorRepository;
         this.validacionHorarioProfesorService = validacionHorarioProfesorService;
+        this.usuarioRepository = usuarioRepository;
     }
 
     /*
@@ -193,7 +200,10 @@ public class GrupoService {
         Instant ahora = Instant.now();
 
         // 8. Crear el grupo.
+        Long idUsuario = obtenerIdUsuarioAutenticado();
+
         Grupo grupo = new Grupo();
+        grupo.setIdUsuarioUltimaModificacion(idUsuario);
         grupo.setIdCurso(curso.getId());
         grupo.setIdPeriodo(periodo.getId());
         grupo.setIdProfesor(profesor != null ? profesor.getId() : null);
@@ -307,6 +317,21 @@ public class GrupoService {
                 );
             }
         }
+    }
+
+    private Long obtenerIdUsuarioAutenticado() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()
+                || authentication.getName() == null
+                || "anonymousUser".equals(authentication.getName())) {
+            throw new IllegalStateException("No se pudo identificar al usuario autenticado.");
+        }
+
+        Usuario usuario = usuarioRepository.findByCedula(authentication.getName())
+                .orElseThrow(() -> new IllegalStateException(
+                        "El usuario autenticado no existe en el sistema."
+                ));
+        return usuario.getId();
     }
 
     private String textoOpcional(String texto) {
