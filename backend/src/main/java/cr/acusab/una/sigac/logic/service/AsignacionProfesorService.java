@@ -21,7 +21,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
@@ -110,7 +109,7 @@ public class AsignacionProfesorService {
             throw new IllegalArgumentException("El curso debe estar activo para asignarle un profesor.");
         }
 
-        Profesor profesor = profesorRepository.findById(idProfesor)
+        Profesor profesor = profesorRepository.findByIdParaAsignacion(idProfesor)
                 .orElseThrow(() -> new IllegalArgumentException("El profesor indicado no existe."));
         if (!Boolean.TRUE.equals(profesor.getActivo())) {
             throw new IllegalArgumentException("Solo se pueden asignar profesores activos y registrados.");
@@ -142,8 +141,16 @@ public class AsignacionProfesorService {
             throw new IllegalArgumentException("El grupo no tiene un profesor asignado.");
         }
 
+        if ("CANCELADO".equals(grupo.getEstado()) || "CERRADO".equals(grupo.getEstado())) {
+            throw new IllegalArgumentException("No se puede modificar una asignación de un grupo cerrado o cancelado.");
+        }
+
         PeriodoAcademico periodo = periodoRepository.findById(grupo.getIdPeriodo())
                 .orElseThrow(() -> new IllegalArgumentException("El período académico del grupo no existe."));
+
+        if (ESTADOS_PERIODO_CERRADOS.contains(periodo.getEstado())) {
+            throw new IllegalArgumentException("No se pueden modificar asignaciones de un período cerrado o cancelado.");
+        }
 
         if (!LocalDate.now(ZoneId.of("America/Costa_Rica")).isBefore(periodo.getFechaInicio())) {
             throw new IllegalArgumentException("Las asignaciones solo se pueden eliminar antes del inicio del período académico.");
