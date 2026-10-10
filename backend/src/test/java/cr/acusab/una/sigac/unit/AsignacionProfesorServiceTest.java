@@ -38,7 +38,8 @@ class AsignacionProfesorServiceTest {
         usuarioRepository = mock(UsuarioRepository.class);
         service = new AsignacionProfesorService(
                 grupoRepository, cursoRepository, profesorRepository,
-                periodoRepository, horarioRepository, usuarioRepository
+                periodoRepository, horarioRepository, usuarioRepository,
+                new ValidacionHorarioProfesorService(grupoRepository, horarioRepository)
         );
     }
 
