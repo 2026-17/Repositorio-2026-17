@@ -3,6 +3,7 @@ package cr.acusab.una.sigac.unit;
 import cr.acusab.una.sigac.data.entity.*;
 import cr.acusab.una.sigac.data.repository.*;
 import cr.acusab.una.sigac.logic.service.AsignacionProfesorService;
+import cr.acusab.una.sigac.logic.service.ValidacionHorarioProfesorService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
