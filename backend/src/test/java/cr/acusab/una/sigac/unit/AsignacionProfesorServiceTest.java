@@ -6,7 +6,6 @@ import cr.acusab.una.sigac.logic.service.AsignacionProfesorService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.time.LocalDate;
@@ -117,7 +116,7 @@ class AsignacionProfesorServiceTest {
         when(grupoRepository.findByIdParaAsignacion(idGrupo)).thenReturn(Optional.of(destino));
         when(periodoRepository.findById(idPeriodo)).thenReturn(Optional.of(periodo));
         when(cursoRepository.findById(3L)).thenReturn(Optional.of(curso));
-        when(profesorRepository.findById(idProfesor)).thenReturn(Optional.of(profesor));
+        when(profesorRepository.findByIdParaAsignacion(idProfesor)).thenReturn(Optional.of(profesor));
         when(grupoRepository.findGruposProfesorEnPeriodo(idProfesor, idPeriodo)).thenReturn(List.of(existente));
         when(horarioRepository.findByIdGrupoInOrderByDiaSemanaAscHoraInicioAsc(anyCollection()))
                 .thenReturn(List.of(nuevo), List.of(ocupado));
