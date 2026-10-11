@@ -140,11 +140,26 @@
 
 .asignar-profesores-bloqueo {
     display: block;
-    max-width: 250px;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
     margin-top: var(--space-2);
     color: var(--ink-muted);
     font-size: 12px;
     line-height: 1.45;
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+    word-break: normal;
+}
+
+/* Los avisos deben respetar el ancho de la celda de acciones y no desbordar la tabla. */
+.asignar-profesores-table td.actions .asignar-profesores-bloqueo {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    white-space: normal !important;
+    overflow-wrap: anywhere;
 }
 
 .asignar-profesores-page .table-foot {
