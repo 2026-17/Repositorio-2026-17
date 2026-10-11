@@ -301,4 +301,77 @@ class AsignacionProfesorServiceTest {
     }
 
 
+
+    @Test
+    void eliminar_quitaAsignacionYRegistraUsuarioAntesDelPeriodo() {
+        Long idGrupo = 41L;
+        Long idPeriodo = 12L;
+        LocalDate inicio = LocalDate.now(java.time.ZoneId.of("America/Costa_Rica")).plusDays(25);
+
+        Grupo grupo = new Grupo();
+        grupo.setId(idGrupo);
+        grupo.setIdPeriodo(idPeriodo);
+        grupo.setIdCurso(9L);
+        grupo.setIdProfesor(18L);
+        grupo.setEstado("PUBLICADO");
+
+        PeriodoAcademico periodo = new PeriodoAcademico();
+        periodo.setId(idPeriodo);
+        periodo.setNombre("Período futuro");
+        periodo.setEstado("PLANIFICADO");
+        periodo.setFechaInicio(inicio);
+        periodo.setFechaFin(inicio.plusDays(100));
+
+        Usuario usuario = new Usuario();
+        usuario.setId(77L);
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(
+                        "cedula-director", "credencial", List.of()
+                )
+        );
+
+        when(grupoRepository.findByIdParaAsignacion(idGrupo)).thenReturn(Optional.of(grupo));
+        when(periodoRepository.findById(idPeriodo)).thenReturn(Optional.of(periodo));
+        when(usuarioRepository.findByCedula("cedula-director")).thenReturn(Optional.of(usuario));
+        when(grupoRepository.save(any(Grupo.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        assertDoesNotThrow(() -> service.eliminarAsignacion(idGrupo));
+
+        assertNull(grupo.getIdProfesor());
+        assertEquals("PLANIFICADO", grupo.getEstado());
+        assertEquals(77L, grupo.getIdUsuarioUltimaModificacion());
+        verify(grupoRepository).save(grupo);
+    }
+
+    @Test
+    void eliminar_rechazaCambiosCuandoElPeriodoYaInicio() {
+        Long idGrupo = 42L;
+        Long idPeriodo = 13L;
+
+        Grupo grupo = new Grupo();
+        grupo.setId(idGrupo);
+        grupo.setIdPeriodo(idPeriodo);
+        grupo.setIdProfesor(18L);
+        grupo.setEstado("PUBLICADO");
+
+        PeriodoAcademico periodo = new PeriodoAcademico();
+        periodo.setId(idPeriodo);
+        periodo.setNombre("Período iniciado");
+        periodo.setEstado("EN_CURSO");
+        periodo.setFechaInicio(LocalDate.now(java.time.ZoneId.of("America/Costa_Rica")).minusDays(1));
+        periodo.setFechaFin(LocalDate.now(java.time.ZoneId.of("America/Costa_Rica")).plusDays(50));
+
+        when(grupoRepository.findByIdParaAsignacion(idGrupo)).thenReturn(Optional.of(grupo));
+        when(periodoRepository.findById(idPeriodo)).thenReturn(Optional.of(periodo));
+
+        BusinessException error = assertThrows(
+                BusinessException.class,
+                () -> service.eliminarAsignacion(idGrupo)
+        );
+
+        assertTrue(error.getMessage().contains("antes del inicio"));
+        verify(grupoRepository, never()).save(any(Grupo.class));
+    }
+
+
 }
