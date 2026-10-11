@@ -794,6 +794,7 @@ CREATE TABLE grupos (
     id_periodo     INT UNSIGNED      NOT NULL,
     id_curso       INT UNSIGNED      NOT NULL,
     id_profesor    INT UNSIGNED,
+    id_usuario_ultima_modificacion INT UNSIGNED,
     codigo         VARCHAR(40)       NOT NULL,
     cupo_maximo    SMALLINT UNSIGNED NOT NULL,
     modalidad      VARCHAR(20)       NOT NULL DEFAULT 'PRESENCIAL',
@@ -810,6 +811,7 @@ CREATE TABLE grupos (
     CONSTRAINT fk_grupos_periodos   FOREIGN KEY (id_periodo)  REFERENCES periodos_academicos (id_periodo),
     CONSTRAINT fk_grupos_cursos     FOREIGN KEY (id_curso)    REFERENCES cursos (id_curso),
     CONSTRAINT fk_grupos_profesores FOREIGN KEY (id_profesor) REFERENCES profesores (id_profesor) ON DELETE SET NULL,
+    CONSTRAINT fk_grupos_usuario_modifica FOREIGN KEY (id_usuario_ultima_modificacion) REFERENCES usuarios (id_usuario) ON DELETE SET NULL,
     CONSTRAINT ck_grupos_cupo      CHECK (cupo_maximo > 0),
     CONSTRAINT ck_grupos_estado    CHECK (estado IN ('PLANIFICADO', 'PUBLICADO', 'EN_CURSO', 'CERRADO', 'CANCELADO')),
     CONSTRAINT ck_grupos_fechas    CHECK (fecha_inicio IS NULL OR fecha_fin IS NULL OR fecha_fin >= fecha_inicio),
@@ -1409,7 +1411,9 @@ BEGIN
                  'telefono', OLD.telefono,
                  'correo', OLD.correo,
                  'id_centro_educativo', OLD.id_centro_educativo,
-                 'activo', OLD.activo
+                 'activo', OLD.activo,
+                 'motivo_baja', OLD.motivo_baja,
+                 'fecha_baja', OLD.fecha_baja
          ),
          JSON_OBJECT(
                  'numero_identificacion', NEW.numero_identificacion,
@@ -1419,7 +1423,9 @@ BEGIN
                  'telefono', NEW.telefono,
                  'correo', NEW.correo,
                  'id_centro_educativo', NEW.id_centro_educativo,
-                 'activo', NEW.activo
+                 'activo', NEW.activo,
+                 'motivo_baja', NEW.motivo_baja,
+                 'fecha_baja', NEW.fecha_baja
          ));
 END$$
 
@@ -1772,6 +1778,47 @@ BEGIN
                  'nota_minima', OLD.nota_minima,
                  'activo', OLD.activo
          ), NULL);
+END$$
+
+
+-- HU-014: historial de asignaciones de profesores a grupos.
+CREATE TRIGGER trg_grupos_ai_bitacora AFTER INSERT ON grupos FOR EACH ROW
+BEGIN
+    INSERT INTO bitacoras
+    (id_usuario, tabla_afectada, id_registro, accion, datos_anteriores, datos_nuevos)
+    VALUES
+        (NEW.id_usuario_ultima_modificacion, 'grupos', NEW.id_grupo, 'INSERT', NULL,
+         JSON_OBJECT('id_periodo', NEW.id_periodo, 'id_curso', NEW.id_curso,
+                     'id_profesor', NEW.id_profesor, 'codigo', NEW.codigo,
+                     'estado', NEW.estado));
+END$$
+
+CREATE TRIGGER trg_grupos_au_bitacora AFTER UPDATE ON grupos FOR EACH ROW
+BEGIN
+    IF NOT (OLD.id_profesor <=> NEW.id_profesor)
+       OR NOT (OLD.estado <=> NEW.estado) THEN
+        INSERT INTO bitacoras
+        (id_usuario, tabla_afectada, id_registro, accion, datos_anteriores, datos_nuevos)
+        VALUES
+            (NEW.id_usuario_ultima_modificacion, 'grupos', NEW.id_grupo, 'UPDATE',
+             JSON_OBJECT('id_periodo', OLD.id_periodo, 'id_curso', OLD.id_curso,
+                         'id_profesor', OLD.id_profesor, 'codigo', OLD.codigo,
+                         'estado', OLD.estado),
+             JSON_OBJECT('id_periodo', NEW.id_periodo, 'id_curso', NEW.id_curso,
+                         'id_profesor', NEW.id_profesor, 'codigo', NEW.codigo,
+                         'estado', NEW.estado));
+    END IF;
+END$$
+
+CREATE TRIGGER trg_grupos_ad_bitacora AFTER DELETE ON grupos FOR EACH ROW
+BEGIN
+    INSERT INTO bitacoras
+    (id_usuario, tabla_afectada, id_registro, accion, datos_anteriores, datos_nuevos)
+    VALUES
+        (OLD.id_usuario_ultima_modificacion, 'grupos', OLD.id_grupo, 'DELETE',
+         JSON_OBJECT('id_periodo', OLD.id_periodo, 'id_curso', OLD.id_curso,
+                     'id_profesor', OLD.id_profesor, 'codigo', OLD.codigo,
+                     'estado', OLD.estado), NULL);
 END$$
 
 DELIMITER ;

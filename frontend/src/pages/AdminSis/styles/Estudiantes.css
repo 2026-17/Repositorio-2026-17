@@ -1,133 +1,91 @@
 /* Estilos de Consultar / Editar estudiante.
-   La estructura general reutiliza los estilos compartidos
-   definidos en src/styles/app.css y src/styles/components.css. */
+   La lista usa el patrón compartido (.page-toolbar, .table-wrap, .table,
+   .badge) y el formulario las clases base (.card, .field, .input, .age-box)
+   de src/styles/components.css. Aquí solo va lo propio de estas pantallas. */
 
 .age-box {
     min-height: 72px;
     justify-content: center;
 }
 
-/* ============================================================
-   HU-022 - Documentos del estudiante
-   ============================================================ */
-
-.documentos-estudiante {
-    overflow: hidden;
+/* HU-009: dar de baja y reactivar estudiantes. */
+.baja-contador {
+    margin: var(--space-1) 0 0;
+    text-align: right;
+    font-size: 13px;
+    color: var(--ink-muted);
 }
 
+.dtable .btn-baja { color: var(--danger); }
+.dtable .btn-baja:hover:not(:disabled) { background: var(--danger-soft); }
+
+.dtable .btn-reactivar { color: var(--success); }
+.dtable .btn-reactivar:hover:not(:disabled) { background: var(--success-soft); }
+
+/* HU-022: documentos del estudiante. */
 .documentos-estudiante .panel-head h2 {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin: 0;
-}
-
-.documentos-estudiante .inline-icon {
-    flex-shrink: 0;
+    gap: var(--space-2);
 }
 
 .documentos-estudiante__actuales {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
+    display: grid;
+    gap: var(--space-3);
 }
 
 .documentos-estudiante__actuales h3 {
-    margin: 0;
-    font-size: 1rem;
+    font: 600 15px/22px var(--font-sans);
 }
 
 .documentos-estudiante__lista {
     display: grid;
-    gap: 10px;
+    gap: var(--space-2);
 }
 
 .documentos-estudiante__item {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 16px;
-
-    padding: 12px 14px;
-
-    border: 1px solid rgba(0, 0, 0, 0.1);
-    border-radius: 10px;
+    gap: var(--space-4);
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
 }
 
 .documentos-estudiante__item > div {
     min-width: 0;
-
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-.documentos-estudiante__item b {
-    font-size: 0.95rem;
-}
-
-.documentos-estudiante__item span {
-    overflow-wrap: anywhere;
+    display: grid;
+    gap: var(--space-1);
 }
 
 .documentos-estudiante__item > div > span {
+    overflow-wrap: anywhere;
+    font-size: 14px;
     color: var(--ink-muted);
-    font-size: 0.875rem;
-}
-
-.documentos-estudiante__estado {
-    flex-shrink: 0;
-
-    display: inline-flex;
-    align-items: center;
-
-    padding: 4px 9px;
-
-    border-radius: 999px;
-
-    font-size: 0.78rem;
-    font-weight: 600;
-
-    background: rgba(22, 163, 74, 0.1);
-    color: #15803d;
 }
 
 .documentos-estudiante form {
-    display: flex;
-    flex-direction: column;
-    gap: 18px;
+    display: grid;
+    gap: var(--space-5);
 }
 
 .documentos-estudiante__acciones {
     justify-content: flex-end;
-    margin-top: 4px;
-}
-
-/*
- * La columna de acciones ahora contiene
- * "Documentos" y "Editar".
- */
-.dtable td.actions {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    flex-wrap: wrap;
-    gap: 6px;
 }
 
 @media (max-width: 720px) {
     .documentos-estudiante__item {
-        align-items: flex-start;
         flex-direction: column;
+        align-items: flex-start;
     }
 
     .documentos-estudiante__acciones {
-        align-items: stretch;
         flex-direction: column-reverse;
+        align-items: stretch;
     }
 
     .documentos-estudiante__acciones .sg-btn {
         width: 100%;
-        justify-content: center;
     }
 }

@@ -32,6 +32,9 @@ public class Grupo {
     @Column(name = "id_profesor")
     private Long idProfesor;
 
+    @Column(name = "id_usuario_ultima_modificacion")
+    private Long idUsuarioUltimaModificacion;
+
     @Size(max = 40)
     @NotNull
     @Column(name = "codigo", nullable = false, length = 40)

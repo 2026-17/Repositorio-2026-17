@@ -5,14 +5,19 @@ import cr.acusab.una.sigac.data.entity.Grupo;
 import cr.acusab.una.sigac.data.entity.HorarioGrupo;
 import cr.acusab.una.sigac.data.entity.PeriodoAcademico;
 import cr.acusab.una.sigac.data.entity.Profesor;
+import cr.acusab.una.sigac.data.entity.Usuario;
 import cr.acusab.una.sigac.data.repository.CursoRepository;
 import cr.acusab.una.sigac.data.repository.GrupoRepository;
 import cr.acusab.una.sigac.data.repository.HorarioGrupoRepository;
 import cr.acusab.una.sigac.data.repository.PeriodoAcademicoRepository;
 import cr.acusab.una.sigac.data.repository.ProfesorRepository;
+import cr.acusab.una.sigac.data.repository.UsuarioRepository;
+import cr.acusab.una.sigac.logic.exception.BusinessException;
 import cr.acusab.una.sigac.presentation.dto.request.GrupoRequestDTO;
 import cr.acusab.una.sigac.presentation.dto.request.HorarioGrupoRequestDTO;
 import cr.acusab.una.sigac.presentation.dto.response.GrupoResponseDTO;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -52,19 +57,25 @@ public class GrupoService {
     private final CursoRepository cursoRepository;
     private final PeriodoAcademicoRepository periodoAcademicoRepository;
     private final ProfesorRepository profesorRepository;
+    private final ValidacionHorarioProfesorService validacionHorarioProfesorService;
+    private final UsuarioRepository usuarioRepository;
 
     public GrupoService(
             GrupoRepository grupoRepository,
             HorarioGrupoRepository horarioGrupoRepository,
             CursoRepository cursoRepository,
             PeriodoAcademicoRepository periodoAcademicoRepository,
-            ProfesorRepository profesorRepository
+            ProfesorRepository profesorRepository,
+            ValidacionHorarioProfesorService validacionHorarioProfesorService,
+            UsuarioRepository usuarioRepository
     ) {
         this.grupoRepository = grupoRepository;
         this.horarioGrupoRepository = horarioGrupoRepository;
         this.cursoRepository = cursoRepository;
         this.periodoAcademicoRepository = periodoAcademicoRepository;
         this.profesorRepository = profesorRepository;
+        this.validacionHorarioProfesorService = validacionHorarioProfesorService;
+        this.usuarioRepository = usuarioRepository;
     }
 
     /*
@@ -86,12 +97,12 @@ public class GrupoService {
         // 1. El curso debe existir y estar activo.
         Curso curso = cursoRepository
                 .findById(request.getIdCurso())
-                .orElseThrow(() -> new IllegalArgumentException(
+                .orElseThrow(() -> new BusinessException(
                         "El curso seleccionado no existe."
                 ));
 
         if (!Boolean.TRUE.equals(curso.getActivo())) {
-            throw new IllegalArgumentException(
+            throw new BusinessException(
                     "El curso seleccionado se encuentra inactivo."
             );
         }
@@ -99,12 +110,12 @@ public class GrupoService {
         // 2. El período debe existir y no estar cerrado ni cancelado.
         PeriodoAcademico periodo = periodoAcademicoRepository
                 .findById(request.getIdPeriodo())
-                .orElseThrow(() -> new IllegalArgumentException(
+                .orElseThrow(() -> new BusinessException(
                         "El período académico seleccionado no existe."
                 ));
 
         if (ESTADOS_PERIODO_CERRADOS.contains(periodo.getEstado())) {
-            throw new IllegalArgumentException(
+            throw new BusinessException(
                     "No se pueden crear grupos en un período cerrado o cancelado."
             );
         }
@@ -115,13 +126,13 @@ public class GrupoService {
         if (request.getIdProfesor() != null) {
 
             profesor = profesorRepository
-                    .findById(request.getIdProfesor())
-                    .orElseThrow(() -> new IllegalArgumentException(
+                    .findByIdParaAsignacion(request.getIdProfesor())
+                    .orElseThrow(() -> new BusinessException(
                             "El profesor seleccionado no existe."
                     ));
 
             if (!Boolean.TRUE.equals(profesor.getActivo())) {
-                throw new IllegalArgumentException(
+                throw new BusinessException(
                         "El profesor seleccionado se encuentra inactivo."
                 );
             }
@@ -129,14 +140,20 @@ public class GrupoService {
 
         // 4. Modalidad y estado deben ser de los permitidos.
         if (!MODALIDADES_VALIDAS.contains(modalidad)) {
-            throw new IllegalArgumentException(
+            throw new BusinessException(
                     "La modalidad indicada no es válida."
             );
         }
 
         if (!ESTADOS_VALIDOS_CREACION.contains(estado)) {
-            throw new IllegalArgumentException(
+            throw new BusinessException(
                     "El estado indicado no es válido."
+            );
+        }
+
+        if ("PUBLICADO".equals(estado) && profesor == null) {
+            throw new BusinessException(
+                    "Un grupo solo puede publicarse cuando tiene un profesor activo asignado."
             );
         }
 
@@ -146,7 +163,7 @@ public class GrupoService {
 
         // 6. El código no se puede repetir dentro del período.
         if (grupoRepository.existsByIdPeriodoAndCodigo(periodo.getId(), codigo)) {
-            throw new IllegalArgumentException(
+            throw new BusinessException(
                     "Ya existe un grupo con ese código en el período seleccionado."
             );
         }
@@ -154,10 +171,40 @@ public class GrupoService {
         // 7. El horario no puede tener bloques inválidos ni traslapes.
         validarHorarios(request.getHorarios());
 
+        if (profesor != null) {
+            List<ValidacionHorarioProfesorService.BloqueHorario> horariosPropuestos =
+                    request.getHorarios().stream()
+                            .map(horario -> new ValidacionHorarioProfesorService.BloqueHorario(
+                                    horario.getDiaSemana(),
+                                    horario.getHoraInicio(),
+                                    horario.getHoraFin()
+                            ))
+                            .toList();
+
+            LocalDate fechaInicioEfectiva = fechaInicio != null
+                    ? fechaInicio
+                    : periodo.getFechaInicio();
+            LocalDate fechaFinEfectiva = fechaFin != null
+                    ? fechaFin
+                    : periodo.getFechaFin();
+
+            validacionHorarioProfesorService.validarDisponibilidad(
+                    profesor.getId(),
+                    periodo.getId(),
+                    fechaInicioEfectiva,
+                    fechaFinEfectiva,
+                    null,
+                    horariosPropuestos
+            );
+        }
+
         Instant ahora = Instant.now();
 
         // 8. Crear el grupo.
+        Long idUsuario = obtenerIdUsuarioAutenticado();
+
         Grupo grupo = new Grupo();
+        grupo.setIdUsuarioUltimaModificacion(idUsuario);
         grupo.setIdCurso(curso.getId());
         grupo.setIdPeriodo(periodo.getId());
         grupo.setIdProfesor(profesor != null ? profesor.getId() : null);
@@ -213,7 +260,7 @@ public class GrupoService {
                 && fechaFin != null
                 && fechaFin.isBefore(fechaInicio)) {
 
-            throw new IllegalArgumentException(
+            throw new BusinessException(
                     "La fecha de fin del grupo no puede ser anterior a la fecha de inicio."
             );
         }
@@ -222,7 +269,7 @@ public class GrupoService {
                 && (fechaInicio.isBefore(periodo.getFechaInicio())
                 || fechaInicio.isAfter(periodo.getFechaFin()))) {
 
-            throw new IllegalArgumentException(
+            throw new BusinessException(
                     "La fecha de inicio del grupo debe estar dentro del período académico."
             );
         }
@@ -231,7 +278,7 @@ public class GrupoService {
                 && (fechaFin.isBefore(periodo.getFechaInicio())
                 || fechaFin.isAfter(periodo.getFechaFin()))) {
 
-            throw new IllegalArgumentException(
+            throw new BusinessException(
                     "La fecha de fin del grupo debe estar dentro del período académico."
             );
         }
@@ -246,7 +293,7 @@ public class GrupoService {
         for (HorarioGrupoRequestDTO horario : horarios) {
 
             if (!horario.getHoraFin().isAfter(horario.getHoraInicio())) {
-                throw new IllegalArgumentException(
+                throw new BusinessException(
                         "En cada horario, la hora de fin debe ser posterior a la hora de inicio."
                 );
             }
@@ -266,11 +313,26 @@ public class GrupoService {
             if (anterior.getDiaSemana().equals(actual.getDiaSemana())
                     && actual.getHoraInicio().isBefore(anterior.getHoraFin())) {
 
-                throw new IllegalArgumentException(
+                throw new BusinessException(
                         "Hay horarios que se traslapan el mismo día."
                 );
             }
         }
+    }
+
+    private Long obtenerIdUsuarioAutenticado() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()
+                || authentication.getName() == null
+                || "anonymousUser".equals(authentication.getName())) {
+            throw new IllegalStateException("No se pudo identificar al usuario autenticado.");
+        }
+
+        Usuario usuario = usuarioRepository.findByCedula(authentication.getName())
+                .orElseThrow(() -> new IllegalStateException(
+                        "El usuario autenticado no existe en el sistema."
+                ));
+        return usuario.getId();
     }
 
     private String textoOpcional(String texto) {

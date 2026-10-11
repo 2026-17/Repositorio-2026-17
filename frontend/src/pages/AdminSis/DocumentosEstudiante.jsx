@@ -4,6 +4,7 @@ import { FileText, Upload, X } from "lucide-react";
 import { API_URL } from "../../config/api.js";
 import Alert from "../../components/ui/Alert";
 import Field from "../../components/ui/Field";
+import StatusBadge from "../../components/ui/StatusBadge";
 import { useDialog } from "../../components/dialog/useDialog";
 
 const MAX_PDF_SIZE = 50 * 1024 * 1024;
@@ -494,9 +495,9 @@ function DocumentosEstudiante({ estudiante, onClose }) {
                                                     </span>
                                                 </div>
 
-                                                <span className="documentos-estudiante__estado">
+                                                <StatusBadge tone="success">
                                                     Vigente
-                                                </span>
+                                                </StatusBadge>
                                             </div>
                                         )
                                     )}
@@ -640,14 +641,21 @@ function DocumentosEstudiante({ estudiante, onClose }) {
                                         undefined
                                     }
                                 >
-                                    <Upload
-                                        size={18}
-                                        strokeWidth={1.75}
-                                        aria-hidden="true"
-                                    />
+                                    {guardando ? (
+                                        <span
+                                            className="sg-spinner"
+                                            aria-hidden="true"
+                                        />
+                                    ) : (
+                                        <Upload
+                                            size={18}
+                                            strokeWidth={1.75}
+                                            aria-hidden="true"
+                                        />
+                                    )}
 
                                     {guardando
-                                        ? "Adjuntando..."
+                                        ? "Adjuntando…"
                                         : documentoActualMismoTipo
                                             ? "Reemplazar documento"
                                             : "Adjuntar documento"}
