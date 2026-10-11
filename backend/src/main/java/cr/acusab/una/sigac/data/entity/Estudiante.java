@@ -103,10 +103,20 @@ public class Estudiante {
     @Column(name = "fecha_egreso")
     private LocalDate fechaEgreso;
 
+    @Size(max = 500)
+    @Column(name = "motivo_baja", length = 500)
+    private String motivoBaja;
+
+    @Column(name = "fecha_baja")
+    private Instant fechaBaja;
+
     @NotNull
     @ColumnDefault("1")
     @Column(name = "activo", nullable = false)
     private Boolean activo = false;
+
+    @Column(name = "id_usuario_ultima_modificacion")
+    private Long idUsuarioUltimaModificacion;
 
     @NotNull
     @CreationTimestamp

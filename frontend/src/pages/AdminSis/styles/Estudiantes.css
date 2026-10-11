@@ -7,3 +7,17 @@
     min-height: 72px;
     justify-content: center;
 }
+
+/* HU-009: dar de baja y reactivar estudiantes. */
+.baja-contador {
+    margin: var(--space-1) 0 0;
+    text-align: right;
+    font-size: 13px;
+    color: var(--ink-muted);
+}
+
+.dtable .btn-baja { color: var(--danger); }
+.dtable .btn-baja:hover:not(:disabled) { background: var(--danger-soft); }
+
+.dtable .btn-reactivar { color: var(--success); }
+.dtable .btn-reactivar:hover:not(:disabled) { background: var(--success-soft); }
