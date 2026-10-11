@@ -71,7 +71,7 @@ class AsignacionProfesorServiceTest {
     }
 
     @Test
-    void asignar_rechazaConflictoDeHorarioConOtroGrupoDelMismoPeriodo() {
+    void asignar_rechazaConflictoDeHorarioConGrupoDePeriodoSuperpuesto() {
         Long idGrupo = 1L;
         Long idProfesor = 9L;
         Long idPeriodo = 4L;
@@ -84,7 +84,7 @@ class AsignacionProfesorServiceTest {
 
         Grupo existente = new Grupo();
         existente.setId(2L);
-        existente.setIdPeriodo(idPeriodo);
+        existente.setIdPeriodo(idPeriodo + 1);
         existente.setIdCurso(7L);
         existente.setIdProfesor(idProfesor);
         existente.setCodigo("G-B");
