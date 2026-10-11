@@ -2,7 +2,6 @@ package cr.acusab.una.sigac.logic.service;
 
 import cr.acusab.una.sigac.data.entity.Curso;
 import cr.acusab.una.sigac.data.entity.Grupo;
-import cr.acusab.una.sigac.logic.exception.BusinessException;
 import cr.acusab.una.sigac.data.entity.HorarioGrupo;
 import cr.acusab.una.sigac.data.entity.PeriodoAcademico;
 import cr.acusab.una.sigac.data.entity.Profesor;
@@ -13,6 +12,7 @@ import cr.acusab.una.sigac.data.repository.HorarioGrupoRepository;
 import cr.acusab.una.sigac.data.repository.PeriodoAcademicoRepository;
 import cr.acusab.una.sigac.data.repository.ProfesorRepository;
 import cr.acusab.una.sigac.data.repository.UsuarioRepository;
+import cr.acusab.una.sigac.logic.exception.BusinessException;
 import cr.acusab.una.sigac.presentation.dto.request.GrupoRequestDTO;
 import cr.acusab.una.sigac.presentation.dto.request.HorarioGrupoRequestDTO;
 import cr.acusab.una.sigac.presentation.dto.response.GrupoResponseDTO;
