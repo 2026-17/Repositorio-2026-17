@@ -28,6 +28,29 @@ function fechaActualCostaRica() {
     return `${obtener("year")}-${obtener("month")}-${obtener("day")}`;
 }
 
+function fechaLegiblePeriodo(fecha) {
+    if (!fecha) return "fecha no disponible";
+
+    const fechaISO = String(fecha).slice(0, 10);
+    const partes = /^(\\d{4})-(\\d{2})-(\\d{2})$/.exec(fechaISO);
+    if (!partes) return fechaISO;
+
+    // Mediodía UTC evita que la conversión de zona horaria cambie el día.
+    const fechaUTC = new Date(Date.UTC(
+        Number(partes[1]),
+        Number(partes[2]) - 1,
+        Number(partes[3]),
+        12
+    ));
+
+    return new Intl.DateTimeFormat("es-CR", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+        timeZone: "America/Costa_Rica",
+    }).format(fechaUTC);
+}
+
 function AsignarProfesores() {
     const dialog = useDialog();
     const [asignaciones, setAsignaciones] = useState([]);
@@ -158,7 +181,7 @@ function AsignarProfesores() {
             return "El grupo no tiene una fecha de inicio válida para determinar el plazo de asignación.";
         }
         if (!fechaPeriodoPendiente(item)) {
-            return "El período ya inició; la asignación solo puede modificarse antes de esa fecha.";
+            return `El período ya inició; la asignación solo puede modificarse antes de la fecha de inicio (${fechaLegiblePeriodo(item.inicioPeriodo)}).`;
         }
         return "";
     }
