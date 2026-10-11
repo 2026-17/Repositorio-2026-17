@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ChevronsUpDown, Pencil, Plus, Search, Users, X } from "lucide-react";
+import { ChevronsUpDown, Pencil, Plus, Search, UserCheck, UserX, Users, X } from "lucide-react";
 import { API_URL } from "../../config/api.js";
 import CreateStudent from "./createStudent";
 import EditarEstudiante from "./EditarEstudiante";
@@ -27,6 +27,10 @@ function Estudiantes() {
     const [cargando, setCargando] = useState(true);
     const [formAbierto, setFormAbierto] = useState(false);
     const [editingId, setEditingId] = useState(null);
+    const [bajaEstudiante, setBajaEstudiante] = useState(null);
+    const [motivoBaja, setMotivoBaja] = useState("");
+    const [bajaError, setBajaError] = useState("");
+    const [bajaCargando, setBajaCargando] = useState(false);
     const [recargar, setRecargar] = useState(0);
 
     const getHeaders = useCallback(() => {
@@ -91,6 +95,7 @@ function Estudiantes() {
     }
 
     function abrirNuevo() {
+        setBajaEstudiante(null);
         setEditingId(null);
         setFormAbierto(true);
         requestAnimationFrame(() =>
@@ -102,6 +107,7 @@ function Estudiantes() {
     }
 
     function abrirEditar(estudiante) {
+        setBajaEstudiante(null);
         setEditingId(estudiante.id);
         setFormAbierto(true);
         requestAnimationFrame(() =>
@@ -115,6 +121,123 @@ function Estudiantes() {
     function cerrarFormulario() {
         setFormAbierto(false);
         setEditingId(null);
+    }
+
+    function abrirBaja(estudiante) {
+        setFormAbierto(false);
+        setEditingId(null);
+        setBajaEstudiante(estudiante);
+        setMotivoBaja("");
+        setBajaError("");
+
+        // El formulario se renderiza al inicio de la página; llevarlo a la vista.
+        requestAnimationFrame(() => {
+            document.getElementById("form-baja-estudiante")?.scrollIntoView({
+                behavior: "smooth",
+                block: "start",
+            });
+            document.getElementById("txtMotivoBaja")?.focus({ preventScroll: true });
+        });
+    }
+
+    function cerrarBaja() {
+        if (bajaCargando) return;
+        setBajaEstudiante(null);
+        setMotivoBaja("");
+        setBajaError("");
+    }
+
+    async function confirmarBaja() {
+        const motivo = motivoBaja.trim();
+
+        if (!motivo) {
+            setBajaError("El motivo de baja es obligatorio.");
+            return;
+        }
+
+        if (motivo.length > 500) {
+            setBajaError("El motivo de baja no puede superar 500 caracteres.");
+            return;
+        }
+
+        const confirmado = await dialog.confirmar(
+            `¿Confirma la baja de ${bajaEstudiante.nombreCompleto}? Se cancelarán sus matrículas activas.`,
+            {
+                peligro: true,
+                textoAceptar: "Dar de baja",
+            }
+        );
+
+        if (!confirmado) return;
+
+        setBajaCargando(true);
+        setBajaError("");
+
+        try {
+            const response = await fetch(
+                `${API_URL}/estudiantes/${bajaEstudiante.id}/baja`,
+                {
+                    method: "PATCH",
+                    headers: {
+                        ...getHeaders(),
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({ motivoBaja: motivo }),
+                }
+            );
+
+            const data = await response.json().catch(() => ({}));
+
+            if (!response.ok) {
+                throw new Error(data.message || "No se pudo dar de baja al estudiante.");
+            }
+
+            setBajaEstudiante(null);
+            setMotivoBaja("");
+            setRecargar((n) => n + 1);
+
+            await dialog.exito(
+                `Baja realizada correctamente. Matrículas canceladas: ${data.matriculasCanceladas}. Cursos retirados: ${data.cursosRetirados}.`
+            );
+        } catch (e) {
+            setBajaError(e.message);
+        } finally {
+            setBajaCargando(false);
+        }
+    }
+
+    async function confirmarReactivacion(estudiante) {
+        const confirmado = await dialog.confirmar(
+            `¿Desea reactivar a ${estudiante.nombreCompleto}?`,
+            {
+                textoAceptar: "Reactivar estudiante",
+            }
+        );
+
+        if (!confirmado) return;
+
+        try {
+            const response = await fetch(
+                `${API_URL}/estudiantes/${estudiante.id}/reactivar`,
+                {
+                    method: "PATCH",
+                    headers: getHeaders(),
+                }
+            );
+            const data = await response.json().catch(() => ({}));
+
+            if (!response.ok) {
+                throw new Error(data.message || "No se pudo reactivar al estudiante.");
+            }
+
+            setRecargar((n) => n + 1);
+            await dialog.exito(
+                data.mensaje ||
+                "Estudiante reactivado. Las matrículas y cursos cancelados no se restauran automáticamente."
+            );
+        } catch (e) {
+            dialog.error(e.message);
+        }
     }
 
     function formularioGuardado() {
@@ -141,6 +264,70 @@ function Estudiantes() {
                     </button>
                 )}
             />
+
+            {bajaEstudiante && (
+                <section
+                    id="form-baja-estudiante"
+                    className="panel form-incrustado"
+                    aria-labelledby="titulo-baja-estudiante"
+                >
+                    <div className="panel-head">
+                        <div>
+                            <h2 id="titulo-baja-estudiante">Dar de baja estudiante</h2>
+                            <p className="panel-head-sub">
+                                {bajaEstudiante.nombreCompleto} — {bajaEstudiante.numeroIdentificacion || "Sin identificación"}
+                            </p>
+                        </div>
+                    </div>
+                    <div className="panel-body">
+                        <Field
+                            id="txtMotivoBaja"
+                            label="Motivo de baja"
+                            hint="Se cancelarán sus matrículas activas y se retirarán sus cursos. Máximo 500 caracteres."
+                            error={bajaError}
+                        >
+                            <textarea
+                                id="txtMotivoBaja"
+                                className="sg-input"
+                                value={motivoBaja}
+                                onChange={(e) => {
+                                    setMotivoBaja(e.target.value);
+                                    if (bajaError) setBajaError("");
+                                }}
+                                maxLength={500}
+                                rows={4}
+                                placeholder="Indique el motivo de la baja"
+                                disabled={bajaCargando}
+                                aria-invalid={bajaError ? true : undefined}
+                                aria-describedby={`txtMotivoBaja-hint${bajaError ? " txtMotivoBaja-error" : ""}`}
+                            />
+                        </Field>
+                        <p className="baja-contador" aria-live="polite">{motivoBaja.length}/500</p>
+                    </div>
+                    <div className="panel-foot">
+                        <button
+                            type="button"
+                            className="sg-btn sg-btn--secondary"
+                            onClick={cerrarBaja}
+                            disabled={bajaCargando}
+                        >
+                            Cancelar
+                        </button>
+                        <button
+                            type="button"
+                            className={`sg-btn sg-btn--danger${bajaCargando ? " is-loading" : ""}`}
+                            onClick={confirmarBaja}
+                            disabled={bajaCargando}
+                            aria-busy={bajaCargando || undefined}
+                        >
+                            {bajaCargando
+                                ? <span className="sg-spinner" aria-hidden="true" />
+                                : <UserX size={18} strokeWidth={1.75} aria-hidden="true" />}
+                            {bajaCargando ? "Procesando…" : "Dar de baja"}
+                        </button>
+                    </div>
+                </section>
+            )}
 
             {formAbierto && (
                 <section id="form-estudiante" className="form-incrustado">
@@ -283,15 +470,38 @@ function Estudiantes() {
                                             </StatusBadge>
                                         </td>
                                         <td className="actions">
-                                            <button
-                                                type="button"
-                                                className="sg-btn sg-btn--ghost sg-btn--sm"
-                                                onClick={() => abrirEditar(e)}
-                                                aria-label={`Editar a ${e.nombreCompleto}`}
-                                            >
-                                                <Pencil size={16} strokeWidth={1.75} aria-hidden="true" />
-                                                Editar
-                                            </button>
+                                            <div className="row-actions">
+                                                <button
+                                                    type="button"
+                                                    className="sg-btn sg-btn--ghost sg-btn--sm"
+                                                    onClick={() => abrirEditar(e)}
+                                                    aria-label={`Editar a ${e.nombreCompleto}`}
+                                                >
+                                                    <Pencil size={16} strokeWidth={1.75} aria-hidden="true" />
+                                                    Editar
+                                                </button>
+                                                {e.activo ? (
+                                                    <button
+                                                        type="button"
+                                                        className="sg-btn sg-btn--ghost sg-btn--sm btn-baja"
+                                                        onClick={() => abrirBaja(e)}
+                                                        aria-label={`Dar de baja a ${e.nombreCompleto}`}
+                                                    >
+                                                        <UserX size={16} strokeWidth={1.75} aria-hidden="true" />
+                                                        Dar de baja
+                                                    </button>
+                                                ) : (
+                                                    <button
+                                                        type="button"
+                                                        className="sg-btn sg-btn--ghost sg-btn--sm btn-reactivar"
+                                                        onClick={() => confirmarReactivacion(e)}
+                                                        aria-label={`Reactivar a ${e.nombreCompleto}`}
+                                                    >
+                                                        <UserCheck size={16} strokeWidth={1.75} aria-hidden="true" />
+                                                        Reactivar
+                                                    </button>
+                                                )}
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
