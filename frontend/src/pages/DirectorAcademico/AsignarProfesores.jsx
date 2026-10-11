@@ -223,6 +223,11 @@ function AsignarProfesores() {
                 throw new Error(data.message || "No se pudo eliminar la asignación.");
             }
             setMensaje(`Se eliminó la asignación del grupo ${item.codigoGrupo}.`);
+            setSelecciones((prev) => {
+                const next = { ...prev };
+                delete next[item.idGrupo];
+                return next;
+            });
             await cargar();
         } catch (e) {
             setError(e.message || "No se pudo eliminar la asignación.");
@@ -367,6 +372,10 @@ function AsignarProfesores() {
                                         const horarioRegistrado = Array.isArray(item.horarios) && item.horarios.length > 0;
                                         const plazoAbierto = fechaPeriodoPendiente(item);
                                         const habilitado = puedeAsignar(item);
+                                        const mismaAsignacion = Boolean(
+                                            item.idProfesor
+                                            && String(item.idProfesor) === selecciones[item.idGrupo]
+                                        );
                                         const motivo = motivoBloqueo(item);
                                         return (
                                             <tr key={item.idGrupo}>
@@ -424,8 +433,10 @@ function AsignarProfesores() {
                                                             type="button"
                                                             className="sg-btn sg-btn--primary sg-btn--sm"
                                                             onClick={() => asignar(item)}
-                                                            disabled={ocupado !== null || !habilitado}
-                                                            title={!habilitado ? motivo : "Guardar la asignación del profesor"}
+                                                            disabled={ocupado !== null || !habilitado || mismaAsignacion}
+                                                            title={mismaAsignacion
+                                                                ? "Seleccione un profesor diferente para cambiar la asignación."
+                                                                : !habilitado ? motivo : "Guardar la asignación del profesor"}
                                                         >
                                                             <UserCheck size={20} strokeWidth={1.75} aria-hidden="true" />
                                                             {ocupado === item.idGrupo ? "Guardando…" : item.idProfesor ? "Cambiar" : "Asignar"}
@@ -445,6 +456,9 @@ function AsignarProfesores() {
                                                         )}
                                                     </div>
                                                     {!habilitado && <small className="asignar-profesores-bloqueo">{motivo}</small>}
+                                                    {habilitado && mismaAsignacion && (
+                                                        <small className="asignar-profesores-bloqueo">El profesor seleccionado ya está asignado.</small>
+                                                    )}
                                                 </td>
                                             </tr>
                                         );
