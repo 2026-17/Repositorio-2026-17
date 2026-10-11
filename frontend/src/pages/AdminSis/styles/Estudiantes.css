@@ -1,183 +1,91 @@
-.students-card {
-    overflow: hidden;
-}
-
-.students-search-row {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    margin: 14px 0 18px;
-}
-
-.students-search {
-    position: relative;
-    flex: 1;
-    max-width: 520px;
-}
-
-.students-search > svg {
-    position: absolute;
-    left: 12px;
-    top: 11px;
-    color: var(--texto-suave);
-    pointer-events: none;
-}
-
-.students-search-input {
-    padding-left: 38px;
-}
-
-.students-count {
-    color: var(--texto-suave);
-    font-size: 12.5px;
-    white-space: nowrap;
-}
-
-.students-table-wrap {
-    width: 100%;
-    overflow-x: auto;
-    border-top: 1px solid #e5e2da;
-}
-
-.students-table {
-    width: 100%;
-    min-width: 920px;
-    border-collapse: collapse;
-    font-size: 12.5px;
-}
-
-.students-table th {
-    padding: 11px 10px;
-    text-align: left;
-    color: #77736d;
-    font-weight: 600;
-    border-bottom: 1px solid #e5e2da;
-    white-space: nowrap;
-}
-
-.students-table td {
-    padding: 12px 10px;
-    color: #77736d;
-    border-bottom: 1px solid #eeeae3;
-    vertical-align: middle;
-}
-
-.students-table tbody tr:last-child td {
-    border-bottom: none;
-}
-
-.students-table tbody tr:hover {
-    background: #fbfafc;
-}
-
-.students-table .student-name {
-    color: var(--texto);
-    font-weight: 600;
-    min-width: 160px;
-}
-
-.students-actions {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.students-actions .icon-btn {
-    color: var(--texto);
-    text-decoration: none;
-}
-
-.students-actions .icon-btn:hover {
-    color: var(--morado-01);
-    border-color: var(--morado-01);
-}
-
-.student-status {
-    display: inline-flex;
-    align-items: center;
-    border-radius: 999px;
-    padding: 4px 9px;
-    font-size: 11px;
-    font-weight: 600;
-}
-
-.student-status.active {
-    background: #eaf7f0;
-    color: var(--verde-02);
-}
-
-.student-status.inactive {
-    background: #fbeaec;
-    color: var(--rojo-01);
-}
-
-.students-empty {
-    height: 150px;
-    text-align: center !important;
-    color: var(--texto-suave) !important;
-}
-
-.students-empty svg,
-.students-empty span {
-    display: block;
-    margin: 0 auto 8px;
-}
+/* Estilos de Consultar / Editar estudiante.
+   La lista usa el patrón compartido (.page-toolbar, .table-wrap, .table,
+   .badge) y el formulario las clases base (.card, .field, .input, .age-box)
+   de src/styles/components.css. Aquí solo va lo propio de estas pantallas. */
 
 .age-box {
     min-height: 72px;
-    border: 1px solid #e5e2da;
-    border-radius: 8px;
-    background: #fbfaf7;
-    padding: 10px 12px;
+    justify-content: center;
+}
+
+/* HU-009: dar de baja y reactivar estudiantes. */
+.baja-contador {
+    margin: var(--space-1) 0 0;
+    text-align: right;
+    font-size: 13px;
+    color: var(--ink-muted);
+}
+
+.dtable .btn-baja { color: var(--danger); }
+.dtable .btn-baja:hover:not(:disabled) { background: var(--danger-soft); }
+
+.dtable .btn-reactivar { color: var(--success); }
+.dtable .btn-reactivar:hover:not(:disabled) { background: var(--success-soft); }
+
+/* HU-022: documentos del estudiante. */
+.documentos-estudiante .panel-head h2 {
     display: flex;
-    flex-direction: column;
-    justify-content: center;
+    align-items: center;
+    gap: var(--space-2);
 }
 
-.age-box small {
-    color: var(--texto-suave);
-    font-size: 11px;
+.documentos-estudiante__actuales {
+    display: grid;
+    gap: var(--space-3);
 }
 
-.age-box strong {
-    color: var(--texto);
-    font-size: 17px;
-    margin-top: 2px;
+.documentos-estudiante__actuales h3 {
+    font: 600 15px/22px var(--font-sans);
 }
 
-.age-box span {
-    color: var(--morado-01);
-    font-size: 11px;
-    margin-top: 2px;
+.documentos-estudiante__lista {
+    display: grid;
+    gap: var(--space-2);
 }
 
-.banner-info {
-    background: #f1edf5;
-    border: 1px solid #d9c9e0;
-    color: var(--morado-01);
+.documentos-estudiante__item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
 }
 
-.input-error {
-    border-color: var(--rojo-01) !important;
+.documentos-estudiante__item > div {
+    min-width: 0;
+    display: grid;
+    gap: var(--space-1);
 }
 
-.input-error:focus {
-    border-color: var(--rojo-01) !important;
-    box-shadow: 0 0 0 1px var(--rojo-01);
+.documentos-estudiante__item > div > span {
+    overflow-wrap: anywhere;
+    font-size: 14px;
+    color: var(--ink-muted);
 }
 
-.full {
-    width: 100%;
-    justify-content: center;
+.documentos-estudiante form {
+    display: grid;
+    gap: var(--space-5);
+}
+
+.documentos-estudiante__acciones {
+    justify-content: flex-end;
 }
 
 @media (max-width: 720px) {
-    .students-search-row {
-        align-items: stretch;
+    .documentos-estudiante__item {
         flex-direction: column;
+        align-items: flex-start;
     }
 
-    .students-search {
-        max-width: none;
+    .documentos-estudiante__acciones {
+        flex-direction: column-reverse;
+        align-items: stretch;
+    }
+
+    .documentos-estudiante__acciones .sg-btn {
+        width: 100%;
     }
 }

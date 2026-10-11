@@ -34,7 +34,10 @@ public record EstudianteCreateRequest(
         @Size(max = 30, message = "El género no puede superar 30 caracteres")
         String genero,
 
-        @NotBlank(message = "La dirección es obligatoria")
+        @NotNull(message = "El distrito es obligatorio")
+        Integer codigoDistrito,
+
+        @NotBlank(message = "La dirección exacta es obligatoria")
         @Size(max = 500, message = "La dirección no puede superar 500 caracteres")
         String direccion,
 

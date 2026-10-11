@@ -1,7 +1,12 @@
 import RequisitosCursoOpcionales from "./RequisitosCursoOpcionales";
 import { useEffect, useState } from "react";
 import { API_URL } from "../../config/api";
+import { BookPlus } from "lucide-react";
 import "./crearCurso.css";
+import Alert from "../../components/ui/Alert";
+import Field from "../../components/ui/Field";
+import PageHead from "../../components/ui/PageHead";
+import { listaErrores } from "../../components/ui/utilidades";
 
 import { useDialog } from "../../components/dialog/useDialog";
 
@@ -29,6 +34,7 @@ function CrearCurso() {
     const [guardando, setGuardando] = useState(false);
 
     const [errores, setErrores] = useState({});
+    const [intento, setIntento] = useState(0);
 
 
     useEffect(() => {
@@ -174,7 +180,7 @@ function CrearCurso() {
 
         if (Object.keys(erroresValidacion).length > 0) {
             setErrores(erroresValidacion);
-            dialog.validacion(erroresValidacion);
+            setIntento(n => n + 1);
             return;
         }
 
@@ -277,335 +283,106 @@ function CrearCurso() {
         setErrores({});
     }
 
+    const aria = (campo) => ({
+        "aria-invalid": errores[campo] ? "true" : undefined,
+        "aria-describedby": errores[campo] ? `${campo}-error` : undefined,
+    });
+    const resumen = listaErrores(errores);
+
     return (
-        <div className="container">
+        <div className="curso-page">
+            <PageHead
+                title="Crear curso"
+                sub="Complete la información para incorporar un nuevo curso a la malla curricular."
+            />
 
-            <div className="curso-page">
+            {cargandoCatalogos && (
+                <Alert tone="info" title="Cargando información académica..." className="form-alert" />
+            )}
 
-                <div className="curso-page__header">
-                    <div>
-                        <h1>Crear curso</h1>
-
-                        <p>
-                            Complete la información para incorporar un nuevo
-                            curso a la malla curricular.
-                        </p>
-                    </div>
-                </div>
-
-                {cargandoCatalogos && (
-                    <div
-                        className="curso-message curso-message--info"
-                        role="status"
-                    >
-                        Cargando información académica...
-                    </div>
+            <form onSubmit={handleSubmit} noValidate>
+                {resumen.length > 0 && (
+                    <Alert
+                        key={intento}
+                        tone="danger"
+                        autoFocus
+                        className="form-alert"
+                        title={resumen.length === 1 ? "Revise 1 dato antes de crear el curso" : `Revise ${resumen.length} datos antes de crear el curso`}
+                        errors={resumen}
+                    />
                 )}
 
-                <form
-                    className="curso-form"
-                    onSubmit={handleSubmit}
-                    noValidate
-                >
-
-                    <div className="curso-form__section">
-
-                        <h2>Información del curso</h2>
-
-                        <div className="curso-form__grid">
-                            <div className={`curso-field${errores.codigo ? " curso-field--error" : ""}`}>
-                                <label htmlFor="codigo">
-                                    Código del curso *
-                                </label>
-
-                                <input
-                                    id="codigo"
-                                    name="codigo"
-                                    type="text"
-                                    maxLength="30"
-                                    value={form.codigo}
-                                    onChange={handleChange}
-                                    placeholder="Ej. MUS-101"
-                                    autoComplete="off"
-
-                                    aria-invalid={Boolean(errores.codigo)}
-                                    aria-describedby={errores.codigo ? "codigo-error" : undefined}
-                                    required
-                                />
-
-                                {errores.codigo ? (
-                                    <span className="curso-field__error" id="codigo-error" role="alert">
-                                        {errores.codigo}
-                                    </span>
-                                ) : (
-                                    <small>
-                                        Debe ser un código único.
-                                    </small>
-                                )}
-                            </div>
-
-                            <div className={`curso-field${errores.nombre ? " curso-field--error" : ""}`}>
-
-                                <label htmlFor="nombre">
-                                    Nombre del curso *
-                                </label>
-
-                                <input
-                                    id="nombre"
-                                    name="nombre"
-                                    type="text"
-                                    maxLength="160"
-                                    value={form.nombre}
-                                    onChange={handleChange}
-                                    placeholder="Ej. Introducción a la música"
-                                    autoComplete="off"
-                                    aria-invalid={Boolean(errores.nombre)}
-                                    aria-describedby={errores.nombre ? "nombre-error" : undefined}
-                                    required
-                                />
-
-                                {errores.nombre && (
-                                    <span className="curso-field__error" id="nombre-error" role="alert">
-                                        {errores.nombre}
-                                    </span>
-                                )}
-
-                            </div>
-
-                            <div className="curso-field curso-field--full">
-                                <label htmlFor="descripcion">
-                                    Descripción
-                                </label>
-
-                                <textarea
-                                    id="descripcion"
-                                    name="descripcion"
-                                    rows="4"
-                                    value={form.descripcion}
-                                    onChange={handleChange}
-                                    placeholder="Describa brevemente el contenido del curso."
-                                />
-                            </div>
-
-
-                            <div className={`curso-field${errores.horasTotales ? " curso-field--error" : ""}`}>
-
-                                <label htmlFor="horasTotales">
-                                    Cantidad de horas *
-                                </label>
-
-                                <input
-                                    id="horasTotales"
-                                    name="horasTotales"
-                                    type="number"
-                                    min="1"
-                                    max="65535"
-                                    step="1"
-                                    value={form.horasTotales}
-                                    onChange={handleChange}
-                                    placeholder="Ej. 40"
-
-                                    aria-invalid={Boolean(errores.horasTotales)}
-                                    aria-describedby={errores.horasTotales ? "horasTotales-error" : undefined}
-                                    required
-                                />
-
-                                {errores.horasTotales && (
-                                    <span className="curso-field__error" id="horasTotales-error" role="alert">
-                                        {errores.horasTotales}
-                                    </span>
-                                )}
-                            </div>
-
-                            <div className={`curso-field${errores.nivel ? " curso-field--error" : ""}`}>
-
-                                <label htmlFor="nivel">
-                                    Nivel académico *
-                                </label>
-
-                                <input
-                                    id="nivel"
-                                    name="nivel"
-                                    type="number"
-                                    min="1"
-                                    step="1"
-                                    value={form.nivel}
-                                    onChange={handleChange}
-                                    placeholder="Ej. 1"
-                                    aria-invalid={Boolean(errores.nivel)}
-                                    aria-describedby={errores.nivel ? "nivel-error" : undefined}
-                                    required
-                                />
-
-                                {errores.nivel && (
-                                    <span className="curso-field__error" id="nivel-error" role="alert">
-                                        {errores.nivel}
-                                    </span>
-                                )}
-
-                            </div>
-
-                        </div>
+                <section className="panel">
+                    <div className="panel-head"><h2>Información del curso</h2></div>
+                    <div className="panel-body form-grid">
+                        <Field id="codigo" label="Código del curso" hint="Debe ser un código único." error={errores.codigo}>
+                            <input id="codigo" name="codigo" type="text" className="sg-input" maxLength="30" value={form.codigo} onChange={handleChange} placeholder="Ej. MUS-101" autoComplete="off" {...aria("codigo")} />
+                        </Field>
+                        <Field id="nombre" label="Nombre del curso" error={errores.nombre}>
+                            <input id="nombre" name="nombre" type="text" className="sg-input" maxLength="160" value={form.nombre} onChange={handleChange} placeholder="Ej. Introducción a la música" autoComplete="off" {...aria("nombre")} />
+                        </Field>
+                        <Field id="descripcion" label="Descripción" optional className="span-all">
+                            <textarea id="descripcion" name="descripcion" className="sg-input" rows="4" value={form.descripcion} onChange={handleChange} placeholder="Describa brevemente el contenido del curso." />
+                        </Field>
+                        <Field id="horasTotales" label="Cantidad de horas" error={errores.horasTotales}>
+                            <input id="horasTotales" name="horasTotales" type="number" className="sg-input" min="1" max="65535" step="1" inputMode="numeric" value={form.horasTotales} onChange={handleChange} placeholder="Ej. 40" {...aria("horasTotales")} />
+                        </Field>
+                        <Field id="nivel" label="Nivel académico" error={errores.nivel}>
+                            <input id="nivel" name="nivel" type="number" className="sg-input" min="1" step="1" inputMode="numeric" value={form.nivel} onChange={handleChange} placeholder="Ej. 1" {...aria("nivel")} />
+                        </Field>
                     </div>
+                </section>
 
-                    <div className="curso-form__section">
-
-                        <h2>Ubicación en la malla curricular</h2>
-
-                        <div className="curso-form__grid">
-
-
-                            <div className={`curso-field${errores.idPrograma ? " curso-field--error" : ""}`}>
-
-                                <label htmlFor="idPrograma">
-                                    Programa académico *
-                                </label>
-
-                                <select
-                                    id="idPrograma"
-                                    name="idPrograma"
-                                    value={form.idPrograma}
-                                    onChange={handleChange}
-                                    disabled={cargandoCatalogos}
-
-                                    aria-invalid={Boolean(errores.idPrograma)}
-                                    aria-describedby={errores.idPrograma ? "idPrograma-error" : undefined}
-
-                                    required
-                                >
-                                    <option value="">
-                                        Seleccione un programa
+                <section className="panel">
+                    <div className="panel-head"><h2>Ubicación en la malla curricular</h2></div>
+                    <div className="panel-body form-grid">
+                        <Field id="idPrograma" label="Programa académico" error={errores.idPrograma} select>
+                            <select id="idPrograma" name="idPrograma" className="sg-input sg-select" value={form.idPrograma} onChange={handleChange} disabled={cargandoCatalogos} {...aria("idPrograma")}>
+                                <option value="">Seleccione un programa</option>
+                                {programas.map((programa) => (
+                                    <option key={programa.id} value={programa.id}>
+                                        {programa.nombre}
+                                        {programa.codigo ? ` (${programa.codigo})` : ""}
                                     </option>
-
-                                    {programas.map((programa) => (
-                                        <option
-                                            key={programa.id}
-                                            value={programa.id}
-                                        >
-                                            {programa.nombre}
-                                            {programa.codigo
-                                                ? ` (${programa.codigo})`
-                                                : ""}
-                                        </option>
-                                    ))}
-                                </select>
-
-                                {errores.idPrograma && (
-                                    <span className="curso-field__error" id="idPrograma-error" role="alert">
-                                        {errores.idPrograma}
-                                    </span>
-                                )}
-                            </div>
-
-                            <div className={`curso-field${errores.idPeriodo ? " curso-field--error" : ""}`}>
-                                <label htmlFor="idPeriodo">
-                                    Período lectivo *
-                                </label>
-
-                                <select
-                                    id="idPeriodo"
-                                    name="idPeriodo"
-                                    value={form.idPeriodo}
-                                    onChange={handleChange}
-                                    disabled={cargandoCatalogos}
-
-                                    aria-invalid={Boolean(errores.idPeriodo)}
-                                    aria-describedby={errores.idPeriodo ? "idPeriodo-error" : undefined}
-
-                                    required
-                                >
-                                    <option value="">
-                                        Seleccione un período
+                                ))}
+                            </select>
+                        </Field>
+                        <Field id="idPeriodo" label="Período lectivo" error={errores.idPeriodo} select>
+                            <select id="idPeriodo" name="idPeriodo" className="sg-input sg-select" value={form.idPeriodo} onChange={handleChange} disabled={cargandoCatalogos} {...aria("idPeriodo")}>
+                                <option value="">Seleccione un período</option>
+                                {periodos.map((periodo) => (
+                                    <option key={periodo.id} value={periodo.id}>
+                                        {periodo.nombre}
+                                        {periodo.codigo ? ` (${periodo.codigo})` : ""}
                                     </option>
-
-                                    {periodos.map((periodo) => (
-                                        <option
-                                            key={periodo.id}
-                                            value={periodo.id}
-                                        >
-                                            {periodo.nombre}
-                                            {periodo.codigo
-                                                ? ` (${periodo.codigo})`
-                                                : ""}
-                                        </option>
-                                    ))}
-                                </select>
-
-                                {errores.idPeriodo && (
-                                    <span className="curso-field__error" id="idPeriodo-error" role="alert">
-                                        {errores.idPeriodo}
-                                    </span>
-                                )}
-                            </div>
-
-                            <div className={`curso-field${errores.cupos ? " curso-field--error" : ""}`}>
-                                <label htmlFor="cupos">
-                                    Cantidad de cupos *
-                                </label>
-
-                                <input
-                                    id="cupos"
-                                    name="cupos"
-                                    type="number"
-                                    min="1"
-                                    step="1"
-                                    value={form.cupos}
-                                    onChange={handleChange}
-                                    placeholder="Ej. 25"
-                                    aria-invalid={Boolean(errores.cupos)}
-                                    aria-describedby={errores.cupos ? "cupos-error" : undefined}
-                                    required
-                                />
-
-                                {errores.cupos && (
-                                    <span className="curso-field__error" id="cupos-error" role="alert">
-                                        {errores.cupos}
-                                    </span>
-                                )}
-                            </div>
-
-                        </div>
+                                ))}
+                            </select>
+                        </Field>
+                        <Field id="cupos" label="Cantidad de cupos" error={errores.cupos}>
+                            <input id="cupos" name="cupos" type="number" className="sg-input" min="1" step="1" inputMode="numeric" value={form.cupos} onChange={handleChange} placeholder="Ej. 25" {...aria("cupos")} />
+                        </Field>
                     </div>
+                </section>
 
-                    <p className="curso-required">
-                        * Campos obligatorios
-                    </p>
+                <RequisitosCursoOpcionales
+                    key={form.idPrograma + ':' + revisionRequisitos}
+                    idPrograma={form.idPrograma} value={form.requisitos}
+                    onChange={requisitos => setForm(prev => ({ ...prev, requisitos }))}
+                    disabled={guardando || cargandoCatalogos}
+                />
 
-                    <RequisitosCursoOpcionales
-                        key={form.idPrograma + ':' + revisionRequisitos}
-                        idPrograma={form.idPrograma} value={form.requisitos}
-                        onChange={requisitos => setForm(prev => ({ ...prev, requisitos }))}
-                        disabled={guardando || cargandoCatalogos}
-                    />
-                    <div className="curso-form__actions">
-
-                        <button
-                            type="button"
-                            className="btn curso-btn--secondary"
-                            onClick={limpiarFormulario}
-                            disabled={guardando}
-                        >
+                <div className="panel acciones-panel">
+                    <div className="panel-foot">
+                        <button type="button" className="sg-btn sg-btn--secondary" onClick={limpiarFormulario} disabled={guardando}>
                             Limpiar
                         </button>
-
-                        <button
-                            type="submit"
-                            className="btn btn--primary"
-                            disabled={
-                                guardando ||
-                                cargandoCatalogos
-                            }
-                        >
-                            {guardando
-                                ? "Creando curso..."
-                                : "Crear curso"}
+                        <button type="submit" className={`sg-btn sg-btn--primary${guardando ? " is-loading" : ""}`} disabled={guardando || cargandoCatalogos} aria-busy={guardando || undefined}>
+                            {guardando ? <span className="sg-spinner" aria-hidden="true" /> : <BookPlus size={18} strokeWidth={1.75} aria-hidden="true" />}
+                            {guardando ? "Creando curso…" : "Crear curso"}
                         </button>
-
                     </div>
-
-                </form>
-
-            </div>
+                </div>
+            </form>
         </div>
     );
 }

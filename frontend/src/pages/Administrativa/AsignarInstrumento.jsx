@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import "../AdminSis/styles/admin_Sis.css";
 import "./AsignarInstrumento.css";
+import { History, Music, Search } from "lucide-react";
+import EmptyState from "../../components/ui/EmptyState";
+import Field from "../../components/ui/Field";
+import PageHead from "../../components/ui/PageHead";
+import StatusBadge from "../../components/ui/StatusBadge";
+import { iniciales } from "../../components/ui/utilidades";
 import { API_URL } from "../../config/api.js";
 
 import { useDialog } from "../../components/dialog/useDialog";
@@ -65,7 +71,6 @@ export default function AsignarInstrumento() {
         if (!texto) {
             const errores = { numeroIdentificacion: "Ingrese el número de identificación del estudiante." };
             setErrors(errores);
-            dialog.validacion(errores);
             return;
         }
         setErrors({});
@@ -108,7 +113,6 @@ export default function AsignarInstrumento() {
         event.preventDefault();
         if (!form.idInstrumento) {
             setErrors(e => ({ ...e, idInstrumento: "Seleccione un instrumento." }));
-            dialog.validacion(["Seleccione un instrumento."]);
             return;
         }
 
@@ -155,144 +159,154 @@ export default function AsignarInstrumento() {
     };
 
     return (
-        <main className="content">
-            <div className="page-title">
-                <h1>Asignar instrumento</h1>
-                <p>Registre o cambie el instrumento musical asociado al expediente académico del estudiante.</p>
-            </div>
+        <div className="asignar-instrumento">
+            <PageHead
+                title="Asignar instrumento"
+                sub="Registre o cambie el instrumento musical asociado al expediente académico del estudiante."
+            />
 
-            <section className="card">
-                <h2 className="card-title">Estudiante</h2>
-                <form onSubmit={buscarEstudiante} className="grid-2" noValidate>
-                    <Field label="Número de identificación" required error={errors.numeroIdentificacion} errorKey="numeroIdentificacion">
+            <section className="panel">
+                <div className="panel-head"><h2>Estudiante</h2></div>
+                <form onSubmit={buscarEstudiante} className="panel-body busqueda-estudiante" noValidate>
+                    <Field id="txtIdentificacionEstudiante" label="Número de identificación" icon={Search} error={errors.numeroIdentificacion} errorKey="numeroIdentificacion">
                         <input
-                            className={`input ${errors.numeroIdentificacion ? "input-error" : ""}`}
+                            id="txtIdentificacionEstudiante"
+                            className="sg-input"
                             value={numeroIdentificacion}
                             onChange={e => { setNumeroIdentificacion(e.target.value); setErrors(err => ({ ...err, numeroIdentificacion: "" })); }}
                             placeholder="Ej: 118760542"
                             inputMode="numeric"
+                            aria-invalid={errors.numeroIdentificacion ? "true" : undefined}
                         />
                     </Field>
-                    <div className="field asignar-instrumento-buscar-btn">
-                        <button className="btn btn-secondary" type="submit" disabled={buscando}>
-                            {buscando ? "Buscando..." : "Buscar estudiante"}
-                        </button>
-                    </div>
+                    <button className={`sg-btn sg-btn--primary${buscando ? " is-loading" : ""}`} type="submit" disabled={buscando} aria-busy={buscando || undefined}>
+                        {buscando ? <span className="sg-spinner" aria-hidden="true" /> : <Search size={18} strokeWidth={1.75} aria-hidden="true" />}
+                        {buscando ? "Buscando…" : "Buscar estudiante"}
+                    </button>
                 </form>
+                {estudianteActivo && (
+                    <div className="panel-foot ficha-estudiante">
+                        <div className="profile-head">
+                            <span className="avatar avatar--lg" aria-hidden="true">{iniciales(estudianteActivo.nombreCompleto)}</span>
+                            <div>
+                                <h3>{estudianteActivo.nombreCompleto}</h3>
+                                <p className="muted tnum">Identificación {estudianteActivo.numeroIdentificacion}</p>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </section>
 
             {estudianteActivo && (
                 <>
-                    <section className="card">
-                        <h2 className="card-title">Instrumento(s) actual(es)</h2>
+                    <section className="panel">
+                        <div className="panel-head"><h2>Instrumento(s) actual(es)</h2></div>
                         {vigentes.length === 0 ? (
-                            <p className="hint">El estudiante no tiene instrumentos vigentes actualmente.</p>
+                            <EmptyState compact icon={Music} title="Sin instrumentos vigentes" description="El estudiante no tiene instrumentos vigentes actualmente." />
                         ) : (
-                            <table className="table">
-                                <thead>
-                                <tr>
-                                    <th>Instrumento</th>
-                                    <th>Código</th>
-                                    <th>Fecha de asignación</th>
-                                    <th></th>
-                                </tr>
-                                </thead>
-                                <tbody>
-                                {vigentes.map(v => (
-                                    <tr key={v.idEstudianteInstrumento}>
-                                        <td>{v.nombreInstrumento}</td>
-                                        <td>{v.codigoInstrumento}</td>
-                                        <td>{formatDate(v.fechaInicio)}</td>
-                                        <td>
-                                            <button
-                                                type="button"
-                                                className="btn btn-secondary btn-sm"
-                                                disabled={deshabilitandoId === v.idEstudianteInstrumento}
-                                                onClick={() => deshabilitar(v.idEstudianteInstrumento)}
-                                            >
-                                                {deshabilitandoId === v.idEstudianteInstrumento ? "Deshabilitando..." : "Deshabilitar"}
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))}
-                                </tbody>
-                            </table>
+                            <div className="table-wrap">
+                                <table className="dtable dtable--cards">
+                                    <caption className="sr-only">Instrumentos vigentes del estudiante</caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">Instrumento</th>
+                                            <th scope="col">Fecha de asignación</th>
+                                            <th scope="col" className="actions"><span className="sr-only">Acciones</span></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {vigentes.map(v => (
+                                            <tr key={v.idEstudianteInstrumento}>
+                                                <td className="c-main"><span className="inst">{v.nombreInstrumento}</span><span className="sub">{v.codigoInstrumento}</span></td>
+                                                <td data-label="Desde" className="tnum">{formatDate(v.fechaInicio)}</td>
+                                                <td className="actions">
+                                                    <button
+                                                        type="button"
+                                                        className="sg-btn sg-btn--ghost sg-btn--sm btn-peligro"
+                                                        disabled={deshabilitandoId === v.idEstudianteInstrumento}
+                                                        onClick={() => deshabilitar(v.idEstudianteInstrumento)}
+                                                    >
+                                                        {deshabilitandoId === v.idEstudianteInstrumento ? "Deshabilitando…" : "Deshabilitar"}
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
                         )}
                     </section>
 
-                    <section className="card">
-                        <h2 className="card-title">Asignar instrumento</h2>
+                    <section className="panel">
+                        <div className="panel-head"><h2>Asignar instrumento</h2></div>
                         <form onSubmit={asignar} noValidate>
-                            <div className="grid-2">
-                                <Field label="Instrumento" required error={errors.idInstrumento} errorKey="idInstrumento">
+                            <div className="panel-body form-grid">
+                                <Field id="cmbInstrumentoAsignar" label="Instrumento" error={errors.idInstrumento} errorKey="idInstrumento" select>
                                     <select
-                                        className={`input ${errors.idInstrumento ? "input-error" : ""}`}
+                                        id="cmbInstrumentoAsignar"
+                                        className="sg-input sg-select"
                                         value={form.idInstrumento}
                                         onChange={e => setField("idInstrumento", e.target.value)}
                                         disabled={catalogLoading}
+                                        aria-invalid={errors.idInstrumento ? "true" : undefined}
                                     >
                                         <option value="">Seleccione un instrumento</option>
                                         {instrumentos.map(i => <option key={i.id} value={i.id}>{i.nombre}</option>)}
                                     </select>
                                 </Field>
+                                <Field id="txtObservacionesInstrumento" label="Observaciones" optional hint="Máximo 500 caracteres." className="span-all">
+                                    <textarea
+                                        id="txtObservacionesInstrumento"
+                                        className="sg-input"
+                                        maxLength={500}
+                                        value={form.observaciones}
+                                        onChange={e => setField("observaciones", e.target.value)}
+                                    />
+                                </Field>
                             </div>
-                            <Field label="Observaciones" hint="Opcional, máximo 500 caracteres.">
-                <textarea
-                    className="input textarea"
-                    maxLength={500}
-                    value={form.observaciones}
-                    onChange={e => setField("observaciones", e.target.value)}
-                />
-                            </Field>
-                            <div className="actions-row">
-                                <button className="btn btn-primary" type="submit" disabled={saving || catalogLoading}>
-                                    {saving ? "Guardando..." : "Asignar instrumento"}
+                            <div className="panel-foot">
+                                <button className={`sg-btn sg-btn--primary${saving ? " is-loading" : ""}`} type="submit" disabled={saving || catalogLoading} aria-busy={saving || undefined}>
+                                    {saving ? <span className="sg-spinner" aria-hidden="true" /> : <Music size={18} strokeWidth={1.75} aria-hidden="true" />}
+                                    {saving ? "Guardando…" : "Asignar instrumento"}
                                 </button>
                             </div>
                         </form>
                     </section>
 
-                    <section className="card">
-                        <h2 className="card-title">Historial de instrumentos</h2>
+                    <section className="panel">
+                        <div className="panel-head"><h2>Historial de instrumentos</h2></div>
                         {historial.length === 0 ? (
-                            <p className="hint">Aún no hay historial registrado.</p>
+                            <EmptyState compact icon={History} title="Sin historial" description="Aún no hay historial registrado." />
                         ) : (
-                            <table className="table">
-                                <thead>
-                                <tr>
-                                    <th>Instrumento</th>
-                                    <th>Inicio</th>
-                                    <th>Fin</th>
-                                    <th>Estado</th>
-                                    <th>Observaciones</th>
-                                </tr>
-                                </thead>
-                                <tbody>
-                                {historial.map(h => (
-                                    <tr key={h.idEstudianteInstrumento}>
-                                        <td>{h.nombreInstrumento}</td>
-                                        <td>{formatDate(h.fechaInicio)}</td>
-                                        <td>{formatDate(h.fechaFin)}</td>
-                                        <td>{h.vigente ? <span className="pill">Vigente</span> : "Finalizado"}</td>
-                                        <td>{h.observaciones || "—"}</td>
-                                    </tr>
-                                ))}
-                                </tbody>
-                            </table>
+                            <div className="table-wrap">
+                                <table className="dtable dtable--cards">
+                                    <caption className="sr-only">Historial de instrumentos del estudiante</caption>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col">Instrumento</th>
+                                            <th scope="col">Inicio</th>
+                                            <th scope="col">Fin</th>
+                                            <th scope="col">Estado</th>
+                                            <th scope="col">Observaciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {historial.map(h => (
+                                            <tr key={h.idEstudianteInstrumento}>
+                                                <td className="c-main"><span className="inst">{h.nombreInstrumento}</span></td>
+                                                <td data-label="Inicio" className="tnum">{formatDate(h.fechaInicio)}</td>
+                                                <td data-label="Fin" className="tnum">{formatDate(h.fechaFin)}</td>
+                                                <td>{h.vigente ? <StatusBadge tone="success">Vigente</StatusBadge> : <StatusBadge tone="neutral">Finalizado</StatusBadge>}</td>
+                                                <td data-label="Observaciones">{h.observaciones || "—"}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
                         )}
                     </section>
                 </>
             )}
-        </main>
-    );
-}
-
-function Field({ label, required = false, hint, error, errorKey, children }) {
-    return (
-        <div className="field" data-error-field={errorKey || undefined}>
-            <label className="field-label">{label} {required && <span className="required">*</span>}</label>
-            {children}
-            {error ? <p className="field-error">{error}</p> : hint && <p className="hint">{hint}</p>}
         </div>
     );
 }

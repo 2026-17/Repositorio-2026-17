@@ -1,7 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Search, CheckCircle2, Clock, AlertTriangle } from "lucide-react";
+import { CheckCircle2, ClipboardCheck, Clock, History, RefreshCw, Save, Search, XCircle } from "lucide-react";
 import { API_URL } from "../../config/api";
 import "../AdminSis/styles/admin_Sis.css";
+import "./matricula.css";
+import Alert from "../../components/ui/Alert";
+import EmptyState from "../../components/ui/EmptyState";
+import Field from "../../components/ui/Field";
+import PageHead from "../../components/ui/PageHead";
+import StatusBadge from "../../components/ui/StatusBadge";
+import { iniciales } from "../../components/ui/utilidades";
 
 import { useDialog } from "../../components/dialog/useDialog";
 
@@ -54,11 +61,18 @@ function formatearFecha(fecha) {
     });
 }
 
-function badgeEstadoClase(estado) {
-    if (estado === "AUTORIZADA") return "badge badge-autorizada";
-    if (estado === "RECHAZADA") return "badge badge-rechazada";
-    return "badge badge-pendiente";
-}
+// Insignia del estado de una preaprobación (texto legible + color)
+const ETIQUETA_ESTADO = {
+    PENDIENTE: "Pendiente",
+    AUTORIZADA: "Habilitada",
+    RECHAZADA: "Rechazada",
+};
+
+const TONO_ESTADO = {
+    PENDIENTE: "warning",
+    AUTORIZADA: "success",
+    RECHAZADA: "danger",
+};
 
 function RequisitoItem({ etiqueta, cumplido, valor }) {
     return (
@@ -70,9 +84,9 @@ function RequisitoItem({ etiqueta, cumplido, valor }) {
             }`}
         >
             {cumplido ? (
-                <CheckCircle2 size={16} />
+                <CheckCircle2 size={16} strokeWidth={1.75} aria-hidden="true" />
             ) : (
-                <Clock size={16} />
+                <Clock size={16} strokeWidth={1.75} aria-hidden="true" />
             )}
             <span className="requisitos-list__label">{etiqueta}</span>
             <span className="requisitos-list__value">
@@ -530,10 +544,10 @@ function Matricula() {
             false;
 
         return (
-            <div className="subcard">
-                <div className="subcard-header">Requisitos</div>
+            <div className="review-block">
+                <h3>Requisitos</h3>
 
-                <div className="requisitos-list">
+                <div className="requisitos-list requisitos-list--bloque">
                     <RequisitoItem
                         etiqueta="Estudiante activo"
                         cumplido={solicitud.estudianteActivo === true}
@@ -557,18 +571,14 @@ function Matricula() {
                         }
                     />
                     {interactivo ? (
-                        <div className="requisitos-list__item">
-                            {documentacionActual ? (
-                                <CheckCircle2 size={16} />
-                            ) : (
-                                <Clock size={16} />
-                            )}
-                            <label
-                                className="requisitos-list__label"
-                                htmlFor={`documentacion-${solicitud.idAutorizacion}`}
-                            >
-                                Documentación completa
-                            </label>
+                        <label
+                            className={`requisitos-list__item requisito-check ${documentacionActual ? "requisitos-list__item--ok" : "requisitos-list__item--pending"}`}
+                            htmlFor={`documentacion-${solicitud.idAutorizacion}`}
+                        >
+                            {documentacionActual
+                                ? <CheckCircle2 size={16} strokeWidth={1.75} aria-hidden="true" />
+                                : <Clock size={16} strokeWidth={1.75} aria-hidden="true" />}
+                            <span className="requisitos-list__label">Documentación completa</span>
                             <input
                                 id={`documentacion-${solicitud.idAutorizacion}`}
                                 type="checkbox"
@@ -579,13 +589,9 @@ function Matricula() {
                                         event.target.checked
                                     )
                                 }
-                                disabled={
-                                    guardandoDocumentacionId ===
-                                    solicitud.idAutorizacion
-                                }
-                                style={{ marginLeft: "auto" }}
+                                disabled={guardandoDocumentacionId === solicitud.idAutorizacion}
                             />
-                        </div>
+                        </label>
                     ) : (
                         <RequisitoItem
                             etiqueta="Documentación completa"
@@ -595,21 +601,16 @@ function Matricula() {
                 </div>
 
                 {interactivo && (
-                    <div className="actions-row" style={{ paddingTop: "14px" }}>
+                    <div className="requisitos-acciones">
                         <button
                             type="button"
-                            className="btn btn-secondary"
-                            onClick={() =>
-                                guardarDocumentacion(solicitud)
-                            }
-                            disabled={
-                                guardandoDocumentacionId ===
-                                solicitud.idAutorizacion
-                            }
+                            className="sg-btn sg-btn--secondary sg-btn--sm"
+                            onClick={() => guardarDocumentacion(solicitud)}
+                            disabled={guardandoDocumentacionId === solicitud.idAutorizacion}
                         >
-                            {guardandoDocumentacionId ===
-                            solicitud.idAutorizacion
-                                ? "Guardando..."
+                            <Save size={16} strokeWidth={1.75} aria-hidden="true" />
+                            {guardandoDocumentacionId === solicitud.idAutorizacion
+                                ? "Guardando…"
                                 : "Guardar documentación"}
                         </button>
                     </div>
@@ -618,120 +619,110 @@ function Matricula() {
         );
     }
 
+    function encabezadoSolicitud(solicitud) {
+        return (
+            <div className="panel-head">
+                <div className="who">
+                    <span className="avatar" aria-hidden="true">{iniciales(solicitud.estudiante)}</span>
+                    <div>
+                        <b>{solicitud.estudiante}</b>
+                        <span>
+                            Preaprobación #{solicitud.idAutorizacion} · {solicitud.periodo}
+                            {solicitud.codigoPeriodo ? ` (${solicitud.codigoPeriodo})` : ""}
+                        </span>
+                    </div>
+                </div>
+                <StatusBadge tone={TONO_ESTADO[solicitud.estado] || "warning"}>
+                    {ETIQUETA_ESTADO[solicitud.estado] || solicitud.estado}
+                </StatusBadge>
+            </div>
+        );
+    }
+
     function renderFormularioNuevaPreaprobacion() {
         return (
-            <section className="card">
-                <div className="card-header-row">
+            <section className="panel">
+                <div className="panel-head">
                     <div>
-                        <h2 className="card-title">Iniciar preaprobación</h2>
-                        <p className="card-subtitle">
-                            Busque al estudiante, seleccione el período
-                            académico vigente y el sistema calculará
-                            automáticamente sus comprobaciones. No genera
-                            matrícula ni reserva cupos.
+                        <h2>Iniciar preaprobación</h2>
+                        <p className="panel-head-sub">
+                            Busque al estudiante, seleccione el período académico vigente y el sistema
+                            calculará automáticamente sus comprobaciones. No genera matrícula ni reserva cupos.
                         </p>
                     </div>
                 </div>
 
-                <div className="grid-2">
-                    <div className="field" style={{ position: "relative" }}>
-                        <label className="field-label">Estudiante</label>
-                        <div className="input-suffix-wrap">
+                <div className="panel-body form-grid">
+                    <div className="buscador-estudiante">
+                        <Field id="txtEstudiantePreaprobacion" label="Estudiante" icon={Search}>
                             <input
-                                className="input"
-                                placeholder="Nombre o número de identificación..."
+                                id="txtEstudiantePreaprobacion"
+                                className="sg-input"
+                                type="search"
+                                autoComplete="off"
+                                placeholder="Nombre o número de identificación"
                                 value={textoBusquedaEstudiante}
-                                onChange={(event) =>
-                                    cambiarTextoBusquedaEstudiante(
-                                        event.target.value
-                                    )
-                                }
+                                onChange={(event) => cambiarTextoBusquedaEstudiante(event.target.value)}
                                 disabled={creandoPreaprobacion}
                             />
-                            <span className="input-suffix">
-                                <Search size={16} />
-                            </span>
-                        </div>
+                        </Field>
 
-                        {textoBusquedaEstudiante.trim().length >= 2 &&
-                            !estudianteSeleccionado && (
-                                <div className="search-results">
-                                    {buscandoEstudiantes && (
-                                        <div className="search-results__empty">
-                                            Buscando...
-                                        </div>
-                                    )}
-                                    {!buscandoEstudiantes &&
-                                        resultadosEstudiantes.length === 0 && (
-                                            <div className="search-results__empty">
-                                                Sin coincidencias.
-                                            </div>
-                                        )}
-                                    {!buscandoEstudiantes &&
-                                        resultadosEstudiantes.map(
-                                            (estudiante) => (
-                                                <button
-                                                    type="button"
-                                                    key={estudiante.id}
-                                                    className="search-results__item"
-                                                    onClick={() =>
-                                                        seleccionarEstudiante(
-                                                            estudiante
-                                                        )
-                                                    }
-                                                >
-                                                    <span>
-                                                        {estudiante.nombreCompleto}
-                                                    </span>
-                                                    <span className="search-results__cedula">
-                                                        {
-                                                            estudiante.numeroIdentificacion
-                                                        }
-                                                    </span>
-                                                </button>
-                                            )
-                                        )}
-                                </div>
-                            )}
+                        {textoBusquedaEstudiante.trim().length >= 2 && !estudianteSeleccionado && (
+                            <div className="search-results" role="listbox" aria-label="Resultados de la búsqueda">
+                                {buscandoEstudiantes && (
+                                    <div className="search-results__empty">Buscando...</div>
+                                )}
+                                {!buscandoEstudiantes && resultadosEstudiantes.length === 0 && (
+                                    <div className="search-results__empty">Sin coincidencias.</div>
+                                )}
+                                {!buscandoEstudiantes && resultadosEstudiantes.map((estudiante) => (
+                                    <button
+                                        type="button"
+                                        key={estudiante.id}
+                                        role="option"
+                                        aria-selected="false"
+                                        className="search-results__item"
+                                        onClick={() => seleccionarEstudiante(estudiante)}
+                                    >
+                                        <span className="who">
+                                            <span className="avatar avatar--sm" aria-hidden="true">{iniciales(estudiante.nombreCompleto)}</span>
+                                            <b>{estudiante.nombreCompleto}</b>
+                                        </span>
+                                        <span className="search-results__cedula">{estudiante.numeroIdentificacion}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        )}
                     </div>
 
-                    <div className="field">
-                        <label className="field-label">
-                            Período académico
-                        </label>
+                    <Field id="cmbPeriodoPreaprobacion" label="Período académico" select>
                         <select
-                            className="input"
+                            id="cmbPeriodoPreaprobacion"
+                            className="sg-input sg-select"
                             value={idPeriodoSeleccionado}
-                            onChange={(event) =>
-                                setIdPeriodoSeleccionado(
-                                    event.target.value
-                                )
-                            }
+                            onChange={(event) => setIdPeriodoSeleccionado(event.target.value)}
                             disabled={creandoPreaprobacion}
                         >
                             <option value="">Seleccione un período</option>
                             {periodos.map((periodo) => (
-                                <option
-                                    key={periodo.id}
-                                    value={periodo.id}
-                                >
+                                <option key={periodo.id} value={periodo.id}>
                                     {periodo.nombre} ({periodo.codigo})
                                 </option>
                             ))}
                         </select>
-                    </div>
+                    </Field>
                 </div>
 
-                <div className="actions-row">
+                <div className="panel-foot">
                     <button
                         type="button"
-                        className="btn btn-primary"
+                        className={`sg-btn sg-btn--primary${creandoPreaprobacion ? " is-loading" : ""}`}
                         onClick={crearPreaprobacion}
                         disabled={creandoPreaprobacion}
+                        aria-busy={creandoPreaprobacion || undefined}
                     >
-                        {creandoPreaprobacion
-                            ? "Calculando..."
-                            : "Iniciar preaprobación"}
+                        {creandoPreaprobacion ? <span className="sg-spinner" aria-hidden="true" /> : <ClipboardCheck size={18} strokeWidth={1.75} aria-hidden="true" />}
+                        {creandoPreaprobacion ? "Calculando…" : "Iniciar preaprobación"}
                     </button>
                 </div>
             </section>
@@ -741,258 +732,150 @@ function Matricula() {
     function renderPendientes() {
         if (solicitudes.length === 0) {
             return (
-                <section className="card">
-                    <h2 className="card-title">
-                        Sin preaprobaciones pendientes
-                    </h2>
-                    <p className="card-subtitle">
-                        No existen preaprobaciones de matrícula
-                        pendientes de revisión en este momento. Puede
-                        consultar las decisiones anteriores desde la
-                        pestaña Historial.
-                    </p>
-                </section>
+                <div className="panel">
+                    <EmptyState
+                        icon={ClipboardCheck}
+                        title="Sin preaprobaciones pendientes"
+                        description="No existen preaprobaciones de matrícula pendientes de revisión en este momento. Puede consultar las decisiones anteriores desde la pestaña Historial."
+                    />
+                </div>
             );
         }
 
         return (
-            <>
+            <div className="stack">
                 {solicitudes.map((solicitud) => {
-                    const puedeAprobar =
-                        requisitosValidos(solicitud);
-
-                    const procesando =
-                        procesandoId === solicitud.idAutorizacion;
+                    const puedeAprobar = requisitosValidos(solicitud);
+                    const procesando = procesandoId === solicitud.idAutorizacion;
+                    const texto = observaciones[solicitud.idAutorizacion] || "";
 
                     return (
-                        <section
-                            className="card"
-                            key={solicitud.idAutorizacion}
-                        >
-                            <div className="card-header-row">
-                                <div>
-                                    <h2 className="card-title">
-                                        {solicitud.estudiante}
-                                    </h2>
-                                    <p className="card-subtitle">
-                                        Preaprobación #
-                                        {solicitud.idAutorizacion} ·{" "}
-                                        {solicitud.periodo}
-                                        {solicitud.codigoPeriodo
-                                            ? ` (${solicitud.codigoPeriodo})`
-                                            : ""}
-                                    </p>
-                                </div>
-                                <span
-                                    className={badgeEstadoClase(
-                                        solicitud.estado
-                                    )}
-                                >
-                                    {solicitud.estado}
-                                </span>
-                            </div>
+                        <section className="panel" key={solicitud.idAutorizacion}>
+                            {encabezadoSolicitud(solicitud)}
 
-                            {renderRequisitos(solicitud, true)}
+                            <div className="panel-body stack">
+                                {renderRequisitos(solicitud, true)}
 
-                            {!puedeAprobar && (
-                                <div className="banner banner-warning">
-                                    <AlertTriangle size={16} />
-                                    Esta preaprobación no puede
-                                    habilitarse hasta que todos los
-                                    requisitos estén validados.
-                                </div>
-                            )}
+                                {!puedeAprobar && (
+                                    <Alert tone="warning" title="Aún no se puede habilitar">
+                                        Esta preaprobación no puede habilitarse hasta que todos los requisitos estén validados.
+                                    </Alert>
+                                )}
 
-                            <div className="field">
-                                <label
-                                    className="field-label"
-                                    htmlFor={`observaciones-${solicitud.idAutorizacion}`}
-                                >
-                                    Observaciones administrativas
-                                </label>
-
-                                <textarea
+                                <Field
                                     id={`observaciones-${solicitud.idAutorizacion}`}
-                                    className="input textarea"
-                                    value={
-                                        observaciones[
-                                            solicitud.idAutorizacion
-                                            ] || ""
-                                    }
-                                    onChange={(event) =>
-                                        cambiarObservacion(
-                                            solicitud.idAutorizacion,
-                                            event.target.value
-                                        )
-                                    }
-                                    maxLength={1500}
-                                    placeholder="Ingrese observaciones sobre la revisión..."
-                                    disabled={procesando}
-                                />
-
-                                <p className="hint">
-                                    {
-                                        (
-                                            observaciones[
-                                                solicitud.idAutorizacion
-                                                ] || ""
-                                        ).length
-                                    }
-                                    /1500
-                                </p>
+                                    label="Observaciones administrativas"
+                                    optional
+                                    hint={`${texto.length}/1500 caracteres`}
+                                >
+                                    <textarea
+                                        id={`observaciones-${solicitud.idAutorizacion}`}
+                                        className="sg-input"
+                                        value={texto}
+                                        onChange={(event) => cambiarObservacion(solicitud.idAutorizacion, event.target.value)}
+                                        maxLength={1500}
+                                        placeholder="Ingrese observaciones sobre la revisión..."
+                                        disabled={procesando}
+                                    />
+                                </Field>
                             </div>
 
-                            <div className="actions-row">
+                            <div className="panel-foot">
                                 <button
                                     type="button"
-                                    className="btn btn-secondary"
-                                    onClick={() =>
-                                        confirmarSolicitud(
-                                            solicitud,
-                                            "RECHAZAR"
-                                        )
-                                    }
+                                    className="sg-btn sg-btn--secondary btn-rechazar"
+                                    onClick={() => confirmarSolicitud(solicitud, "RECHAZAR")}
                                     disabled={procesando}
                                 >
-                                    {procesando
-                                        ? "Procesando..."
-                                        : "Rechazar"}
+                                    <XCircle size={18} strokeWidth={1.75} aria-hidden="true" />
+                                    {procesando ? "Procesando…" : "Rechazar"}
                                 </button>
 
                                 <button
                                     type="button"
-                                    className="btn btn-primary"
-                                    onClick={() =>
-                                        confirmarSolicitud(
-                                            solicitud,
-                                            "APROBAR"
-                                        )
-                                    }
+                                    className="sg-btn sg-btn--primary"
+                                    onClick={() => confirmarSolicitud(solicitud, "APROBAR")}
                                     disabled={procesando || !puedeAprobar}
                                 >
-                                    {procesando
-                                        ? "Procesando..."
-                                        : "Habilitar matrícula"}
+                                    <CheckCircle2 size={18} strokeWidth={1.75} aria-hidden="true" />
+                                    {procesando ? "Procesando…" : "Habilitar matrícula"}
                                 </button>
                             </div>
                         </section>
                     );
                 })}
-            </>
+            </div>
         );
     }
 
     function renderHistorial() {
         if (historial.length === 0) {
             return (
-                <section className="card">
-                    <h2 className="card-title">Historial vacío</h2>
-                    <p className="card-subtitle">
-                        Todavía no existen preaprobaciones de matrícula
-                        habilitadas o rechazadas.
-                    </p>
-                </section>
+                <div className="panel">
+                    <EmptyState
+                        icon={History}
+                        title="Historial vacío"
+                        description="Todavía no existen preaprobaciones de matrícula habilitadas o rechazadas."
+                    />
+                </div>
             );
         }
 
         return (
-            <>
+            <div className="stack">
                 {historial.map((solicitud) => (
-                    <section
-                        className="card"
-                        key={solicitud.idAutorizacion}
-                    >
-                        <div className="card-header-row">
-                            <div>
-                                <h2 className="card-title">
-                                    {solicitud.estudiante}
-                                </h2>
-                                <p className="card-subtitle">
-                                    Preaprobación #
-                                    {solicitud.idAutorizacion} ·{" "}
-                                    {solicitud.periodo}
-                                    {solicitud.codigoPeriodo
-                                        ? ` (${solicitud.codigoPeriodo})`
-                                        : ""}
+                    <section className="panel" key={solicitud.idAutorizacion}>
+                        {encabezadoSolicitud(solicitud)}
+
+                        <div className="panel-body stack">
+                            <p className="muted revision-detalle">
+                                Revisado por {solicitud.revisadoPor || "No registrado"} el {formatearFecha(solicitud.fechaRevision)}
+                            </p>
+
+                            {renderRequisitos(solicitud, false)}
+
+                            <div className="review-block">
+                                <h3>Observaciones administrativas</h3>
+                                <p className="review-nota">
+                                    {solicitud.observaciones || "Sin observaciones registradas."}
                                 </p>
                             </div>
-                            <span
-                                className={badgeEstadoClase(
-                                    solicitud.estado
-                                )}
-                            >
-                                {solicitud.estado}
-                            </span>
-                        </div>
-
-                        <p className="hint">
-                            Revisado por{" "}
-                            {solicitud.revisadoPor || "No registrado"}{" "}
-                            el {formatearFecha(solicitud.fechaRevision)}
-                        </p>
-
-                        {renderRequisitos(solicitud, false)}
-
-                        <div className="subcard">
-                            <div className="subcard-header">
-                                Observaciones administrativas
-                            </div>
-                            <p style={{ margin: 0 }}>
-                                {solicitud.observaciones ||
-                                    "Sin observaciones registradas."}
-                            </p>
                         </div>
                     </section>
                 ))}
-            </>
+            </div>
         );
     }
 
     return (
-        <main className="content">
-            <div className="page-title">
-                <h1>Preaprobar requisitos de matrícula</h1>
-                <p>
-                    Revise el estado del estudiante, sus datos
-                    personales, mensualidades y pago de matrícula,
-                    habilite o rechace la preaprobación y consulte las
-                    decisiones registradas. Esta revisión no genera
-                    matrícula ni reserva cupos.
-                </p>
-            </div>
-
-            <div className="actions-row" style={{ borderTop: "none", paddingTop: 0 }}>
-                <button
-                    type="button"
-                    className="btn btn-secondary"
-                    onClick={() => {
-                        void cargarDatos();
-                    }}
-                    disabled={cargando || procesandoId !== null}
-                >
-                    {cargando ? "Actualizando..." : "Actualizar"}
-                </button>
-            </div>
-
-            <br></br>
+        <div className="matricula-admin">
+            <PageHead
+                title="Preaprobar requisitos de matrícula"
+                sub="Revise el estado del estudiante, sus datos personales, mensualidades y pago de matrícula, habilite o rechace la preaprobación y consulte las decisiones registradas. Esta revisión no genera matrícula ni reserva cupos."
+                actions={(
+                    <button
+                        type="button"
+                        className="sg-btn sg-btn--secondary"
+                        onClick={() => { void cargarDatos(); }}
+                        disabled={cargando || procesandoId !== null}
+                    >
+                        <RefreshCw size={18} strokeWidth={1.75} aria-hidden="true" />
+                        {cargando ? "Actualizando…" : "Actualizar"}
+                    </button>
+                )}
+            />
 
             {renderFormularioNuevaPreaprobacion()}
 
-            <div
-                className="tabs"
-                role="tablist"
-                aria-label="Gestión de preaprobaciones de matrícula"
-            >
+            <div className="tabs pestanas-matricula" role="tablist" aria-label="Gestión de preaprobaciones de matrícula">
                 <button
                     type="button"
                     role="tab"
                     aria-selected={pestanaActiva === "pendientes"}
-                    className={`tab ${
-                        pestanaActiva === "pendientes" ? "tab--active" : ""
-                    }`}
                     onClick={() => setPestanaActiva("pendientes")}
                     disabled={procesandoId !== null}
                 >
+                    <Clock size={18} strokeWidth={1.75} aria-hidden="true" />
                     Pendientes ({solicitudes.length})
                 </button>
 
@@ -1000,26 +883,24 @@ function Matricula() {
                     type="button"
                     role="tab"
                     aria-selected={pestanaActiva === "historial"}
-                    className={`tab ${
-                        pestanaActiva === "historial" ? "tab--active" : ""
-                    }`}
                     onClick={() => setPestanaActiva("historial")}
                     disabled={procesandoId !== null}
                 >
+                    <History size={18} strokeWidth={1.75} aria-hidden="true" />
                     Historial ({historial.length})
                 </button>
             </div>
 
-            {cargando ? (
-                <p className="hint">
-                    Cargando información de preaprobaciones...
-                </p>
-            ) : pestanaActiva === "pendientes" ? (
-                renderPendientes()
-            ) : (
-                renderHistorial()
-            )}
-        </main>
+            <div role="tabpanel">
+                {cargando ? (
+                    <p className="muted">Cargando información de preaprobaciones...</p>
+                ) : pestanaActiva === "pendientes" ? (
+                    renderPendientes()
+                ) : (
+                    renderHistorial()
+                )}
+            </div>
+        </div>
     );
 }
 

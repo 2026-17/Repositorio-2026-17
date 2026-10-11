@@ -69,9 +69,14 @@ public class Estudiante {
     @Column(name = "correo", nullable = false, length = 254)
     private String correo;
 
+    // Señas exactas; la provincia y el cantón se deducen del distrito.
     @Size(max = 500)
     @Column(name = "direccion", length = 500)
     private String direccion;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "codigo_distrito")
+    private Distrito distrito;
 
     @Size(max = 80)
     @Column(name = "nivel_escolar", length = 80)
@@ -98,10 +103,20 @@ public class Estudiante {
     @Column(name = "fecha_egreso")
     private LocalDate fechaEgreso;
 
+    @Size(max = 500)
+    @Column(name = "motivo_baja", length = 500)
+    private String motivoBaja;
+
+    @Column(name = "fecha_baja")
+    private Instant fechaBaja;
+
     @NotNull
     @ColumnDefault("1")
     @Column(name = "activo", nullable = false)
     private Boolean activo = false;
+
+    @Column(name = "id_usuario_ultima_modificacion")
+    private Long idUsuarioUltimaModificacion;
 
     @NotNull
     @CreationTimestamp

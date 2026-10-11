@@ -22,6 +22,7 @@ public class ProfesorResponse {
     private String telefono;
     private String correo;
     private String direccion;
+    private UbicacionResponse ubicacion;
     private String gradoAcademico;
     private String especialidad;
     private String empleador;

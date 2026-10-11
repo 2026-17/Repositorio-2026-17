@@ -11,9 +11,11 @@ import {
     CircleX,
     Info,
     TriangleAlert,
+    X,
 } from "lucide-react";
 
 import { DialogContext } from "./DialogContext";
+import Toast from "../ui/Toast";
 
 import "./dialog.css";
 
@@ -78,6 +80,23 @@ function DialogProvider({ children }) {
 
     const actual = cola[0] || null;
 
+    /*
+     * Confirmaciones breves (toasts, como el prototipo): se muestran abajo a
+     * la derecha y desaparecen solas a los 5 segundos.
+     */
+    const [toasts, setToasts] = useState([]);
+
+    const quitarToast = useCallback((id) => {
+        setToasts((lista) => lista.filter((t) => t.id !== id));
+    }, []);
+
+    const mostrarToast = useCallback((mensaje) => {
+        contador += 1;
+        const id = contador;
+        setToasts((lista) => [...lista, { id, mensaje: textoDe(mensaje) }]);
+        setTimeout(() => quitarToast(id), 5000);
+    }, [quitarToast]);
+
     const abrir = useCallback((tipo, mensaje, opciones = {}) => {
         return new Promise((resolve) => {
             contador += 1;
@@ -132,8 +151,17 @@ function DialogProvider({ children }) {
 
     const api = useMemo(
         () => ({
-            exito: (mensaje, opciones) =>
-                abrir("exito", mensaje, opciones).then(() => undefined),
+            /*
+             * Éxito sin detalle: toast. Con detalle (opciones.lista) se
+             * muestra el diálogo para que la persona pueda leerlo.
+             */
+            exito: (mensaje, opciones) => {
+                if (!opciones?.lista?.length) {
+                    mostrarToast(mensaje);
+                    return Promise.resolve();
+                }
+                return abrir("exito", mensaje, opciones).then(() => undefined);
+            },
             error: (mensaje, opciones) =>
                 abrir("error", mensaje, opciones).then(() => undefined),
             aviso: (mensaje, opciones) =>
@@ -164,7 +192,7 @@ function DialogProvider({ children }) {
                     ...opciones,
                 }),
         }),
-        [abrir]
+        [abrir, mostrarToast]
     );
 
     /*
@@ -248,48 +276,56 @@ function DialogProvider({ children }) {
             {children}
 
             {actual && (
-                <div className="dialog-overlay">
+                <div className="dialog-backdrop">
                     <div
                         ref={cajaRef}
-                        className={`dialog-box dialog-box--${tipoVisual}`}
+                        className={`dialog dialog--${tipoVisual}`}
                         role="alertdialog"
                         aria-modal="true"
                         aria-labelledby={`dialog-titulo-${actual.id}`}
                         aria-describedby={`dialog-mensaje-${actual.id}`}
                     >
-                        <div className="dialog-icon" aria-hidden="true">
-                            <Icono size={32} />
+                        <div className="dialog-head">
+                            <span className="dialog-head-icon" aria-hidden="true">
+                                <Icono size={20} strokeWidth={1.75} />
+                            </span>
+                            <h2 id={`dialog-titulo-${actual.id}`}>
+                                {actual.titulo}
+                            </h2>
+                            <button
+                                type="button"
+                                className="sg-icon-btn"
+                                aria-label="Cerrar"
+                                onClick={() => cerrar(esConfirmacion ? false : true)}
+                            >
+                                <X size={20} strokeWidth={1.75} aria-hidden="true" />
+                            </button>
                         </div>
 
-                        <h2
-                            className="dialog-title"
-                            id={`dialog-titulo-${actual.id}`}
-                        >
-                            {actual.titulo}
-                        </h2>
+                        <div className="dialog-body">
+                            {actual.mensaje && (
+                                <p
+                                    className="dialog-message"
+                                    id={`dialog-mensaje-${actual.id}`}
+                                >
+                                    {actual.mensaje}
+                                </p>
+                            )}
 
-                        {actual.mensaje && (
-                            <p
-                                className="dialog-message"
-                                id={`dialog-mensaje-${actual.id}`}
-                            >
-                                {actual.mensaje}
-                            </p>
-                        )}
+                            {actual.lista.length > 0 && (
+                                <ul className="dialog-list">
+                                    {actual.lista.map((item, indice) => (
+                                        <li key={`${indice}-${item}`}>{item}</li>
+                                    ))}
+                                </ul>
+                            )}
+                        </div>
 
-                        {actual.lista.length > 0 && (
-                            <ul className="dialog-list">
-                                {actual.lista.map((item, indice) => (
-                                    <li key={`${indice}-${item}`}>{item}</li>
-                                ))}
-                            </ul>
-                        )}
-
-                        <div className="dialog-actions">
+                        <div className="dialog-foot">
                             {esConfirmacion && (
                                 <button
                                     type="button"
-                                    className="dialog-btn dialog-btn--secondary"
+                                    className="sg-btn sg-btn--secondary"
                                     onClick={() => cerrar(false)}
                                 >
                                     {actual.textoCancelar}
@@ -299,10 +335,10 @@ function DialogProvider({ children }) {
                             <button
                                 type="button"
                                 ref={botonPrincipalRef}
-                                className={`dialog-btn ${
+                                className={`sg-btn ${
                                     actual.peligro
-                                        ? "dialog-btn--danger"
-                                        : "dialog-btn--primary"
+                                        ? "sg-btn--danger"
+                                        : "sg-btn--primary"
                                 }`}
                                 onClick={() => cerrar(true)}
                             >
@@ -312,6 +348,14 @@ function DialogProvider({ children }) {
                     </div>
                 </div>
             )}
+
+            <div className="toast-region">
+                {toasts.map((t) => (
+                    <Toast key={t.id} tone="success" onDismiss={() => quitarToast(t.id)}>
+                        {t.mensaje}
+                    </Toast>
+                ))}
+            </div>
         </DialogContext.Provider>
     );
 }

@@ -1,0 +1,40 @@
+/* =========================================
+   Crear grupo.
+   La base viene de crearCurso.css (.curso-page) y src/styles/app.css.
+   ========================================= */
+
+/* Cada bloque del horario: día, hora inicio, hora fin, aula y quitar */
+.horario-lista {
+    display: grid;
+    gap: var(--space-4);
+}
+
+.horario-fila {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.2fr) auto;
+    gap: var(--space-3);
+    align-items: start;
+}
+
+/* Alinea el botón de quitar con los controles (debajo de la etiqueta) */
+.horario-fila .sg-icon-btn {
+    margin-top: 30px;
+}
+
+.horario-agregar {
+    margin-top: var(--space-4);
+}
+
+@media (max-width: 760px) {
+    .horario-fila {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        padding-bottom: var(--space-4);
+        border-bottom: 1px solid var(--border);
+    }
+
+    .horario-fila .sg-icon-btn {
+        margin-top: 0;
+        justify-self: end;
+        grid-column: 1 / -1;
+    }
+}

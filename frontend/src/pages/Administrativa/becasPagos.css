@@ -1,0 +1,56 @@
+/* Becas y pagos (HU-015). Usa .panel, .review-block, .file-drop y los
+   componentes del sistema de diseño; aquí solo lo propio de la pantalla. */
+
+.becas-pagos {
+    max-width: 960px;
+}
+
+.becas-pagos .panel + .panel,
+.bloque-separado {
+    margin-top: var(--space-5);
+}
+
+/* El buscador muestra los resultados en una lista flotante debajo */
+.buscador-estudiante {
+    position: relative;
+    max-width: 560px;
+}
+
+.search-results__item .who b {
+    font-weight: 500;
+}
+
+.review-block h3 .monto {
+    font: 600 18px/24px var(--font-sans);
+    color: var(--ink);
+}
+
+.review-acciones {
+    padding: 0 var(--space-4) var(--space-4);
+}
+
+.review-nota {
+    padding: var(--space-3) var(--space-4);
+    font-size: 14px;
+}
+
+.confirmar-acciones {
+    margin-top: var(--space-3);
+}
+
+.file-drop__nombre {
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.pago-acciones {
+    display: flex;
+    justify-content: flex-end;
+}
+
+@media (max-width: 640px) {
+    .pago-acciones .sg-btn {
+        width: 100%;
+    }
+}

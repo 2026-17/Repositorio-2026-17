@@ -111,6 +111,9 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/auth/login",
                                 "/auth/logout",
+                                // "Olvidé mi contraseña" (sin sesión)
+                                "/auth/recuperar-contrasena/solicitar",
+                                "/auth/recuperar-contrasena/confirmar",
                                 "/usuarios",
                                 "/roles",
                                 "/estados-usuarios"
@@ -161,6 +164,18 @@ public class SecurityConfig {
                         .requestMatchers(
                                 HttpMethod.PATCH,
                                 "/cursos/*/desactivar"
+                        )
+                        .hasRole("DIRECTOR_ACADEMICO")
+
+                        /*
+                         * =====================================================
+                         * Gestión de grupos
+                         * Rol: DIRECTOR_ACADEMICO
+                         * =====================================================
+                         */
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/grupos"
                         )
                         .hasRole("DIRECTOR_ACADEMICO")
 

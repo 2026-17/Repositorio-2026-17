@@ -1,13 +1,19 @@
-import "../AdminSis/styles/admin_Sis.css";
+import { ChartColumn } from "lucide-react";
+import EmptyState from "../../components/ui/EmptyState";
+import PageHead from "../../components/ui/PageHead";
 
 function Reportes() {
     return (
-        <div className="content">
-            <div className="page-title">
-                <h1>Reportes</h1>
-                <p>Sección en construcción.</p>
+        <>
+            <PageHead title="Reportes" sub="Indicadores y listados de la escuela." />
+            <div className="panel">
+                <EmptyState
+                    icon={ChartColumn}
+                    title="Sección en construcción"
+                    description="Aquí se mostrarán los reportes de matrícula, pagos y estudiantes."
+                />
             </div>
-        </div>
+        </>
     );
 }
 

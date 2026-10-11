@@ -1,22 +1,44 @@
-.input-error {
-    border-color: var(--rojo) !important;
-    box-shadow: none;
+/* Registrar estudiante (asistente por pasos).
+   La estructura (.wizard, .stepper, .form-grid, .choice, .review…)
+   viene de src/styles/app.css; aquí solo los ajustes propios. */
+
+.form-alert {
+    margin-bottom: var(--space-5);
 }
 
-.input-error:focus {
-    border-color: var(--rojo) !important;
-    box-shadow: 0 0 0 1px var(--rojo);
+.wizard-titulo {
+    margin-bottom: var(--space-4);
 }
 
-.field-error {
-    margin: 6px 0 0;
-    color: var(--rojo);
-    font-size: 12px;
-    font-weight: 500;
-    line-height: 1.35;
+.plan-hint {
+    margin-bottom: var(--space-2);
 }
 
-.file-input-error {
-    border-color: var(--rojo) !important;
-    background: #fff8f8;
+.plan-error {
+    margin-bottom: var(--space-2);
 }
+
+.guardian-add {
+    margin-top: var(--space-4);
+}
+
+.beca-bloque {
+    display: grid;
+    gap: var(--space-1);
+}
+
+/* Pares dt/dd agrupados (lista de encargados en la revisión) */
+.review-pair {
+    display: contents;
+}
+
+.review-empty {
+    padding: var(--space-4);
+    font-size: 14px;
+}
+
+.success-actions {
+    justify-content: center;
+    margin-top: var(--space-3);
+}
+.editar-titulo { margin-bottom: var(--space-4); }
