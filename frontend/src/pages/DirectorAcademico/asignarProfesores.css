@@ -1,67 +1,76 @@
+/* HU-014: estilos propios de la pantalla. Colores, tipografía, espaciado y
+   componentes base proceden del sistema de diseño global de SIGAC. */
+
 .asignar-profesores-page {
-    width: min(100%, 1480px);
-    margin: 0 auto;
-    padding: 0 24px 32px;
-}
-
-.asignar-profesores-toolbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 16px;
-    margin: 20px 0;
-}
-
-.asignar-profesores-toolbar p {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin: 0;
-    color: var(--text-secondary, #596579);
-    font-size: 0.92rem;
-}
-
-.asignar-profesores-empty {
-    padding: 28px;
-    text-align: center;
-    border: 1px solid var(--border, #dfe4eb);
-    border-radius: 12px;
-    color: var(--text-secondary, #596579);
-    background: var(--surface, #fff);
-}
-
-.asignar-profesores-table-wrap {
     width: 100%;
-    overflow-x: auto;
-    border: 1px solid var(--border, #dfe4eb);
-    border-radius: 12px;
-    background: var(--surface, #fff);
+    min-width: 0;
+    padding-bottom: var(--space-6);
+}
+
+.asignar-profesores-page .page-head {
+    margin-bottom: var(--space-4);
+}
+
+.asignar-profesores-page .page-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.asignar-profesores-nota {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-2);
+    margin: 0 0 var(--space-4);
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--surface-sunken);
+    color: var(--ink-muted);
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.asignar-profesores-nota svg {
+    flex: none;
+    margin-top: 1px;
+}
+
+.asignar-profesores-alert {
+    margin-bottom: var(--space-4);
+}
+
+.asignar-profesores-page .filters .sg-field {
+    flex: 1 1 190px;
+    min-width: 180px;
+}
+
+.asignar-profesores-page .filters .f-search {
+    flex: 2 1 260px;
+}
+
+.asignar-profesores-page .filters .sg-field__hint {
+    min-height: 0;
+}
+
+.asignar-profesores-page .chips {
+    justify-content: space-between;
+}
+
+.asignar-profesores-page .table-wrap {
+    max-width: 100%;
 }
 
 .asignar-profesores-table {
-    width: 100%;
-    min-width: 1080px;
-    border-collapse: collapse;
-    text-align: left;
-}
-
-.asignar-profesores-table th,
-.asignar-profesores-table td {
-    padding: 12px 14px;
-    border-bottom: 1px solid var(--border, #e5e7eb);
-    vertical-align: top;
-    font-size: 0.9rem;
+    min-width: 1040px;
 }
 
 .asignar-profesores-table th {
-    background: var(--surface-muted, #f7f8fa);
-    color: var(--text, #1f2937);
-    font-weight: 650;
-    white-space: nowrap;
+    vertical-align: middle;
 }
 
-.asignar-profesores-table tbody tr:last-child td {
-    border-bottom: 0;
+.asignar-profesores-table td {
+    vertical-align: middle;
 }
 
 .asignar-profesores-table td strong,
@@ -70,32 +79,71 @@
 }
 
 .asignar-profesores-table td small {
-    margin-top: 4px;
-    color: var(--text-secondary, #667085);
-    line-height: 1.4;
+    margin-top: var(--space-1);
+    color: var(--ink-muted);
+    line-height: 1.45;
 }
 
 .asignar-profesores-select {
-    min-width: 240px;
+    min-width: 220px;
+    max-width: 100%;
+}
+
+.asignar-profesores-actual {
+    margin-top: var(--space-2);
+}
+
+.asignar-profesores-sin-horario {
+    display: inline-block;
+    color: var(--warning);
+    font-size: 13px;
+    line-height: 1.45;
 }
 
 .asignar-profesores-actions {
-    display: flex;
+    display: inline-flex;
+    align-items: center;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: var(--space-2);
 }
 
 .asignar-profesores-actions .sg-btn {
     white-space: nowrap;
 }
 
+.asignar-profesores-bloqueo {
+    display: block;
+    max-width: 250px;
+    margin-top: var(--space-2);
+    color: var(--ink-muted);
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+.asignar-profesores-page .table-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+}
+
 @media (max-width: 760px) {
-    .asignar-profesores-page {
-        padding: 0 12px 24px;
+    .asignar-profesores-page .page-head {
+        align-items: flex-start;
     }
 
-    .asignar-profesores-toolbar {
-        align-items: flex-start;
-        flex-direction: column;
+    .asignar-profesores-page .page-actions {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    .asignar-profesores-page .filters .sg-field,
+    .asignar-profesores-page .filters .f-search {
+        flex-basis: 100%;
+        min-width: 0;
+    }
+
+    .asignar-profesores-table {
+        min-width: 1040px;
     }
 }
