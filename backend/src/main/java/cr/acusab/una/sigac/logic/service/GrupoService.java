@@ -2,6 +2,7 @@ package cr.acusab.una.sigac.logic.service;
 
 import cr.acusab.una.sigac.data.entity.Curso;
 import cr.acusab.una.sigac.data.entity.Grupo;
+import cr.acusab.una.sigac.logic.exception.BusinessException;
 import cr.acusab.una.sigac.data.entity.HorarioGrupo;
 import cr.acusab.una.sigac.data.entity.PeriodoAcademico;
 import cr.acusab.una.sigac.data.entity.Profesor;
@@ -96,12 +97,12 @@ public class GrupoService {
         // 1. El curso debe existir y estar activo.
         Curso curso = cursoRepository
                 .findById(request.getIdCurso())
-                .orElseThrow(() -> new IllegalArgumentException(
+                .orElseThrow(() -> new BusinessException(
                         "El curso seleccionado no existe."
                 ));
 
         if (!Boolean.TRUE.equals(curso.getActivo())) {
-            throw new IllegalArgumentException(
+            throw new BusinessException(
                     "El curso seleccionado se encuentra inactivo."
             );
         }
@@ -109,12 +110,12 @@ public class GrupoService {
         // 2. El período debe existir y no estar cerrado ni cancelado.
         PeriodoAcademico periodo = periodoAcademicoRepository
                 .findById(request.getIdPeriodo())
-                .orElseThrow(() -> new IllegalArgumentException(
+                .orElseThrow(() -> new BusinessException(
                         "El período académico seleccionado no existe."
                 ));
 
         if (ESTADOS_PERIODO_CERRADOS.contains(periodo.getEstado())) {
-            throw new IllegalArgumentException(
+            throw new BusinessException(
                     "No se pueden crear grupos en un período cerrado o cancelado."
             );
         }
@@ -126,12 +127,12 @@ public class GrupoService {
 
             profesor = profesorRepository
                     .findByIdParaAsignacion(request.getIdProfesor())
-                    .orElseThrow(() -> new IllegalArgumentException(
+                    .orElseThrow(() -> new BusinessException(
                             "El profesor seleccionado no existe."
                     ));
 
             if (!Boolean.TRUE.equals(profesor.getActivo())) {
-                throw new IllegalArgumentException(
+                throw new BusinessException(
                         "El profesor seleccionado se encuentra inactivo."
                 );
             }
@@ -139,19 +140,19 @@ public class GrupoService {
 
         // 4. Modalidad y estado deben ser de los permitidos.
         if (!MODALIDADES_VALIDAS.contains(modalidad)) {
-            throw new IllegalArgumentException(
+            throw new BusinessException(
                     "La modalidad indicada no es válida."
             );
         }
 
         if (!ESTADOS_VALIDOS_CREACION.contains(estado)) {
-            throw new IllegalArgumentException(
+            throw new BusinessException(
                     "El estado indicado no es válido."
             );
         }
 
         if ("PUBLICADO".equals(estado) && profesor == null) {
-            throw new IllegalArgumentException(
+            throw new BusinessException(
                     "Un grupo solo puede publicarse cuando tiene un profesor activo asignado."
             );
         }
@@ -162,7 +163,7 @@ public class GrupoService {
 
         // 6. El código no se puede repetir dentro del período.
         if (grupoRepository.existsByIdPeriodoAndCodigo(periodo.getId(), codigo)) {
-            throw new IllegalArgumentException(
+            throw new BusinessException(
                     "Ya existe un grupo con ese código en el período seleccionado."
             );
         }
@@ -259,7 +260,7 @@ public class GrupoService {
                 && fechaFin != null
                 && fechaFin.isBefore(fechaInicio)) {
 
-            throw new IllegalArgumentException(
+            throw new BusinessException(
                     "La fecha de fin del grupo no puede ser anterior a la fecha de inicio."
             );
         }
@@ -268,7 +269,7 @@ public class GrupoService {
                 && (fechaInicio.isBefore(periodo.getFechaInicio())
                 || fechaInicio.isAfter(periodo.getFechaFin()))) {
 
-            throw new IllegalArgumentException(
+            throw new BusinessException(
                     "La fecha de inicio del grupo debe estar dentro del período académico."
             );
         }
@@ -277,7 +278,7 @@ public class GrupoService {
                 && (fechaFin.isBefore(periodo.getFechaInicio())
                 || fechaFin.isAfter(periodo.getFechaFin()))) {
 
-            throw new IllegalArgumentException(
+            throw new BusinessException(
                     "La fecha de fin del grupo debe estar dentro del período académico."
             );
         }
@@ -292,7 +293,7 @@ public class GrupoService {
         for (HorarioGrupoRequestDTO horario : horarios) {
 
             if (!horario.getHoraFin().isAfter(horario.getHoraInicio())) {
-                throw new IllegalArgumentException(
+                throw new BusinessException(
                         "En cada horario, la hora de fin debe ser posterior a la hora de inicio."
                 );
             }
@@ -312,7 +313,7 @@ public class GrupoService {
             if (anterior.getDiaSemana().equals(actual.getDiaSemana())
                     && actual.getHoraInicio().isBefore(anterior.getHoraFin())) {
 
-                throw new IllegalArgumentException(
+                throw new BusinessException(
                         "Hay horarios que se traslapan el mismo día."
                 );
             }
