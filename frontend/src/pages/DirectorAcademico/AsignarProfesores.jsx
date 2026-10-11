@@ -32,7 +32,7 @@ function fechaLegiblePeriodo(fecha) {
     if (!fecha) return "fecha no disponible";
 
     const fechaISO = String(fecha).slice(0, 10);
-    const partes = /^(\\d{4})-(\\d{2})-(\\d{2})$/.exec(fechaISO);
+    const partes = /^(\d{4})-(\d{2})-(\d{2})$/.exec(fechaISO);
     if (!partes) return fechaISO;
 
     // Mediodía UTC evita que la conversión de zona horaria cambie el día.
