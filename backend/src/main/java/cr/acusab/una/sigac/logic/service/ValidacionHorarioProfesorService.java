@@ -1,10 +1,10 @@
 package cr.acusab.una.sigac.logic.service;
 
 import cr.acusab.una.sigac.data.entity.Grupo;
-import cr.acusab.una.sigac.logic.exception.BusinessException;
 import cr.acusab.una.sigac.data.entity.HorarioGrupo;
 import cr.acusab.una.sigac.data.repository.GrupoRepository;
 import cr.acusab.una.sigac.data.repository.HorarioGrupoRepository;
+import cr.acusab.una.sigac.logic.exception.BusinessException;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
