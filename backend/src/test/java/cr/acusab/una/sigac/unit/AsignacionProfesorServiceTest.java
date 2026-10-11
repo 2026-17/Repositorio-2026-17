@@ -2,6 +2,7 @@ package cr.acusab.una.sigac.unit;
 
 import cr.acusab.una.sigac.data.entity.*;
 import cr.acusab.una.sigac.data.repository.*;
+import cr.acusab.una.sigac.logic.exception.BusinessException;
 import cr.acusab.una.sigac.logic.service.AsignacionProfesorService;
 import cr.acusab.una.sigac.logic.service.ValidacionHorarioProfesorService;
 import org.junit.jupiter.api.AfterEach;
@@ -126,8 +127,8 @@ class AsignacionProfesorServiceTest {
         when(horarioRepository.findByIdGrupoInOrderByDiaSemanaAscHoraInicioAsc(anyCollection()))
                 .thenReturn(List.of(nuevo), List.of(ocupado));
 
-        IllegalArgumentException error = assertThrows(
-                IllegalArgumentException.class,
+        BusinessException error = assertThrows(
+                BusinessException.class,
                 () -> service.asignar(idGrupo, idProfesor)
         );
 
@@ -207,5 +208,97 @@ class AsignacionProfesorServiceTest {
         assertEquals(77L, grupo.getIdUsuarioUltimaModificacion());
         verify(grupoRepository).save(grupo);
     }
+
+
+    @Test
+    void asignar_rechazaGrupoSinHorarioConErrorDeNegocio() {
+        Long idGrupo = 21L;
+        Long idProfesor = 12L;
+        Long idPeriodo = 7L;
+        LocalDate inicio = LocalDate.now(java.time.ZoneId.of("America/Costa_Rica")).plusDays(30);
+
+        Grupo grupo = new Grupo();
+        grupo.setId(idGrupo);
+        grupo.setIdPeriodo(idPeriodo);
+        grupo.setIdCurso(6L);
+        grupo.setEstado("PLANIFICADO");
+
+        PeriodoAcademico periodo = new PeriodoAcademico();
+        periodo.setId(idPeriodo);
+        periodo.setNombre("Período futuro");
+        periodo.setEstado("PLANIFICADO");
+        periodo.setFechaInicio(inicio);
+        periodo.setFechaFin(inicio.plusDays(100));
+
+        Curso curso = new Curso();
+        curso.setId(6L);
+        curso.setActivo(true);
+
+        Profesor profesor = new Profesor();
+        profesor.setId(idProfesor);
+        profesor.setActivo(true);
+
+        when(profesorRepository.findByIdParaAsignacion(idProfesor))
+                .thenReturn(Optional.of(profesor));
+        when(grupoRepository.findByIdParaAsignacion(idGrupo))
+                .thenReturn(Optional.of(grupo));
+        when(periodoRepository.findById(idPeriodo))
+                .thenReturn(Optional.of(periodo));
+        when(cursoRepository.findById(6L))
+                .thenReturn(Optional.of(curso));
+        when(horarioRepository.findByIdGrupoInOrderByDiaSemanaAscHoraInicioAsc(anyCollection()))
+                .thenReturn(List.of());
+
+        BusinessException error = assertThrows(
+                BusinessException.class,
+                () -> service.asignar(idGrupo, idProfesor)
+        );
+
+        assertTrue(error.getMessage().contains("horario registrado"));
+        verify(grupoRepository, never()).save(any(Grupo.class));
+        verify(grupoRepository, never()).findGruposProfesorEnPeriodo(
+                anyLong(), anyLong(), any(LocalDate.class), any(LocalDate.class)
+        );
+    }
+
+    @Test
+    void asignar_rechazaPeriodoQueYaInicio() {
+        Long idGrupo = 31L;
+        Long idProfesor = 14L;
+        Long idPeriodo = 9L;
+
+        Grupo grupo = new Grupo();
+        grupo.setId(idGrupo);
+        grupo.setIdPeriodo(idPeriodo);
+        grupo.setIdCurso(3L);
+        grupo.setEstado("PUBLICADO");
+
+        PeriodoAcademico periodo = new PeriodoAcademico();
+        periodo.setId(idPeriodo);
+        periodo.setNombre("Período iniciado");
+        periodo.setEstado("EN_CURSO");
+        periodo.setFechaInicio(LocalDate.now(java.time.ZoneId.of("America/Costa_Rica")).minusDays(1));
+        periodo.setFechaFin(LocalDate.now(java.time.ZoneId.of("America/Costa_Rica")).plusDays(60));
+
+        Profesor profesor = new Profesor();
+        profesor.setId(idProfesor);
+        profesor.setActivo(true);
+
+        when(profesorRepository.findByIdParaAsignacion(idProfesor))
+                .thenReturn(Optional.of(profesor));
+        when(grupoRepository.findByIdParaAsignacion(idGrupo))
+                .thenReturn(Optional.of(grupo));
+        when(periodoRepository.findById(idPeriodo))
+                .thenReturn(Optional.of(periodo));
+
+        BusinessException error = assertThrows(
+                BusinessException.class,
+                () -> service.asignar(idGrupo, idProfesor)
+        );
+
+        assertTrue(error.getMessage().contains("antes del inicio"));
+        verify(grupoRepository, never()).save(any(Grupo.class));
+    }
+
 
 }
