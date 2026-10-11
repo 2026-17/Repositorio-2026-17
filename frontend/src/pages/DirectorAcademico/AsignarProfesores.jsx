@@ -192,8 +192,8 @@ function AsignarProfesores() {
             setError("Este grupo no tiene una asignación que eliminar.");
             return;
         }
-        if (!puedeAsignar(item)) {
-            setError(motivoBloqueo(item));
+        if (!fechaPeriodoPendiente(item)) {
+            setError("La asignación solo puede quitarse antes del inicio del período académico.");
             return;
         }
         const ok = window.confirm(
@@ -430,7 +430,7 @@ function AsignarProfesores() {
                                                                 type="button"
                                                                 className="sg-btn sg-btn--danger sg-btn--sm"
                                                                 onClick={() => eliminar(item)}
-                                                                disabled={ocupado !== null || !plazoAbierto || !horarioRegistrado}
+                                                                disabled={ocupado !== null || !plazoAbierto}
                                                                 title={!plazoAbierto ? "El período ya inició o no tiene fecha válida." : !horarioRegistrado ? motivo : "Quitar la asignación"}
                                                             >
                                                                 <UserMinus size={20} strokeWidth={1.75} aria-hidden="true" />
