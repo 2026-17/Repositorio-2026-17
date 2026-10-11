@@ -311,6 +311,7 @@ public class CursoService {
 
         grupo.setIdPeriodo(request.getIdPeriodo());
         grupo.setIdCurso(cursoGuardado.getId());
+        grupo.setIdUsuarioUltimaModificacion(idUsuario);
         grupo.setCodigo(codigoGrupo);
         grupo.setCupoMaximo(request.getCupos());
 
