@@ -636,7 +636,9 @@ CREATE TABLE documentos_estudiantes (
     ubicacion_archivo VARCHAR(700)      NOT NULL,
     tipo_mime         VARCHAR(120)      NOT NULL,
     tamano_bytes      BIGINT UNSIGNED   NOT NULL,
-    sha256            CHAR(64),
+-- El hash solo tiene caracteres hexadecimales: se guarda en ASCII (1 byte por
+-- carácter en lugar de hasta 4 en utf8mb4) y se compara exacto (ascii_bin)
+    sha256            CHAR(64) CHARACTER SET ascii COLLATE ascii_bin,
     fecha_emision     DATE,
     fecha_vencimiento DATE,
     es_actual         BOOLEAN           NOT NULL DEFAULT TRUE,
