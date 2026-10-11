@@ -1,6 +1,11 @@
 /* HU-014: estilos propios de la pantalla. Colores, tipografía, espaciado y
    componentes base proceden del sistema de diseño global de SIGAC. */
 
+/* Esta pantalla necesita más ancho que el contenedor estándar de listados. */
+.content:has(.asignar-profesores-page) {
+    max-width: 1560px;
+}
+
 .asignar-profesores-page {
     width: 100%;
     min-width: 0;
@@ -60,11 +65,22 @@
 }
 
 .asignar-profesores-page .table-wrap {
+    width: 100%;
     max-width: 100%;
+    overflow-x: visible;
 }
 
 .asignar-profesores-table {
-    min-width: 1040px;
+    width: 100%;
+    min-width: 0;
+    table-layout: fixed;
+}
+
+.asignar-profesores-table th,
+.asignar-profesores-table td {
+    padding-left: var(--space-3);
+    padding-right: var(--space-3);
+    overflow-wrap: anywhere;
 }
 
 .asignar-profesores-table th {
@@ -74,6 +90,14 @@
 .asignar-profesores-table td {
     vertical-align: middle;
 }
+
+.asignar-profesores-table th:nth-child(1) { width: 13%; }
+.asignar-profesores-table th:nth-child(2) { width: 13%; }
+.asignar-profesores-table th:nth-child(3) { width: 8%; }
+.asignar-profesores-table th:nth-child(4) { width: 15%; }
+.asignar-profesores-table th:nth-child(5) { width: 21%; }
+.asignar-profesores-table th:nth-child(6) { width: 10%; }
+.asignar-profesores-table th:nth-child(7) { width: 20%; }
 
 .asignar-profesores-table td strong,
 .asignar-profesores-table td small {
@@ -87,7 +111,8 @@
 }
 
 .asignar-profesores-select {
-    min-width: 220px;
+    width: 100%;
+    min-width: 0;
     max-width: 100%;
 }
 
@@ -129,6 +154,26 @@
     gap: var(--space-3);
 }
 
+/* En ventanas estrechas conservamos scroll para que la tabla siga siendo legible. */
+@media (max-width: 1050px) {
+    .content:has(.asignar-profesores-page) {
+        max-width: 100%;
+    }
+
+    .asignar-profesores-page .table-wrap {
+        overflow-x: auto;
+    }
+
+    .asignar-profesores-table {
+        min-width: 1040px;
+        table-layout: auto;
+    }
+
+    .asignar-profesores-select {
+        min-width: 220px;
+    }
+}
+
 @media (max-width: 760px) {
     .asignar-profesores-page .page-head {
         align-items: flex-start;
@@ -143,9 +188,5 @@
     .asignar-profesores-page .filters .f-search {
         flex-basis: 100%;
         min-width: 0;
-    }
-
-    .asignar-profesores-table {
-        min-width: 1040px;
     }
 }
