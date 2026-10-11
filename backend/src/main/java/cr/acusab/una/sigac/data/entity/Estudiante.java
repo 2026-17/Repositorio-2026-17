@@ -69,9 +69,14 @@ public class Estudiante {
     @Column(name = "correo", nullable = false, length = 254)
     private String correo;
 
+    // Señas exactas; la provincia y el cantón se deducen del distrito.
     @Size(max = 500)
     @Column(name = "direccion", length = 500)
     private String direccion;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "codigo_distrito")
+    private Distrito distrito;
 
     @Size(max = 80)
     @Column(name = "nivel_escolar", length = 80)

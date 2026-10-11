@@ -5,6 +5,7 @@ import cr.acusab.una.sigac.data.entity.Profesor;
 import cr.acusab.una.sigac.data.entity.Role;
 import cr.acusab.una.sigac.data.entity.TiposIdentificacion;
 import cr.acusab.una.sigac.data.entity.Usuario;
+import cr.acusab.una.sigac.data.repository.DistritoRepository;
 import cr.acusab.una.sigac.data.repository.EstadoUsuarioRepository;
 import cr.acusab.una.sigac.data.repository.InstrumentoRepository;
 import cr.acusab.una.sigac.data.repository.ProfesorRepository;
@@ -67,7 +68,8 @@ class ProfesorServiceTest {
                 roleRepository,
                 estadoUsuarioRepository,
                 usuarioService,
-                mock(InstrumentoRepository.class)
+                mock(InstrumentoRepository.class),
+                mock(DistritoRepository.class)
         );
 
         TiposIdentificacion cedula = new TiposIdentificacion();
@@ -220,7 +222,6 @@ class ProfesorServiceTest {
         request.setCedula("118760542");
         request.setNombre("Marcela Vargas");
         request.setCorreo("marcela@test.cr");
-        request.setContrasena("Password123!");
         request.setIdRol(idRol);
         request.setIdEstadoUsuario(idEstado);
 

@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
     Search,
-    GraduationCap,
     Wallet,
     Receipt,
     CheckCircle2,
@@ -12,6 +11,12 @@ import {
 } from "lucide-react";
 import { API_URL } from "../../config/api";
 import "../AdminSis/styles/admin_Sis.css";
+import "./becasPagos.css";
+import Alert from "../../components/ui/Alert";
+import EmptyState from "../../components/ui/EmptyState";
+import Field from "../../components/ui/Field";
+import PageHead from "../../components/ui/PageHead";
+import { iniciales, listaErrores } from "../../components/ui/utilidades";
 
 import { useDialog } from "../../components/dialog/useDialog";
 
@@ -74,6 +79,7 @@ function Estudiantes() {
     const [comprobante, setComprobante] = useState(null);
     const [erroresPago, setErroresPago] = useState({});
     const [guardandoPago, setGuardandoPago] = useState(false);
+    const [intentoPago, setIntentoPago] = useState(0);
 
     // --- Ver / eliminar el pago ya registrado ---
     const [confirmarEliminarPago, setConfirmarEliminarPago] = useState(false);
@@ -204,7 +210,7 @@ function Estudiantes() {
 
         setErroresPago(nuevosErrores);
         if (Object.keys(nuevosErrores).length > 0) {
-            dialog.validacion(nuevosErrores);
+            setIntentoPago((n) => n + 1);
             return;
         }
 
@@ -296,230 +302,256 @@ function Estudiantes() {
         }
     }
 
+    const resumenPago = listaErrores(erroresPago, "pago-");
+    const pagadoOSinPendientes = Boolean(estadoMes?.sinPagosPendientes || estadoMes?.pagada);
+
     return (
-        <main className="content">
-            <div className="page-title">
-                <h1>Estudiantes</h1>
-                <p>Busque un estudiante para registrar sus pagos.</p>
-            </div>
+        <div className="becas-pagos">
+            <PageHead title="Becas y pagos" sub="Busque un estudiante para registrar sus pagos." />
 
             {/* ---------- Buscador ---------- */}
-            <section className="card">
-                <h2 className="card-title">Buscar estudiante</h2>
-                <p className="card-subtitle">Por nombre, apellidos o número de identificación.</p>
-
-                <div className="field" style={{ position: "relative" }}>
-                    <div className="input-suffix-wrap">
-                        <input
-                            className="input"
-                            placeholder="Ej. María Solano o 205950123"
-                            value={texto}
-                            onChange={(e) => setTexto(e.target.value)}
-                        />
-                        <span className="input-suffix"><Search size={16} /></span>
+            <section className="panel">
+                <div className="panel-head">
+                    <div>
+                        <h2>Buscar estudiante</h2>
+                        <p className="panel-head-sub">Por nombre, apellidos o número de identificación.</p>
                     </div>
+                </div>
+                <div className="panel-body">
+                    <div className="buscador-estudiante">
+                        <Field id="txtBuscarEstudiantePago" label="Estudiante" icon={Search}>
+                            <input
+                                id="txtBuscarEstudiantePago"
+                                className="sg-input"
+                                type="search"
+                                autoComplete="off"
+                                placeholder="Ej. María Solano o 205950123"
+                                value={texto}
+                                onChange={(e) => setTexto(e.target.value)}
+                                aria-controls="resultados-estudiante"
+                            />
+                        </Field>
 
-                    {texto.trim().length >= 2 && (
-                        <div className="search-results">
-                            {buscando && <div className="search-results__empty">Buscando...</div>}
-                            {!buscando && resultados.length === 0 && (
-                                <div className="search-results__empty">Sin coincidencias.</div>
-                            )}
-                            {!buscando && resultados.map((r) => (
-                                <button
-                                    type="button"
-                                    key={r.id}
-                                    className="search-results__item"
-                                    onClick={() => seleccionarEstudiante(r.id)}
-                                >
-                                    <span>{r.nombreCompleto}</span>
-                                    <span className="search-results__cedula">{r.numeroIdentificacion}</span>
-                                </button>
-                            ))}
-                        </div>
-                    )}
+                        {texto.trim().length >= 2 && (
+                            <div className="search-results" id="resultados-estudiante" role="listbox" aria-label="Resultados de la búsqueda">
+                                {buscando && <div className="search-results__empty">Buscando...</div>}
+                                {!buscando && resultados.length === 0 && (
+                                    <div className="search-results__empty">Sin coincidencias.</div>
+                                )}
+                                {!buscando && resultados.map((r) => (
+                                    <button
+                                        type="button"
+                                        key={r.id}
+                                        role="option"
+                                        aria-selected="false"
+                                        className="search-results__item"
+                                        onClick={() => seleccionarEstudiante(r.id)}
+                                    >
+                                        <span className="who">
+                                            <span className="avatar avatar--sm" aria-hidden="true">{iniciales(r.nombreCompleto)}</span>
+                                            <b>{r.nombreCompleto}</b>
+                                        </span>
+                                        <span className="search-results__cedula">{r.numeroIdentificacion}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 </div>
             </section>
 
-            {cargandoPerfil && <div className="banner banner-warning">Cargando estudiante...</div>}
+            {cargandoPerfil && <Alert tone="info" title="Cargando estudiante..." className="bloque-separado" />}
 
             {estudiante && !cargandoPerfil && (
                 <>
                     {/* ---------- Perfil del estudiante ---------- */}
-                    <section className="card">
-                        <div className="student-header">
-                            <div className="student-header__avatar"><GraduationCap size={22} /></div>
-                            <div>
-                                <h2 className="card-title">{nombreCompleto}</h2>
-                                <p className="card-subtitle">Identificación: {estudiante.numeroIdentificacion}</p>
+                    <section className="panel">
+                        <div className="panel-body">
+                            <div className="profile-head">
+                                <span className="avatar avatar--lg" aria-hidden="true">{iniciales(nombreCompleto)}</span>
+                                <div>
+                                    <h3>{nombreCompleto}</h3>
+                                    <p className="muted tnum">Identificación {estudiante.numeroIdentificacion}</p>
+                                </div>
                             </div>
                         </div>
-                        <p className="hint">El resto del expediente del estudiante se incorporará en otra historia de usuario.</p>
                     </section>
 
                     {/* ---------- Pagos ---------- */}
-                    <section className="card">
-                        <div className="card-header-row">
+                    <section className="panel">
+                        <div className="panel-head">
                             <div>
-                                <h2 className="card-title"><Wallet size={18} className="inline-icon" /> Pagos</h2>
-                                <p className="card-subtitle">Seleccione el período académico y el mes a consultar.</p>
+                                <h2><Wallet size={18} strokeWidth={1.75} className="inline-icon" aria-hidden="true" /> Pagos</h2>
+                                <p className="panel-head-sub">Seleccione el período académico y el mes a consultar.</p>
                             </div>
                         </div>
 
-                        <div className="grid-2">
-                            <div className="field">
-                                <label className="field-label">Período académico</label>
-                                <select
-                                    className="input"
-                                    value={idPeriodo}
-                                    onChange={(e) => { setIdPeriodo(e.target.value); setMesSeleccionado(""); setEstadoMes(null); }}
-                                >
-                                    <option value="">Seleccione un período</option>
-                                    {periodos.map((p) => (
-                                        <option key={p.id} value={p.id}>{p.nombre}</option>
-                                    ))}
-                                </select>
+                        <div className="panel-body stack">
+                            <div className="form-grid">
+                                <Field id="cmbPeriodoPago" label="Período académico" select>
+                                    <select
+                                        id="cmbPeriodoPago"
+                                        className="sg-input sg-select"
+                                        value={idPeriodo}
+                                        onChange={(e) => { setIdPeriodo(e.target.value); setMesSeleccionado(""); setEstadoMes(null); }}
+                                    >
+                                        <option value="">Seleccione un período</option>
+                                        {periodos.map((p) => (
+                                            <option key={p.id} value={p.id}>{p.nombre}</option>
+                                        ))}
+                                    </select>
+                                </Field>
+
+                                <Field id="cmbMesPago" label="Mes" select hint={!idPeriodo ? "Seleccione primero un período." : undefined}>
+                                    <select
+                                        id="cmbMesPago"
+                                        className="sg-input sg-select"
+                                        value={mesSeleccionado}
+                                        onChange={(e) => setMesSeleccionado(e.target.value)}
+                                        disabled={!idPeriodo}
+                                    >
+                                        <option value="">Seleccione un mes</option>
+                                        {mesesDelPeriodo(periodoSeleccionado).map(({ anio, mes }) => (
+                                            <option key={`${anio}-${mes}`} value={`${anio}-${mes}`}>
+                                                {MESES[mes]} {anio}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </Field>
                             </div>
 
-                            <div className="field">
-                                <label className="field-label">Mes</label>
-                                <select
-                                    className="input"
-                                    value={mesSeleccionado}
-                                    onChange={(e) => setMesSeleccionado(e.target.value)}
-                                    disabled={!idPeriodo}
-                                >
-                                    <option value="">Seleccione un mes</option>
-                                    {mesesDelPeriodo(periodoSeleccionado).map(({ anio, mes }) => (
-                                        <option key={`${anio}-${mes}`} value={`${anio}-${mes}`}>
-                                            {MESES[mes]} {anio}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                        </div>
+                            {cargandoEstadoMes && <p className="muted">Consultando estado de pago...</p>}
 
-                        {cargandoEstadoMes && <p className="hint">Consultando estado de pago...</p>}
+                            {!cargandoEstadoMes && estadoMes && (
+                                <>
+                                    <Alert
+                                        tone={pagadoOSinPendientes ? "success" : "warning"}
+                                        title={`Estado de pago: ${estadoMes.sinPagosPendientes ? "Sin pagos pendientes" : estadoMes.pagada ? "Al día" : "Pendiente"}`}
+                                    >
+                                        {estadoMes.sinPagosPendientes && "Este estudiante está becado al 100% para este período; no tiene pagos pendientes."}
+                                    </Alert>
 
-                        {!cargandoEstadoMes && estadoMes && (
-                            <>
-                                <div className={`banner ${estadoMes.sinPagosPendientes || estadoMes.pagada ? "banner-success" : "banner-warning"}`}>
-                                    {estadoMes.sinPagosPendientes || estadoMes.pagada
-                                        ? <CheckCircle2 size={16} />
-                                        : <Clock size={16} />}
-                                    Estado de pago: <strong>&nbsp;{estadoMes.sinPagosPendientes ? "Sin pagos pendientes" : estadoMes.pagada ? "Al día" : "Pendiente"}</strong>
-                                </div>
-
-                                {estadoMes.sinPagosPendientes ? (
-                                    <p className="hint">Este estudiante está becado al 100% para este período; no tiene pagos pendientes.</p>
-                                ) : estadoMes.pagada ? (
-                                    <div className="subcard">
-                                        <div className="subcard-header">
-                                            <span>Pago registrado</span>
-                                            <strong>{formatoColones(estadoMes.monto)}</strong>
-                                        </div>
-                                        <p className="hint">Fecha de pago: {estadoMes.fechaPago}</p>
-
-                                        {confirmarEliminarPago ? (
-                                            <div className="banner banner-warning" style={{ marginTop: 12, marginBottom: 0 }}>
-                                                ¿Confirma eliminar este pago? El mes quedará pendiente de nuevo.
-                                                <div style={{ display: "flex", gap: 8, marginLeft: "auto" }}>
-                                                    <button type="button" className="btn btn-secondary" onClick={() => setConfirmarEliminarPago(false)} disabled={eliminandoPago}>
-                                                        Cancelar
-                                                    </button>
-                                                    <button type="button" className="btn btn-primary" onClick={eliminarPagoAhora} disabled={eliminandoPago}>
-                                                        {eliminandoPago ? "Eliminando..." : "Sí, eliminar"}
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-                                                <button type="button" className="btn btn-secondary" onClick={verComprobante} disabled={abriendoComprobante}>
-                                                    <Eye size={15} /> {abriendoComprobante ? "Abriendo..." : "Ver comprobante"}
-                                                </button>
-                                                <button type="button" className="btn btn-secondary" onClick={() => setConfirmarEliminarPago(true)}>
-                                                    <Trash2 size={15} /> Eliminar pago
-                                                </button>
-                                            </div>
-                                        )}
-                                    </div>
-                                ) : (
-                                    <>
-                                        <div className="subcard">
-                                            <div className="subcard-header">
-                                                <span>Monto a pagar</span>
-                                                <strong>{formatoColones(estadoMes.montoEsperado)}</strong>
-                                            </div>
-                                            {estadoMes.porcentajeBeca > 0 && (
-                                                <p className="hint">Ya incluye el descuento de beca del {Number(estadoMes.porcentajeBeca)}%.</p>
-                                            )}
-                                        </div>
-
-                                        <form onSubmit={registrarPago} noValidate>
-
-                                            <div className="field">
-                                                <label className="field-label">Fecha de pago <span className="required">*</span></label>
-                                                <input
-                                                    className={`input ${erroresPago.fechaPago ? "error" : ""}`}
-                                                    type="date"
-                                                    max={todayISO()}
-                                                    value={fechaPago}
-                                                    onChange={(e) => { setFechaPago(e.target.value); setErroresPago((er) => ({ ...er, fechaPago: "" })); }}
-                                                />
-                                                {erroresPago.fechaPago && <p className="error">{erroresPago.fechaPago}</p>}
-                                            </div>
-
-                                            <div className="field">
-                                                <label className="field-label">Comprobante de pago <span className="required">*</span></label>
-                                                {comprobante ? (
-                                                    <div className="file-input has-file" style={{ justifyContent: "space-between" }}>
-                                                        <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                                                            <Receipt size={16} />
-                                                            {comprobante.name} — {(comprobante.size / 1024 / 1024).toFixed(2)} MB
-                                                        </span>
-                                                        <button
-                                                            type="button"
-                                                            className="icon-btn danger"
-                                                            aria-label="Quitar comprobante adjunto"
-                                                            onClick={() => setComprobante(null)}
-                                                        >
-                                                            <X size={15} />
+                                    {estadoMes.pagada && !estadoMes.sinPagosPendientes && (
+                                        <div className="review-block">
+                                            <h3>Pago registrado <span className="monto tnum">{formatoColones(estadoMes.monto)}</span></h3>
+                                            <dl>
+                                                <dt>Fecha de pago</dt>
+                                                <dd className="tnum">{estadoMes.fechaPago}</dd>
+                                            </dl>
+                                            <div className="review-acciones">
+                                                {confirmarEliminarPago ? (
+                                                    <Alert tone="warning" title="¿Confirma eliminar este pago?">
+                                                        <p>El mes quedará pendiente de nuevo.</p>
+                                                        <div className="inline-actions confirmar-acciones">
+                                                            <button type="button" className="sg-btn sg-btn--secondary sg-btn--sm" onClick={() => setConfirmarEliminarPago(false)} disabled={eliminandoPago}>
+                                                                Cancelar
+                                                            </button>
+                                                            <button type="button" className="sg-btn sg-btn--danger sg-btn--sm" onClick={eliminarPagoAhora} disabled={eliminandoPago}>
+                                                                {eliminandoPago ? "Eliminando…" : "Sí, eliminar"}
+                                                            </button>
+                                                        </div>
+                                                    </Alert>
+                                                ) : (
+                                                    <div className="inline-actions">
+                                                        <button type="button" className="sg-btn sg-btn--secondary sg-btn--sm" onClick={verComprobante} disabled={abriendoComprobante}>
+                                                            <Eye size={16} strokeWidth={1.75} aria-hidden="true" /> {abriendoComprobante ? "Abriendo…" : "Ver comprobante"}
+                                                        </button>
+                                                        <button type="button" className="sg-btn sg-btn--ghost sg-btn--sm btn-peligro" onClick={() => setConfirmarEliminarPago(true)}>
+                                                            <Trash2 size={16} strokeWidth={1.75} aria-hidden="true" /> Eliminar pago
                                                         </button>
                                                     </div>
-                                                ) : (
-                                                    <label className="file-input">
-                                                        <Receipt size={16} />
-                                                        <span>Adjuntar comprobante (PDF, JPG o PNG)</span>
-                                                        <input
-                                                            type="file"
-                                                            accept="application/pdf,image/jpeg,image/png,image/webp"
-                                                            hidden
-                                                            onChange={(e) => {
-                                                                setComprobante(e.target.files?.[0] || null);
-                                                                setErroresPago((er) => ({ ...er, comprobante: "" }));
-                                                            }}
-                                                        />
-                                                    </label>
                                                 )}
-                                                {erroresPago.comprobante
-                                                    ? <p className="error">{erroresPago.comprobante}</p>
-                                                    : <p className="hint">Es la evidencia de que el estudiante pagó · máximo 15 MB.</p>}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {!estadoMes.pagada && !estadoMes.sinPagosPendientes && (
+                                        <>
+                                            <div className="review-block">
+                                                <h3>Monto a pagar <span className="monto tnum">{formatoColones(estadoMes.montoEsperado)}</span></h3>
+                                                {estadoMes.porcentajeBeca > 0 && (
+                                                    <p className="muted review-nota">Ya incluye el descuento de beca del {Number(estadoMes.porcentajeBeca)}%.</p>
+                                                )}
                                             </div>
 
-                                            <div className="actions-row">
-                                                <button className="btn btn-primary" type="submit" disabled={guardandoPago}>
-                                                    {guardandoPago ? "Registrando..." : "Registrar pago"}
-                                                </button>
-                                            </div>
-                                        </form>
-                                    </>
-                                )}
-                            </>
-                        )}
+                                            <form onSubmit={registrarPago} noValidate className="stack">
+                                                {resumenPago.length > 0 && (
+                                                    <Alert
+                                                        key={intentoPago}
+                                                        tone="danger"
+                                                        autoFocus
+                                                        title={resumenPago.length === 1 ? "Revise 1 dato antes de registrar el pago" : `Revise ${resumenPago.length} datos antes de registrar el pago`}
+                                                        errors={resumenPago}
+                                                    />
+                                                )}
+
+                                                <div className="form-grid">
+                                                    <Field id="pago-fechaPago" errorKey="fechaPago" label="Fecha de pago" error={erroresPago.fechaPago}>
+                                                        <input
+                                                            id="pago-fechaPago"
+                                                            className="sg-input"
+                                                            type="date"
+                                                            max={todayISO()}
+                                                            value={fechaPago}
+                                                            onChange={(e) => { setFechaPago(e.target.value); setErroresPago((er) => ({ ...er, fechaPago: "" })); }}
+                                                            aria-invalid={erroresPago.fechaPago ? "true" : undefined}
+                                                        />
+                                                    </Field>
+
+                                                    <Field id="pago-comprobante" errorKey="comprobante" label="Comprobante de pago" hint="Es la evidencia de que el estudiante pagó · máximo 15 MB." error={erroresPago.comprobante} className="span-all">
+                                                        {comprobante ? (
+                                                            <div className="file-drop has-file">
+                                                                <Receipt size={20} strokeWidth={1.75} aria-hidden="true" />
+                                                                <span className="file-drop__nombre">
+                                                                    {comprobante.name} — {(comprobante.size / 1024 / 1024).toFixed(2)} MB
+                                                                </span>
+                                                                <button
+                                                                    type="button"
+                                                                    className="sg-icon-btn"
+                                                                    aria-label="Quitar comprobante adjunto"
+                                                                    onClick={() => setComprobante(null)}
+                                                                >
+                                                                    <X size={16} strokeWidth={1.75} aria-hidden="true" />
+                                                                </button>
+                                                            </div>
+                                                        ) : (
+                                                            <label className="file-drop">
+                                                                <Receipt size={20} strokeWidth={1.75} aria-hidden="true" />
+                                                                <span>Adjuntar comprobante (PDF, JPG o PNG)</span>
+                                                                <input
+                                                                    id="pago-comprobante"
+                                                                    type="file"
+                                                                    accept="application/pdf,image/jpeg,image/png,image/webp"
+                                                                    onChange={(e) => {
+                                                                        setComprobante(e.target.files?.[0] || null);
+                                                                        setErroresPago((er) => ({ ...er, comprobante: "" }));
+                                                                    }}
+                                                                />
+                                                            </label>
+                                                        )}
+                                                    </Field>
+                                                </div>
+
+                                                <div className="pago-acciones">
+                                                    <button className={`sg-btn sg-btn--primary${guardandoPago ? " is-loading" : ""}`} type="submit" disabled={guardandoPago} aria-busy={guardandoPago || undefined}>
+                                                        {guardandoPago ? <span className="sg-spinner" aria-hidden="true" /> : <CheckCircle2 size={18} strokeWidth={1.75} aria-hidden="true" />}
+                                                        {guardandoPago ? "Registrando…" : "Registrar pago"}
+                                                    </button>
+                                                </div>
+                                            </form>
+                                        </>
+                                    )}
+                                </>
+                            )}
+
+                            {!cargandoEstadoMes && !estadoMes && (
+                                <EmptyState compact icon={Clock} title="Consulte un mes" description="Seleccione el período académico y el mes para ver el estado de pago." />
+                            )}
+                        </div>
                     </section>
                 </>
             )}
-        </main>
+        </div>
     );
 }
 

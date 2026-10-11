@@ -2,11 +2,15 @@ import {
     BrowserRouter,
     Routes,
     Route,
+    Navigate,
     Outlet,
 } from "react-router-dom";
 
 import Login from "./pages/Publico/login";
+import RecuperarContrasena from "./pages/Publico/RecuperarContrasena";
+import CambiarContrasenaTemporal from "./pages/Publico/CambiarContrasenaTemporal";
 import Notificaciones from "./pages/Estudiante/Notificaciones";
+import ConsultaCursos from "./pages/Estudiante/ConsultaCursos";
 import SeleccionCursos from "./pages/Estudiante/SeleccionCursos";
 import CreateUsers from "./pages/AdminSis/createUsers";
 import CreateStudent from "./pages/AdminSis/createStudent";
@@ -16,6 +20,7 @@ import EditarEstudiante from "./pages/AdminSis/EditarEstudiante";
 import CrearCurso from "./pages/DirectorAcademico/CrearCurso";
 import ModificarCurso from "./pages/DirectorAcademico/ModificarCurso";
 import DesactivarCurso from "./pages/DirectorAcademico/DesactivarCurso";
+import CrearGrupo from "./pages/DirectorAcademico/CrearGrupo";
 import AsignarInstrumento from "./pages/DirectorAcademico/AsignarInstrumento.jsx";
 import AsignarInstrumentoAdministrativo from "./pages/Administrativa/AsignarInstrumento.jsx";
 import CrearPeriodoAcademico from "./pages/DirectorAcademico/CrearPeriodoAcademico";
@@ -24,24 +29,22 @@ import ModificarPeriodoAcademico from "./pages/DirectorAcademico/ModificarPeriod
 import BecasPagos from "./pages/Administrativa/Estudiantes.jsx";
 import Matricula from "./pages/Administrativa/Matricula.jsx";
 import Profesores from "./pages/DirectorAcademico/Profesores.jsx";
+import RegistrarProfesor from "./pages/DirectorAcademico/RegistrarProfesor.jsx";
 import Reportes from "./pages/Administrativa/Reportes.jsx";
 
 import Header from "./components/Header";
-import Footer from "./components/Footer";
-
-import "./components/layout.css";
+import { cambioContrasenaPendiente, RUTA_CAMBIO_CONTRASENA_TEMPORAL } from "./utils/sesion";
 
 function Layout() {
+    // Con la contraseña temporal no se entra al sistema hasta cambiarla
+    if (cambioContrasenaPendiente()) {
+        return <Navigate to={RUTA_CAMBIO_CONTRASENA_TEMPORAL} replace />;
+    }
+
     return (
-        <div className="sigac-app">
-            <Header />
-
-            <main className="app-main">
-                <Outlet />
-            </main>
-
-            <Footer />
-        </div>
+        <Header>
+            <Outlet />
+        </Header>
     );
 }
 
@@ -61,6 +64,17 @@ function App() {
                 <Route
                     path="/login"
                     element={<Login />}
+                />
+
+                <Route
+                    path="/recuperar-contrasena"
+                    element={<RecuperarContrasena />}
+                />
+
+                {/* Primer inicio de sesión: cambio de la contraseña temporal */}
+                <Route
+                    path={RUTA_CAMBIO_CONTRASENA_TEMPORAL}
+                    element={<CambiarContrasenaTemporal />}
                 />
 
                 {/* =====================================================
@@ -98,6 +112,12 @@ function App() {
                         element={<DesactivarCurso />}
                     />
 
+                    {/* Crear grupo de un curso en un período */}
+                    <Route
+                        path="/director-academico/grupos/crear"
+                        element={<CrearGrupo />}
+                    />
+
                     {/* Crear período académico */}
                     <Route
                         path="/director-academico/periodos-academicos/crear"
@@ -117,6 +137,10 @@ function App() {
                     <Route
                         path="/director-academico/profesores"
                         element={<Profesores />}
+                    />
+                    <Route
+                        path="/director-academico/profesores/registrar"
+                        element={<RegistrarProfesor />}
                     />
 
                     {/* =================================================
@@ -170,6 +194,12 @@ function App() {
                     <Route
                         path="/estudiante/notificaciones"
                         element={<Notificaciones />}
+                    />
+
+                    {/* HU-10 - Consultar cursos disponibles de un período académico */}
+                    <Route
+                        path="/estudiante/cursos-disponibles"
+                        element={<ConsultaCursos />}
                     />
 
                     {/* HU-002 - Solicitar matrícula de cursos */}

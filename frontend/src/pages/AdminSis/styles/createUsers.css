@@ -1,0 +1,10 @@
+/* Crear usuario (rol Administrador). Usa .panel, .form-grid y los
+   componentes del sistema de diseño; aquí solo el ancho del formulario. */
+
+.crear-usuario {
+    max-width: 880px;
+}
+
+.crear-usuario .form-alert {
+    margin-bottom: var(--space-5);
+}

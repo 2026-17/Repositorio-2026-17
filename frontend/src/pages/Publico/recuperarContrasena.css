@@ -1,0 +1,17 @@
+/* =========================================
+   Recuperar contraseña
+   Reutiliza .auth, .code-inputs, .timer, .rules y .success-screen
+   de src/styles/app.css.
+   ========================================= */
+
+.auth-success {
+    padding: 0;
+}
+
+.auth-success h1 {
+    font: 600 26px/32px var(--font-display);
+}
+
+.auth-success h1:focus {
+    outline: none;
+}

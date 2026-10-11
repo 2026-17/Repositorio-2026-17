@@ -18,6 +18,7 @@ public record EstudianteUpdateRequest(
         @Size(max = 80) String segundoApellido,
         @NotNull @PastOrPresent LocalDate fechaNacimiento,
         @NotBlank @Size(max = 30) String genero,
+        @NotNull(message = "El distrito es obligatorio") Integer codigoDistrito,
         @NotBlank @Size(max = 500) String direccion,
         @Size(max = 30) String telefono,
         @NotBlank @Email @Size(max = 254) String correo,

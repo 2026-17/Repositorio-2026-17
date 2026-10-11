@@ -2,14 +2,22 @@ import RequisitosCursoOpcionales from "./RequisitosCursoOpcionales";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
     ArrowLeft,
-    Edit3,
-    GraduationCap,
+    BookOpen,
     Music2,
+    Pencil,
+    RotateCcw,
+    Save,
     Search,
 } from "lucide-react";
 
 import { API_URL } from "../../config/api";
 import "./modificarCurso.css";
+import Alert from "../../components/ui/Alert";
+import EmptyState from "../../components/ui/EmptyState";
+import Field from "../../components/ui/Field";
+import PageHead from "../../components/ui/PageHead";
+import StatusBadge from "../../components/ui/StatusBadge";
+import { listaErrores } from "../../components/ui/utilidades";
 
 import { useDialog } from "../../components/dialog/useDialog";
 
@@ -73,6 +81,7 @@ function ModificarCurso() {
         useState(null);
 
     const [errores, setErrores] = useState({});
+    const [intento, setIntento] = useState(0);
 
     const [cargandoCatalogos, setCargandoCatalogos] =
         useState(true);
@@ -457,9 +466,7 @@ function ModificarCurso() {
                 erroresValidacion
             );
 
-            dialog.validacion(
-                erroresValidacion
-            );
+            setIntento(n => n + 1);
 
             return;
         }
@@ -657,565 +664,187 @@ function ModificarCurso() {
         setErrores({});
     }
 
+    const aria = (campo) => ({
+        "aria-invalid": errores[campo] ? "true" : undefined,
+        "aria-describedby": errores[campo] ? `${campo}-error` : undefined,
+    });
+    const resumen = listaErrores(errores);
+
     return (
-        <div className="container">
+        <div className="modificar-curso">
+            <PageHead
+                title="Modificar curso"
+                sub="Seleccione un curso activo y actualice únicamente los datos permitidos de la malla curricular."
+            />
 
-            <div className="modificar-curso">
-
-                <header className="modificar-curso__header">
-                    <h1>
-                        Modificar curso
-                    </h1>
-
-                    <p>
-                        Seleccione un curso activo y actualice únicamente
-                        los datos permitidos de la malla curricular.
-                    </p>
-                </header>
-
-                {!cursoSeleccionado && (
-                    <section
-                        className="modificar-curso__selector"
-                        aria-labelledby="seleccionar-curso-titulo"
-                    >
-                        <div className="modificar-curso__section-heading">
-                            <div>
-                                <h2 id="seleccionar-curso-titulo">
-                                    1. Seleccione el curso
-                                </h2>
-                                <p>
-                                    Busque por nombre o código del curso.
-                                </p>
-                            </div>
+            {!cursoSeleccionado && (
+                <section className="panel" aria-labelledby="seleccionar-curso-titulo">
+                    <div className="panel-head">
+                        <div>
+                            <h2 id="seleccionar-curso-titulo">1. Seleccione el curso</h2>
+                            <p className="panel-head-sub">Busque por nombre o código del curso.</p>
                         </div>
+                    </div>
 
-                        <div className="modificar-curso__search">
-                            <Search
-                                size={18}
-                                aria-hidden="true"
-                            />
-
-                            <label
-                                htmlFor="buscarCurso"
-                                className="sr-only"
-                            >
-                                Buscar curso por nombre o código
-                            </label>
-
+                    <div className="filters filters--sin-radio" role="search">
+                        <Field id="buscarCurso" label="Buscar" icon={Search} className="f-search">
                             <input
                                 id="buscarCurso"
                                 type="search"
+                                className="sg-input"
                                 value={busqueda}
-                                onChange={(e) =>
-                                    setBusqueda(
-                                        e.target.value
-                                    )
-                                }
-                                placeholder="Buscar por nombre o código"
-                                disabled={
-                                    cargandoCatalogos
-                                }
+                                onChange={(e) => setBusqueda(e.target.value)}
+                                placeholder="Nombre o código del curso"
+                                disabled={cargandoCatalogos}
                             />
-                        </div>
+                        </Field>
+                    </div>
 
-                        <div
-                            className="modificar-curso__lista"
-                            aria-live="polite"
-                        >
-                            {cargandoCatalogos && (
-                                <div className="modificar-curso__empty">
-                                    Cargando cursos...
-                                </div>
+                    <div className="chips">
+                        <span className="result-count" aria-live="polite">
+                            <b>{cargandoCatalogos ? "…" : cursosFiltrados.length}</b>
+                            {cursosFiltrados.length === 1 ? " curso activo" : " cursos activos"}
+                        </span>
+                    </div>
+
+                    {cargandoCatalogos ? (
+                        <p className="muted lista-cargando" role="status">Cargando cursos...</p>
+                    ) : cursosFiltrados.length === 0 ? (
+                        <EmptyState
+                            icon={BookOpen}
+                            title={busqueda.trim() ? `Ningún curso coincide con «${busqueda.trim()}»` : "No hay cursos activos"}
+                            description="Revise la ortografía o busque por el código del curso."
+                        />
+                    ) : (
+                        <ul className="list-rows">
+                            {cursosFiltrados.map((curso) => (
+                                <li key={curso.idCurso}>
+                                    <div className="who">
+                                        <span className="avatar avatar--sm avatar--icono" aria-hidden="true">
+                                            <Music2 size={16} strokeWidth={1.75} />
+                                        </span>
+                                        <div>
+                                            <b>{curso.nombre}</b>
+                                            <span>{[curso.codigo, curso.categoria].filter(Boolean).join(" · ")}</span>
+                                        </div>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        className="sg-btn sg-btn--secondary sg-btn--sm"
+                                        onClick={() => seleccionarCurso(curso)}
+                                        disabled={cargandoCurso}
+                                    >
+                                        <Pencil size={16} strokeWidth={1.75} aria-hidden="true" />
+                                        Modificar
+                                    </button>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </section>
+            )}
+
+            {cursoSeleccionado && (
+                <div ref={editorRef}>
+                    <button type="button" className="link-btn back-link" onClick={solicitarCancelar} disabled={guardando}>
+                        <ArrowLeft size={16} strokeWidth={1.75} aria-hidden="true" />
+                        Volver a cursos
+                    </button>
+
+                    {cargandoCurso ? (
+                        <Alert tone="info" title="Cargando información del curso..." />
+                    ) : (
+                        <form onSubmit={solicitarGuardado} noValidate>
+                            {resumen.length > 0 && (
+                                <Alert
+                                    key={intento}
+                                    tone="danger"
+                                    autoFocus
+                                    className="form-alert"
+                                    title={resumen.length === 1 ? "Revise 1 dato antes de guardar" : `Revise ${resumen.length} datos antes de guardar`}
+                                    errors={resumen}
+                                />
                             )}
 
-                            {!cargandoCatalogos &&
-                                cursosFiltrados.length === 0 && (
-                                    <div className="modificar-curso__empty">
-                                        No hay cursos activos que coincidan
-                                        con la búsqueda.
-                                    </div>
-                                )}
-
-                            {!cargandoCatalogos &&
-                                cursosFiltrados.map(
-                                    (curso) => (
-                                        <article
-                                            className="modificar-curso-card"
-                                            key={
-                                                curso.idCurso
-                                            }
-                                        >
-                                            <div className="modificar-curso-card__content">
-                                                <div className="modificar-curso-card__title">
-                                                    <Music2
-                                                        size={19}
-                                                        aria-hidden="true"
-                                                    />
-
-                                                    <div>
-                                                        <h3>
-                                                            {curso.nombre}
-                                                        </h3>
-
-                                                        <span>
-                                                        {curso.codigo}
-                                                    </span>
-                                                    </div>
-                                                </div>
-
-                                                {curso.categoria && (
-                                                    <p className="modificar-curso-card__description">
-                                                        {curso.categoria}
-                                                    </p>
-                                                )}
-                                            </div>
-
-                                            <button
-                                                type="button"
-                                                className="btn btn--primary modificar-curso-card__button"
-                                                onClick={() =>
-                                                    seleccionarCurso(
-                                                        curso
-                                                    )
-                                                }
-                                                disabled={
-                                                    cargandoCurso
-                                                }
-                                            >
-                                                <Edit3
-                                                    size={16}
-                                                    aria-hidden="true"
-                                                />
-                                                Modificar
-                                            </button>
-                                        </article>
-                                    )
-                                )}
-                        </div>
-                    </section>
-                )}
-
-                {cursoSeleccionado && (
-                    <section
-                        className="modificar-curso__editor"
-                        ref={editorRef}
-                        aria-labelledby="editar-curso-titulo"
-                    >
-                        <div className="modificar-curso__section-heading modificar-curso__section-heading--editor">
-                            <div>
-                                <h2 id="editar-curso-titulo">
-                                    2. Modifique los datos
-                                </h2>
-
-                                <p>
-                                    Los campos muestran la información
-                                    actualmente registrada.
-                                </p>
-                            </div>
-
-                            <button
-                                type="button"
-                                className="modificar-curso__back"
-                                onClick={
-                                    solicitarCancelar
-                                }
-                                disabled={
-                                    guardando
-                                }
-                            >
-                                <ArrowLeft
-                                    size={17}
-                                    aria-hidden="true"
-                                />
-                                Volver a cursos
-                            </button>
-                        </div>
-
-                        {cargandoCurso ? (
-                            <div className="modificar-curso__empty">
-                                Cargando información del curso...
-                            </div>
-                        ) : (
-                            <form
-                                className="modificar-curso__form"
-                                onSubmit={
-                                    solicitarGuardado
-                                }
-                                noValidate
-                            >
-                                <div className="modificar-curso__identity">
+                            <section className="panel" aria-labelledby="editar-curso-titulo">
+                                <div className="panel-head">
                                     <div>
-                                        <span className="modificar-curso__identity-label">
-                                            Curso seleccionado
-                                        </span>
-
-                                        <strong>
-                                            {form.nombre ||
-                                                cursoSeleccionado.nombre}
-                                        </strong>
+                                        <h2 id="editar-curso-titulo">2. Modifique los datos</h2>
+                                        <p className="panel-head-sub">Los campos muestran la información actualmente registrada.</p>
                                     </div>
-
-                                    <span className="modificar-curso__code">
-                                        {form.codigo}
-                                    </span>
+                                    <StatusBadge tone="primary" icon={null}>{form.codigo}</StatusBadge>
                                 </div>
 
-                                <div className="modificar-curso__grid">
-
-                                    <div className="modificar-field">
-                                        <label htmlFor="codigo">
-                                            Código
-                                        </label>
-
-                                        <input
-                                            id="codigo"
-                                            name="codigo"
-                                            type="text"
-                                            value={form.codigo}
-                                            readOnly
-                                            aria-readonly="true"
-                                        />
-
-                                        <small>
-                                            El código identifica al curso y
-                                            no puede modificarse desde esta
-                                            historia de usuario.
-                                        </small>
-                                    </div>
-
-                                    <div
-                                        className={`modificar-field${
-                                            errores.nombre
-                                                ? " modificar-field--error"
-                                                : ""
-                                        }`}
+                                <div className="panel-body form-grid">
+                                    <Field id="codigo" label="Código" hint="El código identifica al curso y no puede modificarse.">
+                                        <input id="codigo" name="codigo" type="text" className="sg-input" value={form.codigo} readOnly aria-readonly="true" aria-describedby="codigo-hint" />
+                                    </Field>
+                                    <Field id="nombre" label="Nombre del curso" error={errores.nombre}>
+                                        <input id="nombre" name="nombre" type="text" className="sg-input" maxLength="160" value={form.nombre} onChange={handleChange} disabled={guardando} {...aria("nombre")} />
+                                    </Field>
+                                    <Field id="descripcion" label="Descripción" optional className="span-all">
+                                        <textarea id="descripcion" name="descripcion" className="sg-input" rows="4" value={form.descripcion} onChange={handleChange} disabled={guardando} placeholder="Descripción del curso" />
+                                    </Field>
+                                    <Field id="horasTotales" label="Cantidad de horas" error={errores.horasTotales}>
+                                        <input id="horasTotales" name="horasTotales" type="number" className="sg-input" min="1" step="1" inputMode="numeric" value={form.horasTotales} onChange={handleChange} disabled={guardando} {...aria("horasTotales")} />
+                                    </Field>
+                                    <Field id="nivel" label="Nivel académico" error={errores.nivel}>
+                                        <input id="nivel" name="nivel" type="number" className="sg-input" min="1" step="1" inputMode="numeric" value={form.nivel} onChange={handleChange} disabled={guardando} {...aria("nivel")} />
+                                    </Field>
+                                    <Field
+                                        id="idPrograma"
+                                        label="Programa académico"
+                                        hint="Si cambia el programa, el sistema conservará la relación histórica anterior y asociará el curso al plan vigente del nuevo programa."
+                                        error={errores.idPrograma}
+                                        className="span-all"
+                                        select
                                     >
-                                        <label htmlFor="nombre">
-                                            Nombre del curso *
-                                        </label>
-
-                                        <input
-                                            id="nombre"
-                                            name="nombre"
-                                            type="text"
-                                            maxLength="160"
-                                            value={
-                                                form.nombre
-                                            }
-                                            onChange={
-                                                handleChange
-                                            }
-                                            disabled={
-                                                guardando
-                                            }
-                                            aria-invalid={
-                                                Boolean(
-                                                    errores.nombre
-                                                )
-                                            }
-                                            aria-describedby={
-                                                errores.nombre
-                                                    ? "nombre-modificar-error"
-                                                    : undefined
-                                            }
-                                            required
-                                        />
-
-                                        {errores.nombre && (
-                                            <span
-                                                id="nombre-modificar-error"
-                                                className="modificar-field__error"
-                                                role="alert"
-                                            >
-                                                {errores.nombre}
-                                            </span>
-                                        )}
-                                    </div>
-
-                                    <div className="modificar-field modificar-field--full">
-                                        <label htmlFor="descripcion">
-                                            Descripción
-                                        </label>
-
-                                        <textarea
-                                            id="descripcion"
-                                            name="descripcion"
-                                            value={
-                                                form.descripcion
-                                            }
-                                            onChange={
-                                                handleChange
-                                            }
-                                            disabled={
-                                                guardando
-                                            }
-                                            rows="4"
-                                            placeholder="Descripción del curso"
-                                        />
-                                    </div>
-
-                                    <div
-                                        className={`modificar-field${
-                                            errores.horasTotales
-                                                ? " modificar-field--error"
-                                                : ""
-                                        }`}
-                                    >
-                                        <label htmlFor="horasTotales">
-                                            Cantidad de horas *
-                                        </label>
-
-                                        <input
-                                            id="horasTotales"
-                                            name="horasTotales"
-                                            type="number"
-                                            min="1"
-                                            max="65535"
-                                            step="1"
-                                            value={
-                                                form.horasTotales
-                                            }
-                                            onChange={
-                                                handleChange
-                                            }
-                                            disabled={
-                                                guardando
-                                            }
-                                            aria-invalid={
-                                                Boolean(
-                                                    errores.horasTotales
-                                                )
-                                            }
-                                            aria-describedby={
-                                                errores.horasTotales
-                                                    ? "horas-modificar-error"
-                                                    : undefined
-                                            }
-                                            required
-                                        />
-
-                                        {errores.horasTotales && (
-                                            <span
-                                                id="horas-modificar-error"
-                                                className="modificar-field__error"
-                                                role="alert"
-                                            >
-                                                {errores.horasTotales}
-                                            </span>
-                                        )}
-                                    </div>
-
-                                    <div
-                                        className={`modificar-field${
-                                            errores.nivel
-                                                ? " modificar-field--error"
-                                                : ""
-                                        }`}
-                                    >
-                                        <label htmlFor="nivel">
-                                            Nivel académico *
-                                        </label>
-
-                                        <input
-                                            id="nivel"
-                                            name="nivel"
-                                            type="number"
-                                            min="1"
-                                            step="1"
-                                            value={
-                                                form.nivel
-                                            }
-                                            onChange={
-                                                handleChange
-                                            }
-                                            disabled={
-                                                guardando
-                                            }
-                                            aria-invalid={
-                                                Boolean(
-                                                    errores.nivel
-                                                )
-                                            }
-                                            aria-describedby={
-                                                errores.nivel
-                                                    ? "nivel-modificar-error"
-                                                    : undefined
-                                            }
-                                            required
-                                        />
-
-                                        {errores.nivel && (
-                                            <span
-                                                id="nivel-modificar-error"
-                                                className="modificar-field__error"
-                                                role="alert"
-                                            >
-                                                {errores.nivel}
-                                            </span>
-                                        )}
-                                    </div>
-
-                                    <div
-                                        className={`modificar-field modificar-field--full${
-                                            errores.idPrograma
-                                                ? " modificar-field--error"
-                                                : ""
-                                        }`}
-                                    >
-                                        <label htmlFor="idPrograma">
-                                            Programa académico *
-                                        </label>
-
-                                        <div className="modificar-field__select-wrap">
-                                            <GraduationCap
-                                                size={17}
-                                                aria-hidden="true"
-                                            />
-
-                                            <select
-                                                id="idPrograma"
-                                                name="idPrograma"
-                                                value={
-                                                    form.idPrograma
-                                                }
-                                                onChange={
-                                                    handleChange
-                                                }
-                                                disabled={
-                                                    guardando ||
-                                                    cargandoCatalogos
-                                                }
-                                                aria-invalid={
-                                                    Boolean(
-                                                        errores.idPrograma
-                                                    )
-                                                }
-                                                aria-describedby={
-                                                    errores.idPrograma
-                                                        ? "programa-modificar-error"
-                                                        : undefined
-                                                }
-                                                required
-                                            >
-                                                <option value="">
-                                                    Seleccione un programa
+                                        <select id="idPrograma" name="idPrograma" className="sg-input sg-select" value={form.idPrograma} onChange={handleChange} disabled={guardando || cargandoCatalogos} {...aria("idPrograma")}>
+                                            <option value="">Seleccione un programa</option>
+                                            {programas.map((programa) => (
+                                                <option key={programa.id} value={programa.id}>
+                                                    {programa.nombre}
+                                                    {programa.codigo ? ` (${programa.codigo})` : ""}
                                                 </option>
-
-                                                {programas.map(
-                                                    (programa) => (
-                                                        <option
-                                                            key={
-                                                                programa.id
-                                                            }
-                                                            value={
-                                                                programa.id
-                                                            }
-                                                        >
-                                                            {programa.nombre}
-                                                            {programa.codigo
-                                                                ? ` (${programa.codigo})`
-                                                                : ""}
-                                                        </option>
-                                                    )
-                                                )}
-                                            </select>
-                                        </div>
-
-                                        {errores.idPrograma && (
-                                            <span
-                                                id="programa-modificar-error"
-                                                className="modificar-field__error"
-                                                role="alert"
-                                            >
-                                                {errores.idPrograma}
-                                            </span>
-                                        )}
-
-                                        <small>
-                                            Si cambia el programa, el sistema
-                                            conservará la relación histórica
-                                            anterior y asociará el curso al
-                                            plan vigente del nuevo programa.
-                                        </small>
-                                    </div>
-
+                                            ))}
+                                        </select>
+                                    </Field>
                                 </div>
+                            </section>
 
-                                <p className="modificar-curso__required">
-                                    * Campos obligatorios
-                                </p>
+                            <RequisitosCursoOpcionales
+                                key={cursoSeleccionado.idCurso + ':' + form.idPrograma + ':' + revisionRequisitos}
+                                idCurso={cursoSeleccionado.idCurso} idPrograma={form.idPrograma}
+                                value={form.requisitos}
+                                onChange={requisitos => setForm(prev => ({ ...prev, requisitos }))}
+                                disabled={guardando || cargandoCurso}
+                            />
 
-                                <div
-                                    className="modificar-curso__change-status"
-                                    aria-live="polite"
-                                >
+                            <div className="panel sticky-save">
+                                <span className={hayCambios ? "dirty" : "muted guardado-estado"} aria-live="polite">
+                                    {hayCambios && <i aria-hidden="true" />}
                                     {hayCambios
-                                        ? `${camposModificados.length} campo${
-                                            camposModificados.length === 1
-                                                ? ""
-                                                : "s"
-                                        } con cambios pendientes.`
+                                        ? `${camposModificados.length} campo${camposModificados.length === 1 ? "" : "s"} con cambios pendientes`
                                         : "No hay cambios pendientes."}
-                                </div>
-
-                                <RequisitosCursoOpcionales
-                                    key={cursoSeleccionado.idCurso + ':' + form.idPrograma + ':' + revisionRequisitos}
-                                    idCurso={cursoSeleccionado.idCurso} idPrograma={form.idPrograma}
-                                    value={form.requisitos}
-                                    onChange={requisitos => setForm(prev => ({ ...prev, requisitos }))}
-                                    disabled={guardando || cargandoCurso}
-                                />
-                                <div className="modificar-curso__actions">
-
-                                    <button
-                                        type="button"
-                                        className="btn modificar-curso__secondary"
-                                        onClick={
-                                            solicitarCancelar
-                                        }
-                                        disabled={
-                                            guardando
-                                        }
-                                    >
+                                </span>
+                                <div className="inline-actions">
+                                    <button type="button" className="sg-btn sg-btn--ghost" onClick={solicitarCancelar} disabled={guardando}>
                                         Cancelar
                                     </button>
-
-                                    <button
-                                        type="button"
-                                        className="btn modificar-curso__secondary"
-                                        onClick={
-                                            restaurarValores
-                                        }
-                                        disabled={
-                                            guardando ||
-                                            !hayCambios
-                                        }
-                                    >
+                                    <button type="button" className="sg-btn sg-btn--secondary" onClick={restaurarValores} disabled={guardando || !hayCambios}>
+                                        <RotateCcw size={18} strokeWidth={1.75} aria-hidden="true" />
                                         Restaurar valores
                                     </button>
-
-                                    <button
-                                        type="submit"
-                                        className="btn btn--primary"
-                                        disabled={
-                                            guardando ||
-                                            !hayCambios
-                                        }
-                                    >
-                                        {guardando
-                                            ? "Guardando..."
-                                            : "Guardar cambios"}
+                                    <button type="submit" className={`sg-btn sg-btn--primary${guardando ? " is-loading" : ""}`} disabled={guardando || !hayCambios} aria-busy={guardando || undefined}>
+                                        {guardando ? <span className="sg-spinner" aria-hidden="true" /> : <Save size={18} strokeWidth={1.75} aria-hidden="true" />}
+                                        {guardando ? "Guardando…" : "Guardar cambios"}
                                     </button>
-
                                 </div>
-
-                            </form>
-                        )}
-                    </section>
-                )}
-
-            </div>
-
+                            </div>
+                        </form>
+                    )}
+                </div>
+            )}
         </div>
     );
 }

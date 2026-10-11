@@ -1,0 +1,14 @@
+/* Selectores provincia / cantón / distrito (UbicacionSelects.jsx).
+   Ocupa todo el ancho del .form-grid donde se coloque. */
+.ubicacion-grid {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-5);
+}
+
+@media (max-width: 640px) {
+    .ubicacion-grid {
+        grid-template-columns: 1fr;
+    }
+}

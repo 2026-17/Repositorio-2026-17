@@ -1,6 +1,11 @@
 import { useState } from "react";
 import { API_URL } from "../../config/api";
+import { CalendarPlus } from "lucide-react";
 import "./crearCurso.css";
+import Alert from "../../components/ui/Alert";
+import Field from "../../components/ui/Field";
+import PageHead from "../../components/ui/PageHead";
+import { listaErrores } from "../../components/ui/utilidades";
 
 import { useDialog } from "../../components/dialog/useDialog";
 
@@ -28,6 +33,7 @@ function CrearPeriodoAcademico() {
     const [guardando, setGuardando] = useState(false);
 
     const [errores, setErrores] = useState({});
+    const [intento, setIntento] = useState(0);
 
     function handleChange(e) {
 
@@ -93,7 +99,7 @@ function CrearPeriodoAcademico() {
 
         if (Object.keys(erroresValidacion).length > 0) {
             setErrores(erroresValidacion);
-            dialog.validacion(erroresValidacion);
+            setIntento(n => n + 1);
             return;
         }
 
@@ -187,227 +193,81 @@ function CrearPeriodoAcademico() {
         setErrores({});
     }
 
+    const aria = (campo) => ({
+        "aria-invalid": errores[campo] ? "true" : undefined,
+        "aria-describedby": errores[campo] ? `${campo}-error` : undefined,
+    });
+    const resumen = listaErrores(errores);
+
     return (
-        <div className="container">
+        <div className="curso-page">
+            <PageHead
+                title="Crear período académico"
+                sub="Defina el nombre, las fechas y el estado del nuevo período para habilitar la organización de cursos, grupos, matrícula y pagos."
+            />
 
-            <div className="curso-page">
+            <form onSubmit={handleSubmit} noValidate>
+                {resumen.length > 0 && (
+                    <Alert
+                        key={intento}
+                        tone="danger"
+                        autoFocus
+                        className="form-alert"
+                        title={resumen.length === 1 ? "Revise 1 dato antes de crear el período" : `Revise ${resumen.length} datos antes de crear el período`}
+                        errors={resumen}
+                    />
+                )}
 
-                <div className="curso-page__header">
-                    <div>
-                        <h1>Crear período académico</h1>
-
-                        <p>
-                            Defina el nombre, las fechas y el estado del
-                            nuevo período para habilitar la organización
-                            de cursos, grupos, matrícula y pagos.
-                        </p>
+                <section className="panel">
+                    <div className="panel-head"><h2>Información del período</h2></div>
+                    <div className="panel-body form-grid">
+                        <Field id="nombre" label="Nombre del período" hint="Debe ser un nombre único." error={errores.nombre} className="span-all">
+                            <input id="nombre" name="nombre" type="text" className="sg-input" maxLength="100" value={form.nombre} onChange={handleChange} placeholder="Ej. I Cuatrimestre 2027" autoComplete="off" {...aria("nombre")} />
+                        </Field>
+                        <Field id="fechaInicio" label="Fecha de inicio" error={errores.fechaInicio}>
+                            <input id="fechaInicio" name="fechaInicio" type="date" className="sg-input" value={form.fechaInicio} onChange={handleChange} {...aria("fechaInicio")} />
+                        </Field>
+                        <Field id="fechaFin" label="Fecha de fin" error={errores.fechaFin}>
+                            <input id="fechaFin" name="fechaFin" type="date" className="sg-input" value={form.fechaFin} onChange={handleChange} {...aria("fechaFin")} />
+                        </Field>
+                        <Field id="estado" label="Estado" error={errores.estado} select>
+                            <select id="estado" name="estado" className="sg-input sg-select" value={form.estado} onChange={handleChange} {...aria("estado")}>
+                                {ESTADOS.map((opcion) => (
+                                    <option key={opcion.value} value={opcion.value}>
+                                        {opcion.label}
+                                    </option>
+                                ))}
+                            </select>
+                        </Field>
                     </div>
-                </div>
+                </section>
 
-
-
-                <form
-                    className="curso-form"
-                    onSubmit={handleSubmit}
-                    noValidate
-                >
-
-                    <div className="curso-form__section">
-
-                        <h2>Información del período</h2>
-
-                        <div className="curso-form__grid">
-
-                            <div className={`curso-field curso-field--full${errores.nombre ? " curso-field--error" : ""}`}>
-                                <label htmlFor="nombre">
-                                    Nombre del período *
-                                </label>
-
-                                <input
-                                    id="nombre"
-                                    name="nombre"
-                                    type="text"
-                                    maxLength="100"
-                                    value={form.nombre}
-                                    onChange={handleChange}
-                                    placeholder="Ej. I Cuatrimestre 2027"
-                                    autoComplete="off"
-                                    aria-invalid={Boolean(errores.nombre)}
-                                    aria-describedby={errores.nombre ? "nombre-error" : undefined}
-                                    required
-                                />
-
-                                {errores.nombre ? (
-                                    <span className="curso-field__error" id="nombre-error" role="alert">
-                                        {errores.nombre}
-                                    </span>
-                                ) : (
-                                    <small>
-                                        Debe ser un nombre único.
-                                    </small>
-                                )}
-                            </div>
-
-                            <div className={`curso-field${errores.fechaInicio ? " curso-field--error" : ""}`}>
-                                <label htmlFor="fechaInicio">
-                                    Fecha de inicio *
-                                </label>
-
-                                <input
-                                    id="fechaInicio"
-                                    name="fechaInicio"
-                                    type="date"
-                                    value={form.fechaInicio}
-                                    onChange={handleChange}
-                                    aria-invalid={Boolean(errores.fechaInicio)}
-                                    aria-describedby={errores.fechaInicio ? "fechaInicio-error" : undefined}
-                                    required
-                                />
-
-                                {errores.fechaInicio && (
-                                    <span className="curso-field__error" id="fechaInicio-error" role="alert">
-                                        {errores.fechaInicio}
-                                    </span>
-                                )}
-                            </div>
-
-                            <div className={`curso-field${errores.fechaFin ? " curso-field--error" : ""}`}>
-                                <label htmlFor="fechaFin">
-                                    Fecha de fin *
-                                </label>
-
-                                <input
-                                    id="fechaFin"
-                                    name="fechaFin"
-                                    type="date"
-                                    value={form.fechaFin}
-                                    onChange={handleChange}
-                                    aria-invalid={Boolean(errores.fechaFin)}
-                                    aria-describedby={errores.fechaFin ? "fechaFin-error" : undefined}
-                                    required
-                                />
-
-                                {errores.fechaFin && (
-                                    <span className="curso-field__error" id="fechaFin-error" role="alert">
-                                        {errores.fechaFin}
-                                    </span>
-                                )}
-                            </div>
-
-                            <div className={`curso-field${errores.estado ? " curso-field--error" : ""}`}>
-                                <label htmlFor="estado">
-                                    Estado *
-                                </label>
-
-                                <select
-                                    id="estado"
-                                    name="estado"
-                                    value={form.estado}
-                                    onChange={handleChange}
-                                    aria-invalid={Boolean(errores.estado)}
-                                    aria-describedby={errores.estado ? "estado-error" : undefined}
-                                    required
-                                >
-                                    {ESTADOS.map((opcion) => (
-                                        <option key={opcion.value} value={opcion.value}>
-                                            {opcion.label}
-                                        </option>
-                                    ))}
-                                </select>
-
-                                {errores.estado && (
-                                    <span className="curso-field__error" id="estado-error" role="alert">
-                                        {errores.estado}
-                                    </span>
-                                )}
-                            </div>
-
+                <section className="panel">
+                    <div className="panel-head">
+                        <div>
+                            <h2>Fechas de matrícula <span className="sg-field__optional">(opcional)</span></h2>
+                            <p className="panel-head-sub">Período en que los estudiantes pueden matricular cursos.</p>
                         </div>
                     </div>
-
-                    <div className="curso-form__section">
-
-                        <h2>Fechas de matrícula</h2>
-
-                        <div className="curso-form__grid">
-
-                            <div className={`curso-field${errores.fechaInicioMatricula ? " curso-field--error" : ""}`}>
-                                <label htmlFor="fechaInicioMatricula">
-                                    Inicio de matrícula
-                                </label>
-
-                                <input
-                                    id="fechaInicioMatricula"
-                                    name="fechaInicioMatricula"
-                                    type="date"
-                                    value={form.fechaInicioMatricula}
-                                    onChange={handleChange}
-                                    aria-invalid={Boolean(errores.fechaInicioMatricula)}
-                                    aria-describedby={errores.fechaInicioMatricula ? "fechaInicioMatricula-error" : undefined}
-                                />
-
-                                {errores.fechaInicioMatricula && (
-                                    <span className="curso-field__error" id="fechaInicioMatricula-error" role="alert">
-                                        {errores.fechaInicioMatricula}
-                                    </span>
-                                )}
-                            </div>
-
-                            <div className={`curso-field${errores.fechaFinMatricula ? " curso-field--error" : ""}`}>
-                                <label htmlFor="fechaFinMatricula">
-                                    Fin de matrícula
-                                </label>
-
-                                <input
-                                    id="fechaFinMatricula"
-                                    name="fechaFinMatricula"
-                                    type="date"
-                                    value={form.fechaFinMatricula}
-                                    onChange={handleChange}
-                                    aria-invalid={Boolean(errores.fechaFinMatricula)}
-                                    aria-describedby={errores.fechaFinMatricula ? "fechaFinMatricula-error" : undefined}
-                                />
-
-                                {errores.fechaFinMatricula && (
-                                    <span className="curso-field__error" id="fechaFinMatricula-error" role="alert">
-                                        {errores.fechaFinMatricula}
-                                    </span>
-                                )}
-                            </div>
-
-                        </div>
+                    <div className="panel-body form-grid">
+                        <Field id="fechaInicioMatricula" label="Inicio de matrícula" optional error={errores.fechaInicioMatricula}>
+                            <input id="fechaInicioMatricula" name="fechaInicioMatricula" type="date" className="sg-input" value={form.fechaInicioMatricula} onChange={handleChange} {...aria("fechaInicioMatricula")} />
+                        </Field>
+                        <Field id="fechaFinMatricula" label="Fin de matrícula" optional error={errores.fechaFinMatricula}>
+                            <input id="fechaFinMatricula" name="fechaFinMatricula" type="date" className="sg-input" value={form.fechaFinMatricula} onChange={handleChange} {...aria("fechaFinMatricula")} />
+                        </Field>
                     </div>
-
-                    <p className="curso-required">
-                        * Campos obligatorios
-                    </p>
-
-                    <div className="curso-form__actions">
-
-                        <button
-                            type="button"
-                            className="btn curso-btn--secondary"
-                            onClick={limpiarFormulario}
-                            disabled={guardando}
-                        >
+                    <div className="panel-foot">
+                        <button type="button" className="sg-btn sg-btn--secondary" onClick={limpiarFormulario} disabled={guardando}>
                             Limpiar
                         </button>
-
-                        <button
-                            type="submit"
-                            className="btn btn--primary"
-                            disabled={guardando}
-                        >
-                            {guardando
-                                ? "Creando período..."
-                                : "Crear período académico"}
+                        <button type="submit" className={`sg-btn sg-btn--primary${guardando ? " is-loading" : ""}`} disabled={guardando} aria-busy={guardando || undefined}>
+                            {guardando ? <span className="sg-spinner" aria-hidden="true" /> : <CalendarPlus size={18} strokeWidth={1.75} aria-hidden="true" />}
+                            {guardando ? "Creando período…" : "Crear período académico"}
                         </button>
-
                     </div>
-
-                </form>
-
-            </div>
+                </section>
+            </form>
         </div>
     );
 }

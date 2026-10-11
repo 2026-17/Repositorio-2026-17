@@ -1,303 +1,52 @@
-.requisitos-curso {
-    width: min(920px, 100%);
-    margin: 28px auto 40px;
-}
+/* =========================================
+   Requisitos de curso (prerrequisitos, correquisitos y edad).
+   Usa .panel, .form-section, .form-grid y .choice de src/styles/app.css.
+   ========================================= */
 
-.requisitos-curso--integrado { width: 100%; margin: 24px 0; }
-
-/* Dentro del formulario de curso t-odo el bloque va alineado a la izquierda. */
-.requisitos-curso--integrado .requisitos-curso__header {
-    text-align: left;
-    margin-bottom: 14px;
-}
-
-.requisitos-curso__header h2 { margin: 0 0 6px; font-size: 22px; }
-
-/* Misma tarjeta (relleno, borde y sombra) que la cuadrícula de cursos. */
-.requisitos-curso__edad {
-    margin: 20px 0;
-    padding: 24px;
-    border: 1px solid #e0dce0;
-    border-radius: 12px;
-    background: #fff;
-    box-shadow: 0 1px 3px rgba(0,0,0,.03);
-}
-
-.requisitos-curso__edad h2 { margin: 0 0 2px; font-size: 17px; color: #171717; }
-.requisitos-curso__edad p { margin: 0 0 14px; font-size: 13px; color: #888; }
-.requisitos-curso__edad .requisitos-curso__selectores { margin-bottom: 0; column-gap: 48px; }
-
-.requisitos-curso__selectores input {
-    min-width: 0;
-    height: 42px;
-    border: 1px solid #d9d3dc;
-    border-radius: 8px;
-    background: #fff;
-    padding: 0 12px;
-    font-size: 14px;
-    color: #222;
-    outline: none;
-}
-
-.requisitos-curso__selectores input:focus {
-    border-color: #70268f;
-    box-shadow: 0 0 0 2px rgba(112, 38, 143, .1);
-}
-
-.requisitos-curso__nota { margin: 0; font-size: 13px; color: #888; }
-
-/* Pie: nota a la izquierda y acción a la derecha, en una sola fila. */
-.requisitos-curso__pie {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    flex-wrap: wrap;
-    padding-top: 16px;
-}
-
-.requisitos-curso__header {
-    text-align: center;
-    margin-bottom: 20px;
-}
-
-.requisitos-curso__header h1 {
-    margin: 0 0 6px;
-    font-size: 25px;
-    color: #171717;
-}
-
-.requisitos-curso__header p {
-    margin: 0;
-    color: #8a8a8a;
+.requisitos-panel .panel-head h2 .sg-field__optional {
+    font-weight: 400;
     font-size: 14px;
 }
 
-.requisitos-curso__selectores {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 14px;
-    margin-bottom: 18px;
+.requisitos-panel .girar {
+    transform: rotate(180deg);
 }
 
-.requisitos-curso__selectores label {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    font-size: 13px;
-    font-weight: 600;
-    color: #333;
-}
-
-.requisitos-curso__selectores select {
-    height: 42px;
-    border: 1px solid #d9d3dc;
-    border-radius: 8px;
-    background: #fff;
-    padding: 0 12px;
-    font-size: 14px;
-    color: #222;
-    outline: none;
-}
-
-.requisitos-curso__selectores select:focus {
-    border-color: #70268f;
-    box-shadow: 0 0 0 2px rgba(112, 38, 143, .1);
-}
-
+/* Dos columnas: prerrequisitos | correquisitos */
 .requisitos-curso__grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    column-gap: 48px;
-    row-gap: 20px;
-    background: #fff;
-    border: 1px solid #e0dce0;
-    border-radius: 12px;
-    padding: 24px;
-    box-shadow: 0 1px 3px rgba(0,0,0,.03);
-}
-
-.requisitos-curso__grid section {
-    min-width: 0;
-}
-
-.requisitos-curso__grid section + section {
-    position: relative;
-}
-
-/* Divisor centrado en el espacio entre columnas (no ocupa ancho). */
-.requisitos-curso__grid section + section::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: -24px;
-    width: 1px;
-    background: #e7e3e7;
-}
-
-.requisitos-curso__grid h2 {
-    margin: 0 0 2px;
-    font-size: 17px;
-    color: #171717;
-}
-
-.requisitos-curso__grid section > p {
-    margin: 0 0 14px;
-    font-size: 13px;
-    color: #888;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-6);
 }
 
 .requisitos-curso__lista {
-    display: flex;
-    flex-direction: column;
-    gap: 9px;
     max-height: 430px;
     overflow-y: auto;
-    padding-right: 3px;
+    padding: 2px;
 }
 
-.requisito-card {
+.requisitos-curso__pie {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 12px;
-    min-height: 52px;
-    padding: 8px 12px;
-    border: 1px solid #e6e1e6;
-    border-radius: 8px;
-    cursor: pointer;
-    background: #fff;
-    transition: border-color .15s, background .15s;
-}
-
-.requisito-card:hover {
-    border-color: #b995c5;
-    background: #fcf9fd;
-}
-
-.requisito-card input {
-    width: 17px;
-    height: 17px;
-    accent-color: #70268f;
-    flex: 0 0 auto;
-}
-
-.requisito-card span {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-}
-
-.requisito-card strong {
+    justify-content: space-between;
+    gap: var(--space-3);
+    margin-top: var(--space-5);
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--border);
     font-size: 14px;
-    color: #171717;
-    font-weight: 600;
-}
-
-.requisito-card small {
-    margin-top: 2px;
-    font-size: 12px;
-    color: #9a9a9a;
-}
-
-.requisitos-curso__acciones {
-    display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-    padding: 16px 0 0;
-}
-
-.btn-secundario,
-.btn-principal {
-    min-height: 40px;
-    padding: 0 17px;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-}
-
-.btn-secundario {
-    background: #fff;
-    border: 1px solid #70268f;
-    color: #70268f;
-}
-
-.btn-principal {
-    background: #70268f;
-    border: 1px solid #70268f;
-    color: #fff;
-}
-
-.btn-secundario:disabled,
-.btn-principal:disabled {
-    opacity: .55;
-    cursor: not-allowed;
-}
-
-.requisitos-curso__mensaje {
-    margin: 0 0 14px;
-    padding: 11px 14px;
-    border: 1px solid #d5c0dc;
-    border-radius: 8px;
-    background: #faf5fc;
-    color: #5e2770;
-    font-size: 13px;
-}
-
-.requisitos-curso__mensaje--error {
-    border-color: #e2bebe;
-    background: #fff7f7;
-    color: #9a3030;
 }
 
 .requisitos-curso__cargando,
 .requisitos-curso__vacio {
-    padding: 35px 20px;
+    margin: 0;
+    padding: var(--space-5) 0;
     text-align: center;
-    color: #888;
     font-size: 14px;
 }
 
-@media (max-width: 768px) {
-    .requisitos-curso {
-        margin: 20px auto 30px;
-    }
-
-    .requisitos-curso__selectores,
+@media (max-width: 900px) {
     .requisitos-curso__grid {
         grid-template-columns: 1fr;
-    }
-
-    .requisitos-curso__grid {
-        padding: 18px;
-        row-gap: 40px;
-    }
-
-    .requisitos-curso__grid section + section::before {
-        top: -20px;
-        bottom: auto;
-        left: 0;
-        right: 0;
-        width: auto;
-        height: 1px;
-    }
-
-    .requisitos-curso__edad {
-        padding: 18px;
-    }
-
-    .requisitos-curso__pie {
-        flex-direction: column-reverse;
-        align-items: stretch;
-    }
-
-    .requisitos-curso__acciones {
-        flex-direction: column-reverse;
-    }
-
-    .btn-secundario,
-    .btn-principal {
-        width: 100%;
     }
 }
