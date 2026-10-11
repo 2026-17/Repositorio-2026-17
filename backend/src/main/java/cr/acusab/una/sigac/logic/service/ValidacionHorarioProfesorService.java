@@ -1,6 +1,7 @@
 package cr.acusab.una.sigac.logic.service;
 
 import cr.acusab.una.sigac.data.entity.Grupo;
+import cr.acusab.una.sigac.logic.exception.BusinessException;
 import cr.acusab.una.sigac.data.entity.HorarioGrupo;
 import cr.acusab.una.sigac.data.repository.GrupoRepository;
 import cr.acusab.una.sigac.data.repository.HorarioGrupoRepository;
@@ -40,7 +41,7 @@ public class ValidacionHorarioProfesorService {
             List<BloqueHorario> horariosPropuestos
     ) {
         if (horariosPropuestos == null || horariosPropuestos.isEmpty()) {
-            throw new IllegalArgumentException(
+            throw new BusinessException(
                     "El grupo debe tener al menos un horario registrado antes de asignarle un profesor."
             );
         }
@@ -84,7 +85,7 @@ public class ValidacionHorarioProfesorService {
                             ? ""
                             : " (grupo " + grupoConflicto.getCodigo() + ")";
 
-                    throw new IllegalArgumentException(
+                    throw new BusinessException(
                             "Conflicto de horario: el profesor ya tiene un grupo asignado en ese horario"
                                     + detalleGrupo + "."
                     );
