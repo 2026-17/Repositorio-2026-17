@@ -362,9 +362,7 @@ function AsignarProfesores() {
                         description={asignaciones.length === 0
                             ? "Los grupos planificados o publicados de los períodos académicos aparecerán aquí."
                             : "Pruebe con otro término o quite los filtros para ver otras asignaciones."}
-                        action={asignaciones.length > 0
-                            ? <button type="button" className="sg-btn sg-btn--secondary" onClick={limpiarFiltros}>Quitar filtros</button>
-                            : null}
+
                     />
                 ) : (
                     <>
