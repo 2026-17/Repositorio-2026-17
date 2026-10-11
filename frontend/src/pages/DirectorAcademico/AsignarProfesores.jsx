@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { CalendarClock, RefreshCw, UserCheck, UserMinus } from "lucide-react";
 import { API_URL } from "../../config/api";
 import Alert from "../../components/ui/Alert";
@@ -31,7 +30,6 @@ function fechaActualCostaRica() {
 
 function AsignarProfesores() {
     const dialog = useDialog();
-    const navigate = useNavigate();
     const [asignaciones, setAsignaciones] = useState([]);
     const [profesores, setProfesores] = useState([]);
     const [selecciones, setSelecciones] = useState({});
@@ -251,16 +249,6 @@ function AsignarProfesores() {
                 title="Asignar profesores a cursos y grupos"
                 sub="Asigne un profesor responsable a cada grupo y revise los horarios antes de guardar."
                 actions={[
-                    <button
-                        key="crear-grupo"
-                        id="btnCrearGrupoConHorario"
-                        type="button"
-                        className="sg-btn sg-btn--primary"
-                        onClick={() => navigate("/director-academico/grupos/crear")}
-                    >
-                        <CalendarClock size={20} strokeWidth={1.75} aria-hidden="true" />
-                        Crear grupo y horario
-                    </button>,
                     <button
                         key="actualizar"
                         id="btnActualizarAsignaciones"
