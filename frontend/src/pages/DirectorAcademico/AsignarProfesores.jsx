@@ -361,7 +361,7 @@ function AsignarProfesores() {
                         title={asignaciones.length === 0 ? "No hay grupos para asignar" : "No hay resultados con estos filtros"}
                         description={asignaciones.length === 0
                             ? "Los grupos planificados o publicados de los períodos académicos aparecerán aquí."
-                            : "Pruebe con otro término o quite los filtros para ver otras asignaciones."}
+                            : "Pruebe con otro término o use “Limpiar filtros” para ver otras asignaciones."}
 
                     />
                 ) : (
