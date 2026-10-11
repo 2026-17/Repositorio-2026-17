@@ -1791,7 +1791,7 @@ BEGIN
          JSON_OBJECT('id_periodo', NEW.id_periodo, 'id_curso', NEW.id_curso,
                      'id_profesor', NEW.id_profesor, 'codigo', NEW.codigo,
                      'estado', NEW.estado));
-END$
+END$$
 
 CREATE TRIGGER trg_grupos_au_bitacora AFTER UPDATE ON grupos FOR EACH ROW
 BEGIN
@@ -1808,7 +1808,7 @@ BEGIN
                          'id_profesor', NEW.id_profesor, 'codigo', NEW.codigo,
                          'estado', NEW.estado));
     END IF;
-END$
+END$$
 
 CREATE TRIGGER trg_grupos_ad_bitacora AFTER DELETE ON grupos FOR EACH ROW
 BEGIN
@@ -1819,6 +1819,6 @@ BEGIN
          JSON_OBJECT('id_periodo', OLD.id_periodo, 'id_curso', OLD.id_curso,
                      'id_profesor', OLD.id_profesor, 'codigo', OLD.codigo,
                      'estado', OLD.estado), NULL);
-END$
+END$$
 
 DELIMITER ;
