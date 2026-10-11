@@ -351,11 +351,7 @@ function AsignarProfesores() {
                         <strong>{asignacionesFiltradas.length}</strong>
                         {asignacionesFiltradas.length === 1 ? " resultado" : " resultados"}
                     </span>
-                    {(busqueda || periodoSeleccionado || estadoSeleccionado) && (
-                        <button type="button" className="link-btn" onClick={limpiarFiltros}>
-                            Quitar filtros
-                        </button>
-                    )}
+
                 </div>
 
                 {cargando ? (
