@@ -1,6 +1,7 @@
 package cr.acusab.una.sigac.logic.service;
 
 import cr.acusab.una.sigac.data.entity.Curso;
+import cr.acusab.una.sigac.logic.exception.BusinessException;
 import cr.acusab.una.sigac.data.entity.Grupo;
 import cr.acusab.una.sigac.data.entity.HorarioGrupo;
 import cr.acusab.una.sigac.data.entity.PeriodoAcademico;
@@ -86,39 +87,39 @@ public class AsignacionProfesorService {
     @Transactional
     public AsignacionProfesorResponse asignar(Long idGrupo, Long idProfesor) {
         if (idGrupo == null || idGrupo <= 0 || idProfesor == null || idProfesor <= 0) {
-            throw new IllegalArgumentException("El grupo y el profesor son obligatorios.");
+            throw new BusinessException("El grupo y el profesor son obligatorios.");
         }
 
         // Se bloquea primero el profesor: las asignaciones concurrentes a la
         // misma persona quedan serializadas antes de consultar sus horarios.
         Profesor profesor = profesorRepository.findByIdParaAsignacion(idProfesor)
-                .orElseThrow(() -> new IllegalArgumentException("El profesor indicado no existe."));
+                .orElseThrow(() -> new BusinessException("El profesor indicado no existe."));
         if (!Boolean.TRUE.equals(profesor.getActivo())) {
-            throw new IllegalArgumentException("Solo se pueden asignar profesores activos y registrados.");
+            throw new BusinessException("Solo se pueden asignar profesores activos y registrados.");
         }
 
         Grupo grupo = grupoRepository.findByIdParaAsignacion(idGrupo)
-                .orElseThrow(() -> new IllegalArgumentException("El grupo indicado no existe."));
+                .orElseThrow(() -> new BusinessException("El grupo indicado no existe."));
 
         if ("CANCELADO".equals(grupo.getEstado()) || "CERRADO".equals(grupo.getEstado())) {
-            throw new IllegalArgumentException("No se puede asignar un profesor a un grupo cerrado o cancelado.");
+            throw new BusinessException("No se puede asignar un profesor a un grupo cerrado o cancelado.");
         }
 
         PeriodoAcademico periodo = periodoRepository.findById(grupo.getIdPeriodo())
-                .orElseThrow(() -> new IllegalArgumentException("El período académico del grupo no existe."));
+                .orElseThrow(() -> new BusinessException("El período académico del grupo no existe."));
 
         if (ESTADOS_PERIODO_CERRADOS.contains(periodo.getEstado())) {
-            throw new IllegalArgumentException("No se pueden modificar asignaciones de un período cerrado o cancelado.");
+            throw new BusinessException("No se pueden modificar asignaciones de un período cerrado o cancelado.");
         }
 
         if (!LocalDate.now(ZoneId.of("America/Costa_Rica")).isBefore(periodo.getFechaInicio())) {
-            throw new IllegalArgumentException("Las asignaciones solo se pueden modificar antes del inicio del período académico.");
+            throw new BusinessException("Las asignaciones solo se pueden modificar antes del inicio del período académico.");
         }
 
         Curso curso = cursoRepository.findById(grupo.getIdCurso())
-                .orElseThrow(() -> new IllegalArgumentException("El curso asociado al grupo no existe."));
+                .orElseThrow(() -> new BusinessException("El curso asociado al grupo no existe."));
         if (!Boolean.TRUE.equals(curso.getActivo())) {
-            throw new IllegalArgumentException("El curso debe estar activo para asignarle un profesor.");
+            throw new BusinessException("El curso debe estar activo para asignarle un profesor.");
         }
 
         LocalDate fechaInicioDestino = grupo.getFechaInicio() != null
@@ -165,25 +166,25 @@ public class AsignacionProfesorService {
     @Transactional
     public void eliminarAsignacion(Long idGrupo) {
         Grupo grupo = grupoRepository.findByIdParaAsignacion(idGrupo)
-                .orElseThrow(() -> new IllegalArgumentException("El grupo indicado no existe."));
+                .orElseThrow(() -> new BusinessException("El grupo indicado no existe."));
 
         if (grupo.getIdProfesor() == null) {
-            throw new IllegalArgumentException("El grupo no tiene un profesor asignado.");
+            throw new BusinessException("El grupo no tiene un profesor asignado.");
         }
 
         if ("CANCELADO".equals(grupo.getEstado()) || "CERRADO".equals(grupo.getEstado())) {
-            throw new IllegalArgumentException("No se puede modificar una asignación de un grupo cerrado o cancelado.");
+            throw new BusinessException("No se puede modificar una asignación de un grupo cerrado o cancelado.");
         }
 
         PeriodoAcademico periodo = periodoRepository.findById(grupo.getIdPeriodo())
-                .orElseThrow(() -> new IllegalArgumentException("El período académico del grupo no existe."));
+                .orElseThrow(() -> new BusinessException("El período académico del grupo no existe."));
 
         if (ESTADOS_PERIODO_CERRADOS.contains(periodo.getEstado())) {
-            throw new IllegalArgumentException("No se pueden modificar asignaciones de un período cerrado o cancelado.");
+            throw new BusinessException("No se pueden modificar asignaciones de un período cerrado o cancelado.");
         }
 
         if (!LocalDate.now(ZoneId.of("America/Costa_Rica")).isBefore(periodo.getFechaInicio())) {
-            throw new IllegalArgumentException("Las asignaciones solo se pueden eliminar antes del inicio del período académico.");
+            throw new BusinessException("Las asignaciones solo se pueden eliminar antes del inicio del período académico.");
         }
 
         Long idUsuario = obtenerIdUsuarioAutenticado();
@@ -198,9 +199,9 @@ public class AsignacionProfesorService {
 
     private AsignacionProfesorResponse mapear(Grupo grupo) {
         Curso curso = cursoRepository.findById(grupo.getIdCurso())
-                .orElseThrow(() -> new IllegalArgumentException("No se encontró el curso del grupo."));
+                .orElseThrow(() -> new BusinessException("No se encontró el curso del grupo."));
         PeriodoAcademico periodo = periodoRepository.findById(grupo.getIdPeriodo())
-                .orElseThrow(() -> new IllegalArgumentException("No se encontró el período del grupo."));
+                .orElseThrow(() -> new BusinessException("No se encontró el período del grupo."));
         Profesor profesor = grupo.getIdProfesor() == null ? null
                 : profesorRepository.findById(grupo.getIdProfesor()).orElse(null);
         List<AsignacionProfesorResponse.HorarioResponse> horarios =
