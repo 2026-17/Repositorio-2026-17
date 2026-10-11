@@ -36,11 +36,11 @@
         <tag/>
         <url/>
     </scm>
-    
-   <properties>
-    <java.version>21</java.version>
-    <lombok.version>1.18.46</lombok.version>
-</properties>
+
+    <properties>
+        <java.version>21</java.version>
+        <lombok.version>1.18.46</lombok.version>
+    </properties>
 
     <dependencies>
 
@@ -97,6 +97,17 @@
             <version>10.4</version>
         </dependency>
 
+        <!--
+            Apache PDFBox
+            HU-022: permite validar que el archivo recibido sea
+            un PDF real y que pueda abrirse correctamente.
+        -->
+        <dependency>
+            <groupId>org.apache.pdfbox</groupId>
+            <artifactId>pdfbox</artifactId>
+            <version>3.0.3</version>
+        </dependency>
+
         <!-- Base de datos en memoria SOLO para pruebas -->
         <dependency>
             <groupId>com.h2database</groupId>
@@ -134,66 +145,68 @@
     <build>
         <plugins>
 
-
-                  <plugin>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-maven-plugin</artifactId>
-            <executions>
-                <execution>
-                    <goals>
-                        <goal>repackage</goal>
-                    </goals>
-                </execution>
-            </executions>
-        </plugin>
-
+            <!-- Spring Boot -->
             <plugin>
-    <groupId>org.apache.maven.plugins</groupId>
-    <artifactId>maven-compiler-plugin</artifactId>
-    <version>3.11.0</version>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>repackage</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
 
-    <executions>
+            <!-- Compilador Java + Lombok -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.11.0</version>
 
-        <execution>
-            <id>default-compile</id>
-            <phase>compile</phase>
+                <executions>
 
-            <goals>
-                <goal>compile</goal>
-            </goals>
+                    <execution>
+                        <id>default-compile</id>
+                        <phase>compile</phase>
 
-            <configuration>
-                <annotationProcessorPaths>
-                    <path>
-                        <groupId>org.projectlombok</groupId>
-                        <artifactId>lombok</artifactId>
-                        <version>${lombok.version}</version>
-                    </path>
-                </annotationProcessorPaths>
-            </configuration>
-        </execution>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
 
-        <execution>
-            <id>default-testCompile</id>
-            <phase>test-compile</phase>
+                        <configuration>
+                            <annotationProcessorPaths>
+                                <path>
+                                    <groupId>org.projectlombok</groupId>
+                                    <artifactId>lombok</artifactId>
+                                    <version>${lombok.version}</version>
+                                </path>
+                            </annotationProcessorPaths>
+                        </configuration>
+                    </execution>
 
-            <goals>
-                <goal>testCompile</goal>
-            </goals>
+                    <execution>
+                        <id>default-testCompile</id>
+                        <phase>test-compile</phase>
 
-            <configuration>
-                <annotationProcessorPaths>
-                    <path>
-                        <groupId>org.projectlombok</groupId>
-                        <artifactId>lombok</artifactId>
-                        <version>${lombok.version}</version>
-                    </path>
-                </annotationProcessorPaths>
-            </configuration>
-        </execution>
+                        <goals>
+                            <goal>testCompile</goal>
+                        </goals>
 
-    </executions>
-</plugin>
+                        <configuration>
+                            <annotationProcessorPaths>
+                                <path>
+                                    <groupId>org.projectlombok</groupId>
+                                    <artifactId>lombok</artifactId>
+                                    <version>${lombok.version}</version>
+                                </path>
+                            </annotationProcessorPaths>
+                        </configuration>
+                    </execution>
+
+                </executions>
+            </plugin>
+
         </plugins>
     </build>
 

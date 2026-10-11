@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { ChevronsUpDown, Pencil, Plus, Search, UserCheck, UserX, Users, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { ChevronsUpDown, FileText, Pencil, Plus, Search, UserCheck, UserX, Users, X } from "lucide-react";
 import { API_URL } from "../../config/api.js";
 import CreateStudent from "./createStudent";
 import EditarEstudiante from "./EditarEstudiante";
+import DocumentosEstudiante from "./DocumentosEstudiante";
 import EmptyState from "../../components/ui/EmptyState";
 import Field from "../../components/ui/Field";
 import PageHead from "../../components/ui/PageHead";
@@ -16,6 +17,25 @@ import { useDialog } from "../../components/dialog/useDialog";
 
 const TAMANO_PAGINA = 10;
 const ETIQUETA_ESTADO = { true: "Activos", false: "Inactivos", "": "Todos" };
+
+function getHeaders() {
+    const token = localStorage.getItem("token");
+    return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
+async function obtenerEstudiantes(filtroActivo) {
+    const params = new URLSearchParams();
+    if (filtroActivo) params.set("activo", filtroActivo);
+
+    const response = await fetch(
+        `${API_URL}/estudiantes/listado${params.toString() ? `?${params.toString()}` : ""}`,
+        { headers: getHeaders() }
+    );
+
+    if (!response.ok) throw new Error("No se pudo cargar la lista de estudiantes.");
+    const datos = await response.json();
+    return Array.isArray(datos) ? datos : [];
+}
 
 function Estudiantes() {
     const dialog = useDialog();
@@ -31,36 +51,33 @@ function Estudiantes() {
     const [motivoBaja, setMotivoBaja] = useState("");
     const [bajaError, setBajaError] = useState("");
     const [bajaCargando, setBajaCargando] = useState(false);
-    const [recargar, setRecargar] = useState(0);
+    // HU-022: estudiante cuyo expediente documental se está administrando.
+    const [estudianteDocumentos, setEstudianteDocumentos] = useState(null);
 
-    const getHeaders = useCallback(() => {
-        const token = localStorage.getItem("token");
-        return token ? { Authorization: `Bearer ${token}` } : {};
-    }, []);
+    // Carga inicial y al cambiar el filtro. El estado se actualiza cuando la
+    // petición termina (no de forma síncrona dentro del efecto).
+    useEffect(() => {
+        let activo = true;
 
-    const cargarEstudiantes = useCallback(async () => {
+        obtenerEstudiantes(filtroActivo)
+            .then((datos) => { if (activo) setEstudiantes(datos); })
+            .catch((e) => { if (activo) dialog.error(e.message); })
+            .finally(() => { if (activo) setCargando(false); });
+
+        return () => { activo = false; };
+    }, [filtroActivo, dialog]);
+
+    // Recarga desde acciones del usuario (guardar, dar de baja, reactivar).
+    async function recargarEstudiantes() {
         setCargando(true);
         try {
-            const params = new URLSearchParams();
-            if (filtroActivo) params.set("activo", filtroActivo);
-
-            const response = await fetch(
-                `${API_URL}/estudiantes/listado${params.toString() ? `?${params.toString()}` : ""}`,
-                { headers: getHeaders() }
-            );
-
-            if (!response.ok) throw new Error("No se pudo cargar la lista de estudiantes.");
-            setEstudiantes(await response.json());
+            setEstudiantes(await obtenerEstudiantes(filtroActivo));
         } catch (e) {
             dialog.error(e.message);
         } finally {
             setCargando(false);
         }
-    }, [filtroActivo, getHeaders, recargar, dialog]);
-
-    useEffect(() => {
-        cargarEstudiantes();
-    }, [cargarEstudiantes]);
+    }
 
     const estudiantesFiltrados = useMemo(() => {
         const texto = busqueda.trim().toLowerCase();
@@ -85,6 +102,8 @@ function Estudiantes() {
     }
 
     function cambiarEstado(valor) {
+        // El efecto recarga la lista; el indicador solo se muestra si cambia el filtro.
+        if (valor !== filtroActivo) setCargando(true);
         setFiltroActivo(valor);
         setPagina(1);
     }
@@ -96,6 +115,7 @@ function Estudiantes() {
 
     function abrirNuevo() {
         setBajaEstudiante(null);
+        setEstudianteDocumentos(null);
         setEditingId(null);
         setFormAbierto(true);
         requestAnimationFrame(() =>
@@ -108,6 +128,7 @@ function Estudiantes() {
 
     function abrirEditar(estudiante) {
         setBajaEstudiante(null);
+        setEstudianteDocumentos(null);
         setEditingId(estudiante.id);
         setFormAbierto(true);
         requestAnimationFrame(() =>
@@ -123,9 +144,28 @@ function Estudiantes() {
         setEditingId(null);
     }
 
+    // HU-022: abre la gestión documental del estudiante seleccionado.
+    function abrirDocumentos(estudiante) {
+        setFormAbierto(false);
+        setEditingId(null);
+        setBajaEstudiante(null);
+        setEstudianteDocumentos(estudiante);
+        requestAnimationFrame(() =>
+            document.getElementById("documentos-estudiante")?.scrollIntoView({
+                behavior: "smooth",
+                block: "start",
+            })
+        );
+    }
+
+    function cerrarDocumentos() {
+        setEstudianteDocumentos(null);
+    }
+
     function abrirBaja(estudiante) {
         setFormAbierto(false);
         setEditingId(null);
+        setEstudianteDocumentos(null);
         setBajaEstudiante(estudiante);
         setMotivoBaja("");
         setBajaError("");
@@ -194,7 +234,7 @@ function Estudiantes() {
 
             setBajaEstudiante(null);
             setMotivoBaja("");
-            setRecargar((n) => n + 1);
+            void recargarEstudiantes();
 
             await dialog.exito(
                 `Baja realizada correctamente. Matrículas canceladas: ${data.matriculasCanceladas}. Cursos retirados: ${data.cursosRetirados}.`
@@ -230,7 +270,7 @@ function Estudiantes() {
                 throw new Error(data.message || "No se pudo reactivar al estudiante.");
             }
 
-            setRecargar((n) => n + 1);
+            void recargarEstudiantes();
             await dialog.exito(
                 data.mensaje ||
                 "Estudiante reactivado. Las matrículas y cursos cancelados no se restauran automáticamente."
@@ -246,7 +286,7 @@ function Estudiantes() {
         dialog.exito(editingId
             ? "Información del estudiante actualizada correctamente."
             : "Estudiante registrado correctamente.");
-        setRecargar((n) => n + 1);
+        void recargarEstudiantes();
         window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
@@ -344,6 +384,15 @@ function Estudiantes() {
                         />
                     )}
                 </section>
+            )}
+
+            {estudianteDocumentos && (
+                <div id="documentos-estudiante" className="form-incrustado">
+                    <DocumentosEstudiante
+                        estudiante={estudianteDocumentos}
+                        onClose={cerrarDocumentos}
+                    />
+                </div>
             )}
 
             <div className="panel">
@@ -471,6 +520,19 @@ function Estudiantes() {
                                         </td>
                                         <td className="actions">
                                             <div className="row-actions">
+                                                <button
+                                                    type="button"
+                                                    className="sg-btn sg-btn--ghost sg-btn--sm"
+                                                    onClick={() => abrirDocumentos(e)}
+                                                    disabled={!e.activo}
+                                                    title={e.activo
+                                                        ? "Administrar documentos del estudiante"
+                                                        : "Solo se pueden administrar documentos de estudiantes activos"}
+                                                    aria-label={`Administrar documentos de ${e.nombreCompleto}`}
+                                                >
+                                                    <FileText size={16} strokeWidth={1.75} aria-hidden="true" />
+                                                    Documentos
+                                                </button>
                                                 <button
                                                     type="button"
                                                     className="sg-btn sg-btn--ghost sg-btn--sm"
