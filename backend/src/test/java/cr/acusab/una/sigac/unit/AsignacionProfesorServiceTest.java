@@ -70,6 +70,25 @@ class AsignacionProfesorServiceTest {
         verify(profesorRepository).findByActivoTrueOrderByNombresAscPrimerApellidoAsc();
     }
 
+
+    @Test
+    void asignar_rechazaProfesorInactivoAntesDeLeerElGrupo() {
+        Profesor profesor = new Profesor();
+        profesor.setId(55L);
+        profesor.setActivo(false);
+        when(profesorRepository.findByIdParaAsignacion(55L))
+                .thenReturn(Optional.of(profesor));
+
+        BusinessException error = assertThrows(
+                BusinessException.class,
+                () -> service.asignar(10L, 55L)
+        );
+
+        assertTrue(error.getMessage().contains("profesores activos"));
+        verify(grupoRepository, never()).findByIdParaAsignacion(anyLong());
+        verify(grupoRepository, never()).save(any(Grupo.class));
+    }
+
     @Test
     void asignar_rechazaConflictoDeHorarioConGrupoDePeriodoSuperpuesto() {
         Long idGrupo = 1L;
