@@ -1,7 +1,6 @@
 package cr.acusab.una.sigac.logic.service;
 
 import cr.acusab.una.sigac.data.entity.Curso;
-import cr.acusab.una.sigac.logic.exception.BusinessException;
 import cr.acusab.una.sigac.data.entity.Grupo;
 import cr.acusab.una.sigac.data.entity.HorarioGrupo;
 import cr.acusab.una.sigac.data.entity.PeriodoAcademico;
@@ -13,12 +12,13 @@ import cr.acusab.una.sigac.data.repository.HorarioGrupoRepository;
 import cr.acusab.una.sigac.data.repository.PeriodoAcademicoRepository;
 import cr.acusab.una.sigac.data.repository.ProfesorRepository;
 import cr.acusab.una.sigac.data.repository.UsuarioRepository;
+import cr.acusab.una.sigac.logic.exception.BusinessException;
 import cr.acusab.una.sigac.presentation.dto.response.AsignacionProfesorResponse;
 import cr.acusab.una.sigac.presentation.dto.response.ProfesorAsignableResponse;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.LocalDate;
