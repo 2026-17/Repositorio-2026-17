@@ -6,6 +6,7 @@ import EmptyState from "../../components/ui/EmptyState";
 import Field from "../../components/ui/Field";
 import PageHead from "../../components/ui/PageHead";
 import Pagination from "../../components/ui/Pagination";
+import { useDialog } from "../../components/dialog/useDialog";
 import StatusBadge from "../../components/ui/StatusBadge";
 import "./asignarProfesores.css";
 
@@ -28,6 +29,7 @@ function fechaActualCostaRica() {
 }
 
 function AsignarProfesores() {
+    const dialog = useDialog();
     const [asignaciones, setAsignaciones] = useState([]);
     const [profesores, setProfesores] = useState([]);
     const [selecciones, setSelecciones] = useState({});
@@ -196,10 +198,14 @@ function AsignarProfesores() {
             setError("La asignación solo puede quitarse antes del inicio del período académico.");
             return;
         }
-        const ok = window.confirm(
-            `¿Eliminar la asignación de ${item.nombreProfesor} al grupo ${item.codigoGrupo}? Esta acción solo se permite antes del inicio del período.`
+        const confirmado = await dialog.confirmar(
+            `¿Quitar a ${item.nombreProfesor} como profesor del grupo ${item.codigoGrupo}?`,
+            {
+                peligro: true,
+                textoAceptar: "Quitar asignación",
+            }
         );
-        if (!ok) return;
+        if (!confirmado) return;
 
         setOcupado(item.idGrupo);
         setError("");
