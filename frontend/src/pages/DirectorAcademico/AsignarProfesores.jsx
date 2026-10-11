@@ -69,8 +69,15 @@ function AsignarProfesores() {
             setProfesores(activos);
             setSelecciones((prev) => {
                 const next = { ...prev };
+                const idsActivos = new Set(activos.map((profesor) => String(profesor.idProfesor)));
                 lista.forEach((item) => {
-                    if (item.idProfesor) next[item.idGrupo] = String(item.idProfesor);
+                    const idActual = item.idProfesor ? String(item.idProfesor) : "";
+                    const idSeleccionado = next[item.idGrupo] ? String(next[item.idGrupo]) : "";
+                    if (idActual && idsActivos.has(idActual)) {
+                        next[item.idGrupo] = idActual;
+                    } else if (!idSeleccionado || !idsActivos.has(idSeleccionado)) {
+                        delete next[item.idGrupo];
+                    }
                 });
                 return next;
             });
@@ -376,6 +383,7 @@ function AsignarProfesores() {
                                             item.idProfesor
                                             && String(item.idProfesor) === selecciones[item.idGrupo]
                                         );
+                                        const tieneProfesorSeleccionado = Boolean(selecciones[item.idGrupo]);
                                         const motivo = motivoBloqueo(item);
                                         return (
                                             <tr key={item.idGrupo}>
@@ -398,7 +406,7 @@ function AsignarProfesores() {
                                                     )}
                                                 </td>
                                                 <td>
-                                                    <label className="sr-only" htmlFor={`cmbProfesorGrupo-${item.idGrupo}`}>
+                                                    <label className="sr-only" htmlFor={`cmbProfesorGrupo${item.idGrupo}`}>
                                                         Profesor responsable del grupo {item.codigoGrupo}
                                                     </label>
                                                     <select
@@ -429,21 +437,23 @@ function AsignarProfesores() {
                                                 <td className="actions">
                                                     <div className="row-actions asignar-profesores-actions">
                                                         <button
-                                                            id={`btnAsignarProfesor-${item.idGrupo}`}
+                                                            id={`btnAsignarProfesor${item.idGrupo}`}
                                                             type="button"
                                                             className="sg-btn sg-btn--primary sg-btn--sm"
                                                             onClick={() => asignar(item)}
-                                                            disabled={ocupado !== null || !habilitado || mismaAsignacion}
+                                                            disabled={ocupado !== null || !habilitado || !tieneProfesorSeleccionado || mismaAsignacion}
                                                             title={mismaAsignacion
                                                                 ? "Seleccione un profesor diferente para cambiar la asignación."
-                                                                : !habilitado ? motivo : "Guardar la asignación del profesor"}
+                                                                : !habilitado ? motivo
+                                                                    : !tieneProfesorSeleccionado ? "Seleccione un profesor activo."
+                                                                        : "Guardar la asignación del profesor"}
                                                         >
                                                             <UserCheck size={20} strokeWidth={1.75} aria-hidden="true" />
                                                             {ocupado === item.idGrupo ? "Guardando…" : item.idProfesor ? "Cambiar" : "Asignar"}
                                                         </button>
                                                         {item.idProfesor && (
                                                             <button
-                                                                id={`btnQuitarProfesor-${item.idGrupo}`}
+                                                                id={`btnQuitarProfesor${item.idGrupo}`}
                                                                 type="button"
                                                                 className="sg-btn sg-btn--danger sg-btn--sm"
                                                                 onClick={() => eliminar(item)}
@@ -458,6 +468,9 @@ function AsignarProfesores() {
                                                     {!habilitado && <small className="asignar-profesores-bloqueo">{motivo}</small>}
                                                     {habilitado && mismaAsignacion && (
                                                         <small className="asignar-profesores-bloqueo">El profesor seleccionado ya está asignado.</small>
+                                                    )}
+                                                    {habilitado && !tieneProfesorSeleccionado && !item.idProfesor && (
+                                                        <small className="asignar-profesores-bloqueo">Seleccione un profesor activo para continuar.</small>
                                                     )}
                                                 </td>
                                             </tr>
