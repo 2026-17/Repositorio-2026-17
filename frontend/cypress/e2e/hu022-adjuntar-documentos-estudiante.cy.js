@@ -12,13 +12,13 @@
  * Luego reemplaza el PDF que ella misma acaba de adjuntar por otro PDF de prueba.
  */
 
-const ADMIN_CEDULA = Cypress.env('PERSONAL_ACADEMICO_CEDULA');
-const ADMIN_CLAVE = Cypress.env('PERSONAL_ACADEMICO_CLAVE');
-const IDENTIFICACION = Cypress.env('HU022_ESTUDIANTE_IDENTIFICACION') || Cypress.env('ESTUDIANTE_CEDULA');
+let ADMIN_CEDULA;
+let ADMIN_CLAVE;
+let IDENTIFICACION;
 
 function omitirSiFaltan(contexto, variables) {
     const faltantes = variables.filter((nombre) => {
-        const valor = Cypress.env(nombre);
+        const valor = valorEntorno(nombre);
         return valor === undefined || valor === null || String(valor).trim() === '';
     });
     if (faltantes.length) {
@@ -87,6 +87,28 @@ function confirmarReemplazoSiSeSolicita() {
     });
 }
 
+// Cypress 16: cargar solo las variables utilizadas por esta especificación.
+// cy.env() conserva las credenciales fuera de la configuración pública.
+let variablesEntorno = {};
+function valorEntorno(nombre) {
+    return variablesEntorno[nombre];
+}
+
+before(function () {
+    return cy.env([
+    "PERSONAL_ACADEMICO_CEDULA",
+    "PERSONAL_ACADEMICO_CLAVE",
+    "HU022_ESTUDIANTE_IDENTIFICACION",
+    "ESTUDIANTE_CEDULA",
+    "HU022_PERMITIR_CAMBIOS"
+]).then((valores) => {
+        variablesEntorno = valores;
+        ADMIN_CEDULA = valorEntorno('PERSONAL_ACADEMICO_CEDULA');
+        ADMIN_CLAVE = valorEntorno('PERSONAL_ACADEMICO_CLAVE');
+        IDENTIFICACION = valorEntorno('HU022_ESTUDIANTE_IDENTIFICACION') || valorEntorno('ESTUDIANTE_CEDULA');
+    });
+});
+
 describe('HU-022 - Adjuntar documentos del estudiante', () => {
     beforeEach(function () {
         if (omitirSiFaltan(this, [
@@ -136,7 +158,7 @@ describe('HU-022 - Adjuntar documentos del estudiante', () => {
     });
 
     it('rechaza un archivo con extensión PDF cuyo contenido está dañado', function () {
-        if (Cypress.env('HU022_PERMITIR_CAMBIOS') !== 'SI') {
+        if (valorEntorno('HU022_PERMITIR_CAMBIOS') !== 'SI') {
             cy.log('Omitido para proteger el expediente real. Configure HU022_PERMITIR_CAMBIOS="SI" solo con autorización y un estudiante de pruebas.');
             this.skip();
             return;
@@ -169,7 +191,7 @@ describe('HU-022 - Adjuntar documentos del estudiante', () => {
     });
 
     it('adjunta un PDF válido, lo asocia al expediente y permite reemplazar el archivo de prueba', function () {
-        if (Cypress.env('HU022_PERMITIR_CAMBIOS') !== 'SI') {
+        if (valorEntorno('HU022_PERMITIR_CAMBIOS') !== 'SI') {
             cy.log('Omitido para proteger el expediente real. Configure HU022_PERMITIR_CAMBIOS="SI" solo con autorización y un estudiante de pruebas.');
             this.skip();
             return;
