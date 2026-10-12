@@ -4,17 +4,17 @@
 // HU014_PROFESOR_ASIGNAR_ID: profesor activo. HU014_PROFESOR_INACTIVO_ID: ID de profesor inactivo.
 // HU014_GRUPO_CONFLICTO_ID / HU014_PROFESOR_CONFLICTO_ID: destino y profesor con cruce real.
 // HU014_PERMITIR_CAMBIOS="SI" permite asignación real; esa prueba modifica la asignación y deja bitácora.
-const CEDULA = Cypress.env('DIRECTOR_CEDULA');
-const CLAVE = Cypress.env('DIRECTOR_CLAVE');
-const ID_GRUPO = Cypress.env('HU014_GRUPO_ASIGNABLE_ID');
-const ID_PROFESOR = Cypress.env('HU014_PROFESOR_ASIGNAR_ID');
-const ID_GRUPO_CONFLICTO = Cypress.env('HU014_GRUPO_CONFLICTO_ID');
-const ID_PROFESOR_CONFLICTO = Cypress.env('HU014_PROFESOR_CONFLICTO_ID');
-const ID_PROFESOR_INACTIVO = Cypress.env('HU014_PROFESOR_INACTIVO_ID');
+let CEDULA;
+let CLAVE;
+let ID_GRUPO;
+let ID_PROFESOR;
+let ID_GRUPO_CONFLICTO;
+let ID_PROFESOR_CONFLICTO;
+let ID_PROFESOR_INACTIVO;
 const TABLA = '#tblAsignacionesProfesores';
 
 function omitirFaltantes(ctx, keys) {
-    const faltan = keys.filter(k => Cypress.env(k) === undefined || Cypress.env(k) === null || String(Cypress.env(k)).trim() === '');
+    const faltan = keys.filter(k => valorEntorno(k) === undefined || valorEntorno(k) === null || String(valorEntorno(k)).trim() === '');
     if (faltan.length) { cy.log('Completar configuración: ' + faltan.join(', ')); ctx.skip(); return true; }
     return false;
 }
@@ -34,6 +34,35 @@ function mostrarGrupo(codigo) {
     cy.get('#txtBuscarAsignacion').clear().type(codigo);
     cy.get(TABLA+' tbody tr').filter((_,tr)=>tr.innerText.includes(codigo)).should('have.length',1);
 }
+
+// Cypress 16: cargar solo las variables utilizadas por esta especificación.
+// cy.env() conserva las credenciales fuera de la configuración pública.
+let variablesEntorno = {};
+function valorEntorno(nombre) {
+    return variablesEntorno[nombre];
+}
+
+before(function () {
+    return cy.env([
+    "DIRECTOR_CEDULA",
+    "DIRECTOR_CLAVE",
+    "HU014_GRUPO_ASIGNABLE_ID",
+    "HU014_PROFESOR_ASIGNAR_ID",
+    "HU014_GRUPO_CONFLICTO_ID",
+    "HU014_PROFESOR_CONFLICTO_ID",
+    "HU014_PROFESOR_INACTIVO_ID",
+    "HU014_PERMITIR_CAMBIOS"
+]).then((valores) => {
+        variablesEntorno = valores;
+        CEDULA = valorEntorno('DIRECTOR_CEDULA');
+        CLAVE = valorEntorno('DIRECTOR_CLAVE');
+        ID_GRUPO = valorEntorno('HU014_GRUPO_ASIGNABLE_ID');
+        ID_PROFESOR = valorEntorno('HU014_PROFESOR_ASIGNAR_ID');
+        ID_GRUPO_CONFLICTO = valorEntorno('HU014_GRUPO_CONFLICTO_ID');
+        ID_PROFESOR_CONFLICTO = valorEntorno('HU014_PROFESOR_CONFLICTO_ID');
+        ID_PROFESOR_INACTIVO = valorEntorno('HU014_PROFESOR_INACTIVO_ID');
+    });
+});
 
 describe('HU-014 - Asignar profesores a cursos y grupos',()=>{
     beforeEach(function(){
@@ -134,7 +163,7 @@ describe('HU-014 - Asignar profesores a cursos y grupos',()=>{
 
     it('asigna un profesor activo al grupo de prueba y confirma la operación',function(){
         if(omitirFaltantes(this,['HU014_GRUPO_ASIGNABLE_ID','HU014_PROFESOR_ASIGNAR_ID']))return;
-        if(Cypress.env('HU014_PERMITIR_CAMBIOS')!=='SI'){cy.log('Omitido para proteger datos existentes; configura HU014_PERMITIR_CAMBIOS="SI" solo para un grupo de pruebas.');this.skip();return;}
+        if(valorEntorno('HU014_PERMITIR_CAMBIOS')!=='SI'){cy.log('Omitido para proteger datos existentes; configura HU014_PERMITIR_CAMBIOS="SI" solo para un grupo de pruebas.');this.skip();return;}
         cy.wait('@grupos').then(({response})=>{
             const g=response.body.find(x=>String(x.idGrupo)===String(ID_GRUPO));
             expect(g,'grupo real configurado').to.exist;
