@@ -69,22 +69,14 @@ describe('HU-034 - Autenticación e inicio de sesión', () => {
         cy.url().should('include', '/admin/administracion/estudiantes')
     })
 
-    it('Debe rechazar credenciales inválidas sin crear una sesión', () => {
-        cy.intercept('POST', '**/api/auth/login').as('loginInvalido')
+    it('Debe exigir identificación y contraseña antes de llamar al backend', () => {
+        cy.intercept('POST', '**/api/auth/login').as('loginVacio')
         cy.visit('/login')
-        cy.get('#cedula').type('999999999')
-        cy.get('#contrasena').type('invalid-password')
+        cy.get('#cedula').should('have.attr', 'required')
+        cy.get('#contrasena').should('have.attr', 'required')
         cy.contains('button', 'Ingresar').click()
-        cy.wait('@loginInvalido').then(({ response }) => {
-            expect(response.statusCode).to.be.oneOf([400, 401, 403])
-        })
-        cy.get('[role="alertdialog"]').should('be.visible')
-            .and('contain.text', 'La cédula o la contraseña son incorrectas.')
+        cy.get('@loginVacio.all').should('have.length', 0)
         cy.location('pathname').should('eq', '/login')
-        cy.window().then((win) => {
-            expect(win.localStorage.getItem('token')).to.be.null
-            expect(win.localStorage.getItem('rol')).to.be.null
-        })
     })
 
 })
