@@ -6,6 +6,7 @@ import {
     BookPlus,
     BookX,
     CalendarCog,
+    CalendarDays,
     CalendarPlus,
     ChartColumn,
     ChevronRight,
@@ -108,6 +109,8 @@ const MENU_POR_ROL = {
         {
             titulo: "Mi matrícula",
             items: [
+                { to: "/estudiante/cursos-disponibles", label: "Cursos disponibles", icon: BookOpen },
+                { to: "/estudiante/horario", label: "Mi horario", icon: CalendarDays },
                 { to: "/estudiante/matricula", label: "Matrícula", icon: ClipboardList },
                 { to: "/estudiante/notificaciones", label: "Notificaciones", icon: Bell },
             ],

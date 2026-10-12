@@ -1,0 +1,206 @@
+/* Mi horario (estudiante).
+   Panel, tabla, avisos y badges vienen del patrón compartido de
+   src/styles. Aquí va solo la cuadrícula semanal y la agenda móvil.
+   Todos los colores son tokens, así que funcionan en modo oscuro. */
+
+.mi-horario__periodo {
+    min-width: 240px;
+}
+
+.mi-horario__aviso {
+    margin-bottom: var(--space-5);
+}
+
+.mi-horario__skeleton {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: var(--space-3);
+    margin-top: var(--space-4);
+}
+
+.mi-horario__skeleton .skeleton {
+    width: 100%;
+    height: 220px;
+    border-radius: var(--radius-md);
+}
+
+/* ------------------------------------------------------------
+   Colores por curso: fondo suave + texto y borde del mismo tono
+   ------------------------------------------------------------ */
+.tono-0 { --tono-fondo: var(--primary-soft); --tono-texto: var(--primary); }
+.tono-1 { --tono-fondo: var(--info-soft);    --tono-texto: var(--info); }
+.tono-2 { --tono-fondo: var(--success-soft); --tono-texto: var(--success); }
+.tono-3 { --tono-fondo: var(--warning-soft); --tono-texto: var(--warning); }
+.tono-4 { --tono-fondo: var(--danger-soft);  --tono-texto: var(--danger-strong); }
+.tono-5 { --tono-fondo: var(--surface-sunken); --tono-texto: var(--brass); }
+
+/* ------------------------------------------------------------
+   Cuadrícula semanal (escritorio)
+   ------------------------------------------------------------ */
+.mi-horario__scroll {
+    overflow-x: auto;
+    padding: var(--space-4) var(--space-5) var(--space-5);
+}
+
+.mi-horario__grid {
+    --hor-fila: 14px; /* 15 minutos */
+    display: grid;
+    min-width: 680px;
+}
+
+.mi-horario__dia {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    padding: var(--space-2);
+    border-bottom: 1px solid var(--border);
+    font: 600 13px/20px var(--font-sans);
+    color: var(--ink-subtle);
+}
+
+.mi-horario__dia.is-hoy {
+    color: var(--primary);
+}
+
+.mi-horario__hoy {
+    padding: 0 6px;
+    border-radius: 999px;
+    background: var(--primary-soft);
+    font-size: 11px;
+    line-height: 18px;
+}
+
+.mi-horario__hora {
+    position: relative;
+    top: -9px;
+    padding-right: var(--space-2);
+    text-align: right;
+    font-size: 12px;
+    line-height: 18px;
+    color: var(--ink-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.mi-horario__celda {
+    border-top: 1px solid var(--border);
+    border-left: 1px solid var(--border);
+}
+
+.mi-horario__celda.is-hoy {
+    background: var(--surface-raised);
+}
+
+.mi-horario__bloque {
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    margin: 2px 4px;
+    padding: var(--space-1) var(--space-2);
+    overflow: hidden;
+    border-left: 3px solid var(--tono-texto);
+    border-radius: var(--radius-sm);
+    background: var(--tono-fondo);
+    color: var(--tono-texto);
+    font-size: 12px;
+    line-height: 16px;
+}
+
+.mi-horario__bloque b {
+    overflow: hidden;
+    font-size: 13px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.mi-horario__bloque span {
+    font-variant-numeric: tabular-nums;
+    color: var(--ink-muted);
+}
+
+/* Muestra de color en la tabla, para relacionar fila y bloque */
+.mi-horario__muestra {
+    flex-shrink: 0;
+    width: 12px;
+    height: 32px;
+    border-radius: var(--radius-sm);
+    border-left: 3px solid var(--tono-texto);
+    background: var(--tono-fondo);
+}
+
+/* ------------------------------------------------------------
+   Agenda por día (celular)
+   ------------------------------------------------------------ */
+.mi-horario__agenda {
+    display: none;
+}
+
+.mi-horario__agenda-dia + .mi-horario__agenda-dia {
+    border-top: 1px solid var(--border);
+}
+
+.mi-horario__agenda-dia {
+    padding: var(--space-4);
+}
+
+.mi-horario__agenda-dia h3 {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    margin-bottom: var(--space-3);
+    font: 600 15px/22px var(--font-sans);
+}
+
+.mi-horario__agenda-dia ul {
+    display: grid;
+    gap: var(--space-2);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.mi-horario__agenda-dia li {
+    display: grid;
+    gap: 2px;
+    padding: var(--space-2) var(--space-3);
+    border-left: 3px solid var(--tono-texto);
+    border-radius: var(--radius-sm);
+    background: var(--tono-fondo);
+    font-size: 14px;
+}
+
+.mi-horario__agenda-dia li b {
+    color: var(--tono-texto);
+}
+
+.mi-horario__agenda-dia li span {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    color: var(--ink-muted);
+}
+
+@media (max-width: 720px) {
+    .mi-horario__scroll {
+        display: none;
+    }
+
+    .mi-horario__agenda {
+        display: block;
+    }
+
+    .mi-horario__periodo {
+        min-width: 0;
+        width: 100%;
+    }
+
+    .mi-horario__skeleton {
+        grid-template-columns: 1fr;
+    }
+
+    .mi-horario__skeleton .skeleton {
+        height: 64px;
+    }
+}

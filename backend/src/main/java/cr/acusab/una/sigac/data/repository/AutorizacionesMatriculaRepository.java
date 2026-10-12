@@ -40,4 +40,13 @@ public interface AutorizacionesMatriculaRepository
             Long idEstudiante,
             Long idPeriodo
     );
+
+    /*
+     * Horario del estudiante: todas sus autorizaciones, para saber en
+     * qué períodos tiene cursos matriculados.
+     */
+    List<AutorizacionesMatricula>
+    findByIdEstudiante_Id(
+            Long idEstudiante
+    );
 }

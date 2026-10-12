@@ -31,6 +31,7 @@ import cr.acusab.una.sigac.data.repository.RequisitosCursoRepository;
 import cr.acusab.una.sigac.logic.exception.BusinessException;
 import cr.acusab.una.sigac.logic.exception.MatriculaInvalidaException;
 import cr.acusab.una.sigac.presentation.dto.request.ConfirmarSeleccionMatriculaRequestDTO;
+import cr.acusab.una.sigac.presentation.dto.response.HorarioEstudianteResponseDTO;
 import cr.acusab.una.sigac.presentation.dto.response.MatriculaConfirmadaResponseDTO;
 import cr.acusab.una.sigac.presentation.dto.response.OfertaMatriculaResponseDTO;
 
@@ -80,6 +81,7 @@ import java.util.stream.Collectors;
 public class MatriculaEstudianteService {
 
     private static final String ESTADO_PERIODO_MATRICULA = "MATRICULA";
+    private static final String ESTADO_PERIODO_EN_CURSO = "EN_CURSO";
 
     /*
      * Estados de grupo que forman parte de la oferta. Crear un curso
@@ -335,6 +337,167 @@ public class MatriculaEstudianteService {
         });
 
         return respuesta;
+    }
+
+    /*
+     * ============================================================
+     * Horario del estudiante
+     * ============================================================
+     *
+     * Grupos matriculados (no retirados) del estudiante autenticado en
+     * un período, con sus bloques de horario. A diferencia de la oferta,
+     * funciona en cualquier etapa del período (también "En curso").
+     *
+     * Si no se indica idPeriodo (o no es uno en el que tenga cursos), se
+     * muestra el período en curso; si no hay, el que está en matrícula;
+     * si tampoco, el más reciente.
+     */
+    @Transactional(readOnly = true)
+    public HorarioEstudianteResponseDTO consultarMiHorario(
+            Long idPeriodo
+    ) {
+
+        Estudiante estudiante =
+                obtenerEstudianteAutenticado();
+
+        HorarioEstudianteResponseDTO respuesta =
+                new HorarioEstudianteResponseDTO();
+
+        respuesta.setEstudiante(
+                mapearEstudiante(estudiante)
+        );
+
+        // Períodos en los que tiene cursos matriculados, del más reciente
+        // al más antiguo, con los grupos de cada uno.
+        Map<PeriodoAcademico, List<Grupo>> gruposPorPeriodo =
+                new LinkedHashMap<>();
+
+        autorizacionRepository
+                .findByIdEstudiante_Id(
+                        estudiante.getId()
+                )
+                .stream()
+                .sorted(Comparator.comparing(
+                        (AutorizacionesMatricula a) -> a.getIdPeriodo().getFechaInicio()
+                ).reversed())
+                .forEach(autorizacion -> {
+
+                    List<Grupo> grupos =
+                            gruposYaMatriculados(autorizacion);
+
+                    if (!grupos.isEmpty()) {
+                        gruposPorPeriodo.put(
+                                autorizacion.getIdPeriodo(),
+                                grupos
+                        );
+                    }
+                });
+
+        if (gruposPorPeriodo.isEmpty()) {
+            return respuesta;
+        }
+
+        gruposPorPeriodo.keySet().forEach(periodo ->
+                respuesta.getPeriodos().add(
+                        mapearPeriodoHorario(periodo)
+                )
+        );
+
+        PeriodoAcademico periodo =
+                elegirPeriodoHorario(
+                        gruposPorPeriodo.keySet(),
+                        idPeriodo
+                );
+
+        respuesta.setPeriodo(
+                mapearPeriodoHorario(periodo)
+        );
+
+        // El nivel y el plan de cada curso salen de la malla de los planes
+        // en los que está inscrito (igual que en la oferta).
+        List<Long> idsPlan =
+                idsPlanesInscritos(
+                        estudiante.getId()
+                );
+
+        Map<Long, PlanEstudio> planes =
+                planEstudioRepository
+                        .findAllById(idsPlan)
+                        .stream()
+                        .collect(Collectors.toMap(
+                                PlanEstudio::getId,
+                                plan -> plan
+                        ));
+
+        List<OfertaMatriculaResponseDTO.GrupoDTO> clases =
+                new ArrayList<>(
+                        mapearGrupos(
+                                gruposPorPeriodo.get(periodo),
+                                mallaPorCurso(idsPlan),
+                                planes
+                        )
+                );
+
+        clases.sort(
+                Comparator.comparing(
+                        OfertaMatriculaResponseDTO.GrupoDTO::getNombreCurso,
+                        Comparator.nullsLast(Comparator.naturalOrder())
+                )
+        );
+
+        respuesta.setClases(clases);
+
+        return respuesta;
+    }
+
+    private PeriodoAcademico elegirPeriodoHorario(
+            Collection<PeriodoAcademico> periodos,
+            Long idPeriodo
+    ) {
+
+        if (idPeriodo != null) {
+
+            Optional<PeriodoAcademico> pedido =
+                    periodos.stream()
+                            .filter(periodo -> idPeriodo.equals(periodo.getId()))
+                            .findFirst();
+
+            if (pedido.isPresent()) {
+                return pedido.get();
+            }
+        }
+
+        for (String estado : List.of(ESTADO_PERIODO_EN_CURSO, ESTADO_PERIODO_MATRICULA)) {
+
+            Optional<PeriodoAcademico> conEstado =
+                    periodos.stream()
+                            .filter(periodo -> estado.equals(periodo.getEstado()))
+                            .findFirst();
+
+            if (conEstado.isPresent()) {
+                return conEstado.get();
+            }
+        }
+
+        // Vienen ordenados del más reciente al más antiguo.
+        return periodos.iterator().next();
+    }
+
+    private HorarioEstudianteResponseDTO.PeriodoDTO mapearPeriodoHorario(
+            PeriodoAcademico periodo
+    ) {
+
+        HorarioEstudianteResponseDTO.PeriodoDTO dto =
+                new HorarioEstudianteResponseDTO.PeriodoDTO();
+
+        dto.setId(periodo.getId());
+        dto.setCodigo(periodo.getCodigo());
+        dto.setNombre(periodo.getNombre());
+        dto.setEstado(periodo.getEstado());
+        dto.setFechaInicio(periodo.getFechaInicio());
+        dto.setFechaFin(periodo.getFechaFin());
+
+        return dto;
     }
 
     /*

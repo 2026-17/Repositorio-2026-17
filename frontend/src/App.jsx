@@ -11,6 +11,7 @@ import RecuperarContrasena from "./pages/Publico/RecuperarContrasena";
 import CambiarContrasenaTemporal from "./pages/Publico/CambiarContrasenaTemporal";
 import Notificaciones from "./pages/Estudiante/Notificaciones";
 import ConsultaCursos from "./pages/Estudiante/ConsultaCursos";
+import MiHorario from "./pages/Estudiante/MiHorario";
 import SeleccionCursos from "./pages/Estudiante/SeleccionCursos";
 import CreateUsers from "./pages/AdminSis/createUsers";
 import CreateStudent from "./pages/AdminSis/createStudent";
@@ -207,6 +208,12 @@ function App() {
                     <Route
                         path="/estudiante/cursos-disponibles"
                         element={<ConsultaCursos />}
+                    />
+
+                    {/* Horario semanal del estudiante */}
+                    <Route
+                        path="/estudiante/horario"
+                        element={<MiHorario />}
                     />
 
                     {/* HU-002 - Solicitar matrícula de cursos */}
