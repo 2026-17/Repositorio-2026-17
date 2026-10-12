@@ -114,9 +114,13 @@ describe('HU-022 - Adjuntar documentos del estudiante', () => {
         if (omitirSiFaltan(this, [
             'PERSONAL_ACADEMICO_CEDULA',
             'PERSONAL_ACADEMICO_CLAVE',
-            'HU022_ESTUDIANTE_IDENTIFICACION',
         ])) return;
 
+        if (!IDENTIFICACION) {
+            cy.log('Configure HU022_ESTUDIANTE_IDENTIFICACION o ESTUDIANTE_CEDULA para seleccionar un expediente.');
+            this.skip();
+            return;
+        }
         cy.loginComo(ADMIN_CEDULA, ADMIN_CLAVE);
         cy.intercept('GET', '**/api/estudiantes/listado*').as('listadoEstudiantes');
         cy.visit('/admin/administracion/estudiantes');
