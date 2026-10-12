@@ -62,4 +62,17 @@ describe('HU-035 - Cerrar sesión', () => {
         })
     })
 
+    it('Debe bloquear la navegación a una ruta interna después del cierre de sesión', () => {
+        cy.get('.header-user-trigger').should('be.visible').click()
+        cy.get('.user-dropdown').contains('button', 'Cerrar sesión').click()
+        cy.location('pathname').should('match', /^\/$/)
+        cy.window().then((win) => {
+            expect(win.localStorage.getItem('token')).to.be.null
+        })
+
+        cy.visit('/director-academico/cursos/crear')
+        cy.location('pathname').should('match', /^\/$|^\/login$/)
+        cy.contains('h1', 'Crear curso').should('not.exist')
+    })
+
 })
