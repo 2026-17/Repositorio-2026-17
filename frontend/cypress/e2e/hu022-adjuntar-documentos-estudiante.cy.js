@@ -136,6 +136,11 @@ describe('HU-022 - Adjuntar documentos del estudiante', () => {
     });
 
     it('rechaza un archivo con extensión PDF cuyo contenido está dañado', function () {
+        if (Cypress.env('HU022_PERMITIR_CAMBIOS') !== 'SI') {
+            cy.log('Omitido para proteger el expediente real. Configure HU022_PERMITIR_CAMBIOS="SI" solo con autorización y un estudiante de pruebas.');
+            this.skip();
+            return;
+        }
         interceptarLecturas();
         abrirGestionDocumental().then(({ tipos, documentos }) => {
             expect(tipos.length).to.be.greaterThan(0);
