@@ -34,7 +34,10 @@ import Profesores from "./pages/DirectorAcademico/Profesores.jsx";
 import RegistrarProfesor from "./pages/DirectorAcademico/RegistrarProfesor.jsx";
 import Reportes from "./pages/Administrativa/Reportes.jsx";
 
+import Inicio from "./pages/Inicio/Inicio";
+
 import Header from "./components/Header";
+import { RUTA_INICIO } from "./constants/menu";
 import { cambioContrasenaPendiente, RUTA_CAMBIO_CONTRASENA_TEMPORAL } from "./utils/sesion";
 
 function Layout() {
@@ -83,6 +86,12 @@ function App() {
                     Rutas internas con layout general
                    ===================================================== */}
                 <Route element={<Layout />}>
+
+                    {/* Inicio de todos los roles: explica las opciones del menú (botón "Ayuda") */}
+                    <Route
+                        path={RUTA_INICIO}
+                        element={<Inicio />}
+                    />
 
                     {/* =================================================
                         ADMINISTRADOR

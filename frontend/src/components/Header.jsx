@@ -2,122 +2,24 @@ import { useEffect, useRef, useState } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import {
     Bell,
-    BookOpen,
-    BookPlus,
-    BookX,
-    CalendarCog,
-    CalendarDays,
-    CalendarPlus,
-    ChartColumn,
     ChevronRight,
-    ClipboardList,
-    GraduationCap,
+    CircleHelp,
     LogOut,
     Menu,
     Moon,
-    Music,
     PanelLeft,
     Sun,
-    UserPlus,
-    Users,
-    UserRoundCog,
-    Wallet,
 } from "lucide-react";
 
 import { API_URL } from "../config/api";
+import { MENU_POR_ROL, RUTA_INICIO } from "../constants/menu";
 import { etiquetaRol, ROLES } from "../constants/roles";
 import { limpiarSesion } from "../utils/sesion";
 import { iniciales } from "./ui/utilidades";
 import LogoSigac from "./LogoSigac";
 
-/*
- * Menú lateral agrupado por rol (mismas rutas que antes).
- * Cada grupo tiene un título y sus enlaces; cada enlace lleva el ícono
- * que se ve en el menú (y es lo único visible cuando está contraído).
- */
-const MENU_POR_ROL = {
-    [ROLES.ADMINISTRADOR]: [
-        {
-            titulo: "Administración",
-            items: [
-                { to: "/admin/usuarios/crear", label: "Crear usuario", icon: UserPlus },
-            ],
-        },
-    ],
-
-    [ROLES.DIRECTOR_ACADEMICO]: [
-        {
-            titulo: "Período académico",
-            items: [
-                { to: "/director-academico/periodos-academicos/crear", label: "Crear período", icon: CalendarPlus },
-                { to: "/director-academico/periodos-academicos/modificar", label: "Consultar / Modificar", icon: CalendarCog },
-            ],
-        },
-        {
-            titulo: "Cursos",
-            items: [
-                { to: "/director-academico/cursos/crear", label: "Crear curso", icon: BookPlus },
-                { to: "/director-academico/cursos/modificar", label: "Modificar curso", icon: BookOpen },
-                { to: "/director-academico/cursos/desactivar", label: "Desactivar curso", icon: BookX },
-                { to: "/director-academico/grupos/crear", label: "Crear grupo", icon: Users },
-                { to: "/director-academico/asignar-profesores", label: "Asignar profesores", icon: UserRoundCog },
-            ],
-        },
-        {
-            titulo: "Académico",
-            items: [
-                { to: "/director-academico/profesores", label: "Profesores", icon: GraduationCap },
-                { to: "/director-academico/profesores/registrar", label: "Registrar profesor", icon: UserPlus },
-                { to: "/director-academico/estudiantes/instrumentos", label: "Asignar instrumento", icon: Music },
-            ],
-        },
-    ],
-
-    [ROLES.ADMINISTRATIVO]: [
-        {
-            titulo: "Académico",
-            items: [
-                { to: "/admin/administracion/estudiantes", label: "Estudiantes", icon: Users },
-                { to: "/admin/administracion/estudiantes/crear", label: "Registrar estudiante", icon: UserPlus },
-                { to: "/admin/administracion/estudiantes/instrumentos", label: "Asignar instrumento", icon: Music },
-            ],
-        },
-        {
-            titulo: "Matrícula y pagos",
-            items: [
-                { to: "/admin/administracion/matricula", label: "Matrícula", icon: ClipboardList },
-                { to: "/admin/administracion/becas-pagos", label: "Becas y pagos", icon: Wallet },
-            ],
-        },
-        {
-            titulo: "Informes",
-            items: [
-                { to: "/admin/administracion/reportes", label: "Reportes", icon: ChartColumn },
-            ],
-        },
-    ],
-
-    [ROLES.PROFESOR]: [],
-
-    [ROLES.JUNTA_DIRECTIVA]: [],
-
-    /*
-     * HU-10 - Consultar cursos disponibles de un período académico.
-     * HU-002 - Solicitud de matrícula.
-     * HU-012 - Notificaciones del estudiante.
-     */
-    [ROLES.ESTUDIANTE]: [
-        {
-            titulo: "Mi matrícula",
-            items: [
-                { to: "/estudiante/cursos-disponibles", label: "Cursos disponibles", icon: BookOpen },
-                { to: "/estudiante/horario", label: "Mi horario", icon: CalendarDays },
-                { to: "/estudiante/matricula", label: "Matrícula", icon: ClipboardList },
-                { to: "/estudiante/notificaciones", label: "Notificaciones", icon: Bell },
-            ],
-        },
-    ],
-};
+// Migas y título de la pantalla de inicio (no forma parte del menú del rol).
+const SECCION_INICIO = { grupo: { titulo: "Ayuda" }, item: { to: RUTA_INICIO, label: "Inicio" } };
 
 // Busca la sección actual para las migas y el título de la pestaña.
 function seccionActual(grupos, pathname) {
@@ -177,7 +79,8 @@ function Header({ children }) {
     const primerRender = useRef(true);
 
     const grupos = MENU_POR_ROL[rol] || [];
-    const actual = seccionActual(grupos, location.pathname);
+    const enInicio = location.pathname === RUTA_INICIO;
+    const actual = enInicio ? SECCION_INICIO : seccionActual(grupos, location.pathname);
 
     // Tema claro / oscuro (se recuerda en este navegador)
     useEffect(() => {
@@ -301,6 +204,18 @@ function Header({ children }) {
                 </nav>
 
                 <div className="sb-foot">
+                    {/* Lleva a la pantalla de inicio, que explica cada opción del menú */}
+                    <NavLink
+                        to={RUTA_INICIO}
+                        className="sb-item"
+                        aria-current={enInicio ? "page" : undefined}
+                        title={contraido ? "Ayuda" : undefined}
+                        onClick={() => setMenuAbierto(false)}
+                    >
+                        <CircleHelp size={20} strokeWidth={1.75} aria-hidden="true" />
+                        <span className="sb-label">Ayuda</span>
+                    </NavLink>
+
                     <button
                         type="button"
                         className="sb-toggle"
