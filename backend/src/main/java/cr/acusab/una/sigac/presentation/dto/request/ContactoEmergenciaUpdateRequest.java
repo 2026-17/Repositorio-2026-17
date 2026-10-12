@@ -23,15 +23,15 @@ public class ContactoEmergenciaUpdateRequest {
      */
     private Long idContactoEmergencia;
 
-    @NotBlank
-    @Size(max = 180)
+    @NotBlank(message = "El nombre del contacto es obligatorio")
+    @Size(max = 180, message = "El nombre del contacto no puede superar 180 caracteres")
     private String nombre;
 
-    @NotBlank
-    @Size(max = 30)
+    @NotBlank(message = "El teléfono del contacto es obligatorio")
+    @Size(max = 30, message = "El teléfono del contacto no puede superar 30 caracteres")
     private String telefono;
 
-    @NotBlank
-    @Size(max = 80)
+    @NotBlank(message = "La relación con el estudiante es obligatoria")
+    @Size(max = 80, message = "La relación no puede superar 80 caracteres")
     private String relacion;
 }

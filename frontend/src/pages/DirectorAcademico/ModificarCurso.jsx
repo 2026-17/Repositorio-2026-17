@@ -445,6 +445,14 @@ function ModificarCurso() {
         ) {
             siguientesErrores.nivel =
                 "El nivel académico debe ser mayor que cero.";
+        } else if (Number(form.nivel) > 999) {
+            siguientesErrores.nivel =
+                "El nivel académico no puede ser mayor que 999.";
+        }
+
+        if (form.descripcion.length > 2000) {
+            siguientesErrores.descripcion =
+                "La descripción no puede superar los 2000 caracteres.";
         }
 
         return siguientesErrores;
@@ -782,14 +790,14 @@ function ModificarCurso() {
                                     <Field id="nombre" label="Nombre del curso" error={errores.nombre}>
                                         <input id="nombre" name="nombre" type="text" className="sg-input" maxLength="160" value={form.nombre} onChange={handleChange} disabled={guardando} {...aria("nombre")} />
                                     </Field>
-                                    <Field id="descripcion" label="Descripción" optional className="span-all">
-                                        <textarea id="descripcion" name="descripcion" className="sg-input" rows="4" value={form.descripcion} onChange={handleChange} disabled={guardando} placeholder="Descripción del curso" />
+                                    <Field id="descripcion" label="Descripción" optional className="span-all" hint="Máximo 2000 caracteres." error={errores.descripcion}>
+                                        <textarea id="descripcion" name="descripcion" className="sg-input" rows="4" maxLength={2000} value={form.descripcion} onChange={handleChange} disabled={guardando} placeholder="Descripción del curso" />
                                     </Field>
                                     <Field id="horasTotales" label="Cantidad de horas" error={errores.horasTotales}>
-                                        <input id="horasTotales" name="horasTotales" type="number" className="sg-input" min="1" step="1" inputMode="numeric" value={form.horasTotales} onChange={handleChange} disabled={guardando} {...aria("horasTotales")} />
+                                        <input id="horasTotales" name="horasTotales" type="number" className="sg-input" min="1" max="65535" step="1" inputMode="numeric" value={form.horasTotales} onChange={handleChange} disabled={guardando} {...aria("horasTotales")} />
                                     </Field>
                                     <Field id="nivel" label="Nivel académico" error={errores.nivel}>
-                                        <input id="nivel" name="nivel" type="number" className="sg-input" min="1" step="1" inputMode="numeric" value={form.nivel} onChange={handleChange} disabled={guardando} {...aria("nivel")} />
+                                        <input id="nivel" name="nivel" type="number" className="sg-input" min="1" max="999" step="1" inputMode="numeric" value={form.nivel} onChange={handleChange} disabled={guardando} {...aria("nivel")} />
                                     </Field>
                                     <Field
                                         id="idPrograma"

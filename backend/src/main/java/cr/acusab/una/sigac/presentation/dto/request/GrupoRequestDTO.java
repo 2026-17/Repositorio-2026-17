@@ -35,7 +35,7 @@ public class GrupoRequestDTO {
 
     @NotNull(message = "El cupo máximo es obligatorio.")
     @Positive(message = "El cupo máximo debe ser mayor que cero.")
-    @Max(value = 32767, message = "El cupo máximo supera el valor permitido.")
+    @Max(value = 500, message = "El cupo máximo no puede ser mayor que 500.")
     private Short cupoMaximo;
 
     // Opcional: el grupo puede crearse sin docente asignado.

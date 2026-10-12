@@ -7,6 +7,7 @@ import Field from "../../components/ui/Field";
 import PageHead from "../../components/ui/PageHead";
 import { listaErrores } from "../../components/ui/utilidades";
 import { campoDeConflicto, erroresDeCampos, lanzarError, leerError, mensajeDeExcepcion } from "../../utils/api";
+import { MENSAJE_NOMBRE, esCorreoValido, esNombreValido, limpiarIdentificacion } from "../../utils/validaciones";
 import "./styles/createUsers.css";
 
 const FORM_VACIO = {
@@ -72,10 +73,13 @@ function CreateUsers() {
 
     function validar() {
         const nuevos = {};
+        // La cuenta no tiene tipo de identificación: solo se exige letras y números
         if (!form.cedula.trim()) nuevos.cedula = "Escriba la cédula.";
+        else if (!/^[A-Za-z0-9]+$/.test(limpiarIdentificacion(form.cedula))) nuevos.cedula = "La identificación solo puede tener letras y números.";
         if (!form.nombre.trim()) nuevos.nombre = "Escriba el nombre.";
+        else if (!esNombreValido(form.nombre)) nuevos.nombre = MENSAJE_NOMBRE;
         if (!form.correo.trim()) nuevos.correo = "Escriba el correo electrónico.";
-        else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.correo.trim())) nuevos.correo = "Escriba un correo con el formato nombre@dominio.com";
+        else if (!esCorreoValido(form.correo)) nuevos.correo = "Escriba un correo con el formato nombre@dominio.com";
         if (!form.idRol) nuevos.idRol = "Seleccione el rol.";
         if (!form.idEstadoUsuario) nuevos.idEstadoUsuario = "Seleccione el estado del usuario.";
         return nuevos;
@@ -90,9 +94,9 @@ function CreateUsers() {
         if (Object.keys(nuevos).length > 0) return;
 
         const payload = {
-            cedula: form.cedula,
-            nombre: form.nombre,
-            correo: form.correo,
+            cedula: limpiarIdentificacion(form.cedula),
+            nombre: form.nombre.trim(),
+            correo: form.correo.trim(),
             idRol: Number(form.idRol),
             idEstadoUsuario: Number(form.idEstadoUsuario),
         };
@@ -159,13 +163,13 @@ function CreateUsers() {
                     <div className="panel-head"><h2>Datos de la cuenta</h2></div>
                     <div className="panel-body form-grid">
                         <Field id={`${P}cedula`} errorKey="cedula" label="Cédula" error={errores.cedula}>
-                            <input id={`${P}cedula`} className="sg-input" type="text" inputMode="numeric" autoComplete="off" value={form.cedula} onChange={(e) => setCampo("cedula", e.target.value)} {...aria("cedula")} />
+                            <input id={`${P}cedula`} className="sg-input" type="text" maxLength={40} autoComplete="off" value={form.cedula} onChange={(e) => setCampo("cedula", e.target.value)} {...aria("cedula")} />
                         </Field>
                         <Field id={`${P}nombre`} errorKey="nombre" label="Nombre" error={errores.nombre}>
-                            <input id={`${P}nombre`} className="sg-input" type="text" autoComplete="name" value={form.nombre} onChange={(e) => setCampo("nombre", e.target.value)} {...aria("nombre")} />
+                            <input id={`${P}nombre`} className="sg-input" type="text" maxLength={150} autoComplete="name" value={form.nombre} onChange={(e) => setCampo("nombre", e.target.value)} {...aria("nombre")} />
                         </Field>
                         <Field id={`${P}correo`} errorKey="correo" label="Correo" hint="Se enviará una contraseña temporal a este correo." error={errores.correo}>
-                            <input id={`${P}correo`} className="sg-input" type="email" autoComplete="email" value={form.correo} onChange={(e) => setCampo("correo", e.target.value)} placeholder="nombre@correo.com" {...aria("correo")} />
+                            <input id={`${P}correo`} className="sg-input" type="email" maxLength={254} autoComplete="email" value={form.correo} onChange={(e) => setCampo("correo", e.target.value)} placeholder="nombre@correo.com" {...aria("correo")} />
                         </Field>
                         <Field id={`${P}idRol`} errorKey="idRol" label="Rol" error={errores.idRol} select>
                             <select id={`${P}idRol`} className="sg-input sg-select" value={form.idRol} onChange={(e) => setCampo("idRol", e.target.value)} {...aria("idRol")}>

@@ -172,6 +172,10 @@ function Estudiantes() {
         [periodos, idPeriodo]
     );
 
+    // La fecha de pago no puede ser anterior al inicio de la matrícula del
+    // período (o al inicio del período si no tiene). Misma regla que el backend.
+    const fechaMinimaPago = periodoSeleccionado?.fechaInicioMatricula || periodoSeleccionado?.fechaInicio || "";
+
     async function consultarEstadoMes() {
         if (!estudiante || !idPeriodo || !mesSeleccionado) return;
         const [anio, mes] = mesSeleccionado.split("-");
@@ -214,6 +218,15 @@ function Estudiantes() {
         const nuevosErrores = {};
         if (!fechaPago) nuevosErrores.fechaPago = "Ingrese la fecha de pago.";
         else if (fechaPago > todayISO()) nuevosErrores.fechaPago = "La fecha de pago no puede ser futura.";
+        else if (fechaMinimaPago && fechaPago < fechaMinimaPago) {
+            nuevosErrores.fechaPago = periodoSeleccionado?.fechaInicioMatricula
+                ? "La fecha de pago no puede ser anterior al inicio de la matrícula del período."
+                : "La fecha de pago no puede ser anterior al inicio del período.";
+        }
+        // Los meses que se ofrecen ya son los del período; esto cubre un período mal cargado
+        if (mesSeleccionado && !mesesDelPeriodo(periodoSeleccionado).some(({ anio, mes }) => `${anio}-${mes}` === mesSeleccionado)) {
+            nuevosErrores.fechaPago = "El mes pagado no está dentro del período académico seleccionado.";
+        }
         if (!comprobante) nuevosErrores.comprobante = "Debe adjuntar el comprobante de pago.";
         else if (comprobante.size > MAX_COMPROBANTE) nuevosErrores.comprobante = "El comprobante no puede superar 15 MB.";
 
@@ -500,6 +513,7 @@ function Estudiantes() {
                                                             id="pago-fechaPago"
                                                             className="sg-input"
                                                             type="date"
+                                                            min={fechaMinimaPago || undefined}
                                                             max={todayISO()}
                                                             value={fechaPago}
                                                             onChange={(e) => { setFechaPago(e.target.value); setErroresPago((er) => ({ ...er, fechaPago: "" })); }}

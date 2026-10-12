@@ -12,6 +12,18 @@ import PageHead from "../../components/ui/PageHead";
 import Stepper from "../../components/ui/Stepper";
 import { listaErrores } from "../../components/ui/utilidades";
 import { campoDeConflicto, lanzarError, leerError, mensajeDeExcepcion } from "../../utils/api";
+import {
+  MENSAJE_NOMBRE,
+  MENSAJE_TELEFONO,
+  errorEdad,
+  errorIdentificacion,
+  esCorreoValido,
+  esNombreValido,
+  esTelefonoValido,
+  limitesFechaNacimiento,
+  limpiarIdentificacion,
+  limpiarTelefono,
+} from "../../utils/validaciones";
 
 const MAX_PDF = 50 * 1024 * 1024;
 const GENEROS = ["MASCULINO", "FEMENINO", "OTRO"];
@@ -87,11 +99,6 @@ function ageFromDate(value) {
   return age;
 }
 
-function todayISO() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-
 function formatoColones(valor) {
   if (valor === null || valor === undefined) return "—";
   return `₡${Number(valor).toLocaleString("es-CR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -152,6 +159,8 @@ export default function CreateStudent({ onCancel, onSuccess } = {}) {
   const [registrado, setRegistrado] = useState(null);
 
   const edad = useMemo(() => ageFromDate(form.fechaNacimiento), [form.fechaNacimiento]);
+  // Edad permitida: de 2 a 100 años
+  const limitesNacimiento = useMemo(() => limitesFechaNacimiento(), []);
   const menor = edad !== null && edad < 18;
   const requiereCentro = edad !== null && edad >= 6 && edad < 18;
   const incrustado = Boolean(onCancel);
@@ -310,8 +319,19 @@ export default function CreateStudent({ onCancel, onSuccess } = {}) {
     if (!form.ubicacion.codigoDistrito) nextErrors.codigoDistrito = "Seleccione el distrito.";
     if (form.idsPlanEstudio.length === 0) nextErrors.idsPlanEstudio = "Seleccione al menos un plan de estudio.";
     if (edad === null && form.fechaNacimiento) nextErrors.fechaNacimiento = "La fecha de nacimiento no es válida.";
+    else if (errorEdad(edad)) nextErrors.fechaNacimiento = errorEdad(edad);
     if (requiereCentro && !form.centroEducativo.trim()) nextErrors.centroEducativo = "Ingrese el centro educativo.";
-    if (form.correo && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.correo)) nextErrors.correo = "Ingrese un correo electrónico válido.";
+    if (form.correo.trim() && !esCorreoValido(form.correo)) nextErrors.correo = "Ingrese un correo electrónico válido.";
+
+    const tipoEstudiante = types.find((t) => String(t.id) === String(form.idTipoIdentificacion));
+    if (form.numeroIdentificacion.trim() && errorIdentificacion(tipoEstudiante, form.numeroIdentificacion)) {
+      nextErrors.numeroIdentificacion = errorIdentificacion(tipoEstudiante, form.numeroIdentificacion);
+    }
+    ["nombres", "primerApellido", "segundoApellido"].forEach((campo) => {
+      if (form[campo].trim() && !esNombreValido(form[campo])) nextErrors[campo] = MENSAJE_NOMBRE;
+    });
+    if (form.telefono.trim() && !esTelefonoValido(form.telefono)) nextErrors.telefono = MENSAJE_TELEFONO;
+    if (form.condicionesRelevantes.length > 2000) nextErrors.condicionesRelevantes = "Las condiciones relevantes no pueden superar 2000 caracteres.";
 
     if (!policy) {
       nextErrors.policy = "Debe adjuntar la póliza en PDF.";
@@ -330,12 +350,39 @@ export default function CreateStudent({ onCancel, onSuccess } = {}) {
     }
 
     if (menor) {
+      const identificacionesVistas = new Set();
       form.encargados.forEach((g, index) => {
-        if (!g.nombres.trim()) nextErrors[`guardian-${index}-nombres`] = "Ingrese los nombres.";
-        if (!g.primerApellido.trim()) nextErrors[`guardian-${index}-primerApellido`] = "Ingrese el primer apellido.";
-        if (!g.parentesco) nextErrors[`guardian-${index}-parentesco`] = "Seleccione el parentesco.";
-        if (!g.telefonoPrincipal.trim()) nextErrors[`guardian-${index}-telefonoPrincipal`] = "Ingrese el teléfono principal.";
-        if (g.correo && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(g.correo)) nextErrors[`guardian-${index}-correo`] = "Ingrese un correo válido.";
+        const k = (campo) => `guardian-${index}-${campo}`;
+        if (!g.nombres.trim()) nextErrors[k("nombres")] = "Ingrese los nombres.";
+        else if (!esNombreValido(g.nombres)) nextErrors[k("nombres")] = MENSAJE_NOMBRE;
+        if (!g.primerApellido.trim()) nextErrors[k("primerApellido")] = "Ingrese el primer apellido.";
+        else if (!esNombreValido(g.primerApellido)) nextErrors[k("primerApellido")] = MENSAJE_NOMBRE;
+        if (g.segundoApellido.trim() && !esNombreValido(g.segundoApellido)) nextErrors[k("segundoApellido")] = MENSAJE_NOMBRE;
+        if (!g.parentesco) nextErrors[k("parentesco")] = "Seleccione el parentesco.";
+        if (!g.telefonoPrincipal.trim()) nextErrors[k("telefonoPrincipal")] = "Ingrese el teléfono principal.";
+        else if (!esTelefonoValido(g.telefonoPrincipal)) nextErrors[k("telefonoPrincipal")] = MENSAJE_TELEFONO;
+        if (g.telefonoSecundario.trim() && !esTelefonoValido(g.telefonoSecundario)) nextErrors[k("telefonoSecundario")] = MENSAJE_TELEFONO;
+        if (g.correo.trim() && !esCorreoValido(g.correo)) nextErrors[k("correo")] = "Ingrese un correo válido.";
+
+        // La identificación del encargado es opcional, pero va completa (tipo y número) o vacía.
+        const numero = limpiarIdentificacion(g.numeroIdentificacion);
+        if (numero && !g.idTipoIdentificacion) {
+          nextErrors[k("idTipoIdentificacion")] = "Seleccione el tipo de identificación.";
+        } else if (!numero && g.idTipoIdentificacion) {
+          nextErrors[k("numeroIdentificacion")] = "Ingrese el número de identificación.";
+        } else if (numero) {
+          const tipo = types.find((t) => String(t.id) === String(g.idTipoIdentificacion));
+          const clave = `${g.idTipoIdentificacion}:${numero.toUpperCase()}`;
+          if (errorIdentificacion(tipo, numero, "del encargado")) {
+            nextErrors[k("numeroIdentificacion")] = errorIdentificacion(tipo, numero, "del encargado");
+          } else if (String(g.idTipoIdentificacion) === String(form.idTipoIdentificacion)
+            && numero.toUpperCase() === limpiarIdentificacion(form.numeroIdentificacion).toUpperCase()) {
+            nextErrors[k("numeroIdentificacion")] = "El encargado no puede tener la misma identificación que el estudiante.";
+          } else if (identificacionesVistas.has(clave)) {
+            nextErrors[k("numeroIdentificacion")] = "Los dos encargados no pueden tener la misma identificación.";
+          }
+          identificacionesVistas.add(clave);
+        }
       });
       if (form.encargados.length > 0 && form.encargados.filter((g) => g.responsablePrincipal).length !== 1) nextErrors.guardians = "Debe existir exactamente un responsable principal.";
     }
@@ -353,14 +400,25 @@ export default function CreateStudent({ onCancel, onSuccess } = {}) {
 
   const registrar = async () => {
     const { ubicacion, ...datos } = form;
+    // Identificaciones y teléfonos se envían sin espacios ni guiones, y el correo sin espacios
     const payload = {
       ...datos,
+      numeroIdentificacion: limpiarIdentificacion(form.numeroIdentificacion),
+      telefono: limpiarTelefono(form.telefono),
+      correo: form.correo.trim(),
       codigoDistrito: Number(ubicacion.codigoDistrito),
       idTipoIdentificacion: Number(form.idTipoIdentificacion),
       idInstrumento: Number(form.idInstrumento),
       idProfesor: form.idProfesor ? Number(form.idProfesor) : null,
       centroEducativo: form.centroEducativo.trim() || null,
-      encargados: menor ? form.encargados.map((g) => ({ ...g, idTipoIdentificacion: g.idTipoIdentificacion ? Number(g.idTipoIdentificacion) : null })) : [],
+      encargados: menor ? form.encargados.map((g) => ({
+        ...g,
+        idTipoIdentificacion: g.idTipoIdentificacion ? Number(g.idTipoIdentificacion) : null,
+        numeroIdentificacion: limpiarIdentificacion(g.numeroIdentificacion),
+        telefonoPrincipal: limpiarTelefono(g.telefonoPrincipal),
+        telefonoSecundario: limpiarTelefono(g.telefonoSecundario),
+        correo: g.correo.trim(),
+      })) : [],
       beca: tieneBeca ? {
         idPeriodo: Number(becaForm.idPeriodo),
         idTipoBeca: Number(becaForm.idTipoBeca),
@@ -485,8 +543,8 @@ export default function CreateStudent({ onCancel, onSuccess } = {}) {
         <Field id={`${P}primerApellido`} errorKey="primerApellido" label="Primer apellido" error={errors.primerApellido}>
           <input id={`${P}primerApellido`} className="sg-input" maxLength={80} value={form.primerApellido} onChange={(e) => setField("primerApellido", e.target.value)} {...aria("primerApellido", errors)} />
         </Field>
-        <Field id={`${P}segundoApellido`} label="Segundo apellido" optional>
-          <input id={`${P}segundoApellido`} className="sg-input" maxLength={80} value={form.segundoApellido} onChange={(e) => setField("segundoApellido", e.target.value)} />
+        <Field id={`${P}segundoApellido`} errorKey="segundoApellido" label="Segundo apellido" optional error={errors.segundoApellido}>
+          <input id={`${P}segundoApellido`} className="sg-input" maxLength={80} value={form.segundoApellido} onChange={(e) => setField("segundoApellido", e.target.value)} {...aria("segundoApellido", errors)} />
         </Field>
         <Field id={`${P}genero`} errorKey="genero" label="Género" error={errors.genero} select>
           <select id={`${P}genero`} className="sg-input sg-select" value={form.genero} onChange={(e) => setField("genero", e.target.value)} {...aria("genero", errors)}>
@@ -501,13 +559,13 @@ export default function CreateStudent({ onCancel, onSuccess } = {}) {
           hint={edad !== null ? `${edad} años · ${menor ? "menor de edad, requiere encargado" : "mayor de edad, sin encargados"}` : "Solo los menores de edad registran encargados."}
           error={errors.fechaNacimiento}
         >
-          <input id={`${P}fechaNacimiento`} className="sg-input" type="date" max={todayISO()} value={form.fechaNacimiento} onChange={(e) => setField("fechaNacimiento", e.target.value)} {...aria("fechaNacimiento", errors)} />
+          <input id={`${P}fechaNacimiento`} className="sg-input" type="date" min={limitesNacimiento.min} max={limitesNacimiento.max} value={form.fechaNacimiento} onChange={(e) => setField("fechaNacimiento", e.target.value)} {...aria("fechaNacimiento", errors)} />
         </Field>
         <Field id={`${P}correo`} errorKey="correo" label="Correo electrónico" error={errors.correo}>
           <input id={`${P}correo`} className="sg-input" type="email" maxLength={254} autoComplete="email" value={form.correo} onChange={(e) => setField("correo", e.target.value)} placeholder="nombre@correo.com" {...aria("correo", errors)} />
         </Field>
-        <Field id={`${P}telefono`} label="Teléfono" optional>
-          <input id={`${P}telefono`} className="sg-input" type="tel" inputMode="tel" maxLength={30} autoComplete="tel" value={form.telefono} onChange={(e) => setField("telefono", e.target.value)} placeholder="8888-4321" />
+        <Field id={`${P}telefono`} errorKey="telefono" label="Teléfono" optional hint="8 dígitos, puede escribirlo con guion." error={errors.telefono}>
+          <input id={`${P}telefono`} className="sg-input" type="tel" inputMode="tel" maxLength={9} autoComplete="tel" value={form.telefono} onChange={(e) => setField("telefono", e.target.value)} placeholder="8888-4321" {...aria("telefono", errors)} />
         </Field>
         <UbicacionSelects
           required
@@ -522,8 +580,8 @@ export default function CreateStudent({ onCancel, onSuccess } = {}) {
         <Field id={`${P}direccion`} errorKey="direccion" label="Dirección exacta (señas)" className="span-all" error={errors.direccion}>
           <textarea id={`${P}direccion`} className="sg-input" maxLength={500} value={form.direccion} onChange={(e) => setField("direccion", e.target.value)} placeholder="Ej.: 200 m norte de la iglesia, casa verde a mano derecha" {...aria("direccion", errors)} />
         </Field>
-        <Field id={`${P}condicionesRelevantes`} label="Condiciones relevantes" optional className="span-all">
-          <textarea id={`${P}condicionesRelevantes`} className="sg-input" value={form.condicionesRelevantes} onChange={(e) => setField("condicionesRelevantes", e.target.value)} placeholder="Padecimientos médicos, alergias u otras condiciones" />
+        <Field id={`${P}condicionesRelevantes`} errorKey="condicionesRelevantes" label="Condiciones relevantes" optional className="span-all" hint="Máximo 2000 caracteres." error={errors.condicionesRelevantes}>
+          <textarea id={`${P}condicionesRelevantes`} className="sg-input" maxLength={2000} value={form.condicionesRelevantes} onChange={(e) => setField("condicionesRelevantes", e.target.value)} placeholder="Padecimientos médicos, alergias u otras condiciones" />
         </Field>
       </div>
     </>
@@ -560,28 +618,28 @@ export default function CreateStudent({ onCancel, onSuccess } = {}) {
                     <Field id={`${P}${k("primerApellido")}`} errorKey={k("primerApellido")} label="Primer apellido" error={errors[k("primerApellido")]}>
                       <input id={`${P}${k("primerApellido")}`} className="sg-input" maxLength={80} value={g.primerApellido} onChange={(e) => updateGuardian(index, "primerApellido", e.target.value)} {...aria(k("primerApellido"), errors)} />
                     </Field>
-                    <Field id={`${P}${k("segundoApellido")}`} label="Segundo apellido" optional>
-                      <input id={`${P}${k("segundoApellido")}`} className="sg-input" maxLength={80} value={g.segundoApellido} onChange={(e) => updateGuardian(index, "segundoApellido", e.target.value)} />
+                    <Field id={`${P}${k("segundoApellido")}`} errorKey={k("segundoApellido")} label="Segundo apellido" optional error={errors[k("segundoApellido")]}>
+                      <input id={`${P}${k("segundoApellido")}`} className="sg-input" maxLength={80} value={g.segundoApellido} onChange={(e) => updateGuardian(index, "segundoApellido", e.target.value)} {...aria(k("segundoApellido"), errors)} />
                     </Field>
                     <Field id={`${P}${k("parentesco")}`} errorKey={k("parentesco")} label="Parentesco" error={errors[k("parentesco")]} select>
                       <select id={`${P}${k("parentesco")}`} className="sg-input sg-select" value={g.parentesco} onChange={(e) => updateGuardian(index, "parentesco", e.target.value)} {...aria(k("parentesco"), errors)}>
                         {PARENTESCOS.map((p) => <option key={p}>{p}</option>)}
                       </select>
                     </Field>
-                    <Field id={`${P}${k("idTipoIdentificacion")}`} label="Tipo de identificación" optional select>
-                      <select id={`${P}${k("idTipoIdentificacion")}`} className="sg-input sg-select" value={g.idTipoIdentificacion} onChange={(e) => updateGuardian(index, "idTipoIdentificacion", e.target.value)}>
+                    <Field id={`${P}${k("idTipoIdentificacion")}`} errorKey={k("idTipoIdentificacion")} label="Tipo de identificación" optional select error={errors[k("idTipoIdentificacion")]}>
+                      <select id={`${P}${k("idTipoIdentificacion")}`} className="sg-input sg-select" value={g.idTipoIdentificacion} onChange={(e) => updateGuardian(index, "idTipoIdentificacion", e.target.value)} {...aria(k("idTipoIdentificacion"), errors)}>
                         <option value="">Seleccione</option>
                         {types.map((t) => <option key={t.id} value={t.id}>{t.nombre}</option>)}
                       </select>
                     </Field>
-                    <Field id={`${P}${k("numeroIdentificacion")}`} label="Número de identificación" optional>
-                      <input id={`${P}${k("numeroIdentificacion")}`} className="sg-input" maxLength={40} value={g.numeroIdentificacion} onChange={(e) => updateGuardian(index, "numeroIdentificacion", e.target.value)} />
+                    <Field id={`${P}${k("numeroIdentificacion")}`} errorKey={k("numeroIdentificacion")} label="Número de identificación" optional error={errors[k("numeroIdentificacion")]}>
+                      <input id={`${P}${k("numeroIdentificacion")}`} className="sg-input" maxLength={40} value={g.numeroIdentificacion} onChange={(e) => updateGuardian(index, "numeroIdentificacion", e.target.value)} {...aria(k("numeroIdentificacion"), errors)} />
                     </Field>
                     <Field id={`${P}${k("telefonoPrincipal")}`} errorKey={k("telefonoPrincipal")} label="Teléfono principal" error={errors[k("telefonoPrincipal")]}>
-                      <input id={`${P}${k("telefonoPrincipal")}`} className="sg-input" type="tel" inputMode="tel" maxLength={30} value={g.telefonoPrincipal} onChange={(e) => updateGuardian(index, "telefonoPrincipal", e.target.value)} {...aria(k("telefonoPrincipal"), errors)} />
+                      <input id={`${P}${k("telefonoPrincipal")}`} className="sg-input" type="tel" inputMode="tel" maxLength={9} value={g.telefonoPrincipal} onChange={(e) => updateGuardian(index, "telefonoPrincipal", e.target.value)} {...aria(k("telefonoPrincipal"), errors)} />
                     </Field>
-                    <Field id={`${P}${k("telefonoSecundario")}`} label="Teléfono secundario" optional>
-                      <input id={`${P}${k("telefonoSecundario")}`} className="sg-input" type="tel" inputMode="tel" maxLength={30} value={g.telefonoSecundario} onChange={(e) => updateGuardian(index, "telefonoSecundario", e.target.value)} />
+                    <Field id={`${P}${k("telefonoSecundario")}`} errorKey={k("telefonoSecundario")} label="Teléfono secundario" optional error={errors[k("telefonoSecundario")]}>
+                      <input id={`${P}${k("telefonoSecundario")}`} className="sg-input" type="tel" inputMode="tel" maxLength={9} value={g.telefonoSecundario} onChange={(e) => updateGuardian(index, "telefonoSecundario", e.target.value)} {...aria(k("telefonoSecundario"), errors)} />
                     </Field>
                     <Field id={`${P}${k("correo")}`} errorKey={k("correo")} label="Correo electrónico" optional error={errors[k("correo")]}>
                       <input id={`${P}${k("correo")}`} className="sg-input" type="email" maxLength={254} value={g.correo} onChange={(e) => updateGuardian(index, "correo", e.target.value)} {...aria(k("correo"), errors)} />

@@ -35,6 +35,7 @@ import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
@@ -105,6 +106,8 @@ public class PagoService {
         if (request.getFechaPago().isAfter(LocalDate.now())) {
             throw new BusinessException("La fecha de pago no puede ser una fecha futura.");
         }
+
+        validarFechasDelPeriodo(periodo, request.getAnio(), request.getMes(), request.getFechaPago());
 
         // Estudiante becado al 100%: no tiene pagos pendientes para este período.
         Beca becaActiva = becaRepository
@@ -341,6 +344,65 @@ public class PagoService {
         String tipo = Objects.toString(archivo.getContentType(), "").toLowerCase(Locale.ROOT);
         if (!TIPOS_MIME_PERMITIDOS.contains(tipo)) {
             throw new BusinessException("El comprobante debe ser un PDF o una imagen (JPG, PNG o WEBP).");
+        }
+
+        // El tipo que declara el navegador se puede falsear: se revisan los
+        // primeros bytes del archivo para confirmar que su contenido coincide.
+        byte[] inicio;
+        try (InputStream input = archivo.getInputStream()) {
+            inicio = input.readNBytes(12);
+        } catch (IOException e) {
+            throw new BusinessException("No fue posible leer el comprobante.");
+        }
+        if (!contenidoCoincide(tipo, inicio)) {
+            throw new BusinessException(
+                    "El contenido del comprobante no corresponde a un PDF o una imagen JPG, PNG o WEBP válida.");
+        }
+    }
+
+    // Firmas de archivo: PDF "%PDF-", JPG FF D8 FF, PNG 89 50 4E 47, WEBP "RIFF....WEBP"
+    private boolean contenidoCoincide(String tipoMime, byte[] b) {
+        return switch (tipoMime) {
+            case "application/pdf" -> empiezaCon(b, 0, '%', 'P', 'D', 'F', '-');
+            case "image/jpeg" -> empiezaCon(b, 0, 0xFF, 0xD8, 0xFF);
+            case "image/png" -> empiezaCon(b, 0, 0x89, 0x50, 0x4E, 0x47);
+            case "image/webp" -> empiezaCon(b, 0, 'R', 'I', 'F', 'F') && empiezaCon(b, 8, 'W', 'E', 'B', 'P');
+            default -> false;
+        };
+    }
+
+    private boolean empiezaCon(byte[] datos, int desde, int... firma) {
+        if (datos.length < desde + firma.length) return false;
+        for (int i = 0; i < firma.length; i++) {
+            if ((datos[desde + i] & 0xFF) != firma[i]) return false;
+        }
+        return true;
+    }
+
+    /*
+     * El mes pagado debe estar dentro del período, y la fecha de pago no
+     * puede ser anterior al inicio de la matrícula (o al inicio del período
+     * si no tiene fechas de matrícula).
+     */
+    private void validarFechasDelPeriodo(PeriodoAcademico periodo, Integer anio, Short mes, LocalDate fechaPago) {
+        if (anio != null && mes != null && periodo.getFechaInicio() != null && periodo.getFechaFin() != null) {
+            if (mes < 1 || mes > 12) {
+                throw new BusinessException("El mes indicado no es válido.");
+            }
+            YearMonth pagado = YearMonth.of(anio, mes);
+            if (pagado.isBefore(YearMonth.from(periodo.getFechaInicio()))
+                    || pagado.isAfter(YearMonth.from(periodo.getFechaFin()))) {
+                throw new BusinessException("El mes pagado no está dentro del período académico seleccionado.");
+            }
+        }
+
+        LocalDate desde = periodo.getFechaInicioMatricula() != null
+                ? periodo.getFechaInicioMatricula()
+                : periodo.getFechaInicio();
+        if (fechaPago != null && desde != null && fechaPago.isBefore(desde)) {
+            throw new BusinessException("La fecha de pago no puede ser anterior al "
+                    + (periodo.getFechaInicioMatricula() != null ? "inicio de la matrícula" : "inicio del período")
+                    + " (" + desde + ").");
         }
     }
 

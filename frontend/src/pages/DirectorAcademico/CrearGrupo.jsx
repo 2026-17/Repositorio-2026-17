@@ -212,8 +212,8 @@ function CrearGrupo() {
             siguientesErrores.cupoMaximo = "Ingrese el cupo máximo.";
         } else if (!Number.isInteger(cupo) || cupo <= 0) {
             siguientesErrores.cupoMaximo = "El cupo debe ser un número entero mayor que cero.";
-        } else if (cupo > 32767) {
-            siguientesErrores.cupoMaximo = "El cupo supera el máximo permitido.";
+        } else if (cupo > 500) {
+            siguientesErrores.cupoMaximo = "El cupo máximo no puede ser mayor que 500.";
         }
 
         if (form.fechaInicio && form.fechaFin && form.fechaFin < form.fechaInicio) {
@@ -429,7 +429,7 @@ function CrearGrupo() {
                             <input id="codigo" name="codigo" type="text" className="sg-input" maxLength="40" value={form.codigo} onChange={handleChange} placeholder="Ej. PIANO1-B" autoComplete="off" {...aria("codigo")} />
                         </Field>
                         <Field id="cupoMaximo" label="Cupo máximo" error={errores.cupoMaximo}>
-                            <input id="cupoMaximo" name="cupoMaximo" type="number" min="1" step="1" className="sg-input" value={form.cupoMaximo} onChange={handleChange} placeholder="Ej. 15" {...aria("cupoMaximo")} />
+                            <input id="cupoMaximo" name="cupoMaximo" type="number" min="1" max="500" step="1" className="sg-input" value={form.cupoMaximo} onChange={handleChange} placeholder="Ej. 15" {...aria("cupoMaximo")} />
                         </Field>
                         <Field id="idProfesor" label="Profesor" optional error={errores.idProfesor} select>
                             <select id="idProfesor" name="idProfesor" className="sg-input sg-select" value={form.idProfesor} onChange={handleChange} disabled={cargandoCatalogos} {...aria("idProfesor")}>

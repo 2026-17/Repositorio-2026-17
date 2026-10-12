@@ -23,5 +23,8 @@ public record EstudianteResponse(
         // Presente solo cuando se asignó una beca durante el registro.
         BecaResponse beca,
         // Planes de estudio en los que el estudiante está inscrito (activos).
-        List<Long> idsPlanEstudio
+        List<Long> idsPlanEstudio,
+        // Necesarios para precargar el formulario de edición.
+        Integer idTipoIdentificacion,
+        String condicionesRelevantes
 ) {}

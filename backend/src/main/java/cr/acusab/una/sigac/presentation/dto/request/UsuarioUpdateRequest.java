@@ -16,9 +16,9 @@ import lombok.Setter;
 @AllArgsConstructor
 public class UsuarioUpdateRequest {
 
-    @NotNull
+    @NotNull(message = "El rol es obligatorio")
     private Integer idRol;
 
-    @NotNull
+    @NotNull(message = "El estado del usuario es obligatorio")
     private Integer idEstadoUsuario;
 }

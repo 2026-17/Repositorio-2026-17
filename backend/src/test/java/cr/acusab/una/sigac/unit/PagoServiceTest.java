@@ -135,7 +135,7 @@ class PagoServiceTest {
         request.setFechaPago(LocalDate.of(2026, 3, 10));
 
         MultipartFile comprobante = new MockMultipartFile(
-                "comprobante", "comprobante.pdf", "application/pdf", "contenido de prueba".getBytes());
+                "comprobante", "comprobante.pdf", "application/pdf", "%PDF-1.4 contenido de prueba".getBytes());
 
         PagoResponse respuesta = pagoService.registrar(request, comprobante);
 
@@ -570,6 +570,47 @@ class PagoServiceTest {
         return estudiante;
     }
 
+    @Test
+    void noDebeRegistrarSiElContenidoNoCoincideConElTipoDeclarado() {
+        when(estudianteRepository.findById(1L)).thenReturn(Optional.of(estudianteActivo()));
+        when(periodoAcademicoRepository.findById(2L)).thenReturn(Optional.of(periodo()));
+        when(becaRepository.findByIdEstudiante_IdAndIdPeriodo_IdAndActivaTrue(1L, 2L))
+                .thenReturn(Optional.empty());
+
+        // Se declara PDF, pero el contenido es texto (p. ej. un .txt renombrado)
+        MultipartFile falso = new MockMultipartFile(
+                "comprobante", "comprobante.pdf", "application/pdf", "no soy un pdf".getBytes());
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> pagoService.registrar(requestValido(), falso)
+        );
+
+        assertEquals(
+                "El contenido del comprobante no corresponde a un PDF o una imagen JPG, PNG o WEBP válida.",
+                exception.getMessage()
+        );
+    }
+
+    @Test
+    void noDebeRegistrarUnMesFueraDelPeriodo() {
+        PeriodoAcademico periodo = periodo();
+        periodo.setFechaInicio(LocalDate.of(2026, 2, 1));
+        periodo.setFechaFin(LocalDate.of(2026, 6, 30));
+        when(estudianteRepository.findById(1L)).thenReturn(Optional.of(estudianteActivo()));
+        when(periodoAcademicoRepository.findById(2L)).thenReturn(Optional.of(periodo));
+
+        RegistrarPagoRequest request = requestValido();
+        request.setMes((short) 8);
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> pagoService.registrar(request, comprobanteValido())
+        );
+
+        assertEquals("El mes pagado no está dentro del período académico seleccionado.", exception.getMessage());
+    }
+
     private PeriodoAcademico periodo() {
         PeriodoAcademico periodo = new PeriodoAcademico();
         periodo.setId(2L);
@@ -590,7 +631,7 @@ class PagoServiceTest {
 
     private MultipartFile comprobanteValido() {
         return new MockMultipartFile(
-                "comprobante", "comprobante.pdf", "application/pdf", "contenido de prueba".getBytes());
+                "comprobante", "comprobante.pdf", "application/pdf", "%PDF-1.4 contenido de prueba".getBytes());
     }
 
     private void configurarUsuarioAutenticado() {

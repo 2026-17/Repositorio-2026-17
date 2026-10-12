@@ -226,12 +226,21 @@ public class CursoService {
                         "El programa seleccionado no tiene un plan de estudio vigente."
                 ));
 
-        // 5. Validar que el período lectivo exista.
-        periodoAcademicoRepository
+        // 5. Validar que el período lectivo exista y no esté cerrado ni
+        // cancelado (la primera oferta crea un grupo en ese período; misma
+        // regla y mensaje que GrupoService).
+        String estadoPeriodo = periodoAcademicoRepository
                 .findById(request.getIdPeriodo())
                 .orElseThrow(() -> new IllegalArgumentException(
                         "El período lectivo seleccionado no existe."
-                ));
+                ))
+                .getEstado();
+
+        if ("CERRADO".equalsIgnoreCase(estadoPeriodo) || "CANCELADO".equalsIgnoreCase(estadoPeriodo)) {
+            throw new IllegalArgumentException(
+                    "No se pueden crear grupos en un período cerrado o cancelado."
+            );
+        }
 
         // 6. Obtener el usuario autenticado.
         // Este ID será utilizado por los triggers de bitácora.

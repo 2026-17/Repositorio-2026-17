@@ -13,6 +13,7 @@ import cr.acusab.una.sigac.data.repository.RoleRepository;
 import cr.acusab.una.sigac.data.repository.TipoIdentificacionRepository;
 import cr.acusab.una.sigac.data.repository.UsuarioRepository;
 import cr.acusab.una.sigac.logic.service.ProfesorService;
+import cr.acusab.una.sigac.logic.service.CuentaUsuarioService;
 import cr.acusab.una.sigac.logic.service.UsuarioService;
 import cr.acusab.una.sigac.presentation.dto.request.ProfesorCreateRequest;
 import cr.acusab.una.sigac.presentation.dto.request.UsuarioCreateRequest;
@@ -69,7 +70,8 @@ class ProfesorServiceTest {
                 estadoUsuarioRepository,
                 usuarioService,
                 mock(InstrumentoRepository.class),
-                mock(DistritoRepository.class)
+                mock(DistritoRepository.class),
+                mock(CuentaUsuarioService.class)
         );
 
         TiposIdentificacion cedula = new TiposIdentificacion();

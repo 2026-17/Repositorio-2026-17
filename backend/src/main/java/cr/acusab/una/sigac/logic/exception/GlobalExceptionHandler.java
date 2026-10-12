@@ -12,11 +12,16 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.ErrorResponse;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.multipart.support.MissingServletRequestPartException;
 import org.springframework.web.server.ResponseStatusException;
+import tools.jackson.core.JacksonException;
+import tools.jackson.core.exc.InputCoercionException;
+import tools.jackson.databind.exc.MismatchedInputException;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -97,7 +102,43 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, Object>> manejarJsonInvalido(
             HttpMessageNotReadableException ex
     ) {
+        // Un número fuera de rango o con formato inválido (p. ej. 70000 en
+        // un campo Short): se indica el campo en lugar de un mensaje genérico.
+        // InvalidFormatException es una MismatchedInputException (p. ej. texto en
+        // un campo numérico); InputCoercionException es un número que no cabe en
+        // el tipo del campo (p. ej. 70000 en un Short).
+        Throwable causa = ex.getMostSpecificCause();
+        if (causa instanceof MismatchedInputException || causa instanceof InputCoercionException) {
+            String campo = nombreDelCampo((JacksonException) causa);
+            if (campo != null) {
+                return respuesta(HttpStatus.BAD_REQUEST, "El valor del campo '" + campo + "' no es válido.", null);
+            }
+        }
         return respuesta(HttpStatus.BAD_REQUEST, "El cuerpo de la solicitud no es válido.", null);
+    }
+
+    // La ruta de la excepción indica el campo (el último nombre de propiedad).
+    private String nombreDelCampo(JacksonException ex) {
+        return ex.getPath().stream()
+                .map(JacksonException.Reference::getPropertyName)
+                .filter(nombre -> nombre != null && !nombre.isBlank())
+                .reduce((primero, ultimo) -> ultimo)
+                .orElse(null);
+    }
+
+    // Por ejemplo /estudiantes/abc cuando se espera un número.
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<Map<String, Object>> manejarTipoDeParametro(
+            MethodArgumentTypeMismatchException ex
+    ) {
+        return respuesta(HttpStatus.BAD_REQUEST, "El valor de '" + ex.getName() + "' no es válido.", null);
+    }
+
+    @ExceptionHandler(MissingServletRequestParameterException.class)
+    public ResponseEntity<Map<String, Object>> manejarParametroFaltante(
+            MissingServletRequestParameterException ex
+    ) {
+        return respuesta(HttpStatus.BAD_REQUEST, "Falta el parámetro '" + ex.getParameterName() + "'.", null);
     }
 
     @ExceptionHandler(MaxUploadSizeExceededException.class)
