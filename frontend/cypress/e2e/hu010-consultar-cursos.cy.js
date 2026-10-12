@@ -11,7 +11,7 @@ let ESTUDIANTE_CEDULA;
 let ESTUDIANTE_CLAVE;
 let PERIODO_CONFIGURADO;
 let PROGRAMA_CONFIGURADO;
-const TABLA = 'table.oferta-tabla tbody tr';
+const TABLA = 'table.dtable--cards tbody tr';
 const BOTON_BUSCAR = 'button[type="submit"]';
 
 function omitirSiFaltanCredenciales(contexto) {
@@ -49,8 +49,8 @@ function seleccionarOpcionExistente(selector, configurada) {
 }
 
 function seleccionarFiltros() {
-    return seleccionarOpcionExistente('#idPeriodo', PERIODO_CONFIGURADO)
-        .then(() => seleccionarOpcionExistente('#idPrograma', PROGRAMA_CONFIGURADO));
+    return seleccionarOpcionExistente('#cmbPeriodoConsulta', PERIODO_CONFIGURADO)
+        .then(() => seleccionarOpcionExistente('#cmbProgramaConsulta', PROGRAMA_CONFIGURADO));
 }
 
 function buscarCursos() {
@@ -68,29 +68,44 @@ function buscarCursos() {
 
 function validarTablaContraRespuesta(cursos) {
     if (cursos.length === 0) {
-        cy.contains('[role="status"]', 'No se encontraron cursos disponibles').should('be.visible');
-        cy.get('table.oferta-tabla').should('not.exist');
+        cy.contains('No hay cursos disponibles').should('be.visible');
+        cy.get('table.dtable--cards').should('not.exist');
         return;
     }
 
-    cy.get(TABLA).should('have.length', cursos.length);
-    ['Código', 'Curso', 'Nivel', 'Grupo', 'Horario', 'Profesor', 'Cupos disponibles']
-        .forEach((columna) => cy.contains('th', columna).should('be.visible'));
+    const visibles = cursos.slice(0, 10); // La interfaz pagina de 10 en 10.
+    cy.get(TABLA).should('have.length', visibles.length);
+    ['Curso', 'Nivel', 'Grupo', 'Horario', 'Profesor', 'Cupos']
+        .forEach((columna) => cy.get('table.dtable--cards thead').contains('th', columna).should('be.visible'));
 
-    cursos.forEach((curso, indice) => {
+    visibles.forEach((curso, indice) => {
         cy.get(TABLA).eq(indice).within(() => {
+            cy.get('td').eq(0).should('contain.text', curso.nombreCurso);
             cy.get('td').eq(0).should('contain.text', curso.codigoCurso);
-            cy.get('td').eq(1).should('contain.text', curso.nombreCurso);
-            cy.get('td').eq(2).should('contain.text', curso.nivel === null || curso.nivel === undefined ? '—' : curso.nivel);
-            cy.get('td').eq(3).should('contain.text', curso.codigoGrupo);
-            cy.get('td').eq(4).should('not.be.empty');
-            cy.get('td').eq(5).should('contain.text', curso.profesor || 'Por definir');
-            if (curso.cupoDisponible <= 0) {
-                cy.get('td').eq(6).should('contain.text', 'Sin cupos');
-            } else {
-                cy.get('td').eq(6).should('contain.text', String(curso.cupoDisponible) + '/' + String(curso.cupoMaximo));
-            }
+            cy.get('td').eq(1).should('contain.text', curso.nivel ?? '—');
+            cy.get('td').eq(2).should('contain.text', curso.codigoGrupo);
+            cy.get('td').eq(3).should('not.be.empty');
+            cy.get('td').eq(4).should('contain.text', curso.profesor ?? 'Por definir');
+            cy.get('td').eq(5).should('contain.text',
+                curso.cupoDisponible <= 0 ? 'Sin cupos' : curso.cupoDisponible + ' de ' + curso.cupoMaximo);
         });
+    });
+}
+
+// No inventar cursos: los escenarios que dependen de datos se omiten cuando
+// el catálogo publicado no tiene opciones reales para consultar.
+function comprobarCatalogos(contexto) {
+    cy.get('#cmbPeriodoConsulta option').then(($opciones) => {
+        if (![...$opciones].some((opcion) => opcion.value)) {
+            cy.log('No hay períodos académicos disponibles.');
+            contexto.skip();
+        }
+    });
+    cy.get('#cmbProgramaConsulta option').then(($opciones) => {
+        if (![...$opciones].some((opcion) => opcion.value)) {
+            cy.log('No hay programas académicos disponibles.');
+            contexto.skip();
+        }
     });
 }
 
@@ -126,94 +141,101 @@ describe('HU-010 - Consultar cursos disponibles', () => {
         cy.contains('h1', 'Cursos disponibles').should('be.visible');
         cy.wait('@catalogoPeriodos').its('response.statusCode').should('eq', 200);
         cy.wait('@catalogoProgramas').its('response.statusCode').should('eq', 200);
-        // Los catálogos pueden estar vacíos; la validación de controles no depende de datos semilla.
-        cy.get('#idPeriodo').should('be.visible');
-        cy.get('#idPrograma').should('be.visible');
+        cy.get('#cmbPeriodoConsulta').should('be.visible').and('not.be.disabled');
+        cy.get('#cmbProgramaConsulta').should('be.visible').and('not.be.disabled');
     });
 
     it('muestra período, programa y texto de búsqueda opcional', () => {
-        cy.get('#idPeriodo').should('be.visible');
-        cy.get('#idPrograma').should('be.visible');
-        cy.get('#texto').should('be.visible');
-        cy.get('#texto').should('have.attr', 'placeholder', 'Escriba para filtrar los resultados');
+        cy.get('#cmbPeriodoConsulta').should('be.visible');
+        cy.get('#cmbProgramaConsulta').should('be.visible');
+        cy.get('#txtFiltroCurso').should('be.visible')
+            .and('have.attr', 'placeholder', 'Nombre o código del curso');
     });
 
     it('no permite buscar hasta seleccionar período y programa', function () {
-        cy.get('#idPeriodo option').then((opciones) => {
+        cy.get('#cmbPeriodoConsulta').select('');
+        cy.get('#cmbProgramaConsulta').select('');
+        cy.get(BOTON_BUSCAR).should('be.disabled');
+
+        cy.get('#cmbPeriodoConsulta option').then((opciones) => {
             if (![...opciones].some((opcion) => opcion.value)) {
-                cy.log('No hay períodos disponibles para probar la activación del botón.');
+                cy.log('No hay períodos académicos disponibles para esta prueba.');
                 this.skip();
             }
         });
-        cy.get('#idPeriodo').select('');
-        cy.get('#idPrograma').select('');
+        cy.get('#cmbProgramaConsulta option').then((opciones) => {
+            if (![...opciones].some((opcion) => opcion.value)) {
+                cy.log('No hay programas académicos disponibles para esta prueba.');
+                this.skip();
+            }
+        });
+        seleccionarOpcionExistente('#cmbPeriodoConsulta', PERIODO_CONFIGURADO);
         cy.get(BOTON_BUSCAR).should('be.disabled');
-        seleccionarOpcionExistente('#idPeriodo', PERIODO_CONFIGURADO);
-        cy.get(BOTON_BUSCAR).should('be.disabled');
-        seleccionarOpcionExistente('#idPrograma', PROGRAMA_CONFIGURADO);
+        seleccionarOpcionExistente('#cmbProgramaConsulta', PROGRAMA_CONFIGURADO);
         cy.get(BOTON_BUSCAR).should('be.enabled');
     });
 
-    it('muestra cursos con horario, grupo, profesor y cupos devueltos por el servidor', () => {
+    it('muestra cursos con horario, grupo, profesor y cupos devueltos por el servidor', function () {
+        comprobarCatalogos(this);
         buscarCursos().then((cursos) => validarTablaContraRespuesta(cursos));
     });
 
-    it('filtra las filas por nombre o código del curso', () => {
+    it('filtra las filas por nombre o código del curso', function () {
+        comprobarCatalogos(this);
         buscarCursos().then((cursos) => {
-            if (cursos.length === 0) {
-                cy.log('No existen cursos ofertados para los filtros elegidos; no hay filas reales para filtrar.');
-                cy.contains('[role="status"]', 'No se encontraron cursos disponibles').should('be.visible');
+            if (!cursos.length) {
+                cy.log('No hay cursos reales para validar el filtro textual.');
+                this.skip();
                 return;
             }
-
-            const curso = cursos[0];
-            const termino = curso.nombreCurso || curso.codigoCurso;
-            cy.get('#texto').clear().type(termino);
-            cy.get(TABLA).should('have.length.greaterThan', 0).each(($fila) => {
-                const codigo = $fila.find('td').eq(0).text().toLowerCase();
-                const nombre = $fila.find('td').eq(1).text().toLowerCase();
-                const buscado = termino.toLowerCase();
-                expect(codigo.includes(buscado) || nombre.includes(buscado),
-                    'la fila debe coincidir con el texto buscado').to.be.true;
+            const termino = cursos[0].nombreCurso || cursos[0].codigoCurso;
+            const esperados = cursos.filter((curso) =>
+                curso.nombreCurso?.toLowerCase().includes(termino.toLowerCase()) ||
+                curso.codigoCurso?.toLowerCase().includes(termino.toLowerCase()));
+            cy.get('#txtFiltroCurso').clear().type(termino);
+            cy.get(TABLA).should('have.length', Math.min(esperados.length, 10));
+            cy.get(TABLA).each(($fila) => {
+                expect($fila.text().toLowerCase()).to.include(termino.toLowerCase());
             });
         });
     });
 
-    it('muestra un mensaje cuando ningún curso coincide con el texto', () => {
+    it('muestra un mensaje cuando ningún curso coincide con el texto', function () {
+        comprobarCatalogos(this);
         buscarCursos().then((cursos) => {
-            if (cursos.length === 0) {
-                cy.contains('[role="status"]', 'No se encontraron cursos disponibles').should('be.visible');
-                cy.log('La combinación real de período/programa no devuelve cursos; no se puede probar el filtro textual.');
+            if (!cursos.length) {
+                cy.log('No hay cursos para validar el estado de filtro sin coincidencias.');
+                this.skip();
                 return;
             }
-
             const textoImposible = 'ZZZ_HU010_' + Date.now();
-            cy.get('#texto').clear().type(textoImposible);
-            cy.contains('[role="status"]', 'Ningún curso coincide con "' + textoImposible + '"').should('be.visible');
-            cy.get('table.oferta-tabla').should('not.exist');
+            cy.get('#txtFiltroCurso').clear().type(textoImposible);
+            cy.contains('Ningún curso coincide con «' + textoImposible + '»').should('be.visible');
+            cy.get('table.dtable--cards').should('not.exist');
         });
     });
 
-    it('Limpiar elimina texto y resultados anteriores', () => {
+    it('Limpiar elimina texto y resultados anteriores', function () {
+        comprobarCatalogos(this);
         buscarCursos();
-        cy.get('#texto').type('abc');
+        cy.get('#txtFiltroCurso').type('abc');
         cy.contains('button', 'Limpiar').click();
-        cy.get('#texto').should('have.value', '');
-        cy.get('table.oferta-tabla').should('not.exist');
-        cy.get('[role="status"]').should('not.exist');
+        cy.get('#txtFiltroCurso').should('have.value', '');
+        cy.get('table.dtable--cards').should('not.exist');
+        cy.contains('Seleccione un período y un programa').should('be.visible');
     });
 
-    it('vuelve a consultar los cupos y representa la respuesta más reciente', () => {
+    it('vuelve a consultar los cupos y representa la respuesta más reciente', function () {
+        comprobarCatalogos(this);
         buscarCursos().then((primeraConsulta) => {
-            if (primeraConsulta.length === 0) {
-                cy.contains('[role="status"]', 'No se encontraron cursos disponibles').should('be.visible');
-                cy.log('Sin grupos reales en esta combinación para validar actualización de cupos.');
+            if (!primeraConsulta.length) {
+                cy.log('Sin cursos reales para verificar la actualización de cupos.');
+                this.skip();
                 return;
             }
-
             validarTablaContraRespuesta(primeraConsulta);
             cy.intercept('GET', '**/api/consulta-cursos*').as('consultaActualizada');
-            cy.get(BOTON_BUSCAR).click();
+            cy.contains('button', 'Actualizar cupos').click();
             cy.wait('@consultaActualizada').then(({ response }) => {
                 expect(response.statusCode).to.eq(200);
                 expect(response.body).to.be.an('array');
