@@ -81,6 +81,12 @@ describe('HU-036 - Restablecer contraseña olvidada (sitio real)', () => {
         cy.get('#cedula').should('be.visible');
     });
 
+    it('muestra los campos del restablecimiento sin enviar correos', () => {
+        cy.visit('/recuperar-contrasena');
+        cy.get('#cedula').should('be.visible');
+        cy.contains('button', 'Enviar código').should('be.visible');
+    });
+
     it('requiere la identificación y no solicita un código si está vacía', () => {
         observarSolicitudCodigo();
         cy.visit('/recuperar-contrasena');
