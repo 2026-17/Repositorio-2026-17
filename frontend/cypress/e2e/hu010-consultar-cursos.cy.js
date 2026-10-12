@@ -7,16 +7,16 @@
  * No se crean programas, períodos, grupos ni cursos en la base.
  */
 
-const ESTUDIANTE_CEDULA = Cypress.env('ESTUDIANTE_CEDULA');
-const ESTUDIANTE_CLAVE = Cypress.env('ESTUDIANTE_CLAVE');
-const PERIODO_CONFIGURADO = Cypress.env('HU010_PERIODO');
-const PROGRAMA_CONFIGURADO = Cypress.env('HU010_PROGRAMA');
+let ESTUDIANTE_CEDULA;
+let ESTUDIANTE_CLAVE;
+let PERIODO_CONFIGURADO;
+let PROGRAMA_CONFIGURADO;
 const TABLA = 'table.oferta-tabla tbody tr';
 const BOTON_BUSCAR = 'button[type="submit"]';
 
 function omitirSiFaltanCredenciales(contexto) {
     const faltantes = ['ESTUDIANTE_CEDULA', 'ESTUDIANTE_CLAVE'].filter((nombre) => {
-        const valor = Cypress.env(nombre);
+        const valor = valorEntorno(nombre);
         return valor === undefined || valor === null || String(valor).trim() === '';
     });
     if (faltantes.length) {
@@ -93,6 +93,28 @@ function validarTablaContraRespuesta(cursos) {
         });
     });
 }
+
+// Cypress 16: cargar solo las variables utilizadas por esta especificación.
+// cy.env() conserva las credenciales fuera de la configuración pública.
+let variablesEntorno = {};
+function valorEntorno(nombre) {
+    return variablesEntorno[nombre];
+}
+
+before(function () {
+    return cy.env([
+    "ESTUDIANTE_CEDULA",
+    "ESTUDIANTE_CLAVE",
+    "HU010_PERIODO",
+    "HU010_PROGRAMA"
+]).then((valores) => {
+        variablesEntorno = valores;
+        ESTUDIANTE_CEDULA = valorEntorno('ESTUDIANTE_CEDULA');
+        ESTUDIANTE_CLAVE = valorEntorno('ESTUDIANTE_CLAVE');
+        PERIODO_CONFIGURADO = valorEntorno('HU010_PERIODO');
+        PROGRAMA_CONFIGURADO = valorEntorno('HU010_PROGRAMA');
+    });
+});
 
 describe('HU-010 - Consultar cursos disponibles', () => {
     beforeEach(function () {
