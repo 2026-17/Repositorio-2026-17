@@ -8,6 +8,7 @@ import cr.acusab.una.sigac.data.entity.Instrumento;
 import cr.acusab.una.sigac.data.entity.TiposIdentificacion;
 import cr.acusab.una.sigac.data.entity.Usuario;
 import cr.acusab.una.sigac.data.repository.*;
+import cr.acusab.una.sigac.logic.exception.BusinessException;
 import cr.acusab.una.sigac.presentation.dto.request.ProfesorCreateRequest;
 import cr.acusab.una.sigac.presentation.dto.request.ProfesorUpdateRequest;
 import cr.acusab.una.sigac.presentation.dto.request.UsuarioCreateRequest;
@@ -42,6 +43,7 @@ public class ProfesorService {
     private final UsuarioService usuarioService;
     private final InstrumentoRepository instrumentoRepository;
     private final DistritoRepository distritoRepository;
+    private final CuentaUsuarioService cuentaUsuarioService;
 
     public ProfesorService(
             ProfesorRepository profesorRepository,
@@ -51,8 +53,10 @@ public class ProfesorService {
             EstadoUsuarioRepository estadoUsuarioRepository,
             UsuarioService usuarioService,
             InstrumentoRepository instrumentoRepository,
-            DistritoRepository distritoRepository
+            DistritoRepository distritoRepository,
+            CuentaUsuarioService cuentaUsuarioService
     ) {
+        this.cuentaUsuarioService = cuentaUsuarioService;
         this.profesorRepository = profesorRepository;
         this.tipoIdentificacionRepository = tipoIdentificacionRepository;
         this.usuarioRepository = usuarioRepository;
@@ -67,6 +71,10 @@ public class ProfesorService {
     public ProfesorResponse registrar(ProfesorCreateRequest request, UsuarioCreateRequest usuarioRequest) {
         TiposIdentificacion tipo = tipoIdentificacionRepository.findById(request.getIdTipoIdentificacion())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Tipo de identificacion no existe"));
+
+        request.setNumeroIdentificacion(request.getNumeroIdentificacion().trim());
+        ReglasIdentificacion.validar(tipo, request.getNumeroIdentificacion(), "");
+        validarFechaIngreso(request.getFechaIngreso());
 
         profesorRepository.findByIdTipoIdentificacion_IdAndNumeroIdentificacion(
                         request.getIdTipoIdentificacion(), request.getNumeroIdentificacion())
@@ -150,25 +158,37 @@ public class ProfesorService {
         TiposIdentificacion tipo = tipoIdentificacionRepository.findById(request.getIdTipoIdentificacion())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Tipo de identificacion no existe"));
 
+        String identificacion = request.getNumeroIdentificacion().trim();
+        ReglasIdentificacion.validar(tipo, identificacion, "");
+        validarFechaIngreso(request.getFechaIngreso());
+
         boolean cambioIdentificacion =
                 !request.getIdTipoIdentificacion().equals(profesor.getIdTipoIdentificacion().getId())
-                        || !request.getNumeroIdentificacion().equals(profesor.getNumeroIdentificacion());
+                        || !identificacion.equals(profesor.getNumeroIdentificacion());
 
         if (cambioIdentificacion) {
             profesorRepository.findByIdTipoIdentificacion_IdAndNumeroIdentificacion(
-                            request.getIdTipoIdentificacion(), request.getNumeroIdentificacion())
+                            request.getIdTipoIdentificacion(), identificacion)
+                    .filter(p -> !p.getId().equals(profesor.getId()))
                     .ifPresent(p -> {
                         throw new ResponseStatusException(HttpStatus.CONFLICT, "Ya existe otro profesor con esa identificacion");
                     });
         }
 
+        // La cuenta de usuario usa la identificación como cédula de ingreso y
+        // el correo para recuperar la contraseña: se mantienen iguales.
+        String correo = request.getCorreo() == null || request.getCorreo().isBlank()
+                ? null
+                : request.getCorreo().trim();
+        cuentaUsuarioService.sincronizarIdentidad(profesor.getIdUsuario(), identificacion, correo);
+
         profesor.setIdTipoIdentificacion(tipo);
-        profesor.setNumeroIdentificacion(request.getNumeroIdentificacion());
+        profesor.setNumeroIdentificacion(identificacion);
         profesor.setNombres(request.getNombres());
         profesor.setPrimerApellido(request.getPrimerApellido());
         profesor.setSegundoApellido(request.getSegundoApellido());
         profesor.setTelefono(request.getTelefono());
-        profesor.setCorreo(request.getCorreo());
+        profesor.setCorreo(correo);
         profesor.setDistrito(obtenerDistrito(request.getCodigoDistrito()));
         profesor.setDireccion(request.getDireccion());
         profesor.setGradoAcademico(request.getGradoAcademico());
@@ -194,6 +214,8 @@ public class ProfesorService {
         profesor.setFechaSalida(LocalDate.now());
         profesor.setIdUsuarioUltimaModificacion(usuarioActual());
         profesor.setActualizadoEn(Instant.now());
+        // Sin acceso al sistema mientras esté dado de baja
+        cuentaUsuarioService.inactivar(profesor.getIdUsuario());
         return toResponse(profesorRepository.save(profesor));
     }
 
@@ -205,7 +227,14 @@ public class ProfesorService {
         profesor.setFechaSalida(null);
         profesor.setIdUsuarioUltimaModificacion(usuarioActual());
         profesor.setActualizadoEn(Instant.now());
+        cuentaUsuarioService.activar(profesor.getIdUsuario());
         return toResponse(profesorRepository.save(profesor));
+    }
+
+    private void validarFechaIngreso(LocalDate fechaIngreso) {
+        if (fechaIngreso != null && fechaIngreso.isAfter(LocalDate.now())) {
+            throw new BusinessException("La fecha de ingreso no puede ser futura.");
+        }
     }
 
     // Eliminacion fisica, pedida explicitamente en los criterios de aceptacion

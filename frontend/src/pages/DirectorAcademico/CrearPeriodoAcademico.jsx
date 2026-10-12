@@ -75,13 +75,23 @@ function CrearPeriodoAcademico() {
             siguientesErrores.fechaFin = "La fecha de fin debe ser posterior a la fecha de inicio.";
         }
 
-        if (
+        // Las fechas de matrícula van las dos o ninguna
+        if (form.fechaInicioMatricula && !form.fechaFinMatricula) {
+            siguientesErrores.fechaFinMatricula =
+                "Indique también la fecha de fin de matrícula, o deje ambas vacías.";
+        } else if (!form.fechaInicioMatricula && form.fechaFinMatricula) {
+            siguientesErrores.fechaInicioMatricula =
+                "Indique también la fecha de inicio de matrícula, o deje ambas vacías.";
+        } else if (
             form.fechaInicioMatricula &&
             form.fechaFinMatricula &&
             form.fechaFinMatricula < form.fechaInicioMatricula
         ) {
             siguientesErrores.fechaFinMatricula =
                 "La fecha de fin de matrícula no puede ser anterior a la de inicio.";
+        } else if (form.fechaFinMatricula && form.fechaFin && form.fechaFinMatricula > form.fechaFin) {
+            siguientesErrores.fechaFinMatricula =
+                "La fecha de fin de matrícula no puede ser posterior a la fecha de fin del período.";
         }
 
         if (!form.estado) {

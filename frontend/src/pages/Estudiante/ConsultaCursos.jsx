@@ -1,17 +1,26 @@
 import { useEffect, useMemo, useState } from "react";
+import { BookOpen, RotateCcw, Search, X } from "lucide-react";
 
+import Alert from "../../components/ui/Alert";
+import EmptyState from "../../components/ui/EmptyState";
+import Field from "../../components/ui/Field";
+import PageHead from "../../components/ui/PageHead";
+import Pagination from "../../components/ui/Pagination";
+import StatusBadge from "../../components/ui/StatusBadge";
+import { paginar } from "../../components/ui/utilidades";
 import {
     consultarCursosDisponibles,
     consultarPeriodos,
     consultarProgramas,
 } from "../../utils/consultaCursosApi";
 import { formatearHorarios } from "../../utils/matricula";
-import "./seleccionCursos.css";
 import "./consultaCursos.css";
 
 // HU-10 - Consultar cursos disponibles de un período académico.
 // A diferencia de la pantalla de matrícula, aquí se puede explorar
 // cualquier programa y período, con búsqueda opcional por texto.
+
+const TAMANO_PAGINA = 10;
 
 function textoProfesor(curso) {
     return curso.profesor ?? "Por definir";
@@ -45,20 +54,15 @@ function ConsultaCursos() {
     const [haBuscado, setHaBuscado] = useState(false);
     const [horaConsulta, setHoraConsulta] = useState("");
     const [error, setError] = useState("");
+    const [pagina, setPagina] = useState(1);
 
+    // Carga de períodos y programas. El estado se actualiza cuando la
+    // petición termina (no de forma síncrona dentro del efecto).
     useEffect(() => {
         let cancelado = false;
 
-        async function cargarFiltros() {
-            setCargandoFiltros(true);
-            setErrorFiltros("");
-
-            try {
-                const [programasData, periodosData] = await Promise.all([
-                    consultarProgramas(token),
-                    consultarPeriodos(token),
-                ]);
-
+        Promise.all([consultarProgramas(token), consultarPeriodos(token)])
+            .then(([programasData, periodosData]) => {
                 if (cancelado) return;
 
                 const listaPeriodos = Array.isArray(periodosData) ? periodosData : [];
@@ -69,18 +73,15 @@ function ConsultaCursos() {
                 if (listaPeriodos.length > 0) {
                     setIdPeriodo(String(periodoPorDefecto(listaPeriodos).id));
                 }
-            } catch (e) {
+            })
+            .catch((e) => {
                 if (!cancelado) {
-                    setErrorFiltros(
-                        e.message || "No fue posible cargar los períodos y programas académicos."
-                    );
+                    setErrorFiltros(e.message || "No fue posible cargar los períodos y programas académicos.");
                 }
-            } finally {
+            })
+            .finally(() => {
                 if (!cancelado) setCargandoFiltros(false);
-            }
-        }
-
-        cargarFiltros();
+            });
 
         return () => {
             cancelado = true;
@@ -104,6 +105,8 @@ function ConsultaCursos() {
         );
     }, [cursos, texto]);
 
+    const filasPagina = paginar(cursosFiltrados, pagina, TAMANO_PAGINA);
+
     async function handleBuscar(event) {
         event.preventDefault();
 
@@ -124,6 +127,7 @@ function ConsultaCursos() {
             setCursos(Array.isArray(resultado) ? resultado : []);
             setHaBuscado(true);
             setHoraConsulta(horaActual());
+            setPagina(1);
         } catch (e) {
             setCursos([]);
             setHaBuscado(false);
@@ -140,6 +144,12 @@ function ConsultaCursos() {
         setHaBuscado(false);
         setHoraConsulta("");
         setError("");
+        setPagina(1);
+    }
+
+    function cambiarTexto(valor) {
+        setTexto(valor);
+        setPagina(1);
     }
 
     function handleCambiarPeriodo(event) {
@@ -159,176 +169,242 @@ function ConsultaCursos() {
 
     const sinPeriodos = !cargandoFiltros && !errorFiltros && periodos.length === 0;
 
+    function contenidoResultados() {
+        if (buscando) {
+            return (
+                <div className="table-wrap" aria-busy="true">
+                    <table className="dtable">
+                        <caption className="sr-only">Buscando cursos...</caption>
+                        <tbody>
+                            {[0, 1, 2, 3, 4].map((i) => (
+                                <tr key={i}>
+                                    {[0, 1, 2, 3, 4, 5].map((j) => (
+                                        <td key={j}><span className="skeleton" /></td>
+                                    ))}
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            );
+        }
+
+        if (!haBuscado) {
+            return (
+                <EmptyState
+                    icon={BookOpen}
+                    title="Seleccione un período y un programa"
+                    description="Luego pulse «Buscar cursos» para ver los grupos ofertados con su horario, profesor y cupos."
+                />
+            );
+        }
+
+        if (cursos.length === 0) {
+            return (
+                <EmptyState
+                    icon={BookOpen}
+                    title="No hay cursos disponibles"
+                    description="No se encontraron cursos con los filtros seleccionados. Pruebe con otro período o programa académico."
+                />
+            );
+        }
+
+        if (cursosFiltrados.length === 0) {
+            return (
+                <EmptyState
+                    title={`Ningún curso coincide con «${texto.trim()}»`}
+                    description="Pruebe con otro nombre o código, o quite el filtro."
+                    action={(
+                        <button type="button" className="sg-btn sg-btn--secondary" onClick={() => cambiarTexto("")}>
+                            Quitar filtro
+                        </button>
+                    )}
+                />
+            );
+        }
+
+        return (
+            <>
+                <div className="table-wrap">
+                    <table className="dtable dtable--cards">
+                        <caption className="sr-only">Cursos disponibles, página {pagina}</caption>
+                        <thead>
+                            <tr>
+                                <th scope="col">Curso</th>
+                                <th scope="col" className="num">Nivel</th>
+                                <th scope="col">Grupo</th>
+                                <th scope="col">Horario</th>
+                                <th scope="col">Profesor</th>
+                                <th scope="col">Cupos</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {filasPagina.map((curso) => {
+                                const sinCupos = curso.cupoDisponible <= 0;
+
+                                return (
+                                    <tr key={curso.idGrupo}>
+                                        <td className="c-main">
+                                            <div className="who">
+                                                <div>
+                                                    <b>{curso.nombreCurso}</b>
+                                                    <span>{curso.codigoCurso}</span>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="num" data-label="Nivel">{curso.nivel ?? "—"}</td>
+                                        <td data-label="Grupo">{curso.codigoGrupo}</td>
+                                        <td data-label="Horario">{formatearHorarios(curso.horarios)}</td>
+                                        <td data-label="Profesor">{textoProfesor(curso)}</td>
+                                        <td>
+                                            {sinCupos ? (
+                                                <StatusBadge tone="danger">Sin cupos</StatusBadge>
+                                            ) : (
+                                                <StatusBadge tone="success">
+                                                    {curso.cupoDisponible} de {curso.cupoMaximo}
+                                                </StatusBadge>
+                                            )}
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div className="table-foot">
+                    <Pagination
+                        page={pagina}
+                        pageSize={TAMANO_PAGINA}
+                        total={cursosFiltrados.length}
+                        onChange={setPagina}
+                    />
+                </div>
+            </>
+        );
+    }
+
     return (
-        <div className="container consulta-cursos-page">
-            <div className="consulta-cursos-page__header">
-                <h1>Cursos disponibles</h1>
-                <p>
-                    Consulte los cursos ofertados en un período académico para conocer
-                    su horario, grupo, profesor asignado y cupos disponibles antes de
-                    solicitar matrícula.
-                </p>
-            </div>
+        <>
+            <PageHead
+                title="Cursos disponibles"
+                sub="Consulte los cursos ofertados en un período académico: horario, grupo, profesor asignado y cupos disponibles antes de solicitar matrícula."
+            />
 
-            <form className="consulta-cursos-filtros" onSubmit={handleBuscar} noValidate>
-                <div className="consulta-cursos-filtros__campos">
-                    <div className="field">
-                        <label className="field-label" htmlFor="idPeriodo">
-                            Período académico <span className="required">*</span>
-                        </label>
+            {errorFiltros && (
+                <Alert tone="danger" title="No se pudieron cargar los filtros" className="consulta-cursos-alert">
+                    {errorFiltros}
+                </Alert>
+            )}
+            {sinPeriodos && (
+                <Alert tone="info" className="consulta-cursos-alert">
+                    No hay períodos académicos disponibles para consulta en este momento.
+                </Alert>
+            )}
+            {error && (
+                <Alert tone="danger" className="consulta-cursos-alert">
+                    {error}
+                </Alert>
+            )}
 
+            <div className="panel">
+                <form className="filters" role="search" onSubmit={handleBuscar} noValidate>
+                    <Field id="cmbPeriodoConsulta" label="Período académico" select>
                         <select
-                            id="idPeriodo"
-                            className="input"
+                            id="cmbPeriodoConsulta"
+                            className="sg-input sg-select"
                             value={idPeriodo}
                             onChange={handleCambiarPeriodo}
                             disabled={cargandoFiltros}
                             aria-required="true"
                         >
-                            <option value="">Seleccione un período</option>
-
+                            <option value="">{cargandoFiltros ? "Cargando…" : "Seleccione un período"}</option>
                             {periodos.map((periodo) => (
                                 <option key={periodo.id} value={periodo.id}>
                                     {periodo.nombre} ({periodo.codigo})
                                 </option>
                             ))}
                         </select>
-                    </div>
+                    </Field>
 
-                    <div className="field">
-                        <label className="field-label" htmlFor="idPrograma">
-                            Programa académico <span className="required">*</span>
-                        </label>
-
+                    <Field id="cmbProgramaConsulta" label="Programa académico" select>
                         <select
-                            id="idPrograma"
-                            className="input"
+                            id="cmbProgramaConsulta"
+                            className="sg-input sg-select"
                             value={idPrograma}
                             onChange={handleCambiarPrograma}
                             disabled={cargandoFiltros}
                             aria-required="true"
                         >
-                            <option value="">Seleccione un programa</option>
-
+                            <option value="">{cargandoFiltros ? "Cargando…" : "Seleccione un programa"}</option>
                             {programas.map((programa) => (
                                 <option key={programa.id} value={programa.id}>
                                     {programa.nombre}
                                 </option>
                             ))}
                         </select>
-                    </div>
+                    </Field>
 
-                    <div className="field">
-                        <label className="field-label" htmlFor="texto">
-                            Filtrar por nombre o código (opcional)
-                        </label>
-
+                    <Field id="txtFiltroCurso" label="Filtrar" optional icon={Search} className="f-search">
                         <input
-                            id="texto"
-                            type="text"
-                            className="input"
+                            id="txtFiltroCurso"
+                            className="sg-input"
+                            type="search"
                             value={texto}
-                            onChange={(event) => setTexto(event.target.value)}
-                            placeholder="Escriba para filtrar los resultados"
+                            onChange={(event) => cambiarTexto(event.target.value)}
+                            placeholder="Nombre o código del curso"
                             disabled={cargandoFiltros}
                         />
+                    </Field>
+
+                    <div className="f-actions">
+                        <button
+                            type="button"
+                            className="sg-btn sg-btn--secondary"
+                            onClick={handleLimpiar}
+                            disabled={buscando}
+                        >
+                            <RotateCcw size={18} strokeWidth={1.75} aria-hidden="true" />
+                            Limpiar
+                        </button>
+                        <button
+                            type="submit"
+                            className={`sg-btn sg-btn--primary${buscando ? " is-loading" : ""}`}
+                            disabled={!puedeBuscar}
+                            aria-busy={buscando || undefined}
+                        >
+                            {buscando
+                                ? <span className="sg-spinner" aria-hidden="true" />
+                                : <Search size={18} strokeWidth={1.75} aria-hidden="true" />}
+                            {buscando ? "Buscando…" : "Buscar cursos"}
+                        </button>
                     </div>
-                </div>
+                </form>
 
-                <div className="consulta-cursos-filtros__acciones">
-                    <button
-                        type="button"
-                        className="btn btn--secondary"
-                        onClick={handleLimpiar}
-                        disabled={buscando}
-                    >
-                        Limpiar
-                    </button>
+                {haBuscado && !buscando && cursos.length > 0 && (
+                    <div className="chips">
+                        <span className="result-count" aria-live="polite">
+                            <b>{cursosFiltrados.length}</b>
+                            {cursosFiltrados.length === 1 ? " curso disponible" : " cursos disponibles"}
+                            {" · "}cupos consultados a las {horaConsulta}
+                        </span>
+                        {texto.trim() && (
+                            <span className="chip">
+                                Filtro: {texto.trim()}
+                                <button type="button" aria-label="Quitar filtro de texto" onClick={() => cambiarTexto("")}>
+                                    <X size={14} strokeWidth={1.75} aria-hidden="true" />
+                                </button>
+                            </span>
+                        )}
+                        <button type="button" className="link-btn chips-clear" onClick={handleBuscar}>
+                            Actualizar cupos
+                        </button>
+                    </div>
+                )}
 
-                    <button
-                        type="submit"
-                        className="btn btn--primary"
-                        disabled={!puedeBuscar}
-                    >
-                        {buscando ? "Buscando..." : "Buscar cursos"}
-                    </button>
-                </div>
-            </form>
-
-            {cargandoFiltros && <p>Cargando períodos y programas académicos...</p>}
-            {errorFiltros && (
-                <p className="alert alert--error" role="alert">
-                    {errorFiltros}
-                </p>
-            )}
-            {sinPeriodos && (
-                <p className="alert alert--info">
-                    No hay períodos académicos disponibles para consulta en este momento.
-                </p>
-            )}
-            {error && (
-                <p className="alert alert--error" role="alert">
-                    {error}
-                </p>
-            )}
-
-            {haBuscado && !error && (
-                <>
-                    <p className="consulta-cursos-page__resultado" role="status">
-                        {cursos.length === 0
-                            ? "No se encontraron cursos disponibles con los filtros seleccionados. Pruebe con otro período o programa académico."
-                            : cursosFiltrados.length === 0
-                                ? `Ningún curso coincide con "${texto.trim()}". Pruebe con otro nombre o código, o borre el filtro.`
-                                : `${cursosFiltrados.length} curso(s) disponible(s). Cupos consultados a las ${horaConsulta}; vuelva a buscar para actualizarlos.`}
-                    </p>
-
-                    {cursosFiltrados.length > 0 && (
-                        <div className="oferta-tabla-wrap">
-                            <table className="oferta-tabla">
-                                <thead>
-                                    <tr>
-                                        <th>Código</th>
-                                        <th>Curso</th>
-                                        <th>Nivel</th>
-                                        <th>Grupo</th>
-                                        <th>Horario</th>
-                                        <th>Profesor</th>
-                                        <th>Cupos disponibles</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {cursosFiltrados.map((curso) => {
-                                        const sinCupos = curso.cupoDisponible <= 0;
-
-                                        return (
-                                            <tr key={curso.idGrupo}>
-                                                <td className="oferta-tabla__codigo">
-                                                    {curso.codigoCurso}
-                                                </td>
-                                                <td>{curso.nombreCurso}</td>
-                                                <td>{curso.nivel ?? "—"}</td>
-                                                <td>{curso.codigoGrupo}</td>
-                                                <td>{formatearHorarios(curso.horarios)}</td>
-                                                <td>{textoProfesor(curso)}</td>
-                                                <td>
-                                                    {sinCupos ? (
-                                                        <span className="badge badge--sin-cupos">
-                                                            Sin cupos
-                                                        </span>
-                                                    ) : (
-                                                        `${curso.cupoDisponible}/${curso.cupoMaximo}`
-                                                    )}
-                                                </td>
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
-                </>
-            )}
-        </div>
+                {contenidoResultados()}
+            </div>
+        </>
     );
 }
 

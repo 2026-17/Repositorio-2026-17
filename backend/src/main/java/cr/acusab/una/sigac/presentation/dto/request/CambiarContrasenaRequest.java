@@ -20,12 +20,12 @@ import lombok.Setter;
 @AllArgsConstructor
 public class CambiarContrasenaRequest {
 
-    @NotBlank
+    @NotBlank(message = "La contraseña actual es obligatoria")
     private String contrasenaActual;
 
     // El máximo coincide con LoginRequest; si no, la nueva contraseña no serviría para ingresar
-    @NotBlank
-    @Size(min = 12, max = 16, message = "La contrasena debe tener entre 12 y 16 caracteres")
+    @NotBlank(message = "La contraseña nueva es obligatoria")
+    @Size(min = 12, max = 16, message = "La contraseña debe tener entre 12 y 16 caracteres")
     @Pattern(regexp = PoliticaContrasena.REGEX, message = PoliticaContrasena.MENSAJE)
     private String contrasenaNueva;
 

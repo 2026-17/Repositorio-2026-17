@@ -1,0 +1,75 @@
+/* =========================================
+   Pantalla de inicio / ayuda de cada rol.
+   Una fila por opción del menú con su descripción.
+   ========================================= */
+
+.inicio {
+    max-width: 960px;
+}
+
+.inicio__lista {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.inicio__lista li + li {
+    border-top: 1px solid var(--border);
+}
+
+.inicio__opcion {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    padding: var(--space-4) var(--space-5);
+    color: var(--ink);
+    text-decoration: none;
+    transition: background-color var(--duration-fast) ease;
+}
+
+.inicio__lista li:last-child .inicio__opcion {
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+}
+
+.inicio__opcion:hover {
+    background: var(--surface-sunken);
+}
+
+.inicio__opcion:focus-visible {
+    outline: 2px solid var(--focus);
+    outline-offset: -2px;
+}
+
+.inicio__icono {
+    width: 40px;
+    height: 40px;
+    flex: none;
+    display: grid;
+    place-items: center;
+    border-radius: var(--radius-md);
+    background: var(--primary-soft);
+    color: var(--primary);
+}
+
+.inicio__texto {
+    flex: 1;
+    min-width: 0;
+}
+
+.inicio__texto b {
+    display: block;
+    font: 600 15px/20px var(--font-sans);
+}
+
+.inicio__texto span {
+    display: block;
+    margin-top: 2px;
+    font-size: 14px;
+    line-height: 20px;
+    color: var(--ink-muted);
+}
+
+.inicio__flecha {
+    flex: none;
+    color: var(--ink-subtle);
+}

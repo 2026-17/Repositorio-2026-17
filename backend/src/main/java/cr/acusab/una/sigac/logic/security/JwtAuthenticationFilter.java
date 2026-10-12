@@ -2,7 +2,9 @@ package cr.acusab.una.sigac.logic.security;
 
 import com.nimbusds.jwt.JWTClaimsSet;
 import cr.acusab.una.sigac.data.repository.TokenRevocadoRepository;
+import cr.acusab.una.sigac.data.repository.UsuarioRepository;
 import cr.acusab.una.sigac.logic.exception.JwtInvalidoException;
+import cr.acusab.una.sigac.logic.service.CuentaUsuarioService;
 import cr.acusab.una.sigac.logic.service.JwtService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -17,6 +19,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 @Component
@@ -26,10 +29,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final TokenRevocadoRepository tokenRevocadoRepository;
+    private final UsuarioRepository usuarioRepository;
 
-    public JwtAuthenticationFilter(JwtService jwtService, TokenRevocadoRepository tokenRevocadoRepository) {
+    public JwtAuthenticationFilter(JwtService jwtService, TokenRevocadoRepository tokenRevocadoRepository,
+                                   UsuarioRepository usuarioRepository) {
         this.jwtService = jwtService;
         this.tokenRevocadoRepository = tokenRevocadoRepository;
+        this.usuarioRepository = usuarioRepository;
     }
 
     @Override
@@ -59,6 +65,24 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 }
 
                 String cedula = claims.getSubject();
+
+                // Un token emitido antes de una baja deja de servir en cuanto
+                // la cuenta deja de estar ACTIVA.
+                Optional<String> estado = usuarioRepository.findCodigoEstadoByCedula(cedula);
+                if (estado.isEmpty()) {
+                    // La cédula del token ya no existe (p. ej. se corrigió la
+                    // identificación): el token no autentica y se pide ingresar de nuevo.
+                    filterChain.doFilter(request, response);
+                    return;
+                }
+                if (!CuentaUsuarioService.ESTADO_ACTIVO.equalsIgnoreCase(estado.get())) {
+                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    response.setContentType("application/json;charset=UTF-8");
+                    response.getWriter().write("{\"status\":401,\"message\":"
+                            + "\"Su cuenta está inactiva. Contacte a la administración.\"}");
+                    return;
+                }
+
                 String rol = (String) claims.getClaim("rol");
                 List<SimpleGrantedAuthority> authorities = rol != null
                         ? List.of(new SimpleGrantedAuthority("ROLE_" + rol.toUpperCase()))

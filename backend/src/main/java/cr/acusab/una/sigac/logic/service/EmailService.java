@@ -33,12 +33,28 @@ public class EmailService {
     private final String apiKey;
     private final String remitenteCorreo;
     private final String remitenteNombre;
+    // Mismo logo que el favicon del frontend (frontend/public/favicon.png).
+    // Los clientes de correo solo muestran imágenes con URL pública.
+    private final String logoUrl;
+    // Dirección pública del frontend, para los enlaces "Ingresar a SIGAC" de los correos.
+    private final String sigacUrl;
+
+    // Medios de contacto de ACUSAB del pie de los correos.
+    // Si cambian, actualizar también frontend/src/constants/contacto.js.
+    private static final String CONTACTO_CORREO = "acusab@gmail.com";
+    private static final String CONTACTO_TELEFONO = "+506 2269-3322";
+    private static final String CONTACTO_WHATSAPP = "+506 8708-5959";
 
     public EmailService(
             @Value("${brevo.api-key:}") String apiKey,
             @Value("${brevo.sender-email}") String remitenteCorreo,
-            @Value("${brevo.sender-name}") String remitenteNombre
+            @Value("${brevo.sender-name}") String remitenteNombre,
+            @Value("${sigac.logo-url:https://sigac.acusab.ed.cr/favicon.png}") String logoUrl,
+            @Value("${sigac.frontend-url:https://sigac.acusab.ed.cr}") String sigacUrl
     ) {
+        this.logoUrl = logoUrl;
+        // Sin "/" final, para poder concatenar rutas como "/login"
+        this.sigacUrl = sigacUrl.replaceAll("/+$", "");
         SimpleClientHttpRequestFactory fabrica = new SimpleClientHttpRequestFactory();
         fabrica.setConnectTimeout(Duration.ofSeconds(5));
         fabrica.setReadTimeout(Duration.ofSeconds(10));
@@ -54,6 +70,10 @@ public class EmailService {
                 "Código para recuperar su contraseña",
                 "Recuperación de contraseña",
                 "Recibimos una solicitud para recuperar la contraseña de su cuenta en SIGAC.",
+                "Escriba este código en SIGAC, en la pantalla <strong>«Revise su correo»</strong> de "
+                        + "<strong>Recuperar contraseña</strong> donde hizo la solicitud. Si cerró esa pantalla, "
+                        + "ingrese a SIGAC, elija <strong>«¿Olvidó su contraseña?»</strong> y pida un código nuevo.",
+                "/recuperar-contrasena",
                 "Si usted no hizo esta solicitud, puede ignorar este correo: su contraseña no cambiará.");
     }
 
@@ -61,8 +81,11 @@ public class EmailService {
         enviarCodigo(destinatario, codigo, minutosValidez,
                 "Código para cambiar su contraseña",
                 "Cambio de contraseña",
-                "Recibimos una solicitud para cambiar la contraseña de su cuenta en SIGAC. "
-                        + "Ingrese este código en la pantalla de cambio de contraseña para confirmar.",
+                "Recibimos una solicitud para cambiar la contraseña de su cuenta en SIGAC.",
+                "Escriba este código en SIGAC, en la pantalla de <strong>cambio de contraseña</strong> "
+                        + "donde hizo la solicitud, para confirmar el cambio. Si cerró esa pantalla, "
+                        + "inicie sesión en SIGAC y vuelva a solicitar el cambio.",
+                "/login",
                 "Si usted no hizo esta solicitud, alguien podría conocer su contraseña actual. "
                         + "No comparta este código y comuníquese con la administración de ACUSAB.");
     }
@@ -91,10 +114,13 @@ public class EmailService {
                     <td style="padding:8px 20px 16px; font-family:'Courier New', Courier, monospace; font-size:18px; font-weight:bold; letter-spacing:2px; color:#662483; text-align:right;">%s</td>
                   </tr>
                 </table>
-                <p style="margin:0 0 28px; font-size:15px; line-height:1.6;">La primera vez que ingrese, el sistema le pedirá <strong>crear una contraseña nueva</strong>. La contraseña temporal deja de servir en cuanto la cambie.</p>
+                <p style="margin:0 0 24px; font-size:15px; line-height:1.6;">La primera vez que ingrese, el sistema le pedirá <strong>crear una contraseña nueva</strong>. La contraseña temporal deja de servir en cuanto la cambie.</p>
+                %s
                 %s
                 """.formatted(
                 HtmlUtils.htmlEscape(nombre), HtmlUtils.htmlEscape(cedula), HtmlUtils.htmlEscape(contrasena),
+                enlaceSigac("/login", "Ingrese a SIGAC con el botón de abajo. En la pantalla <strong>Iniciar sesión</strong> "
+                        + "escriba su cédula y la contraseña temporal."),
                 avisoSeguridad("No comparta esta contraseña con nadie. Si no esperaba este correo, "
                         + "comuníquese con la administración de ACUSAB."));
 
@@ -102,7 +128,8 @@ public class EmailService {
     }
 
     private void enviarCodigo(String destinatario, String codigo, int minutosValidez,
-                              String asunto, String titulo, String introduccion, String avisoSeguridad) {
+                              String asunto, String titulo, String introduccion,
+                              String instruccion, String ruta, String avisoSeguridad) {
         if (apiKey.isBlank()) {
             log.warn("brevo.api-key vacía: no se envía el correo. Código para {}: {} (vence en {} min)",
                     destinatario, codigo, minutosValidez);
@@ -118,12 +145,30 @@ public class EmailService {
                     <td style="background-color:#faf7fc; border:2px dashed #662483; border-radius:10px; padding:16px 28px; font-family:'Courier New', Courier, monospace; font-size:32px; font-weight:bold; letter-spacing:8px; color:#662483; text-align:center;">%s</td>
                   </tr>
                 </table>
-                <p style="margin:0 0 28px; font-size:13px; color:#5a5a63; text-align:center;">Vence en <strong>%d minutos</strong> y solo puede usarse una vez.</p>
+                <p style="margin:0 0 24px; font-size:13px; color:#5a5a63; text-align:center;">Vence en <strong>%d minutos</strong> y solo puede usarse una vez.</p>
+                %s
                 %s
                 """.formatted(titulo, introduccion, codigo, minutosValidez,
+                enlaceSigac(ruta, instruccion),
                 avisoSeguridad("<strong>¿No fue usted?</strong> " + avisoSeguridad));
 
         enviar(destinatario, asunto, contenido);
+    }
+
+    // Indica dónde realizar la acción en SIGAC y da el botón (y el enlace en texto) para entrar
+    private String enlaceSigac(String ruta, String instruccion) {
+        String url = HtmlUtils.htmlEscape(sigacUrl + ruta);
+        return """
+                <p style="margin:0 0 16px; font-size:15px; line-height:1.6;">%s</p>
+                <table role="presentation" align="center" cellpadding="0" cellspacing="0" style="margin:0 auto 12px;">
+                  <tr>
+                    <td style="background-color:#662483; border-radius:8px;">
+                      <a href="%s" target="_blank" style="display:inline-block; padding:12px 28px; font-size:15px; font-weight:bold; color:#ffffff; text-decoration:none;">Ingresar a SIGAC</a>
+                    </td>
+                  </tr>
+                </table>
+                <p style="margin:0 0 28px; font-size:12px; line-height:1.5; color:#5a5a63; text-align:center;">Si el botón no funciona, copie esta dirección en su navegador:<br><a href="%s" target="_blank" style="color:#662483; word-break:break-all;">%s</a></p>
+                """.formatted(instruccion, url, url, url);
     }
 
     // Recuadro rojo de advertencia al final del correo
@@ -152,7 +197,9 @@ public class EmailService {
                         <table role="presentation" width="100%%" cellpadding="0" cellspacing="0" style="max-width:520px; background-color:#ffffff; border-radius:12px; overflow:hidden; font-family:Arial, Helvetica, sans-serif; color:#2b2b33;">
                           <tr>
                             <td style="background-color:#662483; padding:24px 32px; text-align:center;">
-                              <div style="font-size:28px; line-height:1; color:#ffffff;">&#9834;</div>
+                              <div style="display:inline-block; background-color:#ffffff; border-radius:12px; padding:6px;">
+                                <img src="%s" width="56" height="50" alt="SIGAC" style="display:block; border:0; width:56px; height:50px;">
+                              </div>
                               <div style="margin-top:8px; font-size:20px; font-weight:bold; color:#ffffff; letter-spacing:1px;">SIGAC</div>
                               <div style="margin-top:4px; font-size:13px; color:#e9dcf2;">ACUSAB · Santa Bárbara de Heredia</div>
                             </td>
@@ -165,7 +212,10 @@ public class EmailService {
                           <tr>
                             <td style="background-color:#fbfaf7; border-top:1px solid #ece9e2; padding:18px 32px; text-align:center; font-size:12px; line-height:1.5; color:#777777;">
                               Este correo se envía automáticamente, por favor no lo responda.<br>
-                              ACUSAB · Sistema de Gestión Académica (SIGAC)
+                              ¿Dudas? Comuníquese con ACUSAB:<br>
+                              Correo: <a href="mailto:%s" style="color:#662483;">%s</a><br>
+                              Teléfono: %s · WhatsApp: %s<br>
+                              <a href="%s" target="_blank" style="color:#662483;">%s</a> · Sistema de Gestión Académica (SIGAC)
                             </td>
                           </tr>
                         </table>
@@ -174,7 +224,9 @@ public class EmailService {
                   </table>
                 </body>
                 </html>
-                """.formatted(contenido);
+                """.formatted(HtmlUtils.htmlEscape(logoUrl), contenido,
+                CONTACTO_CORREO, CONTACTO_CORREO, CONTACTO_TELEFONO, CONTACTO_WHATSAPP,
+                HtmlUtils.htmlEscape(sigacUrl), HtmlUtils.htmlEscape(sigacUrl.replaceFirst("^https?://", "")));
 
         Map<String, Object> cuerpo = Map.of(
                 "sender", Map.of("name", remitenteNombre, "email", remitenteCorreo),

@@ -443,7 +443,11 @@ public class EncargadoService {
                         "La cédula debe contener 9 dígitos."
                 );
             }
+            return;
         }
+
+        // DIMEX y pasaporte: mismas reglas que en el registro del estudiante
+        ReglasIdentificacion.validar(tipo, numeroIdentificacion, "del encargado");
     }
 
     private String validarYNormalizarParentesco(

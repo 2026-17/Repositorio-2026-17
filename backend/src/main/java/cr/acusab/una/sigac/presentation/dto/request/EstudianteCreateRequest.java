@@ -3,6 +3,8 @@ package cr.acusab.una.sigac.presentation.dto.request;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 
+import static cr.acusab.una.sigac.presentation.dto.request.PoliticaDatosPersona.*;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
@@ -17,13 +19,16 @@ public record EstudianteCreateRequest(
 
         @NotBlank(message = "El nombre es obligatorio")
         @Size(max = 100, message = "El nombre no puede superar 100 caracteres")
+        @Pattern(regexp = NOMBRE_REGEX, message = NOMBRE_MENSAJE)
         String nombres,
 
         @NotBlank(message = "El primer apellido es obligatorio")
         @Size(max = 80, message = "El primer apellido no puede superar 80 caracteres")
+        @Pattern(regexp = NOMBRE_REGEX, message = NOMBRE_MENSAJE)
         String primerApellido,
 
         @Size(max = 80, message = "El segundo apellido no puede superar 80 caracteres")
+        @Pattern(regexp = NOMBRE_OPCIONAL_REGEX, message = NOMBRE_MENSAJE)
         String segundoApellido,
 
         @NotNull(message = "La fecha de nacimiento es obligatoria")
@@ -41,11 +46,12 @@ public record EstudianteCreateRequest(
         @Size(max = 500, message = "La dirección no puede superar 500 caracteres")
         String direccion,
 
-        @Size(max = 30, message = "El teléfono no puede superar 30 caracteres")
+        @Pattern(regexp = TELEFONO_OPCIONAL_REGEX, message = TELEFONO_MENSAJE)
         String telefono,
 
         @NotBlank(message = "El correo electrónico es obligatorio")
-        @Email(message = "El correo electrónico no tiene un formato válido")
+        @Email(message = CORREO_MENSAJE)
+        @Pattern(regexp = CORREO_REGEX, message = CORREO_MENSAJE)
         @Size(max = 254, message = "El correo no puede superar 254 caracteres")
         String correo,
 
@@ -56,6 +62,7 @@ public record EstudianteCreateRequest(
         @Size(max = 180, message = "El centro educativo no puede superar 180 caracteres")
         String centroEducativo,
 
+        @Size(max = 2000, message = "Las condiciones relevantes no pueden superar 2000 caracteres")
         String condicionesRelevantes,
 
         @NotNull(message = "El instrumento es obligatorio")
@@ -97,23 +104,27 @@ public record EstudianteCreateRequest(
 
             @NotBlank(message = "El nombre del encargado es obligatorio")
             @Size(max = 100, message = "El nombre del encargado no puede superar 100 caracteres")
+            @Pattern(regexp = NOMBRE_REGEX, message = NOMBRE_MENSAJE)
             String nombres,
 
             @NotBlank(message = "El primer apellido del encargado es obligatorio")
-            @Size(max = 80, message = "El nombre del encargado no puede superar 100 caracteres")
+            @Size(max = 80, message = "El primer apellido del encargado no puede superar 80 caracteres")
+            @Pattern(regexp = NOMBRE_REGEX, message = NOMBRE_MENSAJE)
             String primerApellido,
 
             @Size(max = 80, message = "El segundo apellido del encargado no puede superar 80 caracteres")
+            @Pattern(regexp = NOMBRE_OPCIONAL_REGEX, message = NOMBRE_MENSAJE)
             String segundoApellido,
 
             @NotBlank(message = "El teléfono principal del encargado es obligatorio")
-            @Size(max = 30, message = "El teléfono no puede superar 30 caracteres")
+            @Pattern(regexp = TELEFONO_REGEX, message = TELEFONO_MENSAJE)
             String telefonoPrincipal,
 
-            @Size(max = 30, message = "El teléfono no puede superar 30 caracteres")
+            @Pattern(regexp = TELEFONO_OPCIONAL_REGEX, message = TELEFONO_MENSAJE)
             String telefonoSecundario,
 
-            @Email(message = "El correo del encargado no tiene un formato válido")
+            @Email(message = "El correo del encargado no tiene un formato válido.")
+            @Pattern(regexp = CORREO_OPCIONAL_REGEX, message = "El correo del encargado no tiene un formato válido.")
             @Size(max = 254, message = "El correo no puede superar 254 caracteres")
             String correo,
 

@@ -30,6 +30,7 @@ public class ModificarCursoRequestDTO {
     )
     private String nombre;
 
+    @Size(max = 2000, message = "La descripción no puede superar los 2000 caracteres.")
     private String descripcion;
 
     @NotNull(message = "La cantidad de horas del curso es obligatoria.")
@@ -46,6 +47,7 @@ public class ModificarCursoRequestDTO {
 
     @NotNull(message = "El nivel académico es obligatorio.")
     @Positive(message = "El nivel académico debe ser mayor que cero.")
+    @Max(value = 999, message = "El nivel académico no puede ser mayor que 999.")
     private Short nivel;
 
 

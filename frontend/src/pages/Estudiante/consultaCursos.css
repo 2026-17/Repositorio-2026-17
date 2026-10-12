@@ -1,60 +1,12 @@
-/* =========================================
-   Consultar cursos disponibles
-   ========================================= */
+/* HU-10: Consultar cursos disponibles.
+   La pantalla usa el patrón compartido (.panel, .filters, .chips,
+   .dtable, .sg-*) de src/styles. Aquí solo va lo propio de esta vista. */
 
-.consulta-cursos-page {
-    padding: 32px 0 48px;
+.consulta-cursos-alert {
+    margin-bottom: var(--space-5);
 }
 
-.consulta-cursos-page__header {
-    margin-bottom: 24px;
-}
-
-.consulta-cursos-page__header h1 {
-    margin: 0 0 4px;
-    color: var(--primary-purple);
-    font-size: 1.6rem;
-}
-
-.consulta-cursos-page__header p {
-    margin: 0;
-    color: #666;
-}
-
-.consulta-cursos-filtros {
-    background: var(--white);
-    border-radius: 12px;
-    padding: 20px 24px;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
-    margin-bottom: 24px;
-}
-
-.consulta-cursos-filtros__campos {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 16px;
-    margin-bottom: 16px;
-}
-
-.consulta-cursos-filtros__acciones {
-    display: flex;
-    justify-content: flex-end;
-    gap: 12px;
-    flex-wrap: wrap;
-}
-
-.consulta-cursos-page__resultado {
-    margin: 0 0 12px;
-    font-size: 0.9rem;
-    color: #555;
-}
-
-@media (max-width: 640px) {
-    .consulta-cursos-filtros__acciones {
-        flex-direction: column-reverse;
-    }
-
-    .consulta-cursos-filtros__acciones .btn {
-        width: 100%;
-    }
+/* Los horarios pueden ser varios días: se permite que bajen de línea. */
+.dtable td[data-label="Horario"] {
+    min-width: 180px;
 }

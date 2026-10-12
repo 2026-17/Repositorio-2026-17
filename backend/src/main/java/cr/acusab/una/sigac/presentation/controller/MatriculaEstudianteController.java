@@ -4,6 +4,7 @@ import cr.acusab.una.sigac.logic.exception.BusinessException;
 import cr.acusab.una.sigac.logic.exception.MatriculaInvalidaException;
 import cr.acusab.una.sigac.logic.service.MatriculaEstudianteService;
 import cr.acusab.una.sigac.presentation.dto.request.ConfirmarSeleccionMatriculaRequestDTO;
+import cr.acusab.una.sigac.presentation.dto.response.HorarioEstudianteResponseDTO;
 import cr.acusab.una.sigac.presentation.dto.response.MatriculaConfirmadaResponseDTO;
 import cr.acusab.una.sigac.presentation.dto.response.OfertaMatriculaResponseDTO;
 
@@ -44,6 +45,21 @@ public class MatriculaEstudianteController {
         return ResponseEntity.ok(
                 matriculaEstudianteService
                         .consultarMiOferta()
+        );
+    }
+
+    /*
+     * Horario semanal del estudiante: sus grupos matriculados en un
+     * período. Sin idPeriodo, se elige el período en curso.
+     */
+    @GetMapping("/mi-horario")
+    public ResponseEntity<HorarioEstudianteResponseDTO> consultarMiHorario(
+            @RequestParam(required = false) Long idPeriodo
+    ) {
+
+        return ResponseEntity.ok(
+                matriculaEstudianteService
+                        .consultarMiHorario(idPeriodo)
         );
     }
 

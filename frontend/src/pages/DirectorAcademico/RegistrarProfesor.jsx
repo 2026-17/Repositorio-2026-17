@@ -12,6 +12,18 @@ import Field from "../../components/ui/Field";
 import PageHead from "../../components/ui/PageHead";
 import Stepper from "../../components/ui/Stepper";
 import { listaErrores } from "../../components/ui/utilidades";
+import { campoDeConflicto, erroresDeCampos, lanzarError, leerError, mensajeDeExcepcion } from "../../utils/api";
+import {
+  MENSAJE_NOMBRE,
+  MENSAJE_TELEFONO,
+  errorIdentificacion,
+  esCorreoValido,
+  esNombreValido,
+  esTelefonoValido,
+  hoyISO,
+  limpiarIdentificacion,
+  limpiarTelefono,
+} from "../../utils/validaciones";
 
 const PASOS = ["Profesor", "Información académica y laboral", "Revisar y confirmar"];
 
@@ -25,6 +37,7 @@ const CLASE_PUESTO_DEFAULT =
 // En qué paso está cada campo (para mostrar solo los errores del paso actual)
 function pasoDeCampo(campo) {
   if (campo === "confirmado") return 2;
+  if (campo === "fechaIngreso") return 1;
   return 0;
 }
 
@@ -74,7 +87,7 @@ export default function RegistrarProfesor() {
     const token = localStorage.getItem("token");
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
     const cargar = (ruta, mensaje) =>
-      fetch(`${API_URL}${ruta}`, { headers }).then((r) => (r.ok ? r.json() : Promise.reject(new Error(mensaje))));
+      fetch(`${API_URL}${ruta}`, { headers }).then((r) => (r.ok ? r.json() : lanzarError(r, mensaje)));
 
     Promise.all([
       cargar("/tipos-identificacion", "No se pudo cargar tipos de identificación."),
@@ -86,8 +99,8 @@ export default function RegistrarProfesor() {
         setGrados(g);
         setInstrumentos(i);
       })
-      .catch(() => {
-        if (dialog?.error) dialog.error("No fue posible cargar los catálogos. Verifique que el backend esté disponible.");
+      .catch((e) => {
+        if (dialog?.error) dialog.error(mensajeDeExcepcion(e, "No fue posible cargar los catálogos. Intente de nuevo en unos momentos."));
       })
       .finally(() => setCatalogLoading(false));
   }, [dialog]);
@@ -130,9 +143,18 @@ export default function RegistrarProfesor() {
     if (!form.primerApellido.trim()) nextErrors.primerApellido = "Ingrese el primer apellido.";
     if (!form.correo.trim()) {
       nextErrors.correo = "El correo es obligatorio para crear la cuenta de usuario.";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.correo)) {
+    } else if (!esCorreoValido(form.correo)) {
       nextErrors.correo = "Ingrese un correo electrónico válido.";
     }
+    const tipo = tipos.find((t) => String(t.id) === String(form.idTipoIdentificacion));
+    if (form.numeroIdentificacion.trim() && errorIdentificacion(tipo, form.numeroIdentificacion)) {
+      nextErrors.numeroIdentificacion = errorIdentificacion(tipo, form.numeroIdentificacion);
+    }
+    ["nombres", "primerApellido", "segundoApellido"].forEach((campo) => {
+      if (form[campo].trim() && !esNombreValido(form[campo])) nextErrors[campo] = MENSAJE_NOMBRE;
+    });
+    if (form.telefono.trim() && !esTelefonoValido(form.telefono)) nextErrors.telefono = MENSAJE_TELEFONO;
+    if (form.fechaIngreso && form.fechaIngreso > hoyISO()) nextErrors.fechaIngreso = "La fecha de ingreso no puede ser futura.";
     // La ubicación es opcional, pero si se empieza hay que llegar hasta el distrito
     if (form.ubicacion.idProvincia && !form.ubicacion.codigoDistrito) {
       nextErrors.codigoDistrito = "Complete cantón y distrito, o deje la provincia sin seleccionar.";
@@ -151,11 +173,12 @@ export default function RegistrarProfesor() {
     const nombreCompleto = [form.nombres, form.primerApellido, form.segundoApellido].map((s) => s.trim()).filter(Boolean).join(" ");
     const profesor = {
       idTipoIdentificacion: Number(form.idTipoIdentificacion),
-      numeroIdentificacion: form.numeroIdentificacion.trim(),
+      // Identificación y teléfono sin espacios ni guiones
+      numeroIdentificacion: limpiarIdentificacion(form.numeroIdentificacion),
       nombres: form.nombres.trim(),
       primerApellido: form.primerApellido.trim(),
       segundoApellido: form.segundoApellido.trim() || null,
-      telefono: form.telefono.trim() || null,
+      telefono: limpiarTelefono(form.telefono) || null,
       correo: form.correo.trim(),
       codigoDistrito: form.ubicacion.codigoDistrito ? Number(form.ubicacion.codigoDistrito) : null,
       direccion: form.direccion.trim() || null,
@@ -187,19 +210,26 @@ export default function RegistrarProfesor() {
         headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify(payload),
       });
-      const body = await response.json().catch(() => ({}));
       if (!response.ok) {
-        const mensaje = body.detail || body.message || "No fue posible registrar el profesor.";
-        // Identificación repetida: se lleva al usuario al campo del primer paso
-        if (response.status === 409) {
-          setPaso(0);
-          setErrors({ numeroIdentificacion: mensaje });
+        const error = await leerError(response, "No fue posible registrar el profesor.");
+        const porCampo = erroresDeCampos(error.fields, { "usuario.cedula": "numeroIdentificacion", "usuario.nombre": "nombres" });
+        // Dato repetido: se lleva al usuario al campo que corresponde (correo o identificación)
+        if (error.status === 409) {
+          const campo = campoDeConflicto(error.message);
+          if (campo === "correo") porCampo.correo = error.message;
+          if (campo === "identificacion") porCampo.numeroIdentificacion = error.message;
+        }
+        if (Object.keys(porCampo).length > 0) {
+          const primerPaso = Math.min(...Object.keys(porCampo).map(pasoDeCampo));
+          setPaso(primerPaso);
+          setErrors(porCampo);
           setIntento((n) => n + 1);
           return;
         }
-        throw new Error(mensaje);
+        throw new Error(error.message);
       }
 
+      const body = await response.json().catch(() => ({}));
       setRegistrado({ id: body.id });
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (e) {
@@ -281,11 +311,11 @@ export default function RegistrarProfesor() {
         <Field id={`${P}primerApellido`} errorKey="primerApellido" label="Primer apellido" error={errors.primerApellido}>
           <input id={`${P}primerApellido`} className="sg-input" maxLength={80} value={form.primerApellido} onChange={(e) => setField("primerApellido", e.target.value)} {...aria("primerApellido", errors)} />
         </Field>
-        <Field id={`${P}segundoApellido`} label="Segundo apellido" optional>
-          <input id={`${P}segundoApellido`} className="sg-input" maxLength={80} value={form.segundoApellido} onChange={(e) => setField("segundoApellido", e.target.value)} />
+        <Field id={`${P}segundoApellido`} errorKey="segundoApellido" label="Segundo apellido" optional error={errors.segundoApellido}>
+          <input id={`${P}segundoApellido`} className="sg-input" maxLength={80} value={form.segundoApellido} onChange={(e) => setField("segundoApellido", e.target.value)} {...aria("segundoApellido", errors)} />
         </Field>
-        <Field id={`${P}telefono`} label="Teléfono" optional>
-          <input id={`${P}telefono`} className="sg-input" type="tel" inputMode="tel" maxLength={30} autoComplete="tel" value={form.telefono} onChange={(e) => setField("telefono", e.target.value)} placeholder="8888-4321" />
+        <Field id={`${P}telefono`} errorKey="telefono" label="Teléfono" optional hint="8 dígitos, puede escribirlo con guion." error={errors.telefono}>
+          <input id={`${P}telefono`} className="sg-input" type="tel" inputMode="tel" maxLength={9} autoComplete="tel" value={form.telefono} onChange={(e) => setField("telefono", e.target.value)} placeholder="8888-4321" {...aria("telefono", errors)} />
         </Field>
         <Field id={`${P}correo`} errorKey="correo" label="Correo electrónico" hint="Se usa para crear la cuenta de usuario." error={errors.correo} className="span-all">
           <input id={`${P}correo`} className="sg-input" type="email" maxLength={254} autoComplete="email" value={form.correo} onChange={(e) => setField("correo", e.target.value)} placeholder="nombre@correo.com" {...aria("correo", errors)} />
@@ -323,8 +353,8 @@ export default function RegistrarProfesor() {
         <Field id={`${P}clasePuesto`} label="Clase de puesto" hint="Se asigna automáticamente y solo puede modificarse al editar el profesor." className="span-all">
           <input id={`${P}clasePuesto`} className="sg-input" value={CLASE_PUESTO_DEFAULT} disabled />
         </Field>
-        <Field id={`${P}fechaIngreso`} label="Fecha de ingreso" optional hint="Si la deja vacía se usa la fecha de hoy.">
-          <input id={`${P}fechaIngreso`} className="sg-input" type="date" value={form.fechaIngreso} onChange={(e) => setField("fechaIngreso", e.target.value)} />
+        <Field id={`${P}fechaIngreso`} errorKey="fechaIngreso" label="Fecha de ingreso" optional hint="Si la deja vacía se usa la fecha de hoy." error={errors.fechaIngreso}>
+          <input id={`${P}fechaIngreso`} className="sg-input" type="date" max={hoyISO()} value={form.fechaIngreso} onChange={(e) => setField("fechaIngreso", e.target.value)} {...aria("fechaIngreso", errors)} />
         </Field>
         <fieldset className="fieldset span-all">
           <legend>Especialidad(es) <span className="sg-field__optional">(opcional)</span></legend>

@@ -7,6 +7,7 @@ import cr.acusab.una.sigac.data.entity.MensualidadesEstudiante;
 import cr.acusab.una.sigac.data.entity.PeriodoAcademico;
 import cr.acusab.una.sigac.data.entity.TiposDocumento;
 import cr.acusab.una.sigac.data.entity.Usuario;
+import cr.acusab.una.sigac.data.repository.AutorizacionesMatriculaRepository;
 import cr.acusab.una.sigac.data.repository.BecaRepository;
 import cr.acusab.una.sigac.data.repository.DocumentoEstudianteRepository;
 import cr.acusab.una.sigac.data.repository.EstudianteRepository;
@@ -15,9 +16,11 @@ import cr.acusab.una.sigac.data.repository.PeriodoAcademicoRepository;
 import cr.acusab.una.sigac.data.repository.TipoDocumentoRepository;
 import cr.acusab.una.sigac.data.repository.UsuarioRepository;
 import cr.acusab.una.sigac.logic.exception.BusinessException;
+import cr.acusab.una.sigac.logic.service.AutorizacionMatriculaService;
 import cr.acusab.una.sigac.logic.service.MensualidadCalculoService;
 import cr.acusab.una.sigac.logic.service.PagoService;
 import cr.acusab.una.sigac.presentation.dto.request.RegistrarPagoRequest;
+import cr.acusab.una.sigac.presentation.dto.request.RegistrarPagosRequest;
 import cr.acusab.una.sigac.presentation.dto.response.EstadoMesPagoResponse;
 import cr.acusab.una.sigac.presentation.dto.response.PagoResponse;
 import org.junit.jupiter.api.AfterEach;
@@ -52,6 +55,8 @@ class PagoServiceTest {
     private DocumentoEstudianteRepository documentoEstudianteRepository;
     private TipoDocumentoRepository tipoDocumentoRepository;
     private UsuarioRepository usuarioRepository;
+    private AutorizacionesMatriculaRepository autorizacionesMatriculaRepository;
+    private AutorizacionMatriculaService autorizacionMatriculaService;
 
     private PagoService pagoService;
 
@@ -68,6 +73,8 @@ class PagoServiceTest {
         documentoEstudianteRepository = mock(DocumentoEstudianteRepository.class);
         tipoDocumentoRepository = mock(TipoDocumentoRepository.class);
         usuarioRepository = mock(UsuarioRepository.class);
+        autorizacionesMatriculaRepository = mock(AutorizacionesMatriculaRepository.class);
+        autorizacionMatriculaService = mock(AutorizacionMatriculaService.class);
 
         pagoService = new PagoService(
                 mensualidadEstudianteRepository,
@@ -77,7 +84,9 @@ class PagoServiceTest {
                 mensualidadCalculoService,
                 documentoEstudianteRepository,
                 tipoDocumentoRepository,
-                usuarioRepository
+                usuarioRepository,
+                autorizacionesMatriculaRepository,
+                autorizacionMatriculaService
         );
 
         ReflectionTestUtils.setField(pagoService, "storageDirectory", tempDir.toString());
@@ -135,7 +144,7 @@ class PagoServiceTest {
         request.setFechaPago(LocalDate.of(2026, 3, 10));
 
         MultipartFile comprobante = new MockMultipartFile(
-                "comprobante", "comprobante.pdf", "application/pdf", "contenido de prueba".getBytes());
+                "comprobante", "comprobante.pdf", "application/pdf", "%PDF-1.4 contenido de prueba".getBytes());
 
         PagoResponse respuesta = pagoService.registrar(request, comprobante);
 
@@ -570,6 +579,196 @@ class PagoServiceTest {
         return estudiante;
     }
 
+    @Test
+    void noDebeRegistrarSiElContenidoNoCoincideConElTipoDeclarado() {
+        when(estudianteRepository.findById(1L)).thenReturn(Optional.of(estudianteActivo()));
+        when(periodoAcademicoRepository.findById(2L)).thenReturn(Optional.of(periodo()));
+        when(becaRepository.findByIdEstudiante_IdAndIdPeriodo_IdAndActivaTrue(1L, 2L))
+                .thenReturn(Optional.empty());
+
+        // Se declara PDF, pero el contenido es texto (p. ej. un .txt renombrado)
+        MultipartFile falso = new MockMultipartFile(
+                "comprobante", "comprobante.pdf", "application/pdf", "no soy un pdf".getBytes());
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> pagoService.registrar(requestValido(), falso)
+        );
+
+        assertEquals(
+                "El contenido del comprobante no corresponde a un PDF o una imagen JPG, PNG o WEBP válida.",
+                exception.getMessage()
+        );
+    }
+
+    @Test
+    void noDebeRegistrarUnMesFueraDelPeriodo() {
+        PeriodoAcademico periodo = periodo();
+        periodo.setFechaInicio(LocalDate.of(2026, 2, 1));
+        periodo.setFechaFin(LocalDate.of(2026, 6, 30));
+        when(estudianteRepository.findById(1L)).thenReturn(Optional.of(estudianteActivo()));
+        when(periodoAcademicoRepository.findById(2L)).thenReturn(Optional.of(periodo));
+
+        RegistrarPagoRequest request = requestValido();
+        request.setMes((short) 8);
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> pagoService.registrar(request, comprobanteValido())
+        );
+
+        assertEquals("El mes pagado no está dentro del período académico seleccionado.", exception.getMessage());
+    }
+
+    /*
+     * ============================================================
+     * Varios pagos con un solo comprobante (meses + matrícula)
+     * ============================================================
+     */
+
+    @Test
+    void registrarVariosMesesYMatriculaConUnSoloComprobante() {
+        Estudiante estudiante = estudianteActivo();
+        PeriodoAcademico periodo = periodo();
+        when(estudianteRepository.findById(1L)).thenReturn(Optional.of(estudiante));
+        when(periodoAcademicoRepository.findById(2L)).thenReturn(Optional.of(periodo));
+        when(becaRepository.findByIdEstudiante_IdAndIdPeriodo_IdAndActivaTrue(1L, 2L))
+                .thenReturn(Optional.empty());
+        when(mensualidadEstudianteRepository.findByIdEstudiante_IdAndAnioAndMes(eq(1L), eq(2026), anyShort()))
+                .thenReturn(Optional.empty());
+        configurarUsuarioAutenticado();
+        configurarTipoDocumento("COMPROBANTE_MENSUALIDAD", 5);
+        configurarTipoDocumento("COMPROBANTE_MATRICULA", 6);
+        when(documentoEstudianteRepository.save(any(DocumentosEstudiante.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(mensualidadEstudianteRepository.save(any(MensualidadesEstudiante.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(mensualidadCalculoService.calcularMontoBase(1L)).thenReturn(new BigDecimal("27000.00"));
+        when(mensualidadCalculoService.calcularMontoNeto(new BigDecimal("27000.00"), null))
+                .thenReturn(new BigDecimal("27000.00"));
+
+        RegistrarPagosRequest request = requestVarios(true, 3, 4);
+        request.setObservaciones("  Pagó marzo y abril   juntos ");
+
+        pagoService.registrarVarios(request, comprobanteValido());
+
+        ArgumentCaptor<MensualidadesEstudiante> captor = ArgumentCaptor.forClass(MensualidadesEstudiante.class);
+        verify(mensualidadEstudianteRepository, times(2)).save(captor.capture());
+        List<MensualidadesEstudiante> guardadas = captor.getAllValues();
+        assertEquals((short) 3, guardadas.get(0).getMes());
+        assertEquals((short) 4, guardadas.get(1).getMes());
+        guardadas.forEach(m -> {
+            assertTrue(m.getPagada());
+            assertEquals("Pagó marzo y abril juntos", m.getObservaciones());
+            assertEquals(new BigDecimal("27000.00"), m.getMonto());
+        });
+        // Cada mes tiene su propia copia del comprobante
+        assertNotSame(guardadas.get(0).getIdDocumentoComprobante(), guardadas.get(1).getIdDocumentoComprobante());
+
+        ArgumentCaptor<DocumentosEstudiante> documentoMatricula = ArgumentCaptor.forClass(DocumentosEstudiante.class);
+        verify(autorizacionMatriculaService).registrarPagoMatricula(
+                eq(estudiante), eq(periodo), documentoMatricula.capture(), eq("Pagó marzo y abril juntos"));
+        assertEquals("COMPROBANTE_MATRICULA", documentoMatricula.getValue().getIdTipoDocumento().getCodigo());
+        assertEquals(LocalDate.of(2026, 3, 10), documentoMatricula.getValue().getFechaEmision());
+    }
+
+    @Test
+    void registrarSoloMatriculaNoRegistraMensualidades() {
+        when(estudianteRepository.findById(1L)).thenReturn(Optional.of(estudianteActivo()));
+        when(periodoAcademicoRepository.findById(2L)).thenReturn(Optional.of(periodo()));
+        when(becaRepository.findByIdEstudiante_IdAndIdPeriodo_IdAndActivaTrue(1L, 2L))
+                .thenReturn(Optional.empty());
+        configurarUsuarioAutenticado();
+        configurarTipoDocumento("COMPROBANTE_MATRICULA", 6);
+        when(documentoEstudianteRepository.save(any(DocumentosEstudiante.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        pagoService.registrarVarios(requestVarios(true), comprobanteValido());
+
+        verify(mensualidadEstudianteRepository, never()).save(any(MensualidadesEstudiante.class));
+        verify(autorizacionMatriculaService).registrarPagoMatricula(any(), any(), any(), isNull());
+    }
+
+    @Test
+    void noDebeRegistrarVariosSinSeleccionarNada() {
+        when(estudianteRepository.findById(1L)).thenReturn(Optional.of(estudianteActivo()));
+        when(periodoAcademicoRepository.findById(2L)).thenReturn(Optional.of(periodo()));
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> pagoService.registrarVarios(requestVarios(false), comprobanteValido())
+        );
+
+        assertEquals("Seleccione al menos un mes o el pago de matrícula.", exception.getMessage());
+    }
+
+    @Test
+    void noDebeRegistrarNingunPagoSiUnMesYaEstaPagado() {
+        when(estudianteRepository.findById(1L)).thenReturn(Optional.of(estudianteActivo()));
+        when(periodoAcademicoRepository.findById(2L)).thenReturn(Optional.of(periodo()));
+        when(becaRepository.findByIdEstudiante_IdAndIdPeriodo_IdAndActivaTrue(1L, 2L))
+                .thenReturn(Optional.empty());
+        when(mensualidadEstudianteRepository.findByIdEstudiante_IdAndAnioAndMes(1L, 2026, (short) 3))
+                .thenReturn(Optional.empty());
+        MensualidadesEstudiante pagada = new MensualidadesEstudiante();
+        pagada.setPagada(true);
+        when(mensualidadEstudianteRepository.findByIdEstudiante_IdAndAnioAndMes(1L, 2026, (short) 4))
+                .thenReturn(Optional.of(pagada));
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> pagoService.registrarVarios(requestVarios(true, 3, 4), comprobanteValido())
+        );
+
+        assertEquals("Ya existe un pago registrado para abril 2026.", exception.getMessage());
+        verify(mensualidadEstudianteRepository, never()).save(any(MensualidadesEstudiante.class));
+        verify(documentoEstudianteRepository, never()).save(any(DocumentosEstudiante.class));
+        verify(autorizacionMatriculaService, never()).registrarPagoMatricula(any(), any(), any(), any());
+    }
+
+    @Test
+    void noDebeRegistrarNingunPagoSiLaSolicitudDeMatriculaYaFueProcesada() {
+        when(estudianteRepository.findById(1L)).thenReturn(Optional.of(estudianteActivo()));
+        when(periodoAcademicoRepository.findById(2L)).thenReturn(Optional.of(periodo()));
+        when(becaRepository.findByIdEstudiante_IdAndIdPeriodo_IdAndActivaTrue(1L, 2L))
+                .thenReturn(Optional.empty());
+        when(mensualidadEstudianteRepository.findByIdEstudiante_IdAndAnioAndMes(eq(1L), eq(2026), anyShort()))
+                .thenReturn(Optional.empty());
+        doThrow(new BusinessException("La solicitud de matrícula ya fue procesada."))
+                .when(autorizacionMatriculaService).validarPuedeRegistrarPagoMatricula(1L, 2L);
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> pagoService.registrarVarios(requestVarios(true, 3), comprobanteValido())
+        );
+
+        assertEquals("La solicitud de matrícula ya fue procesada.", exception.getMessage());
+        verify(mensualidadEstudianteRepository, never()).save(any(MensualidadesEstudiante.class));
+        verify(documentoEstudianteRepository, never()).save(any(DocumentosEstudiante.class));
+    }
+
+    private RegistrarPagosRequest requestVarios(boolean incluirMatricula, int... meses) {
+        RegistrarPagosRequest request = new RegistrarPagosRequest();
+        request.setIdEstudiante(1L);
+        request.setIdPeriodo(2L);
+        request.setIncluirMatricula(incluirMatricula);
+        request.setFechaPago(LocalDate.of(2026, 3, 10));
+        for (int mes : meses) {
+            RegistrarPagosRequest.MesPago mesPago = new RegistrarPagosRequest.MesPago();
+            mesPago.setAnio(2026);
+            mesPago.setMes((short) mes);
+            request.getMeses().add(mesPago);
+        }
+        return request;
+    }
+
+    private void configurarTipoDocumento(String codigo, int id) {
+        TiposDocumento tipo = new TiposDocumento();
+        tipo.setId(id);
+        tipo.setCodigo(codigo);
+        when(tipoDocumentoRepository.findByCodigoAndActivoTrue(codigo)).thenReturn(Optional.of(tipo));
+    }
+
     private PeriodoAcademico periodo() {
         PeriodoAcademico periodo = new PeriodoAcademico();
         periodo.setId(2L);
@@ -590,7 +789,7 @@ class PagoServiceTest {
 
     private MultipartFile comprobanteValido() {
         return new MockMultipartFile(
-                "comprobante", "comprobante.pdf", "application/pdf", "contenido de prueba".getBytes());
+                "comprobante", "comprobante.pdf", "application/pdf", "%PDF-1.4 contenido de prueba".getBytes());
     }
 
     private void configurarUsuarioAutenticado() {

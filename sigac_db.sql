@@ -769,6 +769,28 @@ CREATE TABLE autorizaciones_matricula (
   CONSTRAINT fk_autorizaciones_usuario_revisa FOREIGN KEY (id_usuario_revisa) REFERENCES usuarios (id_usuario)
 );
 
+-- Avisos al estudiante sobre su solicitud de matrícula (aprobada o rechazada)
+CREATE TABLE notificaciones_estudiantes (
+  id_notificacion    BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  id_estudiante      INT UNSIGNED    NOT NULL,
+  id_autorizacion    BIGINT UNSIGNED,
+  tipo               VARCHAR(40)     NOT NULL,
+  asunto             VARCHAR(160)    NOT NULL,
+  mensaje            VARCHAR(1500)   NOT NULL,
+  leida              BOOLEAN         NOT NULL DEFAULT FALSE,
+  fecha_notificacion DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  fecha_lectura      DATETIME,
+  PRIMARY KEY (id_notificacion),
+-- Una sola notificación por solicitud de matrícula
+  CONSTRAINT uq_notificaciones_autorizacion UNIQUE (id_autorizacion),
+-- "Mis notificaciones": las del estudiante, de la más reciente a la más antigua
+  INDEX idx_notificaciones_estudiante_fecha (id_estudiante, fecha_notificacion),
+  CONSTRAINT fk_notificaciones_estudiante FOREIGN KEY (id_estudiante)
+      REFERENCES estudiantes (id_estudiante) ON DELETE CASCADE,
+  CONSTRAINT fk_notificaciones_autorizacion FOREIGN KEY (id_autorizacion)
+      REFERENCES autorizaciones_matricula (id_autorizacion) ON DELETE CASCADE
+);
+
 -- La matrícula solo se crea después de que la autorización fue aprobada
 CREATE TABLE matriculas (
     id_matricula        INT UNSIGNED      NOT NULL AUTO_INCREMENT,

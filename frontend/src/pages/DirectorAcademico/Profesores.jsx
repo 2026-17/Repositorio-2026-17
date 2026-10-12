@@ -10,6 +10,18 @@ import PageHead from "../../components/ui/PageHead";
 import Pagination from "../../components/ui/Pagination";
 import StatusBadge from "../../components/ui/StatusBadge";
 import { iniciales, listaErrores, paginar } from "../../components/ui/utilidades";
+import { campoDeConflicto, lanzarError, leerError } from "../../utils/api";
+import {
+    MENSAJE_NOMBRE,
+    MENSAJE_TELEFONO,
+    errorIdentificacion,
+    esCorreoValido,
+    esNombreValido,
+    esTelefonoValido,
+    hoyISO,
+    limpiarIdentificacion,
+    limpiarTelefono,
+} from "../../utils/validaciones";
 
 const TAMANO_PAGINA = 10;
 
@@ -92,7 +104,7 @@ function Profesores() {
         async function cargarTipos() {
             try {
                 const response = await fetch(`${API_URL}/tipos-identificacion`, { headers: getHeaders() });
-                if (!response.ok) throw new Error("No se pudo cargar el catálogo de tipos de identificación");
+                if (!response.ok) await lanzarError(response, "No se pudo cargar el catálogo de tipos de identificación.");
                 setTipos(await response.json());
             } catch (e) {
                 dialog.error(e.message);
@@ -105,7 +117,7 @@ function Profesores() {
         async function cargarGradosAcademicos() {
             try {
                 const response = await fetch(`${API_URL}/grados-academicos`, { headers: getHeaders() });
-                if (!response.ok) throw new Error("No se pudo cargar el catálogo de grados académicos");
+                if (!response.ok) await lanzarError(response, "No se pudo cargar el catálogo de grados académicos.");
                 setGradosAcademicos(await response.json());
             } catch (e) {
                 dialog.error(e.message);
@@ -118,7 +130,7 @@ function Profesores() {
         async function cargarInstrumentos() {
             try {
                 const response = await fetch(`${API_URL}/instrumentos`, { headers: getHeaders() });
-                if (!response.ok) throw new Error("No se pudo cargar el catálogo de especialidades");
+                if (!response.ok) await lanzarError(response, "No se pudo cargar el catálogo de especialidades.");
                 setInstrumentos(await response.json());
             } catch (e) {
                 dialog.error(e.message);
@@ -135,7 +147,7 @@ function Profesores() {
             try {
                 const query = filtroActivo ? `?activo=${filtroActivo}` : "";
                 const response = await fetch(`${API_URL}/profesores${query}`, { headers: getHeaders() });
-                if (!response.ok) throw new Error("No se pudo cargar la lista de profesores");
+                if (!response.ok) await lanzarError(response, "No se pudo cargar la lista de profesores.");
                 const data = await response.json();
                 if (!cancelado) setProfesores(data);
             } catch (e) {
@@ -220,9 +232,18 @@ function Profesores() {
         if (!form.numeroIdentificacion.trim()) nuevosErrores.numeroIdentificacion = "Ingrese el número de identificación.";
         if (!form.nombres.trim()) nuevosErrores.nombres = "Ingrese el nombre.";
         if (!form.primerApellido.trim()) nuevosErrores.primerApellido = "Ingrese el primer apellido.";
-        if (form.correo && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.correo)) {
+        if (form.correo.trim() && !esCorreoValido(form.correo)) {
             nuevosErrores.correo = "Ingrese un correo electrónico válido.";
         }
+        const tipo = tipos.find((t) => String(t.id) === String(form.idTipoIdentificacion));
+        if (form.numeroIdentificacion.trim() && errorIdentificacion(tipo, form.numeroIdentificacion)) {
+            nuevosErrores.numeroIdentificacion = errorIdentificacion(tipo, form.numeroIdentificacion);
+        }
+        ["nombres", "primerApellido", "segundoApellido"].forEach((campo) => {
+            if (form[campo].trim() && !esNombreValido(form[campo])) nuevosErrores[campo] = MENSAJE_NOMBRE;
+        });
+        if (form.telefono.trim() && !esTelefonoValido(form.telefono)) nuevosErrores.telefono = MENSAJE_TELEFONO;
+        if (form.fechaIngreso && form.fechaIngreso > hoyISO()) nuevosErrores.fechaIngreso = "La fecha de ingreso no puede ser futura.";
         // La ubicación es opcional, pero si se empieza hay que llegar hasta el distrito
         if (form.ubicacion.idProvincia && !form.ubicacion.codigoDistrito) {
             nuevosErrores.codigoDistrito = "Complete cantón y distrito, o deje la provincia sin seleccionar.";
@@ -241,11 +262,12 @@ function Profesores() {
 
         const payloadBase = {
             idTipoIdentificacion: Number(form.idTipoIdentificacion),
-            numeroIdentificacion: form.numeroIdentificacion.trim(),
+            // Identificación y teléfono sin espacios ni guiones
+            numeroIdentificacion: limpiarIdentificacion(form.numeroIdentificacion),
             nombres: form.nombres.trim(),
             primerApellido: form.primerApellido.trim(),
             segundoApellido: form.segundoApellido.trim() || null,
-            telefono: form.telefono.trim() || null,
+            telefono: limpiarTelefono(form.telefono) || null,
             correo: form.correo.trim() || null,
             codigoDistrito: form.ubicacion.codigoDistrito ? Number(form.ubicacion.codigoDistrito) : null,
             direccion: form.direccion.trim() || null,
@@ -265,12 +287,19 @@ function Profesores() {
         try {
             const response = await fetch(url, { method, headers: getHeaders(), body: JSON.stringify(payload) });
             if (!response.ok) {
-                const body = await response.json().catch(() => ({}));
-                const mensaje = body.detail || body.message || "No fue posible guardar el profesor.";
-                if (response.status === 409) {
-                    setErrores((err) => ({ ...err, numeroIdentificacion: mensaje }));
+                const error = await leerError(response, "No fue posible guardar el profesor.");
+                const porCampo = { ...error.fields };
+                if (error.status === 409) {
+                    const campo = campoDeConflicto(error.message);
+                    if (campo === "correo") porCampo.correo = error.message;
+                    if (campo === "identificacion") porCampo.numeroIdentificacion = error.message;
                 }
-                throw new Error(mensaje);
+                if (Object.keys(porCampo).length > 0) {
+                    setErrores((err) => ({ ...err, ...porCampo }));
+                    setIntento((n) => n + 1);
+                    return;
+                }
+                throw new Error(error.message);
             }
 
             dialog.exito("Información del profesor actualizada correctamente.");
@@ -291,7 +320,7 @@ function Profesores() {
         if (!confirmado) return;
         try {
             const response = await fetch(`${API_URL}/profesores/${p.id}/baja`, { method: "PATCH", headers: getHeaders() });
-            if (!response.ok) throw new Error("No fue posible dar de baja al profesor.");
+            if (!response.ok) await lanzarError(response, "No fue posible dar de baja al profesor.");
             dialog.exito("Profesor dado de baja correctamente.");
             setRecargar((n) => n + 1);
         } catch (e) {
@@ -307,7 +336,7 @@ function Profesores() {
         if (!confirmado) return;
         try {
             const response = await fetch(`${API_URL}/profesores/${p.id}/reactivar`, { method: "PATCH", headers: getHeaders() });
-            if (!response.ok) throw new Error("No fue posible reactivar al profesor.");
+            if (!response.ok) await lanzarError(response, "No fue posible reactivar al profesor.");
             dialog.exito("Profesor reactivado correctamente.");
             setRecargar((n) => n + 1);
         } catch (e) {
@@ -387,11 +416,11 @@ function Profesores() {
                                     <Field id={`${P}primerApellido`} errorKey="primerApellido" label="Primer apellido" error={errores.primerApellido}>
                                         <input id={`${P}primerApellido`} className="sg-input" maxLength={80} value={form.primerApellido} onChange={(e) => setField("primerApellido", e.target.value)} {...aria("primerApellido")} />
                                     </Field>
-                                    <Field id={`${P}segundoApellido`} label="Segundo apellido" optional>
-                                        <input id={`${P}segundoApellido`} className="sg-input" maxLength={80} value={form.segundoApellido} onChange={(e) => setField("segundoApellido", e.target.value)} />
+                                    <Field id={`${P}segundoApellido`} errorKey="segundoApellido" label="Segundo apellido" optional error={errores.segundoApellido}>
+                                        <input id={`${P}segundoApellido`} className="sg-input" maxLength={80} value={form.segundoApellido} onChange={(e) => setField("segundoApellido", e.target.value)} {...aria("segundoApellido")} />
                                     </Field>
-                                    <Field id={`${P}telefono`} label="Teléfono de contacto" optional>
-                                        <input id={`${P}telefono`} className="sg-input" type="tel" inputMode="tel" maxLength={30} placeholder="8888-4321" value={form.telefono} onChange={(e) => setField("telefono", e.target.value)} />
+                                    <Field id={`${P}telefono`} errorKey="telefono" label="Teléfono de contacto" optional hint="8 dígitos, puede escribirlo con guion." error={errores.telefono}>
+                                        <input id={`${P}telefono`} className="sg-input" type="tel" inputMode="tel" maxLength={9} placeholder="8888-4321" value={form.telefono} onChange={(e) => setField("telefono", e.target.value)} {...aria("telefono")} />
                                     </Field>
                                     <Field
                                         id={`${P}correo`}
@@ -440,8 +469,8 @@ function Profesores() {
                                     >
                                         <input id={`${P}clasePuesto`} className="sg-input" maxLength={255} value={form.clasePuesto} onChange={(e) => setField("clasePuesto", e.target.value)} />
                                     </Field>
-                                    <Field id={`${P}fechaIngreso`} label="Fecha de ingreso" optional hint="Si la deja vacía se usa la fecha de hoy.">
-                                        <input id={`${P}fechaIngreso`} className="sg-input" type="date" value={form.fechaIngreso} onChange={(e) => setField("fechaIngreso", e.target.value)} />
+                                    <Field id={`${P}fechaIngreso`} errorKey="fechaIngreso" label="Fecha de ingreso" optional hint="Si la deja vacía se usa la fecha de hoy." error={errores.fechaIngreso}>
+                                        <input id={`${P}fechaIngreso`} className="sg-input" type="date" max={hoyISO()} value={form.fechaIngreso} onChange={(e) => setField("fechaIngreso", e.target.value)} {...aria("fechaIngreso")} />
                                     </Field>
                                     <fieldset className="fieldset span-all">
                                         <legend>Especialidad(es) <span className="sg-field__optional">(opcional)</span></legend>

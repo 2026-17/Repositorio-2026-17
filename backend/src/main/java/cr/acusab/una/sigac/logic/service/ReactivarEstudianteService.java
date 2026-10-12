@@ -16,13 +16,16 @@ public class ReactivarEstudianteService {
 
     private final EstudianteRepository estudianteRepository;
     private final UsuarioRepository usuarioRepository;
+    private final CuentaUsuarioService cuentaUsuarioService;
 
     public ReactivarEstudianteService(
             EstudianteRepository estudianteRepository,
-            UsuarioRepository usuarioRepository
+            UsuarioRepository usuarioRepository,
+            CuentaUsuarioService cuentaUsuarioService
     ) {
         this.estudianteRepository = estudianteRepository;
         this.usuarioRepository = usuarioRepository;
+        this.cuentaUsuarioService = cuentaUsuarioService;
     }
 
     @Transactional
@@ -61,6 +64,9 @@ public class ReactivarEstudianteService {
         estudiante.setFechaBaja(null);
         estudiante.setIdUsuarioUltimaModificacion(usuario.getId());
         estudianteRepository.save(estudiante);
+
+        // La cuenta vuelve a quedar ACTIVA para que pueda iniciar sesión.
+        cuentaUsuarioService.activar(estudiante.getUsuario());
 
         return new ReactivarEstudianteResponse(
                 estudiante.getId(),

@@ -40,4 +40,20 @@ public interface AutorizacionesMatriculaRepository
             Long idEstudiante,
             Long idPeriodo
     );
+
+    /*
+     * Horario del estudiante: todas sus autorizaciones, para saber en
+     * qué períodos tiene cursos matriculados.
+     */
+    List<AutorizacionesMatricula>
+    findByIdEstudiante_Id(
+            Long idEstudiante
+    );
+
+    /*
+     * Un comprobante de matrícula solo puede pertenecer a una solicitud.
+     */
+    boolean existsByIdDocumentoComprobanteMatricula_Id(
+            Long idDocumento
+    );
 }

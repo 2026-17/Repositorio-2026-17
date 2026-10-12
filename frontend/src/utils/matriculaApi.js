@@ -38,6 +38,17 @@ export async function consultarMiOferta(token) {
     return leerRespuesta(response, "No fue posible consultar la información de matrícula.");
 }
 
+// Horario semanal: grupos matriculados en un período. Sin idPeriodo, el
+// servidor elige el período en curso.
+export async function consultarMiHorario(token, idPeriodo) {
+    const params = idPeriodo ? `?idPeriodo=${encodeURIComponent(idPeriodo)}` : "";
+    const response = await fetch(`${API_URL}/matriculas-estudiante/mi-horario${params}`, {
+        headers: { Authorization: `Bearer ${token}` },
+    });
+
+    return leerRespuesta(response, "No fue posible consultar su horario.");
+}
+
 export async function confirmarMatricula(token, idsGrupo) {
     const response = await fetch(`${API_URL}/matriculas-estudiante/confirmar`, {
         method: "POST",

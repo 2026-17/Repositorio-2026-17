@@ -123,6 +123,172 @@ public class AutorizacionMatriculaService {
                                 )
                         );
 
+        AutorizacionesMatricula guardada =
+                autorizacionRepository.saveAndFlush(
+                        prepararAutorizacion(
+                                estudiante,
+                                periodo
+                        )
+                );
+
+        return mapearAResponse(
+                guardada
+        );
+    }
+
+    /*
+     * ============================================================
+     * Pago de matrícula registrado desde "Becas y pagos"
+     * ============================================================
+     *
+     * El comprobante queda en la solicitud del período (se crea si
+     * no existe) y se recalculan las comprobaciones, para que la
+     * solicitud quede lista para revisarse en Matrícula.
+     */
+    @Transactional
+    public AutorizacionesMatricula registrarPagoMatricula(
+            Estudiante estudiante,
+            PeriodoAcademico periodo,
+            DocumentosEstudiante comprobante,
+            String observaciones
+    ) {
+
+        validarPuedeRegistrarPagoMatricula(
+                estudiante.getId(),
+                periodo.getId()
+        );
+
+        AutorizacionesMatricula autorizacion =
+                prepararAutorizacion(
+                        estudiante,
+                        periodo
+                );
+
+        autorizacion.setIdDocumentoComprobanteMatricula(
+                comprobante
+        );
+
+        autorizacion.setPagoMatriculaConfirmado(
+                true
+        );
+
+        if (observaciones != null
+                && !observaciones.isBlank()) {
+
+            String nota =
+                    "Pago de matrícula: " + observaciones.trim();
+
+            String previas =
+                    autorizacion.getObservaciones();
+
+            String total =
+                    previas == null || previas.isBlank()
+                            ? nota
+                            : previas + "\n" + nota;
+
+            autorizacion.setObservaciones(
+                    total.length() > 1500
+                            ? total.substring(0, 1500)
+                            : total
+            );
+        }
+
+        return autorizacionRepository.saveAndFlush(
+                autorizacion
+        );
+    }
+
+    /*
+     * Se valida antes de guardar el archivo del comprobante: el pago
+     * solo se registra si la solicitud del período sigue pendiente
+     * (o no existe) y aún no tiene comprobante de matrícula.
+     */
+    @Transactional(readOnly = true)
+    public void validarPuedeRegistrarPagoMatricula(
+            Long idEstudiante,
+            Long idPeriodo
+    ) {
+
+        AutorizacionesMatricula existente =
+                autorizacionRepository
+                        .findByIdEstudiante_IdAndIdPeriodo_Id(
+                                idEstudiante,
+                                idPeriodo
+                        )
+                        .orElse(null);
+
+        if (existente == null) {
+            return;
+        }
+
+        validarEstadoPendiente(
+                existente
+        );
+
+        if (existente.getIdDocumentoComprobanteMatricula() != null) {
+
+            throw new BusinessException(
+                    "Ya existe un pago de matrícula registrado para este período."
+            );
+        }
+    }
+
+    /*
+     * Quita el pago de matrícula registrado por error. Devuelve el
+     * comprobante para que quien llama elimine el archivo.
+     */
+    @Transactional
+    public DocumentosEstudiante quitarPagoMatricula(
+            Long idAutorizacion
+    ) {
+
+        AutorizacionesMatricula autorizacion =
+                autorizacionRepository
+                        .findById(idAutorizacion)
+                        .orElseThrow(() ->
+                                new BusinessException(
+                                        "El pago de matrícula indicado no existe."
+                                )
+                        );
+
+        validarEstadoPendiente(
+                autorizacion
+        );
+
+        DocumentosEstudiante comprobante =
+                autorizacion.getIdDocumentoComprobanteMatricula();
+
+        if (comprobante == null) {
+
+            throw new BusinessException(
+                    "El pago de matrícula indicado no existe."
+            );
+        }
+
+        autorizacion.setIdDocumentoComprobanteMatricula(
+                null
+        );
+
+        autorizacion.setPagoMatriculaConfirmado(
+                false
+        );
+
+        autorizacionRepository.saveAndFlush(
+                autorizacion
+        );
+
+        return comprobante;
+    }
+
+    /*
+     * Busca (o crea como PENDIENTE) la solicitud del estudiante en el
+     * período y recalcula sus comprobaciones automáticas. No guarda.
+     */
+    private AutorizacionesMatricula prepararAutorizacion(
+            Estudiante estudiante,
+            PeriodoAcademico periodo
+    ) {
+
         AutorizacionesMatricula autorizacion =
                 autorizacionRepository
                         .findByIdEstudiante_IdAndIdPeriodo_Id(
@@ -176,14 +342,7 @@ public class AutorizacionMatriculaService {
                 estudiante.getId()
         );
 
-        AutorizacionesMatricula guardada =
-                autorizacionRepository.saveAndFlush(
-                        autorizacion
-                );
-
-        return mapearAResponse(
-                guardada
-        );
+        return autorizacion;
     }
 
     /*
@@ -563,19 +722,36 @@ public class AutorizacionMatriculaService {
      * Pago de matrícula / comprobante (Historia 1)
      * ============================================================
      *
-     * Se toma el comprobante de matrícula vigente más reciente
-     * del estudiante, si existe.
+     * Si la solicitud ya tiene el comprobante del pago registrado en
+     * "Becas y pagos" para este período, se conserva. Si no, se toma
+     * el comprobante de matrícula vigente más reciente del estudiante.
      */
     private void actualizarComprobanteMatricula(
             AutorizacionesMatricula autorizacion,
             Long idEstudiante
     ) {
 
+        if (autorizacion.getIdDocumentoComprobanteMatricula() != null) {
+
+            autorizacion.setPagoMatriculaConfirmado(
+                    true
+            );
+
+            return;
+        }
+
         DocumentosEstudiante comprobante =
                 documentoEstudianteRepository
                         .findFirstByIdEstudiante_IdAndIdTipoDocumento_CodigoAndEsActualTrueOrderByCargadoEnDesc(
                                 idEstudiante,
                                 TIPO_DOCUMENTO_COMPROBANTE_MATRICULA
+                        )
+                        // El comprobante de otro período no sirve para este
+                        .filter(documento ->
+                                !autorizacionRepository
+                                        .existsByIdDocumentoComprobanteMatricula_Id(
+                                                documento.getId()
+                                        )
                         )
                         .orElse(null);
 

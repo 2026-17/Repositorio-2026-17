@@ -11,11 +11,10 @@ import RecuperarContrasena from "./pages/Publico/RecuperarContrasena";
 import CambiarContrasenaTemporal from "./pages/Publico/CambiarContrasenaTemporal";
 import Notificaciones from "./pages/Estudiante/Notificaciones";
 import ConsultaCursos from "./pages/Estudiante/ConsultaCursos";
+import MiHorario from "./pages/Estudiante/MiHorario";
 import SeleccionCursos from "./pages/Estudiante/SeleccionCursos";
 import CreateUsers from "./pages/AdminSis/createUsers";
-import CreateStudent from "./pages/AdminSis/createStudent";
 import Estudiantes from "./pages/AdminSis/Estudiantes";
-import EditarEstudiante from "./pages/AdminSis/EditarEstudiante";
 
 import CrearCurso from "./pages/DirectorAcademico/CrearCurso";
 import ModificarCurso from "./pages/DirectorAcademico/ModificarCurso";
@@ -33,7 +32,10 @@ import Profesores from "./pages/DirectorAcademico/Profesores.jsx";
 import RegistrarProfesor from "./pages/DirectorAcademico/RegistrarProfesor.jsx";
 import Reportes from "./pages/Administrativa/Reportes.jsx";
 
+import Inicio from "./pages/Inicio/Inicio";
+
 import Header from "./components/Header";
+import { RUTA_INICIO } from "./constants/menu";
 import { cambioContrasenaPendiente, RUTA_CAMBIO_CONTRASENA_TEMPORAL } from "./utils/sesion";
 
 function Layout() {
@@ -82,6 +84,12 @@ function App() {
                     Rutas internas con layout general
                    ===================================================== */}
                 <Route element={<Layout />}>
+
+                    {/* Inicio de todos los roles: explica las opciones del menú (botón "Ayuda") */}
+                    <Route
+                        path={RUTA_INICIO}
+                        element={<Inicio />}
+                    />
 
                     {/* =================================================
                         ADMINISTRADOR
@@ -159,14 +167,15 @@ function App() {
                         element={<Estudiantes />}
                     />
 
+                    {/* Registrar y editar se hacen dentro de Estudiantes; las rutas viejas llevan ahí */}
                     <Route
                         path="/admin/administracion/estudiantes/crear"
-                        element={<CreateStudent />}
+                        element={<Navigate to="/admin/administracion/estudiantes" replace />}
                     />
 
                     <Route
                         path="/admin/administracion/estudiantes/:id/editar"
-                        element={<EditarEstudiante />}
+                        element={<Navigate to="/admin/administracion/estudiantes" replace />}
                     />
 
                     {/* Administrativo - HU-026 Asignar instrumento al estudiante */}
@@ -207,6 +216,12 @@ function App() {
                     <Route
                         path="/estudiante/cursos-disponibles"
                         element={<ConsultaCursos />}
+                    />
+
+                    {/* Horario semanal del estudiante */}
+                    <Route
+                        path="/estudiante/horario"
+                        element={<MiHorario />}
                     />
 
                     {/* HU-002 - Solicitar matrícula de cursos */}

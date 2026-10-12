@@ -36,6 +36,7 @@ import cr.acusab.una.sigac.logic.exception.MatriculaInvalidaException;
 import cr.acusab.una.sigac.logic.service.MatriculaEstudianteService;
 
 import cr.acusab.una.sigac.presentation.dto.request.ConfirmarSeleccionMatriculaRequestDTO;
+import cr.acusab.una.sigac.presentation.dto.response.HorarioEstudianteResponseDTO;
 import cr.acusab.una.sigac.presentation.dto.response.MatriculaConfirmadaResponseDTO;
 import cr.acusab.una.sigac.presentation.dto.response.OfertaMatriculaResponseDTO;
 
@@ -52,6 +53,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.math.BigDecimal;
 import java.sql.SQLException;
+import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -290,6 +292,69 @@ class MatriculaEstudianteServiceTest {
         assertEquals(101L, oferta.getOferta().get(0).getIdCurso());
         assertEquals(10, oferta.getOferta().get(0).getCupoDisponible());
         assertNull(oferta.getOferta().get(0).getProfesor());
+    }
+
+    /*
+     * ============================================================
+     * Consultar horario
+     * ============================================================
+     */
+
+    @Test
+    void consultarMiHorario_sinCursosMatriculados_devuelveVacio() {
+
+        when(autorizacionRepository.findByIdEstudiante_Id(ID_ESTUDIANTE))
+                .thenReturn(List.of(autorizacion));
+
+        HorarioEstudianteResponseDTO horario = service.consultarMiHorario(null);
+
+        assertNull(horario.getPeriodo());
+        assertTrue(horario.getPeriodos().isEmpty());
+        assertTrue(horario.getClases().isEmpty());
+    }
+
+    @Test
+    void consultarMiHorario_devuelveGruposMatriculadosConSusBloques() {
+
+        grupos.add(grupo(1L, 101L, 10));
+        horarios.add(horario(1L, 1, "08:00", "10:00"));
+        matricularGrupos(autorizacion, 700L, 1L);
+        when(autorizacionRepository.findByIdEstudiante_Id(ID_ESTUDIANTE))
+                .thenReturn(List.of(autorizacion));
+
+        HorarioEstudianteResponseDTO horario = service.consultarMiHorario(null);
+
+        assertEquals(ID_PERIODO, horario.getPeriodo().getId());
+        assertEquals(1, horario.getClases().size());
+        assertEquals("Guitarra I", horario.getClases().get(0).getNombreCurso());
+        assertEquals(1, horario.getClases().get(0).getHorarios().size());
+        assertEquals(1, horario.getClases().get(0).getHorarios().get(0).getDiaSemana());
+    }
+
+    @Test
+    void consultarMiHorario_sinPeriodoIndicado_prefiereElPeriodoEnCurso() {
+
+        AutorizacionesMatricula anterior = autorizacionEnOtroPeriodo(4L, "EN_CURSO", "2026-02-01");
+        autorizacion.getIdPeriodo().setEstado("MATRICULA");
+        autorizacion.getIdPeriodo().setFechaInicio(LocalDate.parse("2026-07-01"));
+
+        grupos.add(grupo(1L, 101L, 10));
+        grupos.add(grupo(2L, 102L, 10));
+        matricularGrupos(autorizacion, 700L, 1L);
+        matricularGrupos(anterior, 701L, 2L);
+        when(autorizacionRepository.findByIdEstudiante_Id(ID_ESTUDIANTE))
+                .thenReturn(List.of(autorizacion, anterior));
+
+        HorarioEstudianteResponseDTO enCurso = service.consultarMiHorario(null);
+
+        assertEquals(4L, enCurso.getPeriodo().getId());
+        assertEquals(2, enCurso.getPeriodos().size());
+        assertEquals(102L, enCurso.getClases().get(0).getIdCurso());
+
+        HorarioEstudianteResponseDTO pedido = service.consultarMiHorario(ID_PERIODO);
+
+        assertEquals(ID_PERIODO, pedido.getPeriodo().getId());
+        assertEquals(101L, pedido.getClases().get(0).getIdCurso());
     }
 
     /*
@@ -663,6 +728,41 @@ class MatriculaEstudianteServiceTest {
         malla.setNivel((short) nivel);
 
         return malla;
+    }
+
+    // Registra una matrícula REGISTRADA para la autorización con esos grupos.
+    private void matricularGrupos(AutorizacionesMatricula aut, Long idMatricula, Long... idsGrupo) {
+
+        Matricula matricula = new Matricula();
+        matricula.setId(idMatricula);
+        matricula.setEstado(estadoMatricula("REGISTRADA"));
+        when(matriculaRepository.findByAutorizacion_Id(aut.getId())).thenReturn(Optional.of(matricula));
+
+        List<MatriculaDetalle> detalles = new ArrayList<>();
+        for (Long idGrupo : idsGrupo) {
+            MatriculaDetalle detalle = new MatriculaDetalle();
+            detalle.setIdGrupo(idGrupo);
+            detalles.add(detalle);
+        }
+        when(detalleRepository.findByMatricula_IdAndRetiradoFalse(idMatricula)).thenReturn(detalles);
+    }
+
+    private AutorizacionesMatricula autorizacionEnOtroPeriodo(Long idPeriodo, String estado, String fechaInicio) {
+
+        PeriodoAcademico periodo = new PeriodoAcademico();
+        periodo.setId(idPeriodo);
+        periodo.setCodigo("P-" + idPeriodo);
+        periodo.setNombre("Período " + idPeriodo);
+        periodo.setEstado(estado);
+        periodo.setFechaInicio(LocalDate.parse(fechaInicio));
+
+        AutorizacionesMatricula otra = new AutorizacionesMatricula();
+        otra.setId(60L + idPeriodo);
+        otra.setIdEstudiante(estudiante);
+        otra.setIdPeriodo(periodo);
+        otra.setIdEstadoAutorizacion(estadoAutorizacion("AUTORIZADA"));
+
+        return otra;
     }
 
     private HorarioGrupo horario(Long idGrupo, int dia, String inicio, String fin) {

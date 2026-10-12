@@ -1,3 +1,4 @@
+import { RUTA_INICIO } from "../constants/menu";
 import { ROLES } from "../constants/roles";
 
 /*
@@ -7,14 +8,16 @@ import { ROLES } from "../constants/roles";
 const CLAVES = ["token", "rol", "cedula", "nombre", "correo", "requiereCambioContrasena"];
 
 /*
- * Página de inicio de cada rol después de iniciar sesión.
+ * Página de inicio de cada rol después de iniciar sesión: la pantalla
+ * que explica las opciones de su menú.
  */
 export const RUTAS_POR_ROL = {
-    [ROLES.ADMINISTRADOR]: "/admin/usuarios/crear",
-    [ROLES.DIRECTOR_ACADEMICO]: "/director-academico/cursos/crear",
-    [ROLES.ADMINISTRATIVO]: "/admin/administracion/estudiantes",
-    // HU-012: el estudiante ingresa directamente a sus notificaciones de matrícula.
-    [ROLES.ESTUDIANTE]: "/estudiante/notificaciones",
+    [ROLES.ADMINISTRADOR]: RUTA_INICIO,
+    [ROLES.DIRECTOR_ACADEMICO]: RUTA_INICIO,
+    [ROLES.ADMINISTRATIVO]: RUTA_INICIO,
+    [ROLES.PROFESOR]: RUTA_INICIO,
+    [ROLES.JUNTA_DIRECTIVA]: RUTA_INICIO,
+    [ROLES.ESTUDIANTE]: RUTA_INICIO,
 };
 
 // Pantalla para cambiar la contraseña temporal en el primer inicio de sesión
