@@ -46,4 +46,21 @@ describe('HU-031 - Desactivar curso', () => {
                 ).should('be.visible')
             })
     })
+
+    it('Debe conservar el curso cuando se cancela la desactivación', () => {
+        cy.get('.curso-card').should('have.length.greaterThan', 0)
+        cy.get('.curso-card').first().within(() => {
+            cy.get('h3').invoke('text').as('cursoSeleccionado')
+            cy.contains('button', 'Desactivar').click()
+        })
+
+        cy.get('[role="alertdialog"]').should('be.visible')
+            .within(() => cy.contains('button', 'Cancelar').click())
+
+        cy.get('@cursoSeleccionado').then((nombre) => {
+            cy.contains('.curso-card', nombre.trim()).should('be.visible')
+                .and('contain.text', 'Desactivar')
+        })
+    })
+
 })
