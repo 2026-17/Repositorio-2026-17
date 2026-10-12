@@ -187,6 +187,22 @@ describe('HU-030 - Modificar curso', () => {
                         .clear()
                         .type(nombreNuevo)
 
+                    const descripcionNueva = (descripcionOriginal || 'Descripción de prueba') + ' [Cypress]'
+                    const horasNuevas = Number(horasOriginales) + 1
+                    const nivelNuevo = Number(nivelOriginal) + 1
+
+                    cy.get('#descripcion')
+                        .clear()
+                        .type(descripcionNueva)
+
+                    cy.get('#horasTotales')
+                        .clear()
+                        .type(String(horasNuevas))
+
+                    cy.get('#nivel')
+                        .clear()
+                        .type(String(nivelNuevo))
+
                     cy.intercept(
                         'PUT',
                         `**/api/cursos/${curso.idCurso}`
@@ -202,9 +218,13 @@ describe('HU-030 - Modificar curso', () => {
                             cy.contains('button', 'Confirmar cambios').click()
                         })
 
-                    cy.wait('@modificarCurso')
-                        .its('response.statusCode')
-                        .should('eq', 200)
+                    cy.wait('@modificarCurso').then(({ response }) => {
+                        expect(response.statusCode).to.eq(200)
+                        expect(response.body.nombre).to.eq(nombreNuevo)
+                        expect(response.body.descripcion).to.eq(descripcionNueva)
+                        expect(Number(response.body.horasTotales)).to.eq(horasNuevas)
+                        expect(Number(response.body.nivel)).to.eq(nivelNuevo)
+                    })
 
                     cy.get('[role="alertdialog"]')
                         .should('be.visible')
