@@ -73,14 +73,36 @@ describe('HU-013 - Registrar y modificar profesores', () => {
             .within(() => cy.contains('button', 'Aceptar').click())
     })
 
-    it('Debe permitir dar de baja a un profesor activo', () => {
+    it('Debe rechazar una contraseña demasiado corta sin crear el profesor', () => {
+        cy.intercept('POST', '**/api/profesores').as('registrarProfesor')
+        cy.contains('button', '+ Nuevo profesor').click()
+        cy.contains('label', 'Tipo de identificación').parent().find('select')
+            .find('option').should('have.length.greaterThan', 1)
+        cy.contains('label', 'Tipo de identificación').parent().find('select').select(1)
+        cy.contains('label', 'Cédula / Número de identificación').parent().find('input').type(String(Date.now()).slice(-9))
+        cy.contains('label', 'Nombre').parent().find('input').type('Profesor')
+        cy.contains('label', 'Primer apellido').parent().find('input').type('Cypress')
+        cy.contains('label', 'Correo de contacto').parent().find('input').type(`corto-${Date.now()}@correo.com`)
+        cy.get('input[type="password"]').first().type('weak')
+        cy.get('form').submit()
+        cy.contains('Ingrese una contraseña de al menos 8 caracteres.').should('be.visible')
+        cy.get('@registrarProfesor.all').should('have.length', 0)
+    })
+
+    it('Debe solicitar confirmación para dar de baja y permitir cancelar sin cambios', () => {
+        cy.intercept('PATCH', '**/api/profesores/*/baja').as('darBaja')
         cy.get('body').then(($body) => {
             if ($body.find('button:contains("Dar de baja")').length === 0) {
-                cy.log('No hay profesores activos listados para dar de baja en este ambiente de prueba.')
+                cy.log('No hay profesores activos listados; prueba pendiente para este estado de datos.')
                 return
             }
             cy.contains('button', 'Dar de baja').first().click()
-            cy.contains('Dar de baja profesor').should('be.visible')
+            cy.get('[role="alertdialog"]').should('be.visible')
+                .and('contain.text', 'Dar de baja profesor')
+            cy.get('[role="alertdialog"]').contains('button', 'Cancelar').click()
+            cy.get('[role="alertdialog"]').should('not.exist')
+            cy.get('@darBaja.all').should('have.length', 0)
+            cy.contains('button', 'Dar de baja').should('be.visible')
         })
     })
 
