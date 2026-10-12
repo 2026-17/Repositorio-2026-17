@@ -42,7 +42,7 @@ describe('HU-012 - Confirmar matrícula', () => {
         })
     })
 
-    it('Debe rechazar una solicitud con observación y moverla al historial', () => {
+    it('Debe solicitar confirmación antes de rechazar una solicitud con observación', () => {
         cy.get('body').then(($body) => {
             if (!$body.text().includes('Preaprobación #')) {
                 cy.log('No hay preaprobaciones pendientes en este ambiente de prueba.')
@@ -61,4 +61,24 @@ describe('HU-012 - Confirmar matrícula', () => {
         cy.contains('Historial').click()
         cy.contains(/Historial vacío|Preaprobación #/).should('be.visible')
     })
+
+    it('Debe cancelar el rechazo sin cambiar la solicitud pendiente', () => {
+        cy.get('body').then(($body) => {
+            if (!$body.text().includes('Preaprobación #')) {
+                cy.log('Bloqueado: no hay solicitudes pendientes para comprobar la cancelación.')
+                return
+            }
+            cy.get('.card').first().within(() => {
+                cy.get('textarea').type('Observación de prueba; se cancelará la decisión.')
+                cy.contains('button', 'Rechazar').click()
+            })
+            cy.get('[role="alertdialog"]').should('be.visible')
+                .within(() => {
+                    cy.contains('h2', 'Rechazar matrícula').should('be.visible')
+                    cy.contains('button', 'Cancelar').click()
+                })
+            cy.contains(/Preaprobación #/).should('be.visible')
+        })
+    })
+
 })
