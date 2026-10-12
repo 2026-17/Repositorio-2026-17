@@ -12,24 +12,24 @@
  * No se crean datos. Los casos destructivos se omiten por defecto; revisar el ambiente baseUrl.
  */
 
-const PERSONAL_CEDULA = Cypress.env('PERSONAL_ACADEMICO_CEDULA');
-const PERSONAL_CLAVE = Cypress.env('PERSONAL_ACADEMICO_CLAVE');
-const ID_CON_MATRICULAS = Cypress.env('HU009_ESTUDIANTE_CON_MATRICULAS_ID');
-const CEDULA_CON_MATRICULAS = Cypress.env('HU009_ESTUDIANTE_CON_MATRICULAS_IDENTIFICACION');
-const ID_SIN_MATRICULAS = Cypress.env('HU009_ESTUDIANTE_SIN_MATRICULAS_ID');
-const CEDULA_SIN_MATRICULAS = Cypress.env('HU009_ESTUDIANTE_SIN_MATRICULAS_IDENTIFICACION');
-const ID_INACTIVO = Cypress.env('HU009_ESTUDIANTE_INACTIVO_ID');
-const ID_INEXISTENTE = Cypress.env('HU009_ESTUDIANTE_INEXISTENTE_ID');
-const CEDULA_ESTUDIANTE_INACTIVO = Cypress.env('HU009_ESTUDIANTE_INACTIVO_CEDULA');
-const CLAVE_ESTUDIANTE_INACTIVO = Cypress.env('HU009_ESTUDIANTE_INACTIVO_CLAVE');
-const ID_PERIODO_CUPO = Cypress.env('HU009_PERIODO_ID_CUPO');
-const ID_PROGRAMA_CUPO = Cypress.env('HU009_PROGRAMA_ID_CUPO');
-const ID_GRUPO_CUPO = Cypress.env('HU009_GRUPO_ID_CUPO');
+let PERSONAL_CEDULA;
+let PERSONAL_CLAVE;
+let ID_CON_MATRICULAS;
+let CEDULA_CON_MATRICULAS;
+let ID_SIN_MATRICULAS;
+let CEDULA_SIN_MATRICULAS;
+let ID_INACTIVO;
+let ID_INEXISTENTE;
+let CEDULA_ESTUDIANTE_INACTIVO;
+let CLAVE_ESTUDIANTE_INACTIVO;
+let ID_PERIODO_CUPO;
+let ID_PROGRAMA_CUPO;
+let ID_GRUPO_CUPO;
 const MOTIVO = 'Prueba funcional automatizada HU-009';
 
 function omitirSiFaltan(contexto, nombres) {
     const faltantes = nombres.filter((nombre) => {
-        const valor = Cypress.env(nombre);
+        const valor = valorEntorno(nombre);
         return valor === undefined || valor === null || String(valor).trim() === '';
     });
     if (faltantes.length) {
@@ -41,7 +41,7 @@ function omitirSiFaltan(contexto, nombres) {
 }
 
 function omitirSiNoSeAutorizaronBajas(contexto) {
-    if (Cypress.env('HU009_PERMITIR_BAJAS') !== 'SI') {
+    if (valorEntorno('HU009_PERMITIR_BAJAS') !== 'SI') {
         cy.log('Caso destructivo omitido. Configura HU009_PERMITIR_BAJAS="SI" solo si es seguro.');
         contexto.skip();
         return true;
@@ -92,6 +92,47 @@ function obtenerCupoGrupo(idPeriodo, idPrograma, idGrupo) {
         return Number(grupo.cupoDisponible);
     });
 }
+
+// Cypress 16: cargar solo las variables utilizadas por esta especificación.
+// cy.env() conserva las credenciales fuera de la configuración pública.
+let variablesEntorno = {};
+function valorEntorno(nombre) {
+    return variablesEntorno[nombre];
+}
+
+before(function () {
+    return cy.env([
+    "PERSONAL_ACADEMICO_CEDULA",
+    "PERSONAL_ACADEMICO_CLAVE",
+    "HU009_ESTUDIANTE_CON_MATRICULAS_ID",
+    "HU009_ESTUDIANTE_CON_MATRICULAS_IDENTIFICACION",
+    "HU009_ESTUDIANTE_SIN_MATRICULAS_ID",
+    "HU009_ESTUDIANTE_SIN_MATRICULAS_IDENTIFICACION",
+    "HU009_ESTUDIANTE_INACTIVO_ID",
+    "HU009_ESTUDIANTE_INEXISTENTE_ID",
+    "HU009_ESTUDIANTE_INACTIVO_CEDULA",
+    "HU009_ESTUDIANTE_INACTIVO_CLAVE",
+    "HU009_PERIODO_ID_CUPO",
+    "HU009_PROGRAMA_ID_CUPO",
+    "HU009_GRUPO_ID_CUPO",
+    "HU009_PERMITIR_BAJAS"
+]).then((valores) => {
+        variablesEntorno = valores;
+        PERSONAL_CEDULA = valorEntorno('PERSONAL_ACADEMICO_CEDULA');
+        PERSONAL_CLAVE = valorEntorno('PERSONAL_ACADEMICO_CLAVE');
+        ID_CON_MATRICULAS = valorEntorno('HU009_ESTUDIANTE_CON_MATRICULAS_ID');
+        CEDULA_CON_MATRICULAS = valorEntorno('HU009_ESTUDIANTE_CON_MATRICULAS_IDENTIFICACION');
+        ID_SIN_MATRICULAS = valorEntorno('HU009_ESTUDIANTE_SIN_MATRICULAS_ID');
+        CEDULA_SIN_MATRICULAS = valorEntorno('HU009_ESTUDIANTE_SIN_MATRICULAS_IDENTIFICACION');
+        ID_INACTIVO = valorEntorno('HU009_ESTUDIANTE_INACTIVO_ID');
+        ID_INEXISTENTE = valorEntorno('HU009_ESTUDIANTE_INEXISTENTE_ID');
+        CEDULA_ESTUDIANTE_INACTIVO = valorEntorno('HU009_ESTUDIANTE_INACTIVO_CEDULA');
+        CLAVE_ESTUDIANTE_INACTIVO = valorEntorno('HU009_ESTUDIANTE_INACTIVO_CLAVE');
+        ID_PERIODO_CUPO = valorEntorno('HU009_PERIODO_ID_CUPO');
+        ID_PROGRAMA_CUPO = valorEntorno('HU009_PROGRAMA_ID_CUPO');
+        ID_GRUPO_CUPO = valorEntorno('HU009_GRUPO_ID_CUPO');
+    });
+});
 
 describe('HU-009 - Dar de baja a un estudiante', () => {
     beforeEach(function () {
@@ -155,7 +196,7 @@ describe('HU-009 - Dar de baja a un estudiante', () => {
 
         const variablesCupo = ['HU009_PERIODO_ID_CUPO', 'HU009_PROGRAMA_ID_CUPO', 'HU009_GRUPO_ID_CUPO'];
         const probarCupo = variablesCupo.every((nombre) => {
-            const valor = Cypress.env(nombre);
+            const valor = valorEntorno(nombre);
             return valor !== undefined && valor !== null && String(valor).trim() !== '';
         });
         const cupoInicial = probarCupo
