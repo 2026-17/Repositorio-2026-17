@@ -75,6 +75,16 @@ describe('HU-014 - Asignar profesores a cursos y grupos',()=>{
         // No consumir los aliases aquí: cada escenario inspecciona su respuesta del GET inicial.
     });
 
+    it('comprueba que el catálogo real de profesores activos no incluya registros incompletos', () => {
+        cy.wait('@activos').then(({ response }) => {
+            expect(response.statusCode).to.eq(200);
+            expect(response.body).to.be.an('array');
+            response.body.forEach((profesor) => {
+                expect(profesor.idProfesor, 'identificador del profesor').to.exist;
+            });
+        });
+    });
+
     it('muestra cursos, grupos, períodos, horarios y profesor responsable',()=>{
         cy.wait('@grupos').then(({response})=>{
             expect(response.statusCode).to.eq(200);
