@@ -127,7 +127,7 @@ describe('HU-022 - Adjuntar documentos del estudiante', () => {
                 mimeType: 'text/plain',
             }, { force: true });
 
-            cy.contains('#documentos-estudiante button', 'Adjuntar documento').click();
+            cy.contains('#documentos-estudiante button', /Adjuntar documento|Reemplazar documento/).click();
             cy.contains('El archivo debe tener extensión PDF.').should('be.visible');
             cy.get('@documentosVigentes').then(({ response }) => {
                 expect(response.body).to.deep.equal(documentos);
