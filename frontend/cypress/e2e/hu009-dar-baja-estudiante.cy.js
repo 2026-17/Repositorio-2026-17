@@ -175,18 +175,47 @@ describe('HU-009 - Dar de baja a un estudiante', () => {
     });
 
     it('rechaza un ID que no pertenece a un estudiante registrado', function () {
-        if (omitirSiFaltan(this, ['HU009_ESTUDIANTE_INEXISTENTE_ID'])) return;
-        solicitarBaja(ID_INEXISTENTE, MOTIVO).then((respuesta) => {
-            expect(respuesta.status).to.eq(400);
-            expect(respuesta.body.message).to.contain('no existe');
+        // Si no se configuró un ID inexistente, calcular uno a partir del listado real.
+        // Consultarlo antes de enviar el PATCH para evitar modificar un registro existente.
+        cy.window().then((ventana) => cy.request({
+            url: '/api/estudiantes/listado',
+            qs: { activo: 'true' },
+            headers: headers(ventana.localStorage.getItem('token')),
+        })).then(({ body }) => {
+            expect(body).to.be.an('array');
+            const maximo = body.reduce((max, estudiante) => Math.max(max, Number(estudiante.id) || 0), 0);
+            const candidato = ID_INEXISTENTE || String(maximo + 1000000);
+            return cy.window().then((ventana) => cy.request({
+                url: '/api/estudiantes/' + candidato,
+                headers: headers(ventana.localStorage.getItem('token')),
+                failOnStatusCode: false,
+            })).then((consulta) => {
+                expect(consulta.status, 'el ID debe estar confirmado como inexistente antes del PATCH').to.be.oneOf([400, 404]);
+                return solicitarBaja(candidato, MOTIVO).then((respuesta) => {
+                    expect(respuesta.status).to.eq(400);
+                    expect(respuesta.body.message).to.contain('no existe');
+                });
+            });
         });
     });
 
     it('rechaza dar de baja por segunda vez a un estudiante inactivo', function () {
-        if (omitirSiFaltan(this, ['HU009_ESTUDIANTE_INACTIVO_ID'])) return;
-        solicitarBaja(ID_INACTIVO, MOTIVO).then((respuesta) => {
-            expect(respuesta.status).to.eq(400);
-            expect(respuesta.body.message).to.contain('inactivo');
+        cy.window().then((ventana) => cy.request({
+            url: '/api/estudiantes/listado',
+            qs: { activo: 'false' },
+            headers: headers(ventana.localStorage.getItem('token')),
+        })).then(({ body }) => {
+            expect(body).to.be.an('array');
+            const encontrado = body.find((item) => !item.activo && (!ID_INACTIVO || String(item.id) === String(ID_INACTIVO)));
+            if (!encontrado) {
+                cy.log('No existe estudiante inactivo para verificar el rechazo sin modificar datos.');
+                this.skip();
+                return;
+            }
+            solicitarBaja(encontrado.id, MOTIVO).then((respuesta) => {
+                expect(respuesta.status).to.eq(400);
+                expect(respuesta.body.message).to.contain('inactivo');
+            });
         });
     });
 
