@@ -17,11 +17,11 @@ import lombok.Setter;
 @AllArgsConstructor
 public class ProfesorRegistroRequest {
 
-    @NotNull
+    @NotNull(message = "Los datos del profesor son obligatorios")
     @Valid
     private ProfesorCreateRequest profesor;
 
-    @NotNull
+    @NotNull(message = "Los datos de la cuenta de usuario son obligatorios")
     @Valid
     private UsuarioCreateRequest usuario;
 }

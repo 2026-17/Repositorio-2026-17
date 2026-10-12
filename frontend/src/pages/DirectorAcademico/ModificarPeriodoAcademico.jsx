@@ -33,6 +33,17 @@ const ETIQUETAS_ESTADO = Object.fromEntries(
     ESTADOS.map((e) => [e.value, e.label])
 );
 
+// El estado solo avanza: PLANIFICADO → MATRICULA → EN_CURSO → CERRADO.
+// CANCELADO solo desde PLANIFICADO o MATRICULA. Misma regla que el backend.
+const ORDEN_ESTADOS = ["PLANIFICADO", "MATRICULA", "EN_CURSO", "CERRADO"];
+
+function cambioEstadoPermitido(actual, nuevo) {
+    if (!actual || actual === nuevo) return true;
+    if (actual === "CANCELADO") return false;
+    if (nuevo === "CANCELADO") return actual === "PLANIFICADO" || actual === "MATRICULA";
+    return ORDEN_ESTADOS.indexOf(nuevo) >= ORDEN_ESTADOS.indexOf(actual);
+}
+
 function ModificarPeriodoAcademico() {
     const dialog = useDialog();
 
@@ -169,17 +180,31 @@ function ModificarPeriodoAcademico() {
             siguientesErrores.fechaFin = "La fecha de fin debe ser posterior a la fecha de inicio.";
         }
 
-        if (
+        // Las fechas de matrícula van las dos o ninguna
+        if (form.fechaInicioMatricula && !form.fechaFinMatricula) {
+            siguientesErrores.fechaFinMatricula =
+                "Indique también la fecha de fin de matrícula, o deje ambas vacías.";
+        } else if (!form.fechaInicioMatricula && form.fechaFinMatricula) {
+            siguientesErrores.fechaInicioMatricula =
+                "Indique también la fecha de inicio de matrícula, o deje ambas vacías.";
+        } else if (
             form.fechaInicioMatricula &&
             form.fechaFinMatricula &&
             form.fechaFinMatricula < form.fechaInicioMatricula
         ) {
             siguientesErrores.fechaFinMatricula =
                 "La fecha de fin de matrícula no puede ser anterior a la de inicio.";
+        } else if (form.fechaFinMatricula && form.fechaFin && form.fechaFinMatricula > form.fechaFin) {
+            siguientesErrores.fechaFinMatricula =
+                "La fecha de fin de matrícula no puede ser posterior a la fecha de fin del período.";
         }
 
         if (!form.estado) {
             siguientesErrores.estado = "Seleccione el estado del período.";
+        } else if (!cambioEstadoPermitido(periodoEnEdicion?.estado, form.estado)) {
+            siguientesErrores.estado = form.estado === "CANCELADO"
+                ? "Solo se puede cancelar un período en estado Planificado o Matrícula."
+                : "El estado del período solo puede avanzar: Planificado → Matrícula → En curso → Cerrado.";
         }
 
         return siguientesErrores;
@@ -387,7 +412,11 @@ function ModificarPeriodoAcademico() {
                             <Field id="estado" label="Estado" error={errores.estado} select>
                                 <select id="estado" name="estado" className="sg-input sg-select" value={form.estado} onChange={handleChange} {...aria("estado")}>
                                     {ESTADOS.map((opcion) => (
-                                        <option key={opcion.value} value={opcion.value}>
+                                        <option
+                                            key={opcion.value}
+                                            value={opcion.value}
+                                            disabled={!cambioEstadoPermitido(periodoEnEdicion?.estado, opcion.value)}
+                                        >
                                             {opcion.label}
                                         </option>
                                     ))}

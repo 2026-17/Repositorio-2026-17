@@ -19,11 +19,13 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.databind.ObjectMapper;
 
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class BajaEstudianteService {
@@ -37,6 +39,8 @@ public class BajaEstudianteService {
     private final EstadoMatriculaRepository estadoMatriculaRepository;
     private final UsuarioRepository usuarioRepository;
     private final BitacoraRepository bitacoraRepository;
+    private final CuentaUsuarioService cuentaUsuarioService;
+    private final ObjectMapper objectMapper;
 
     public BajaEstudianteService(
             EstudianteRepository estudianteRepository,
@@ -44,7 +48,9 @@ public class BajaEstudianteService {
             MatriculaDetalleRepository matriculaDetalleRepository,
             EstadoMatriculaRepository estadoMatriculaRepository,
             UsuarioRepository usuarioRepository,
-            BitacoraRepository bitacoraRepository
+            BitacoraRepository bitacoraRepository,
+            CuentaUsuarioService cuentaUsuarioService,
+            ObjectMapper objectMapper
     ) {
         this.estudianteRepository = estudianteRepository;
         this.matriculaRepository = matriculaRepository;
@@ -52,6 +58,8 @@ public class BajaEstudianteService {
         this.estadoMatriculaRepository = estadoMatriculaRepository;
         this.usuarioRepository = usuarioRepository;
         this.bitacoraRepository = bitacoraRepository;
+        this.cuentaUsuarioService = cuentaUsuarioService;
+        this.objectMapper = objectMapper;
     }
 
     @Transactional
@@ -105,8 +113,8 @@ public class BajaEstudianteService {
                         usuario.getId(),
                         "matriculas_detalles",
                         detalle.getId(),
-                        "{\"retirado\":false}",
-                        "{\"retirado\":true,\"motivo_retiro\":\"" + escaparJson(motivo) + "\"}"
+                        Map.of("retirado", false),
+                        Map.of("retirado", true, "motivo_retiro", motivo)
                 );
             }
 
@@ -117,8 +125,8 @@ public class BajaEstudianteService {
                     usuario.getId(),
                     "matriculas",
                     matricula.getId(),
-                    "{\"estado\":\"REGISTRADA\"}",
-                    "{\"estado\":\"CANCELADA\",\"motivo_baja\":\"" + escaparJson(motivo) + "\"}"
+                    Map.of("estado", ESTADO_REGISTRADA),
+                    Map.of("estado", ESTADO_CANCELADA, "motivo_baja", motivo)
             );
         }
 
@@ -127,6 +135,10 @@ public class BajaEstudianteService {
         estudiante.setFechaBaja(fechaBaja);
         estudiante.setIdUsuarioUltimaModificacion(usuario.getId());
         estudianteRepository.save(estudiante);
+
+        // La cuenta del estudiante queda INACTIVA: ya no puede iniciar sesión
+        // y sus tokens vigentes dejan de servir (ver JwtAuthenticationFilter).
+        cuentaUsuarioService.inactivar(estudiante.getUsuario());
 
         return new DarBajaEstudianteResponse(
                 estudiante.getId(),
@@ -161,28 +173,19 @@ public class BajaEstudianteService {
             Long idUsuario,
             String tabla,
             Long idRegistro,
-            String datosAnteriores,
-            String datosNuevos
+            Map<String, ?> datosAnteriores,
+            Map<String, ?> datosNuevos
     ) {
         Bitacora bitacora = new Bitacora();
         bitacora.setIdUsuario(idUsuario);
         bitacora.setTablaAfectada(tabla);
         bitacora.setIdRegistro(idRegistro);
         bitacora.setAccion("UPDATE");
-        bitacora.setDatosAnteriores(datosAnteriores);
-        bitacora.setDatosNuevos(datosNuevos);
+        // ObjectMapper escapa cualquier carácter (incluidos los de control que
+        // trae un texto pegado de Word), así el JSON siempre es válido.
+        bitacora.setDatosAnteriores(objectMapper.writeValueAsString(datosAnteriores));
+        bitacora.setDatosNuevos(objectMapper.writeValueAsString(datosNuevos));
         bitacora.setFechaEvento(Instant.now());
         bitacoraRepository.save(bitacora);
-    }
-
-    private String escaparJson(String valor) {
-        return valor
-                .replace("\\", "\\\\")
-                .replace("\"", "\\\"")
-                .replace("\b", "\\b")
-                .replace("\f", "\\f")
-                .replace("\n", "\\n")
-                .replace("\r", "\\r")
-                .replace("\t", "\\t");
     }
 }

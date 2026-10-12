@@ -24,6 +24,7 @@ public class CursoRequestDTO {
     @Size(max = 160, message = "El nombre del curso no puede superar los 160 caracteres.")
     private String nombre;
 
+    @Size(max = 2000, message = "La descripción no puede superar los 2000 caracteres.")
     private String descripcion;
 
     @NotNull(message = "La cantidad de horas del curso es obligatoria.")
@@ -39,12 +40,14 @@ public class CursoRequestDTO {
 
     @NotNull(message = "El nivel académico es obligatorio.")
     @Positive(message = "El nivel académico debe ser mayor que cero.")
+    @Max(value = 999, message = "El nivel académico no puede ser mayor que 999.")
     private Short nivel;
 
     // --- Primera oferta del curso ---
 
     @NotNull(message = "La cantidad de cupos es obligatoria.")
     @Positive(message = "La cantidad de cupos debe ser mayor que cero.")
+    @Max(value = 500, message = "La cantidad de cupos no puede ser mayor que 500.")
     private Short cupos;
 
     @NotNull(message = "El período lectivo es obligatorio.")

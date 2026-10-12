@@ -19,6 +19,10 @@ import PageHead from "../../components/ui/PageHead";
 import { iniciales, listaErrores } from "../../components/ui/utilidades";
 
 import { useDialog } from "../../components/dialog/useDialog";
+import { lanzarError, mensajeDeExcepcion } from "../../utils/api";
+
+// Mismo límite que valida el backend (PagoService).
+const MAX_COMPROBANTE = 15 * 1024 * 1024;
 
 const MESES = [
     "", "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
@@ -67,6 +71,7 @@ function Estudiantes() {
 
     // --- Períodos académicos ---
     const [periodos, setPeriodos] = useState([]);
+    const [errorPeriodos, setErrorPeriodos] = useState("");
     const [idPeriodo, setIdPeriodo] = useState("");
 
     // --- Mes seleccionado y estado de pago ---
@@ -89,9 +94,12 @@ function Estudiantes() {
     // Catálogo de períodos académicos, se carga una sola vez.
     useEffect(() => {
         fetch(`${API_URL}/periodos-academicos`, { headers: authHeaders })
-            .then((r) => (r.ok ? r.json() : Promise.reject()))
+            .then((r) => (r.ok ? r.json() : lanzarError(r, "No se pudieron cargar los períodos académicos.")))
             .then(setPeriodos)
-            .catch(() => setPeriodos([]));
+            .catch((e) => {
+                setPeriodos([]);
+                setErrorPeriodos(mensajeDeExcepcion(e, "No se pudieron cargar los períodos académicos. Intente de nuevo en unos momentos."));
+            });
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -109,12 +117,12 @@ function Estudiantes() {
                 const response = await fetch(`${API_URL}/estudiantes?texto=${encodeURIComponent(consulta)}`, {
                     headers: authHeaders,
                 });
-                if (!response.ok) throw new Error();
+                if (!response.ok) await lanzarError(response, "No fue posible buscar estudiantes.");
                 const data = await response.json();
                 setResultados(data);
-            } catch {
+            } catch (e) {
                 setResultados([]);
-                dialog.error("No fue posible buscar estudiantes.");
+                dialog.error(mensajeDeExcepcion(e, "No fue posible buscar estudiantes."));
             } finally {
                 setBuscando(false);
             }
@@ -142,11 +150,11 @@ function Estudiantes() {
 
         try {
             const response = await fetch(`${API_URL}/estudiantes/${idEstudiante}`, { headers: authHeaders });
-            if (!response.ok) throw new Error();
+            if (!response.ok) await lanzarError(response, "No fue posible cargar la información del estudiante.");
             const data = await response.json();
             setEstudiante(data);
-        } catch {
-            dialog.error("No fue posible cargar la información del estudiante.");
+        } catch (e) {
+            dialog.error(mensajeDeExcepcion(e, "No fue posible cargar la información del estudiante."));
         } finally {
             setCargandoPerfil(false);
         }
@@ -163,6 +171,10 @@ function Estudiantes() {
         () => periodos.find((p) => String(p.id) === String(idPeriodo)) || null,
         [periodos, idPeriodo]
     );
+
+    // La fecha de pago no puede ser anterior al inicio de la matrícula del
+    // período (o al inicio del período si no tiene). Misma regla que el backend.
+    const fechaMinimaPago = periodoSeleccionado?.fechaInicioMatricula || periodoSeleccionado?.fechaInicio || "";
 
     async function consultarEstadoMes() {
         if (!estudiante || !idPeriodo || !mesSeleccionado) return;
@@ -206,7 +218,17 @@ function Estudiantes() {
         const nuevosErrores = {};
         if (!fechaPago) nuevosErrores.fechaPago = "Ingrese la fecha de pago.";
         else if (fechaPago > todayISO()) nuevosErrores.fechaPago = "La fecha de pago no puede ser futura.";
+        else if (fechaMinimaPago && fechaPago < fechaMinimaPago) {
+            nuevosErrores.fechaPago = periodoSeleccionado?.fechaInicioMatricula
+                ? "La fecha de pago no puede ser anterior al inicio de la matrícula del período."
+                : "La fecha de pago no puede ser anterior al inicio del período.";
+        }
+        // Los meses que se ofrecen ya son los del período; esto cubre un período mal cargado
+        if (mesSeleccionado && !mesesDelPeriodo(periodoSeleccionado).some(({ anio, mes }) => `${anio}-${mes}` === mesSeleccionado)) {
+            nuevosErrores.fechaPago = "El mes pagado no está dentro del período académico seleccionado.";
+        }
         if (!comprobante) nuevosErrores.comprobante = "Debe adjuntar el comprobante de pago.";
+        else if (comprobante.size > MAX_COMPROBANTE) nuevosErrores.comprobante = "El comprobante no puede superar 15 MB.";
 
         setErroresPago(nuevosErrores);
         if (Object.keys(nuevosErrores).length > 0) {
@@ -264,10 +286,10 @@ function Estudiantes() {
             });
             if (response.status === 401) throw new Error("La sesión ha expirado. Inicie sesión nuevamente.");
             if (response.status === 403) throw new Error("No tiene permisos para ver el comprobante.");
-            if (response.status === 404) throw new Error("No se encontró el comprobante (404). Verifique que el backend tenga los cambios más recientes.");
             if (!response.ok) {
-                const body = await response.json().catch(() => ({}));
-                throw new Error(body.message || `No fue posible abrir el comprobante (código ${response.status}).`);
+                await lanzarError(response, response.status === 404
+                    ? "No se encontró el comprobante de este pago."
+                    : "No fue posible abrir el comprobante.");
             }
             const blob = await response.blob();
             const url = URL.createObjectURL(blob);
@@ -288,10 +310,10 @@ function Estudiantes() {
             });
             if (response.status === 401) throw new Error("La sesión ha expirado. Inicie sesión nuevamente.");
             if (response.status === 403) throw new Error("No tiene permisos para eliminar pagos.");
-            if (response.status === 404) throw new Error("No se encontró el pago (404). Verifique que el backend tenga los cambios más recientes.");
-            if (!response.ok && response.status !== 204) {
-                const body = await response.json().catch(() => ({}));
-                throw new Error(body.message || `No fue posible eliminar el pago (código ${response.status}).`);
+            if (!response.ok) {
+                await lanzarError(response, response.status === 404
+                    ? "No se encontró el pago. Es posible que ya haya sido eliminado."
+                    : "No fue posible eliminar el pago.");
             }
             setConfirmarEliminarPago(false);
             await consultarEstadoMes();
@@ -388,7 +410,7 @@ function Estudiantes() {
 
                         <div className="panel-body stack">
                             <div className="form-grid">
-                                <Field id="cmbPeriodoPago" label="Período académico" select>
+                                <Field id="cmbPeriodoPago" label="Período académico" select error={errorPeriodos}>
                                     <select
                                         id="cmbPeriodoPago"
                                         className="sg-input sg-select"
@@ -491,6 +513,7 @@ function Estudiantes() {
                                                             id="pago-fechaPago"
                                                             className="sg-input"
                                                             type="date"
+                                                            min={fechaMinimaPago || undefined}
                                                             max={todayISO()}
                                                             value={fechaPago}
                                                             onChange={(e) => { setFechaPago(e.target.value); setErroresPago((er) => ({ ...er, fechaPago: "" })); }}

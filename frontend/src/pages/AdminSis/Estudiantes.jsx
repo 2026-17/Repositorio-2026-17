@@ -14,6 +14,7 @@ import "./styles/admin_Sis.css";
 import "./styles/Estudiantes.css";
 
 import { useDialog } from "../../components/dialog/useDialog";
+import { lanzarError, mensajeDeExcepcion } from "../../utils/api";
 
 const TAMANO_PAGINA = 10;
 const ETIQUETA_ESTADO = { true: "Activos", false: "Inactivos", "": "Todos" };
@@ -32,7 +33,7 @@ async function obtenerEstudiantes(filtroActivo) {
         { headers: getHeaders() }
     );
 
-    if (!response.ok) throw new Error("No se pudo cargar la lista de estudiantes.");
+    if (!response.ok) await lanzarError(response, "No se pudo cargar la lista de estudiantes.");
     const datos = await response.json();
     return Array.isArray(datos) ? datos : [];
 }
@@ -61,7 +62,7 @@ function Estudiantes() {
 
         obtenerEstudiantes(filtroActivo)
             .then((datos) => { if (activo) setEstudiantes(datos); })
-            .catch((e) => { if (activo) dialog.error(e.message); })
+            .catch((e) => { if (activo) dialog.error(mensajeDeExcepcion(e, "No se pudo cargar la lista de estudiantes.")); })
             .finally(() => { if (activo) setCargando(false); });
 
         return () => { activo = false; };
@@ -73,7 +74,7 @@ function Estudiantes() {
         try {
             setEstudiantes(await obtenerEstudiantes(filtroActivo));
         } catch (e) {
-            dialog.error(e.message);
+            dialog.error(mensajeDeExcepcion(e, "No se pudo cargar la lista de estudiantes."));
         } finally {
             setCargando(false);
         }

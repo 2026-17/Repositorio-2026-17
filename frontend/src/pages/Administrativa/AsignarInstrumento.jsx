@@ -10,6 +10,7 @@ import { iniciales } from "../../components/ui/utilidades";
 import { API_URL } from "../../config/api.js";
 
 import { useDialog } from "../../components/dialog/useDialog";
+import { lanzarError, mensajeDeExcepcion } from "../../utils/api";
 
 const initialForm = { idInstrumento: "", observaciones: "" };
 
@@ -43,10 +44,10 @@ export default function AsignarInstrumento() {
 
     useEffect(() => {
         setCatalogLoading(true);
-        fetch(`/api/registro/catalogos/instrumentos`, { headers: authHeaders() })
-            .then(r => (r.ok ? r.json() : Promise.reject()))
+        fetch(`${API_URL}/registro/catalogos/instrumentos`, { headers: authHeaders() })
+            .then(r => (r.ok ? r.json() : lanzarError(r, "No fue posible cargar el catálogo de instrumentos.")))
             .then(setInstrumentos)
-            .catch(() => dialog.error("No fue posible cargar el catálogo de instrumentos."))
+            .catch(e => dialog.error(mensajeDeExcepcion(e, "No fue posible cargar el catálogo de instrumentos.")))
             .finally(() => setCatalogLoading(false));
     }, [authHeaders, dialog]);
 

@@ -151,6 +151,12 @@ function CrearCurso() {
 
         if (!form.horasTotales || Number(form.horasTotales) <= 0) {
             siguientesErrores.horasTotales = "La cantidad de horas debe ser mayor que cero.";
+        } else if (Number(form.horasTotales) > 65535) {
+            siguientesErrores.horasTotales = "La cantidad de horas no puede ser mayor que 65535.";
+        }
+
+        if (form.descripcion.length > 2000) {
+            siguientesErrores.descripcion = "La descripción no puede superar los 2000 caracteres.";
         }
 
         if (!form.idPrograma) {
@@ -159,10 +165,14 @@ function CrearCurso() {
 
         if (!form.nivel || Number(form.nivel) <= 0) {
             siguientesErrores.nivel = "El nivel académico debe ser mayor que cero.";
+        } else if (Number(form.nivel) > 999) {
+            siguientesErrores.nivel = "El nivel académico no puede ser mayor que 999.";
         }
 
         if (!form.cupos || Number(form.cupos) <= 0) {
             siguientesErrores.cupos = "La cantidad de cupos debe ser mayor que cero.";
+        } else if (Number(form.cupos) > 500) {
+            siguientesErrores.cupos = "La cantidad de cupos no puede ser mayor que 500.";
         }
 
         if (!form.idPeriodo) {
@@ -321,14 +331,14 @@ function CrearCurso() {
                         <Field id="nombre" label="Nombre del curso" error={errores.nombre}>
                             <input id="nombre" name="nombre" type="text" className="sg-input" maxLength="160" value={form.nombre} onChange={handleChange} placeholder="Ej. Introducción a la música" autoComplete="off" {...aria("nombre")} />
                         </Field>
-                        <Field id="descripcion" label="Descripción" optional className="span-all">
-                            <textarea id="descripcion" name="descripcion" className="sg-input" rows="4" value={form.descripcion} onChange={handleChange} placeholder="Describa brevemente el contenido del curso." />
+                        <Field id="descripcion" label="Descripción" optional className="span-all" hint="Máximo 2000 caracteres." error={errores.descripcion}>
+                            <textarea id="descripcion" name="descripcion" className="sg-input" rows="4" maxLength={2000} value={form.descripcion} onChange={handleChange} placeholder="Describa brevemente el contenido del curso." />
                         </Field>
                         <Field id="horasTotales" label="Cantidad de horas" error={errores.horasTotales}>
                             <input id="horasTotales" name="horasTotales" type="number" className="sg-input" min="1" max="65535" step="1" inputMode="numeric" value={form.horasTotales} onChange={handleChange} placeholder="Ej. 40" {...aria("horasTotales")} />
                         </Field>
                         <Field id="nivel" label="Nivel académico" error={errores.nivel}>
-                            <input id="nivel" name="nivel" type="number" className="sg-input" min="1" step="1" inputMode="numeric" value={form.nivel} onChange={handleChange} placeholder="Ej. 1" {...aria("nivel")} />
+                            <input id="nivel" name="nivel" type="number" className="sg-input" min="1" max="999" step="1" inputMode="numeric" value={form.nivel} onChange={handleChange} placeholder="Ej. 1" {...aria("nivel")} />
                         </Field>
                     </div>
                 </section>
@@ -359,7 +369,7 @@ function CrearCurso() {
                             </select>
                         </Field>
                         <Field id="cupos" label="Cantidad de cupos" error={errores.cupos}>
-                            <input id="cupos" name="cupos" type="number" className="sg-input" min="1" step="1" inputMode="numeric" value={form.cupos} onChange={handleChange} placeholder="Ej. 25" {...aria("cupos")} />
+                            <input id="cupos" name="cupos" type="number" className="sg-input" min="1" max="500" step="1" inputMode="numeric" value={form.cupos} onChange={handleChange} placeholder="Ej. 25" {...aria("cupos")} />
                         </Field>
                     </div>
                 </section>

@@ -6,6 +6,7 @@ import Alert from "../../components/ui/Alert";
 import Field from "../../components/ui/Field";
 import PasswordField from "../../components/ui/PasswordField";
 import { listaErrores } from "../../components/ui/utilidades";
+import { leerError } from "../../utils/api";
 import { guardarSesion, RUTA_CAMBIO_CONTRASENA_TEMPORAL, RUTAS_POR_ROL } from "../../utils/sesion";
 import AuthLayout from "./AuthLayout";
 
@@ -60,9 +61,13 @@ function Login() {
             );
 
             if (!response.ok) {
+                const error = await leerError(response, null);
+                const generico = error.status >= 500 || !error.delBackend;
                 setFallo({
-                    titulo: "Cédula o contraseña incorrectas",
-                    mensaje: "Revise los datos e intente de nuevo.",
+                    titulo: "No se pudo iniciar sesión",
+                    mensaje: generico
+                        ? "No se pudo iniciar sesión. Intente de nuevo en unos momentos."
+                        : error.message,
                 });
                 return;
             }

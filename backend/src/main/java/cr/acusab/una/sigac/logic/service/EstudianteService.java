@@ -20,14 +20,17 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.text.Normalizer;
 import java.nio.file.*;
 import java.security.MessageDigest;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.Period;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -55,6 +58,7 @@ public class EstudianteService {
     private final BecaService becaService;
     private final InscripcionPlanEstudioService inscripcionPlanService;
     private final DistritoRepository distritoRepository;
+    private final CuentaUsuarioService cuentaUsuarioService;
 
     @Value("${sigac.storage.documents:./storage/documents}")
     private String storageDirectory;
@@ -75,7 +79,9 @@ public class EstudianteService {
                              ContrasenaTemporalService contrasenaTemporalService,
                              BecaService becaService,
                              InscripcionPlanEstudioService inscripcionPlanService,
-                             DistritoRepository distritoRepository) {
+                             DistritoRepository distritoRepository,
+                             CuentaUsuarioService cuentaUsuarioService) {
+        this.cuentaUsuarioService = cuentaUsuarioService;
         this.estudianteRepository = estudianteRepository;
         this.encargadoRepository = encargadoRepository;
         this.estudianteEncargadoRepository = estudianteEncargadoRepository;
@@ -98,16 +104,20 @@ public class EstudianteService {
     @Transactional
     public EstudianteResponse crear(EstudianteCreateRequest request, MultipartFile politica) {
         String identificacion = normalizar(request.numeroIdentificacion());
+        TiposIdentificacion tipo = tipoIdentificacionRepository.findByIdAndActivoTrue(request.idTipoIdentificacion())
+                .orElseThrow(() -> new BusinessException("El tipo de identificación indicado no existe o está inactivo"));
+        ReglasIdentificacion.validar(tipo, identificacion, "");
         if (estudianteRepository.existsByIdTipoIdentificacion_IdAndNumeroIdentificacion(request.idTipoIdentificacion(), identificacion)) {
             throw new DuplicateResourceException("Ya existe un estudiante con esa identificación");
         }
         validarGenero(request.genero());
         validarPdf(politica);
         inscripcionPlanService.validarParaRegistro(request.idsPlanEstudio());
+        validarEdad(request.fechaNacimiento());
         int edad = calcularEdad(request.fechaNacimiento());
         boolean menor = edad < 18;
         if (menor) {
-            validarEncargados(request.encargados());
+            validarEncargados(request.encargados(), request.idTipoIdentificacion(), identificacion);
         } else if (request.encargados() != null && !request.encargados().isEmpty()) {
             throw new BusinessException("Los encargados solo se registran para menores de edad");
         }
@@ -116,8 +126,6 @@ public class EstudianteService {
         Instrumento instrumento = instrumentoRepository.findByIdAndActivoTrue(request.idInstrumento())
                 .orElseThrow(() -> new BusinessException("El instrumento indicado no existe o está inactivo"));
         Profesor profesor = obtenerProfesorParaInstrumento(request.idProfesor(), instrumento);
-        TiposIdentificacion tipo = tipoIdentificacionRepository.findByIdAndActivoTrue(request.idTipoIdentificacion())
-                .orElseThrow(() -> new BusinessException("El tipo de identificación indicado no existe o está inactivo"));
         TiposDocumento tipoPoliza = tipoDocumentoRepository.findByCodigoAndActivoTrue("POLIZA")
                 .orElseThrow(() -> new BusinessException("No está configurado el tipo de documento POLIZA activo"));
 
@@ -284,18 +292,29 @@ public class EstudianteService {
         Estudiante estudiante = estudianteRepository.findById(id)
                 .orElseThrow(() -> new BusinessException("El estudiante indicado no existe"));
         String identificacion = normalizar(request.numeroIdentificacion());
+        TiposIdentificacion tipo = tipoIdentificacionRepository.findByIdAndActivoTrue(request.idTipoIdentificacion())
+                .orElseThrow(() -> new BusinessException("El tipo de identificación indicado no existe o está inactivo"));
+        ReglasIdentificacion.validar(tipo, identificacion, "");
         var existente = estudianteRepository.findByIdTipoIdentificacion_IdAndNumeroIdentificacion(request.idTipoIdentificacion(), identificacion);
         if (existente.isPresent() && !Objects.equals(existente.get().getId(), id)) {
             throw new DuplicateResourceException("Ya existe un estudiante con esa identificación");
         }
         validarGenero(request.genero());
+        validarEdad(request.fechaNacimiento());
         int edad = calcularEdad(request.fechaNacimiento());
+        // Si con la nueva fecha queda menor de edad, debe tener quien lo represente.
+        // (Si pasa a ser mayor, sus encargados se conservan.)
+        if (edad < 18 && estudianteEncargadoRepository.countByIdEstudiante(id) == 0) {
+            throw new BusinessException("Un menor de edad debe tener al menos un encargado registrado.");
+        }
         String centro = obtenerCentro(request.centroEducativo(), edad);
         Instrumento instrumento = instrumentoRepository.findByIdAndActivoTrue(request.idInstrumento())
                 .orElseThrow(() -> new BusinessException("El instrumento indicado no existe o está inactivo"));
-        TiposIdentificacion tipo = tipoIdentificacionRepository.findByIdAndActivoTrue(request.idTipoIdentificacion())
-                .orElseThrow(() -> new BusinessException("El tipo de identificación indicado no existe o está inactivo"));
         Distrito distrito = obtenerDistrito(request.codigoDistrito());
+
+        // La cuenta de usuario ingresa con la identificación y recupera la
+        // contraseña con el correo: se mantienen iguales a los del estudiante.
+        cuentaUsuarioService.sincronizarIdentidad(estudiante.getUsuario(), identificacion, normalizarNullable(request.correo()));
 
         aplicarDatos(estudiante, tipo, identificacion, request.nombres(), request.primerApellido(), request.segundoApellido(), request.fechaNacimiento(),
                 request.genero(), distrito, request.direccion(), request.telefono(), request.correo(), request.nivelEscolar(), centro, request.condicionesRelevantes());
@@ -380,12 +399,24 @@ public class EstudianteService {
                 e.getSegundoApellido(), e.getFechaNacimiento(), edad, e.getGenero(), e.getDireccion(),
                 UbicacionResponse.de(e.getDistrito()), e.getTelefono(),
                 e.getCorreo(), e.getNivelEscolar(), e.getCentroEducativo(),
-                instrumentoId, edad < 18, beca, idsPlanEstudio);
+                instrumentoId, edad < 18, beca, idsPlanEstudio,
+                e.getIdTipoIdentificacion() == null ? null : e.getIdTipoIdentificacion().getId(),
+                e.getCondicionesRelevantes());
     }
 
     private int calcularEdad(LocalDate nacimiento) {
         if (nacimiento == null) throw new BusinessException("La fecha de nacimiento es obligatoria");
         return Period.between(nacimiento, LocalDate.now()).getYears();
+    }
+
+    // Edad permitida: de 2 a 100 años (el frontend aplica la misma regla).
+    private static final int EDAD_MINIMA = 2;
+    private static final int EDAD_MAXIMA = 100;
+
+    private void validarEdad(LocalDate nacimiento) {
+        int edad = calcularEdad(nacimiento);
+        if (edad < EDAD_MINIMA) throw new BusinessException("El estudiante debe tener al menos 2 años.");
+        if (edad > EDAD_MAXIMA) throw new BusinessException("Revise la fecha de nacimiento.");
     }
 
     private boolean requiereCentroEducativo(int edad) { return edad >= 6 && edad < 18; }
@@ -405,7 +436,19 @@ public class EstudianteService {
         String identificacion = normalizarNullable(data.numeroIdentificacion());
         if (data.idTipoIdentificacion() != null && identificacion != null) {
             var existente = encargadoRepository.findByIdTipoIdentificacion_IdAndNumeroIdentificacion(data.idTipoIdentificacion(), identificacion);
-            if (existente.isPresent()) return existente.get();
+            if (existente.isPresent()) {
+                // Se reutiliza el encargado ya registrado solo si es la misma
+                // persona; si el nombre no coincide, probablemente hay un error de digitación.
+                Encargado encargado = existente.get();
+                if (!mismoTexto(encargado.getNombres(), data.nombres())
+                        || !mismoTexto(encargado.getPrimerApellido(), data.primerApellido())) {
+                    String registrado = String.join(" ", normalizar(encargado.getNombres()),
+                            normalizar(encargado.getPrimerApellido()), normalizar(encargado.getSegundoApellido())).trim();
+                    throw new BusinessException("Ya existe un encargado con esa identificación registrado como "
+                            + registrado + ". Verifique los datos.");
+                }
+                return encargado;
+            }
         }
         Encargado encargado = new Encargado();
         if (data.idTipoIdentificacion() != null) {
@@ -424,15 +467,49 @@ public class EstudianteService {
         return encargadoRepository.save(encargado);
     }
 
-    private void validarEncargados(List<EstudianteCreateRequest.EncargadoRequest> encargados) {
+    private void validarEncargados(List<EstudianteCreateRequest.EncargadoRequest> encargados,
+                                   Integer idTipoEstudiante, String identificacionEstudiante) {
         if (encargados == null || encargados.isEmpty() || encargados.size() > 2) throw new BusinessException("Un menor debe tener uno o dos encargados");
         long principales = encargados.stream().filter(EstudianteCreateRequest.EncargadoRequest::responsablePrincipal).count();
         long emergencias = encargados.stream().filter(EstudianteCreateRequest.EncargadoRequest::contactoEmergencia).count();
         if (principales != 1) throw new BusinessException("Debe existir exactamente un responsable principal");
         if (emergencias > 2) throw new BusinessException("No puede haber más de dos contactos de emergencia");
+
+        Set<String> identificaciones = new HashSet<>();
         for (var encargado : encargados) {
             if (!PARENTESCOS.contains(normalizar(encargado.parentesco()).toUpperCase(Locale.ROOT))) throw new BusinessException("El parentesco no es válido");
+
+            // La identificación del encargado es opcional, pero va completa (tipo y número) o vacía.
+            String numero = normalizarNullable(encargado.numeroIdentificacion());
+            Integer idTipo = encargado.idTipoIdentificacion();
+            if (numero == null && idTipo == null) continue;
+            if (numero == null) throw new BusinessException("Indique el número de identificación del encargado.");
+            if (idTipo == null) throw new BusinessException("Indique el tipo de identificación del encargado.");
+
+            TiposIdentificacion tipo = tipoIdentificacionRepository.findByIdAndActivoTrue(idTipo)
+                    .orElseThrow(() -> new BusinessException("El tipo de identificación del encargado no existe o está inactivo"));
+            ReglasIdentificacion.validar(tipo, numero, "del encargado");
+
+            if (Objects.equals(idTipo, idTipoEstudiante) && numero.equalsIgnoreCase(identificacionEstudiante)) {
+                throw new BusinessException("El encargado no puede tener la misma identificación que el estudiante.");
+            }
+            // Sin esta regla, el segundo encargado sobrescribe la relación del primero
+            // y el estudiante puede quedar sin responsable principal.
+            if (!identificaciones.add(idTipo + ":" + numero.toUpperCase(Locale.ROOT))) {
+                throw new BusinessException("Los dos encargados no pueden tener la misma identificación.");
+            }
         }
+    }
+
+    // Compara dos textos sin distinguir mayúsculas, tildes ni espacios repetidos.
+    private boolean mismoTexto(String a, String b) {
+        return sinTildes(normalizar(a)).equals(sinTildes(normalizar(b)));
+    }
+
+    private String sinTildes(String texto) {
+        return Normalizer.normalize(texto, Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "")
+                .toLowerCase(Locale.ROOT);
     }
 
     private void validarGenero(String genero) {

@@ -115,7 +115,7 @@ public class PeriodoAcademicoService {
 
         // 2. Si se definen fechas de matrícula, la de fin no puede ser
         // anterior a la de inicio.
-        validarFechasMatricula(fechaInicioMatricula, fechaFinMatricula);
+        validarFechasMatricula(fechaInicioMatricula, fechaFinMatricula, fechaFin);
 
         // 3. El estado indicado debe ser uno de los permitidos al crear.
         if (!ESTADOS_VALIDOS_CREACION.contains(estado)) {
@@ -191,7 +191,7 @@ public class PeriodoAcademicoService {
 
         // 2. Si se definen fechas de matrícula, la de fin no puede ser
         // anterior a la de inicio.
-        validarFechasMatricula(fechaInicioMatricula, fechaFinMatricula);
+        validarFechasMatricula(fechaInicioMatricula, fechaFinMatricula, fechaFin);
 
         // 3. El estado indicado debe ser uno de los permitidos.
         if (!ESTADOS_VALIDOS_ACTUALIZACION.contains(estado)) {
@@ -199,6 +199,9 @@ public class PeriodoAcademicoService {
                     "El estado indicado no es válido."
             );
         }
+
+        // 3b. El estado solo avanza (ver validarCambioEstado).
+        validarCambioEstado(periodo.getEstado(), estado);
 
         // 4. No puede existir otro período (distinto a este) con el
         // mismo nombre.
@@ -245,10 +248,75 @@ public class PeriodoAcademicoService {
         }
     }
 
+    /*
+     * Orden del ciclo de vida de un período. El estado solo avanza
+     * (se puede saltar un paso, pero no volver atrás). CANCELADO solo
+     * se permite desde PLANIFICADO o MATRICULA, y CERRADO y CANCELADO
+     * son finales.
+     */
+    private static final List<String> ORDEN_ESTADOS = List.of(
+            "PLANIFICADO",
+            "MATRICULA",
+            "EN_CURSO",
+            "CERRADO"
+    );
+
+    private static final Set<String> ESTADOS_QUE_PERMITEN_CANCELAR = Set.of(
+            "PLANIFICADO",
+            "MATRICULA"
+    );
+
+    private void validarCambioEstado(String actual, String nuevo) {
+
+        if (actual == null || actual.equalsIgnoreCase(nuevo)) {
+            return;
+        }
+
+        String estadoActual = actual.toUpperCase();
+
+        if ("CANCELADO".equals(estadoActual)) {
+            throw new IllegalArgumentException(
+                    "Un período cancelado no puede cambiar de estado."
+            );
+        }
+
+        if ("CANCELADO".equals(nuevo)) {
+            if (!ESTADOS_QUE_PERMITEN_CANCELAR.contains(estadoActual)) {
+                throw new IllegalArgumentException(
+                        "Solo se puede cancelar un período en estado PLANIFICADO o MATRICULA."
+                );
+            }
+            return;
+        }
+
+        if (ORDEN_ESTADOS.indexOf(nuevo) < ORDEN_ESTADOS.indexOf(estadoActual)) {
+            throw new IllegalArgumentException(
+                    "El estado del período solo puede avanzar: PLANIFICADO → MATRICULA → EN_CURSO → CERRADO."
+            );
+        }
+    }
+
     private void validarFechasMatricula(
             LocalDate fechaInicioMatricula,
-            LocalDate fechaFinMatricula
+            LocalDate fechaFinMatricula,
+            LocalDate fechaFinPeriodo
     ) {
+
+        // Las fechas de matrícula van las dos o ninguna.
+        if ((fechaInicioMatricula == null) != (fechaFinMatricula == null)) {
+            throw new IllegalArgumentException(
+                    "Indique la fecha de inicio y la de fin de matrícula, o deje ambas vacías."
+            );
+        }
+
+        if (fechaFinMatricula != null
+                && fechaFinPeriodo != null
+                && fechaFinMatricula.isAfter(fechaFinPeriodo)) {
+
+            throw new IllegalArgumentException(
+                    "La fecha de fin de matrícula no puede ser posterior a la fecha de fin del período."
+            );
+        }
 
         if (fechaInicioMatricula != null
                 && fechaFinMatricula != null
