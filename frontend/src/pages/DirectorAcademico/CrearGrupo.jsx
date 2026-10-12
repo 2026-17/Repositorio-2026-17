@@ -7,6 +7,7 @@ import Alert from "../../components/ui/Alert";
 import Field from "../../components/ui/Field";
 import PageHead from "../../components/ui/PageHead";
 import { listaErrores } from "../../components/ui/utilidades";
+import { lanzarError, mensajeDeExcepcion } from "../../utils/api";
 
 import { useDialog } from "../../components/dialog/useDialog";
 
@@ -104,15 +105,15 @@ function CrearGrupo() {
                 const [cursosResponse, periodosResponse, profesoresResponse] = respuestas;
 
                 if (!cursosResponse.ok) {
-                    throw new Error("No se pudieron cargar los cursos.");
+                    await lanzarError(cursosResponse, "No se pudieron cargar los cursos.");
                 }
 
                 if (!periodosResponse.ok) {
-                    throw new Error("No se pudieron cargar los períodos académicos.");
+                    await lanzarError(periodosResponse, "No se pudieron cargar los períodos académicos.");
                 }
 
                 if (!profesoresResponse.ok) {
-                    throw new Error("No se pudieron cargar los profesores.");
+                    await lanzarError(profesoresResponse, "No se pudieron cargar los profesores.");
                 }
 
                 setCursos(await cursosResponse.json());
@@ -122,8 +123,10 @@ function CrearGrupo() {
             } catch (e) {
 
                 dialog.error(
-                    e.message ||
-                    "No fue posible cargar la información necesaria."
+                    mensajeDeExcepcion(
+                        e,
+                        "No fue posible cargar la información necesaria."
+                    )
                 );
 
             } finally {

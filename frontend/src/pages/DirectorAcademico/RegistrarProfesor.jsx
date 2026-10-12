@@ -12,6 +12,7 @@ import Field from "../../components/ui/Field";
 import PageHead from "../../components/ui/PageHead";
 import Stepper from "../../components/ui/Stepper";
 import { listaErrores } from "../../components/ui/utilidades";
+import { campoDeConflicto, erroresDeCampos, lanzarError, leerError, mensajeDeExcepcion } from "../../utils/api";
 
 const PASOS = ["Profesor", "Información académica y laboral", "Revisar y confirmar"];
 
@@ -74,7 +75,7 @@ export default function RegistrarProfesor() {
     const token = localStorage.getItem("token");
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
     const cargar = (ruta, mensaje) =>
-      fetch(`${API_URL}${ruta}`, { headers }).then((r) => (r.ok ? r.json() : Promise.reject(new Error(mensaje))));
+      fetch(`${API_URL}${ruta}`, { headers }).then((r) => (r.ok ? r.json() : lanzarError(r, mensaje)));
 
     Promise.all([
       cargar("/tipos-identificacion", "No se pudo cargar tipos de identificación."),
@@ -86,8 +87,8 @@ export default function RegistrarProfesor() {
         setGrados(g);
         setInstrumentos(i);
       })
-      .catch(() => {
-        if (dialog?.error) dialog.error("No fue posible cargar los catálogos. Verifique que el backend esté disponible.");
+      .catch((e) => {
+        if (dialog?.error) dialog.error(mensajeDeExcepcion(e, "No fue posible cargar los catálogos. Intente de nuevo en unos momentos."));
       })
       .finally(() => setCatalogLoading(false));
   }, [dialog]);
@@ -187,19 +188,26 @@ export default function RegistrarProfesor() {
         headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify(payload),
       });
-      const body = await response.json().catch(() => ({}));
       if (!response.ok) {
-        const mensaje = body.detail || body.message || "No fue posible registrar el profesor.";
-        // Identificación repetida: se lleva al usuario al campo del primer paso
-        if (response.status === 409) {
-          setPaso(0);
-          setErrors({ numeroIdentificacion: mensaje });
+        const error = await leerError(response, "No fue posible registrar el profesor.");
+        const porCampo = erroresDeCampos(error.fields, { "usuario.cedula": "numeroIdentificacion", "usuario.nombre": "nombres" });
+        // Dato repetido: se lleva al usuario al campo que corresponde (correo o identificación)
+        if (error.status === 409) {
+          const campo = campoDeConflicto(error.message);
+          if (campo === "correo") porCampo.correo = error.message;
+          if (campo === "identificacion") porCampo.numeroIdentificacion = error.message;
+        }
+        if (Object.keys(porCampo).length > 0) {
+          const primerPaso = Math.min(...Object.keys(porCampo).map(pasoDeCampo));
+          setPaso(primerPaso);
+          setErrors(porCampo);
           setIntento((n) => n + 1);
           return;
         }
-        throw new Error(mensaje);
+        throw new Error(error.message);
       }
 
+      const body = await response.json().catch(() => ({}));
       setRegistrado({ id: body.id });
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (e) {

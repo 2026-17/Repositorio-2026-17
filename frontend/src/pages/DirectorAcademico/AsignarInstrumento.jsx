@@ -9,6 +9,7 @@ import PageHead from "../../components/ui/PageHead";
 import StatusBadge from "../../components/ui/StatusBadge";
 import { iniciales } from "../../components/ui/utilidades";
 import { API_URL } from "../../config/api.js";
+import { lanzarError, mensajeDeExcepcion } from "../../utils/api";
 
 const initialForm = { idInstrumento: "", idProfesor: "", observaciones: "" };
 
@@ -46,9 +47,9 @@ export default function AsignarInstrumento() {
     useEffect(() => {
         setCatalogLoading(true);
         fetch(`${API_URL}/instrumentos`, { headers: authHeaders() })
-            .then(r => (r.ok ? r.json() : Promise.reject()))
+            .then(r => (r.ok ? r.json() : lanzarError(r, "No fue posible cargar el catálogo de instrumentos.")))
             .then(setInstrumentos)
-            .catch(() => setError("No fue posible cargar el catálogo de instrumentos."))
+            .catch(e => setError(mensajeDeExcepcion(e, "No fue posible cargar el catálogo de instrumentos.")))
             .finally(() => setCatalogLoading(false));
     }, [authHeaders]);
 
@@ -62,9 +63,9 @@ export default function AsignarInstrumento() {
         let cancelado = false;
         setProfesoresLoading(true);
         fetch(`${API_URL}/profesores/por-instrumento/${form.idInstrumento}`, { headers: authHeaders() })
-            .then(r => (r.ok ? r.json() : Promise.reject()))
+            .then(r => (r.ok ? r.json() : lanzarError(r, "No fue posible cargar los profesores de ese instrumento.")))
             .then(data => { if (!cancelado) setProfesores(data); })
-            .catch(() => { if (!cancelado) setError("No fue posible cargar los profesores de ese instrumento."); })
+            .catch(e => { if (!cancelado) setError(mensajeDeExcepcion(e, "No fue posible cargar los profesores de ese instrumento.")); })
             .finally(() => { if (!cancelado) setProfesoresLoading(false); });
         return () => { cancelado = true; };
     }, [form.idInstrumento, authHeaders]);

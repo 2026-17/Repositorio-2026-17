@@ -6,6 +6,7 @@ import Alert from "../../components/ui/Alert";
 import Field from "../../components/ui/Field";
 import PageHead from "../../components/ui/PageHead";
 import { listaErrores } from "../../components/ui/utilidades";
+import { campoDeConflicto, erroresDeCampos, lanzarError, leerError, mensajeDeExcepcion } from "../../utils/api";
 import "./styles/createUsers.css";
 
 const FORM_VACIO = {
@@ -46,9 +47,8 @@ function CreateUsers() {
                     fetch(`${API_URL}/estados-usuarios`, { headers: getHeaders() }),
                 ]);
 
-                if (!rolesRes.ok || !estadosRes.ok) {
-                    throw new Error("No se pudieron cargar los catálogos");
-                }
+                if (!rolesRes.ok) await lanzarError(rolesRes, "No se pudo cargar el catálogo de roles.");
+                if (!estadosRes.ok) await lanzarError(estadosRes, "No se pudo cargar el catálogo de estados de usuario.");
 
                 const [rolesData, estadosData] = await Promise.all([
                     rolesRes.json(),
@@ -58,7 +58,7 @@ function CreateUsers() {
                 setRoles(rolesData);
                 setEstados(estadosData);
             } catch (e) {
-                setError(e.message);
+                setError(mensajeDeExcepcion(e, "No se pudieron cargar los catálogos. Intente de nuevo en unos momentos."));
             }
         }
 
@@ -106,8 +106,19 @@ function CreateUsers() {
             });
 
             if (!response.ok) {
-                const body = await response.json().catch(() => ({}));
-                dialog.error(body.message || "Error al crear usuario");
+                const error = await leerError(response, "Error al crear usuario");
+                const porCampo = erroresDeCampos(error.fields);
+                if (error.status === 409) {
+                    const campo = campoDeConflicto(error.message);
+                    if (campo === "correo") porCampo.correo = error.message;
+                    if (campo === "identificacion") porCampo.cedula = error.message;
+                }
+                if (Object.keys(porCampo).length > 0) {
+                    setErrores(porCampo);
+                    setIntento((n) => n + 1);
+                    return;
+                }
+                dialog.error(error.message);
                 return;
             }
 

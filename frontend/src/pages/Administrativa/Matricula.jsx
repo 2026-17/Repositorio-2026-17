@@ -11,6 +11,7 @@ import StatusBadge from "../../components/ui/StatusBadge";
 import { iniciales } from "../../components/ui/utilidades";
 
 import { useDialog } from "../../components/dialog/useDialog";
+import { mensajeDeExcepcion } from "../../utils/api";
 
 async function leerRespuesta(response) {
     try {
@@ -113,6 +114,7 @@ function Matricula() {
 
     // --- Iniciar/recalcular una preaprobación (Historia 1) ---
     const [periodos, setPeriodos] = useState([]);
+    const [errorPeriodos, setErrorPeriodos] = useState("");
     const [idPeriodoSeleccionado, setIdPeriodoSeleccionado] =
         useState("");
 
@@ -122,6 +124,7 @@ function Matricula() {
         useState([]);
     const [buscandoEstudiantes, setBuscandoEstudiantes] =
         useState(false);
+    const [errorBusqueda, setErrorBusqueda] = useState("");
     const [estudianteSeleccionado, setEstudianteSeleccionado] =
         useState(null);
 
@@ -219,13 +222,22 @@ function Matricula() {
 
             const data = await leerRespuesta(response);
 
-            if (response.ok && Array.isArray(data)) {
-                setPeriodos(data);
-            }
-        } catch {
-            // La lista de periodos es un apoyo para el formulario;
-            // si falla, el admin simplemente no puede crear una
-            // preaprobación nueva hasta actualizar la página.
+            validarEstadoRespuesta(
+                response,
+                data,
+                "No se pudieron cargar los períodos académicos."
+            );
+
+            setPeriodos(Array.isArray(data) ? data : []);
+            setErrorPeriodos("");
+        } catch (e) {
+            // Sin períodos no se puede crear una preaprobación nueva:
+            // se avisa debajo del selector en lugar de dejarlo vacío.
+            setPeriodos([]);
+            setErrorPeriodos(
+                `${mensajeDeExcepcion(e, "No se pudieron cargar los períodos académicos.")} ` +
+                "No es posible crear preaprobaciones hasta que se carguen."
+            );
         }
     }, [token]);
 
@@ -291,11 +303,19 @@ function Matricula() {
 
                 const data = await leerRespuesta(response);
 
-                setResultadosEstudiantes(
-                    response.ok && Array.isArray(data) ? data : []
+                validarEstadoRespuesta(
+                    response,
+                    data,
+                    "No fue posible buscar estudiantes."
                 );
-            } catch {
+
+                setResultadosEstudiantes(Array.isArray(data) ? data : []);
+                setErrorBusqueda("");
+            } catch (e) {
                 setResultadosEstudiantes([]);
+                setErrorBusqueda(
+                    mensajeDeExcepcion(e, "No fue posible buscar estudiantes. Intente de nuevo en unos momentos.")
+                );
             } finally {
                 setBuscandoEstudiantes(false);
             }
@@ -672,7 +692,10 @@ function Matricula() {
                                 {buscandoEstudiantes && (
                                     <div className="search-results__empty">Buscando...</div>
                                 )}
-                                {!buscandoEstudiantes && resultadosEstudiantes.length === 0 && (
+                                {!buscandoEstudiantes && errorBusqueda && (
+                                    <div className="search-results__empty" role="alert">{errorBusqueda}</div>
+                                )}
+                                {!buscandoEstudiantes && !errorBusqueda && resultadosEstudiantes.length === 0 && (
                                     <div className="search-results__empty">Sin coincidencias.</div>
                                 )}
                                 {!buscandoEstudiantes && resultadosEstudiantes.map((estudiante) => (
@@ -695,7 +718,7 @@ function Matricula() {
                         )}
                     </div>
 
-                    <Field id="cmbPeriodoPreaprobacion" label="Período académico" select>
+                    <Field id="cmbPeriodoPreaprobacion" label="Período académico" select error={errorPeriodos}>
                         <select
                             id="cmbPeriodoPreaprobacion"
                             className="sg-input sg-select"

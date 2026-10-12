@@ -10,6 +10,7 @@ import PageHead from "../../components/ui/PageHead";
 import Pagination from "../../components/ui/Pagination";
 import StatusBadge from "../../components/ui/StatusBadge";
 import { iniciales, listaErrores, paginar } from "../../components/ui/utilidades";
+import { campoDeConflicto, lanzarError, leerError } from "../../utils/api";
 
 const TAMANO_PAGINA = 10;
 
@@ -92,7 +93,7 @@ function Profesores() {
         async function cargarTipos() {
             try {
                 const response = await fetch(`${API_URL}/tipos-identificacion`, { headers: getHeaders() });
-                if (!response.ok) throw new Error("No se pudo cargar el catálogo de tipos de identificación");
+                if (!response.ok) await lanzarError(response, "No se pudo cargar el catálogo de tipos de identificación.");
                 setTipos(await response.json());
             } catch (e) {
                 dialog.error(e.message);
@@ -105,7 +106,7 @@ function Profesores() {
         async function cargarGradosAcademicos() {
             try {
                 const response = await fetch(`${API_URL}/grados-academicos`, { headers: getHeaders() });
-                if (!response.ok) throw new Error("No se pudo cargar el catálogo de grados académicos");
+                if (!response.ok) await lanzarError(response, "No se pudo cargar el catálogo de grados académicos.");
                 setGradosAcademicos(await response.json());
             } catch (e) {
                 dialog.error(e.message);
@@ -118,7 +119,7 @@ function Profesores() {
         async function cargarInstrumentos() {
             try {
                 const response = await fetch(`${API_URL}/instrumentos`, { headers: getHeaders() });
-                if (!response.ok) throw new Error("No se pudo cargar el catálogo de especialidades");
+                if (!response.ok) await lanzarError(response, "No se pudo cargar el catálogo de especialidades.");
                 setInstrumentos(await response.json());
             } catch (e) {
                 dialog.error(e.message);
@@ -135,7 +136,7 @@ function Profesores() {
             try {
                 const query = filtroActivo ? `?activo=${filtroActivo}` : "";
                 const response = await fetch(`${API_URL}/profesores${query}`, { headers: getHeaders() });
-                if (!response.ok) throw new Error("No se pudo cargar la lista de profesores");
+                if (!response.ok) await lanzarError(response, "No se pudo cargar la lista de profesores.");
                 const data = await response.json();
                 if (!cancelado) setProfesores(data);
             } catch (e) {
@@ -265,12 +266,19 @@ function Profesores() {
         try {
             const response = await fetch(url, { method, headers: getHeaders(), body: JSON.stringify(payload) });
             if (!response.ok) {
-                const body = await response.json().catch(() => ({}));
-                const mensaje = body.detail || body.message || "No fue posible guardar el profesor.";
-                if (response.status === 409) {
-                    setErrores((err) => ({ ...err, numeroIdentificacion: mensaje }));
+                const error = await leerError(response, "No fue posible guardar el profesor.");
+                const porCampo = { ...error.fields };
+                if (error.status === 409) {
+                    const campo = campoDeConflicto(error.message);
+                    if (campo === "correo") porCampo.correo = error.message;
+                    if (campo === "identificacion") porCampo.numeroIdentificacion = error.message;
                 }
-                throw new Error(mensaje);
+                if (Object.keys(porCampo).length > 0) {
+                    setErrores((err) => ({ ...err, ...porCampo }));
+                    setIntento((n) => n + 1);
+                    return;
+                }
+                throw new Error(error.message);
             }
 
             dialog.exito("Información del profesor actualizada correctamente.");
@@ -291,7 +299,7 @@ function Profesores() {
         if (!confirmado) return;
         try {
             const response = await fetch(`${API_URL}/profesores/${p.id}/baja`, { method: "PATCH", headers: getHeaders() });
-            if (!response.ok) throw new Error("No fue posible dar de baja al profesor.");
+            if (!response.ok) await lanzarError(response, "No fue posible dar de baja al profesor.");
             dialog.exito("Profesor dado de baja correctamente.");
             setRecargar((n) => n + 1);
         } catch (e) {
@@ -307,7 +315,7 @@ function Profesores() {
         if (!confirmado) return;
         try {
             const response = await fetch(`${API_URL}/profesores/${p.id}/reactivar`, { method: "PATCH", headers: getHeaders() });
-            if (!response.ok) throw new Error("No fue posible reactivar al profesor.");
+            if (!response.ok) await lanzarError(response, "No fue posible reactivar al profesor.");
             dialog.exito("Profesor reactivado correctamente.");
             setRecargar((n) => n + 1);
         } catch (e) {

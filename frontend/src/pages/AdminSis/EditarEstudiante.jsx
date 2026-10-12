@@ -11,6 +11,8 @@ import PageHead from "../../components/ui/PageHead";
 import { useDialog } from "../../components/dialog/useDialog";
 import UbicacionSelects from "../../components/UbicacionSelects";
 import { UBICACION_VACIA, ubicacionDesdeRespuesta } from "../../components/ubicacion";
+import { API_URL } from "../../config/api";
+import { lanzarError, mensajeDeExcepcion } from "../../utils/api";
 
 const GENEROS = ["MASCULINO", "FEMENINO", "OTRO"];
 const NIVELES = ["Preescolar", "Primaria", "Secundaria", "Universitaria", "Ninguno"];
@@ -69,13 +71,18 @@ function EditarEstudiante({ studentId, onCancel, onSuccess } = {}) {
                 const token = localStorage.getItem("token");
                 const headers = token ? { Authorization: `Bearer ${token}` } : {};
                 const [studentResponse, typesResponse, centersResponse, instrumentsResponse, plansResponse] = await Promise.all([
-                    fetch(`/api/estudiantes/${id}`, { headers }),
-                    fetch(`/api/registro/catalogos/tipos-identificacion`, { headers }),
-                    fetch(`/api/registro/catalogos/centros-educativos`, { headers }),
-                    fetch(`/api/registro/catalogos/instrumentos`, { headers }),
-                    fetch(`/api/planes-estudio`, { headers }),
+                    fetch(`${API_URL}/estudiantes/${id}`, { headers }),
+                    fetch(`${API_URL}/registro/catalogos/tipos-identificacion`, { headers }),
+                    fetch(`${API_URL}/registro/catalogos/centros-educativos`, { headers }),
+                    fetch(`${API_URL}/registro/catalogos/instrumentos`, { headers }),
+                    fetch(`${API_URL}/planes-estudio`, { headers }),
                 ]);
-                if (!studentResponse.ok || !typesResponse.ok || !centersResponse.ok || !instrumentsResponse.ok || !plansResponse.ok) throw new Error("No fue posible cargar la información del estudiante.");
+                if (!studentResponse.ok) await lanzarError(studentResponse, "No fue posible cargar la información del estudiante.");
+                // Si falla un catálogo se indica cuál, para no confundirlo con un problema del estudiante
+                if (!typesResponse.ok) throw new Error("No se pudo cargar el catálogo de tipos de identificación.");
+                if (!centersResponse.ok) throw new Error("No se pudo cargar el catálogo de centros educativos.");
+                if (!instrumentsResponse.ok) throw new Error("No se pudo cargar el catálogo de instrumentos.");
+                if (!plansResponse.ok) throw new Error("No se pudo cargar el catálogo de planes de estudio.");
                 const [student, typeData, centerData, instrumentData, planData] = await Promise.all([studentResponse.json(), typesResponse.json(), centersResponse.json(), instrumentsResponse.json(), plansResponse.json()]);
                 setForm({
                     idTipoIdentificacion: String(student.idTipoIdentificacion ?? ""), numeroIdentificacion: student.numeroIdentificacion ?? "",
@@ -91,7 +98,7 @@ function EditarEstudiante({ studentId, onCancel, onSuccess } = {}) {
                 setInstruments(instrumentData);
                 setPlanes(planData);
             } catch (e) {
-                dialog.error(e.message);
+                dialog.error(mensajeDeExcepcion(e, "No fue posible cargar la información del estudiante."));
             } finally {
                 setLoading(false);
             }
@@ -145,7 +152,7 @@ function EditarEstudiante({ studentId, onCancel, onSuccess } = {}) {
         try {
             setSaving(true);
             const token = localStorage.getItem("token");
-            const response = await fetch(`/api/estudiantes/${id}`, {
+            const response = await fetch(`${API_URL}/estudiantes/${id}`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) },
                 body: JSON.stringify(payload),

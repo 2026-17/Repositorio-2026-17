@@ -11,6 +11,7 @@ import Field from "../../components/ui/Field";
 import PageHead from "../../components/ui/PageHead";
 import Stepper from "../../components/ui/Stepper";
 import { listaErrores } from "../../components/ui/utilidades";
+import { campoDeConflicto, lanzarError, leerError, mensajeDeExcepcion } from "../../utils/api";
 
 const MAX_PDF = 50 * 1024 * 1024;
 const GENEROS = ["MASCULINO", "FEMENINO", "OTRO"];
@@ -29,6 +30,35 @@ function pasoDeCampo(campo) {
   if (["nivelEscolar", "idInstrumento", "idProfesor", "idsPlanEstudio", "centroEducativo", "becaIdPeriodo", "becaIdTipoBeca", "becaPorcentaje"].includes(campo)) return 2;
   if (campo === "policy" || campo === "confirmado") return 3;
   return 0;
+}
+
+// Nombre del campo del formulario para una ruta de "fields" del backend
+// ("encargados[0].nombres" -> "guardian-0-nombres", "beca.idPeriodo" -> "becaIdPeriodo").
+function campoDelFormulario(ruta) {
+  const encargado = /^encargados\[(\d+)\]\.(\w+)$/.exec(ruta);
+  if (encargado) return `guardian-${encargado[1]}-${encargado[2]}`;
+  if (ruta === "encargados") return "guardians";
+  if (ruta.startsWith("beca.")) {
+    const sub = ruta.slice("beca.".length);
+    return `beca${sub.charAt(0).toUpperCase()}${sub.slice(1)}`;
+  }
+  return ruta;
+}
+
+// Errores por campo a partir de la respuesta del backend: validaciones
+// ("fields") y datos repetidos (409, según el texto del mensaje).
+function erroresDelBackend(error) {
+  const porCampo = {};
+  Object.entries(error.fields).forEach(([ruta, mensaje]) => {
+    const campo = campoDelFormulario(ruta);
+    if (!porCampo[campo]) porCampo[campo] = mensaje;
+  });
+  if (error.status === 409) {
+    const campo = campoDeConflicto(error.message);
+    if (campo === "correo") porCampo.correo = error.message;
+    if (campo === "identificacion") porCampo.numeroIdentificacion = error.message;
+  }
+  return porCampo;
 }
 
 const emptyGuardian = () => ({
@@ -135,12 +165,12 @@ export default function CreateStudent({ onCancel, onSuccess } = {}) {
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
     setCatalogLoading(true);
     Promise.all([
-      fetch(`${API_URL}/registro/catalogos/tipos-identificacion`, { headers }).then((r) => (r.ok ? r.json() : Promise.reject(new Error("No se pudo cargar tipos de identificación.")))),
-      fetch(`${API_URL}/registro/catalogos/centros-educativos`, { headers }).then((r) => (r.ok ? r.json() : Promise.reject(new Error("No se pudo cargar centros educativos.")))),
-      fetch(`${API_URL}/registro/catalogos/instrumentos`, { headers }).then((r) => (r.ok ? r.json() : Promise.reject(new Error("No se pudo cargar instrumentos.")))),
-      fetch(`${API_URL}/periodos-academicos`, { headers }).then((r) => (r.ok ? r.json() : Promise.reject(new Error("No se pudo cargar períodos académicos.")))),
-      fetch(`${API_URL}/becas/tipos-becas`, { headers }).then((r) => (r.ok ? r.json() : Promise.reject(new Error("No se pudo cargar tipos de beca.")))),
-      fetch(`${API_URL}/planes-estudio`, { headers }).then((r) => (r.ok ? r.json() : Promise.reject(new Error("No se pudo cargar los planes de estudio.")))),
+      fetch(`${API_URL}/registro/catalogos/tipos-identificacion`, { headers }).then((r) => (r.ok ? r.json() : lanzarError(r, "No se pudo cargar tipos de identificación."))),
+      fetch(`${API_URL}/registro/catalogos/centros-educativos`, { headers }).then((r) => (r.ok ? r.json() : lanzarError(r, "No se pudo cargar centros educativos."))),
+      fetch(`${API_URL}/registro/catalogos/instrumentos`, { headers }).then((r) => (r.ok ? r.json() : lanzarError(r, "No se pudo cargar instrumentos."))),
+      fetch(`${API_URL}/periodos-academicos`, { headers }).then((r) => (r.ok ? r.json() : lanzarError(r, "No se pudo cargar períodos académicos."))),
+      fetch(`${API_URL}/becas/tipos-becas`, { headers }).then((r) => (r.ok ? r.json() : lanzarError(r, "No se pudo cargar tipos de beca."))),
+      fetch(`${API_URL}/planes-estudio`, { headers }).then((r) => (r.ok ? r.json() : lanzarError(r, "No se pudo cargar los planes de estudio."))),
     ])
       .then(([t, , i, p, tb, pl]) => {
         setTypes(t);
@@ -149,8 +179,8 @@ export default function CreateStudent({ onCancel, onSuccess } = {}) {
         setTiposBeca(tb);
         setPlanes(pl);
       })
-      .catch(() => {
-        if (dialog?.error) dialog.error("No fue posible cargar los catálogos. Verifique que el backend esté disponible.");
+      .catch((e) => {
+        if (dialog?.error) dialog.error(mensajeDeExcepcion(e, "No fue posible cargar los catálogos. Intente de nuevo en unos momentos."));
       })
       .finally(() => setCatalogLoading(false));
   }, [dialog]);
@@ -171,12 +201,12 @@ export default function CreateStudent({ onCancel, onSuccess } = {}) {
     setProfesoresLoading(true);
 
     fetch(`${API_URL}/profesores/por-instrumento/${form.idInstrumento}`, { headers })
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error("No se pudo cargar los profesores."))))
+      .then((r) => (r.ok ? r.json() : lanzarError(r, "No se pudo cargar los profesores.")))
       .then((data) => {
         if (!cancelado) setProfesores(data);
       })
-      .catch(() => {
-        if (!cancelado) setErrors((prev) => ({ ...prev, idProfesor: "No fue posible cargar los profesores de ese instrumento." }));
+      .catch((e) => {
+        if (!cancelado) setErrors((prev) => ({ ...prev, idProfesor: mensajeDeExcepcion(e, "No fue posible cargar los profesores de ese instrumento.") }));
       })
       .finally(() => {
         if (!cancelado) setProfesoresLoading(false);
@@ -350,8 +380,19 @@ export default function CreateStudent({ onCancel, onSuccess } = {}) {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
         body: data,
       });
+      if (!response.ok) {
+        const error = await leerError(response, "No fue posible registrar el estudiante.");
+        const porCampo = erroresDelBackend(error);
+        if (Object.keys(porCampo).length > 0) {
+          const primerPaso = Math.min(...Object.keys(porCampo).map(pasoDeCampo));
+          setPaso(primerPaso);
+          setErrors(porCampo);
+          setIntento((n) => n + 1);
+          return;
+        }
+        throw new Error(error.message);
+      }
       const body = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(body.message || "No fue posible registrar el estudiante.");
 
       if (onSuccess) {
         onSuccess(body.id);
