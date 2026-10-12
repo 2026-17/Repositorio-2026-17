@@ -5,7 +5,7 @@
 
 const ADMIN_CEDULA = '456456456'
 const ADMIN_PASSWORD = '12345678'
-const ESTUDIANTE_BUSQUEDA = 'Isaac' // texto de búsqueda que debe existir en el ambiente de prueba
+const ESTUDIANTE_BUSQUEDA = 'Cascante' // alumno real de referencia; se busca por apellido para evitar ambigüedad
 
 describe('HU-007 - Registrar pago', () => {
 
@@ -53,23 +53,46 @@ describe('HU-007 - Registrar pago', () => {
         })
     })
 
-    it('Debe registrar el pago correctamente al adjuntar el comprobante y confirmar', () => {
+    it('Debe registrar el pago con comprobante y eliminar el registro de prueba al terminar', () => {
         cy.get('input[placeholder*="María Solano"]').type(ESTUDIANTE_BUSQUEDA)
-        cy.get('.search-results__item').first().click()
+        cy.get('.search-results__item').should('have.length.greaterThan', 0)
+            .then(($items) => {
+                const exacto = [...$items].find((item) =>
+                    item.innerText.includes('Isaac') && item.innerText.includes('Cascante')
+                )
+                expect(exacto, 'Debe encontrarse al estudiante de referencia').to.exist
+                cy.wrap(exacto).click()
+            })
         cy.contains('label', 'Período académico').parent().find('select').select(1)
         cy.contains('label', 'Mes').parent().find('select').select(1)
 
         cy.get('body').then(($body) => {
             if ($body.find('button:contains("Registrar pago")').length === 0) {
-                cy.log('El mes seleccionado ya tiene un pago registrado o está becado al 100%; se omite el registro.')
+                cy.log('No ejecutado: el mes inicial ya está pagado o no tiene saldo; elegir un mes pendiente antes de evaluar el alta.')
                 return
             }
+
+            cy.intercept('POST', '**/api/pagos').as('registrarPagoPrueba')
             cy.get('input[type="file"]').selectFile(
-                { contents: Cypress.Buffer.from('%PDF-1.4 comprobante'), fileName: 'comprobante.pdf', mimeType: 'application/pdf' },
+                { contents: Cypress.Buffer.from('%PDF-1.4 comprobante Cypress'), fileName: 'comprobante-cypress.pdf', mimeType: 'application/pdf' },
                 { force: true }
             )
             cy.contains('button', 'Registrar pago').click()
-            cy.contains('Pago registrado').should('be.visible')
+
+            cy.wait('@registrarPagoPrueba').then(({ response }) => {
+                expect(response.statusCode).to.eq(201)
+                const idMensualidad = response.body.idMensualidad
+                expect(idMensualidad, 'El backend debe devolver el ID del pago creado').to.exist
+                cy.contains('Pago registrado').should('be.visible')
+
+                return cy.window().then((win) => cy.request({
+                    method: 'DELETE',
+                    url: '/api/pagos/' + idMensualidad,
+                    headers: { Authorization: 'Bearer ' + win.localStorage.getItem('token') },
+                })).then((deleteResponse) => {
+                    expect(deleteResponse.status).to.eq(204)
+                })
+            })
         })
     })
 })
