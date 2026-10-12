@@ -128,13 +128,7 @@ export const MENU_POR_ROL = {
                     to: "/admin/administracion/estudiantes",
                     label: "Estudiantes",
                     icon: Users,
-                    descripcion: "Consulte, edite y administre la información académica, de contacto y los documentos de los estudiantes.",
-                },
-                {
-                    to: "/admin/administracion/estudiantes/crear",
-                    label: "Registrar estudiante",
-                    icon: UserPlus,
-                    descripcion: "Ingrese los datos personales, académicos y de contacto de un estudiante nuevo junto con su documentación.",
+                    descripcion: "Registre estudiantes nuevos con el botón \"Nuevo estudiante\" y consulte, edite, dé de baja o revise los documentos de los existentes.",
                 },
                 {
                     to: "/admin/administracion/estudiantes/instrumentos",

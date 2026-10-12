@@ -220,6 +220,7 @@ La aplicación quedará disponible normalmente en `http://localhost:5173` y las 
 | `BREVO_API_KEY` | No | — | API key de Brevo para enviar correos (códigos de recuperación y cambio de contraseña). Si está vacía, no se envían correos y el código se muestra en la consola del backend. |
 | `BREVO_SENDER_EMAIL` | No | `noreply@acusab.ed.cr` | Remitente de los correos; debe estar registrado en Brevo. |
 | `BREVO_SENDER_NAME` | No | `SIGAC ACUSAB` | Nombre visible del remitente. |
+| `SIGAC_FRONTEND_URL` | No | `https://sigac.acusab.ed.cr` | Dirección del frontend usada en los enlaces "Ingresar a SIGAC" de los correos. |
 
 No incluya valores reales ni credenciales en archivos versionados. En Railway deben configurarse como variables del servicio.
 

@@ -14,9 +14,7 @@ import ConsultaCursos from "./pages/Estudiante/ConsultaCursos";
 import MiHorario from "./pages/Estudiante/MiHorario";
 import SeleccionCursos from "./pages/Estudiante/SeleccionCursos";
 import CreateUsers from "./pages/AdminSis/createUsers";
-import CreateStudent from "./pages/AdminSis/createStudent";
 import Estudiantes from "./pages/AdminSis/Estudiantes";
-import EditarEstudiante from "./pages/AdminSis/EditarEstudiante";
 
 import CrearCurso from "./pages/DirectorAcademico/CrearCurso";
 import ModificarCurso from "./pages/DirectorAcademico/ModificarCurso";
@@ -169,14 +167,15 @@ function App() {
                         element={<Estudiantes />}
                     />
 
+                    {/* Registrar y editar se hacen dentro de Estudiantes; las rutas viejas llevan ahí */}
                     <Route
                         path="/admin/administracion/estudiantes/crear"
-                        element={<CreateStudent />}
+                        element={<Navigate to="/admin/administracion/estudiantes" replace />}
                     />
 
                     <Route
                         path="/admin/administracion/estudiantes/:id/editar"
-                        element={<EditarEstudiante />}
+                        element={<Navigate to="/admin/administracion/estudiantes" replace />}
                     />
 
                     {/* Administrativo - HU-026 Asignar instrumento al estudiante */}

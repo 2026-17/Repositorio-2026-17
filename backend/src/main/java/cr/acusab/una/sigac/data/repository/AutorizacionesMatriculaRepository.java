@@ -49,4 +49,11 @@ public interface AutorizacionesMatriculaRepository
     findByIdEstudiante_Id(
             Long idEstudiante
     );
+
+    /*
+     * Un comprobante de matrícula solo puede pertenecer a una solicitud.
+     */
+    boolean existsByIdDocumentoComprobanteMatricula_Id(
+            Long idDocumento
+    );
 }

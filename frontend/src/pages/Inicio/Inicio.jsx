@@ -1,12 +1,35 @@
 import { Link } from "react-router-dom";
-import { ChevronRight, CircleHelp } from "lucide-react";
+import { ChevronRight, CircleHelp, Mail, MessageCircle, Phone } from "lucide-react";
 
 import "./inicio.css";
 import EmptyState from "../../components/ui/EmptyState";
 import PageHead from "../../components/ui/PageHead";
 import Panel from "../../components/ui/Panel";
+import { CONTACTO_ACUSAB, soloDigitos } from "../../constants/contacto";
 import { MENU_POR_ROL } from "../../constants/menu";
 import { etiquetaRol } from "../../constants/roles";
+
+const MEDIOS_CONTACTO = [
+    {
+        etiqueta: "Correo electrónico",
+        valor: CONTACTO_ACUSAB.correo,
+        href: `mailto:${CONTACTO_ACUSAB.correo}`,
+        icon: Mail,
+    },
+    {
+        etiqueta: "Teléfono",
+        valor: CONTACTO_ACUSAB.telefono,
+        href: `tel:+${soloDigitos(CONTACTO_ACUSAB.telefono)}`,
+        icon: Phone,
+    },
+    {
+        etiqueta: "WhatsApp",
+        valor: CONTACTO_ACUSAB.whatsapp,
+        href: `https://wa.me/${soloDigitos(CONTACTO_ACUSAB.whatsapp)}`,
+        icon: MessageCircle,
+        externo: true,
+    },
+];
 
 /*
  * Pantalla de inicio de cada rol (también se abre con el botón "Ayuda").
@@ -57,6 +80,31 @@ function Inicio() {
                     </ul>
                 </Panel>
             ))}
+
+            <Panel title="Contacto ACUSAB" sub="¿Tiene dudas o necesita ayuda? Comuníquese con la administración.">
+                <ul className="inicio__lista">
+                    {MEDIOS_CONTACTO.map((medio) => {
+                        const Icono = medio.icon;
+                        return (
+                            <li key={medio.etiqueta}>
+                                <a
+                                    href={medio.href}
+                                    className="inicio__opcion"
+                                    {...(medio.externo ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                                >
+                                    <span className="inicio__icono" aria-hidden="true">
+                                        <Icono size={20} strokeWidth={1.75} />
+                                    </span>
+                                    <span className="inicio__texto">
+                                        <b>{medio.valor}</b>
+                                        <span>{medio.etiqueta}</span>
+                                    </span>
+                                </a>
+                            </li>
+                        );
+                    })}
+                </ul>
+            </Panel>
         </div>
     );
 }

@@ -587,7 +587,7 @@ function Matricula() {
                             solicitud.comprobanteMatricula ||
                             (solicitud.pagoMatriculaConfirmado
                                 ? "Validado"
-                                : "No registrado")
+                                : "No registrado: regístrelo en Becas y pagos")
                         }
                     />
                     {interactivo ? (

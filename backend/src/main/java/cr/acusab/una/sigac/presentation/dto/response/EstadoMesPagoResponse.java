@@ -23,6 +23,7 @@ public class EstadoMesPagoResponse {
     private Long idMensualidad;
     private BigDecimal monto;
     private LocalDate fechaPago;
+    private String observaciones;
 
     // Monto que corresponde pagar ese mes (mensualidad base menos el
     // descuento de la beca activa, si tiene), para mostrarlo de una vez
