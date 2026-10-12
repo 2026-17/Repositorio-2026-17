@@ -22,7 +22,7 @@ import java.time.Instant;
 @Service
 public class CodigoVerificacionService {
 
-    public static final int MINUTOS_VIGENCIA = 15;
+    public static final int MINUTOS_VIGENCIA = 10;
     private static final int INTENTOS_MAXIMOS = 5;
     private static final int MAXIMO_POR_HORA = 5;
     private static final Duration ESPERA_ENTRE_ENVIOS = Duration.ofMinutes(1);
