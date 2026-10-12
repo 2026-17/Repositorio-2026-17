@@ -22,10 +22,10 @@ export default function AuthLayout({ children }) {
                 <div className="auth-blocks"><i /><i /><i /><i /></div>
 
                 <div className="auth-quote">
-                    <h2>Toda la escuela, en un solo lugar.</h2>
+                    <h2>Bienvenido al Sistema de Matrícula (SIGAC)</h2>
                     <p>
-                        Matrícula, cursos, becas y pagos de ACUSAB, para
-                        administración, docentes y estudiantes.
+                        El Sistema Integral de Gestión Académica y Cultural (SIGAC)
+                        es un sistema de la Asociación Cultural de Santa Bárbara.
                     </p>
                 </div>
 
