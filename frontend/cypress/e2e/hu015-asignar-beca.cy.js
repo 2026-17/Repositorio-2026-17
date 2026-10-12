@@ -155,13 +155,11 @@ describe('HU-015 - Asignar beca', () => {
                     // El endpoint actualmente devuelve 500 al rechazar este valor
                     // por una excepción de negocio no mapeada. La HU exige que
                     // 101% no cree la beca; el estado HTTP correcto sería 4xx.
-                    expect(response.status).to.be.gte(400)
-                    expect(response.status).to.be.lessThan(600)
+                    expect(
+                        [400, 422],
+                        `HU-015: el backend debe responder un error de validación 4xx para 101%; respondió ${response.status}.`
+                    ).to.include(response.status)
                     expect(response.body).to.not.have.property('idBeca')
-
-                    if (response.status === 500) {
-                        cy.log('El backend rechazó 101%, pero respondió HTTP 500. Revisar el manejo de excepciones de /api/becas.')
-                    }
                 })
             })
         })
