@@ -13,8 +13,8 @@
  * real y cambiar la contraseña de una cuenta. No se simula ese código ni la respuesta.
  */
 
-const CEDULA_NO_REGISTRADA = Cypress.env('HU036_CEDULA_NO_REGISTRADA');
-const CEDULA_REGISTRADA = Cypress.env('ESTUDIANTE_CEDULA');
+let CEDULA_NO_REGISTRADA;
+let CEDULA_REGISTRADA;
 const MENSAJE_GENERICO =
     'Si la cédula está registrada, recibirá un código en el correo de la cuenta en unos minutos.';
 const MENSAJE_ERROR_CODIGO = 'El código no es válido o ya venció. Solicite uno nuevo.';
@@ -22,7 +22,7 @@ const CLAVE_VALIDA = 'NuevaClave#2026';
 
 function omitirSiFaltan(contexto, nombres) {
     const faltantes = nombres.filter((nombre) => {
-        const valor = Cypress.env(nombre);
+        const valor = valorEntorno(nombre);
         return valor === undefined || valor === null || String(valor).trim() === '';
     });
     if (faltantes.length) {
@@ -59,6 +59,18 @@ function escribirContrasena(contrasena, confirmacion = contrasena) {
     cy.get('#nuevaContrasena').clear().type(contrasena);
     cy.get('#confirmarContrasena').clear().type(confirmacion);
 }
+
+// Cypress 16: leer solo las variables requeridas mediante cy.env().
+let variablesEntorno = {};
+function valorEntorno(nombre) { return variablesEntorno[nombre]; }
+
+before(function () {
+    return cy.env(["HU036_CEDULA_NO_REGISTRADA","ESTUDIANTE_CEDULA","HU036_PERMITIR_CORREO_REAL"]).then((valores) => {
+        variablesEntorno = valores;
+        CEDULA_NO_REGISTRADA = valorEntorno('HU036_CEDULA_NO_REGISTRADA');
+        CEDULA_REGISTRADA = valorEntorno('ESTUDIANTE_CEDULA');
+    });
+});
 
 describe('HU-036 - Restablecer contraseña olvidada (sitio real)', () => {
     it('permite abrir la recuperación desde la pantalla de inicio de sesión', () => {
@@ -150,7 +162,7 @@ describe('HU-036 - Restablecer contraseña olvidada (sitio real)', () => {
     });
 
     it('mantiene una respuesta genérica para cédula registrada y no registrada (opcional; envía correo real)', function () {
-        if (Cypress.env('HU036_PERMITIR_CORREO_REAL') !== 'SI') {
+        if (valorEntorno('HU036_PERMITIR_CORREO_REAL') !== 'SI') {
             cy.log('Omitido por seguridad. Configure HU036_PERMITIR_CORREO_REAL="SI" solo con autorización para enviar un correo real.');
             this.skip();
             return;
