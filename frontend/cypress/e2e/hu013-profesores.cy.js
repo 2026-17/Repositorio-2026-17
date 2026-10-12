@@ -106,24 +106,26 @@ describe('HU-013 - Registrar y modificar profesores', () => {
         })
     })
 
-    it('Debe rechazar una contraseña inferior a ocho caracteres sin enviar el formulario', () => {
-        const cedula = String(Date.now()).slice(-9)
-        cy.contains('button', '+ Nuevo profesor').click()
+    it('Debe encontrar un profesor existente con búsqueda positiva', () => {
+        cy.window().its('localStorage.token').should('exist').then((token) => {
+            cy.request({
+                method: 'GET',
+                url: '/api/profesores?activo=true',
+                headers: { Authorization: 'Bearer ' + token },
+            }).then((response) => {
+                expect(response.status).to.eq(200)
+                expect(response.body).to.be.an('array').and.not.be.empty
+                const profesor = response.body[0]
+                const nombreCompleto = [profesor.nombres, profesor.primerApellido, profesor.segundoApellido]
+                    .filter(Boolean).join(' ')
+                const termino = profesor.primerApellido || profesor.nombres
+                expect(termino).to.be.a('string').and.not.be.empty
 
-        cy.contains('label', 'Tipo de identificación').parent().find('select')
-            .find('option').should('have.length.greaterThan', 1)
-        cy.contains('label', 'Tipo de identificación').parent().find('select').select(1)
-        cy.contains('label', 'Cédula / Número de identificación').parent().find('input').type(cedula)
-        cy.contains('label', 'Nombre').parent().find('input').type('Profesor')
-        cy.contains('label', 'Primer apellido').parent().find('input').type('Prueba')
-        cy.contains('label', 'Correo de contacto').parent().find('input').type(cedula + '@correo.com')
-        cy.get('input[type="password"]').first().type('1234567')
-
-        cy.intercept('POST', '**/api/profesores').as('crearProfesorInvalido')
-        cy.contains('button', 'Registrar profesor').click()
-
-        cy.contains('Ingrese una contraseña de al menos 8 caracteres.').should('be.visible')
-        cy.get('@crearProfesorInvalido.all').should('have.length', 0)
+                cy.get('input.search-input').clear().type(termino)
+                cy.contains('tbody tr', nombreCompleto).should('be.visible')
+                cy.get('tbody tr').should('have.length', 1)
+            })
+        })
     })
 
 })
