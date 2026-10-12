@@ -52,15 +52,11 @@ describe('HU-002 - Matrícula de cursos', () => {
                 return checkbox && !checkbox.disabled
             })
 
-            if (candidatos.length === 0) {
-                cy.log('No hay cursos disponibles para matricular en este ambiente de prueba.')
-                return
-            }
+            expect(candidatos.length, 'La oferta debe incluir al menos un grupo seleccionable para probar la solicitud.').to.be.greaterThan(0)
 
             function intentar(index) {
                 if (index >= candidatos.length) {
-                    cy.log('Ningún curso disponible pudo matricularse sin errores de validación en este ambiente de prueba.')
-                    return
+                    throw new Error('Ningún grupo disponible pudo enviarse: revisar validaciones o el estado de la oferta simulada.')
                 }
 
                 const fila = candidatos[index]
@@ -84,4 +80,12 @@ describe('HU-002 - Matrícula de cursos', () => {
             intentar(0)
         })
     })
+
+    it('Debe bloquear cursos sin cupo y cursos con prerrequisito incumplido', () => {
+        cy.contains('table.oferta-tabla tbody tr', 'Estructuras de Datos')
+            .find('input[type="checkbox"]').should('be.disabled')
+        cy.contains('table.oferta-tabla tbody tr', 'Redes de Computadoras')
+            .find('input[type="checkbox"]').should('be.disabled')
+    })
+
 })
