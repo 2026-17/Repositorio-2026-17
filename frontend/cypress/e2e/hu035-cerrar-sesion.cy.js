@@ -49,4 +49,17 @@ describe('HU-035 - Cerrar sesión', () => {
                     .to.equal(null)
             })
     })
+
+    it('No debe permitir entrar a una ruta protegida tras cerrar sesión', () => {
+        cy.get('.header-user-trigger').should('be.visible').click()
+        cy.get('.user-dropdown').within(() => cy.contains('button', 'Cerrar sesión').click())
+        cy.location('pathname').should('match', /^\/$/)
+
+        cy.visit('/director-academico/cursos/crear')
+        cy.get('#cedula').should('be.visible')
+        cy.window().then((win) => {
+            expect(win.localStorage.getItem('token')).to.be.null
+        })
+    })
+
 })
