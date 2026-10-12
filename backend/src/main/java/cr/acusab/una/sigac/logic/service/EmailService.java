@@ -33,12 +33,17 @@ public class EmailService {
     private final String apiKey;
     private final String remitenteCorreo;
     private final String remitenteNombre;
+    // Mismo logo que el favicon del frontend (frontend/public/favicon.png).
+    // Los clientes de correo solo muestran imágenes con URL pública.
+    private final String logoUrl;
 
     public EmailService(
             @Value("${brevo.api-key:}") String apiKey,
             @Value("${brevo.sender-email}") String remitenteCorreo,
-            @Value("${brevo.sender-name}") String remitenteNombre
+            @Value("${brevo.sender-name}") String remitenteNombre,
+            @Value("${sigac.logo-url:https://sigac.acusab.ed.cr/favicon.png}") String logoUrl
     ) {
+        this.logoUrl = logoUrl;
         SimpleClientHttpRequestFactory fabrica = new SimpleClientHttpRequestFactory();
         fabrica.setConnectTimeout(Duration.ofSeconds(5));
         fabrica.setReadTimeout(Duration.ofSeconds(10));
@@ -152,7 +157,9 @@ public class EmailService {
                         <table role="presentation" width="100%%" cellpadding="0" cellspacing="0" style="max-width:520px; background-color:#ffffff; border-radius:12px; overflow:hidden; font-family:Arial, Helvetica, sans-serif; color:#2b2b33;">
                           <tr>
                             <td style="background-color:#662483; padding:24px 32px; text-align:center;">
-                              <div style="font-size:28px; line-height:1; color:#ffffff;">&#9834;</div>
+                              <div style="display:inline-block; background-color:#ffffff; border-radius:12px; padding:6px;">
+                                <img src="%s" width="56" height="50" alt="SIGAC" style="display:block; border:0; width:56px; height:50px;">
+                              </div>
                               <div style="margin-top:8px; font-size:20px; font-weight:bold; color:#ffffff; letter-spacing:1px;">SIGAC</div>
                               <div style="margin-top:4px; font-size:13px; color:#e9dcf2;">ACUSAB · Santa Bárbara de Heredia</div>
                             </td>
@@ -174,7 +181,7 @@ public class EmailService {
                   </table>
                 </body>
                 </html>
-                """.formatted(contenido);
+                """.formatted(HtmlUtils.htmlEscape(logoUrl), contenido);
 
         Map<String, Object> cuerpo = Map.of(
                 "sender", Map.of("name", remitenteNombre, "email", remitenteCorreo),

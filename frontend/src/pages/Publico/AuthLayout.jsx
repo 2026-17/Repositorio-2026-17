@@ -1,4 +1,4 @@
-import { Music } from "lucide-react";
+import LogoSigac from "../../components/LogoSigac";
 
 /*
  * Estructura de las pantallas públicas (como el prototipo): panel ciruela
@@ -10,7 +10,7 @@ export default function AuthLayout({ children }) {
         <div className="auth">
             <aside className="auth-side" aria-hidden="true">
                 <div className="auth-brand">
-                    <span className="sb-mark"><Music size={20} strokeWidth={1.75} /></span>
+                    <span className="sb-mark sb-mark--logo"><LogoSigac /></span>
                     <span>
                         <span className="sb-name">SIGAC</span>
                         <span className="sb-sub">ACUSAB</span>
@@ -35,7 +35,7 @@ export default function AuthLayout({ children }) {
             <main className="auth-main">
                 <div className="auth-card">
                     <div className="auth-mobile-brand" aria-hidden="true">
-                        <span className="sb-mark"><Music size={20} strokeWidth={1.75} /></span>
+                        <span className="sb-mark sb-mark--logo"><LogoSigac /></span>
                         <span>
                             <span className="sb-name">SIGAC</span>
                             <span className="sb-sub">ACUSAB</span>

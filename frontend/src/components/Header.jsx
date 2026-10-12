@@ -28,6 +28,7 @@ import { API_URL } from "../config/api";
 import { etiquetaRol, ROLES } from "../constants/roles";
 import { limpiarSesion } from "../utils/sesion";
 import { iniciales } from "./ui/utilidades";
+import LogoSigac from "./LogoSigac";
 
 /*
  * Menú lateral agrupado por rol (mismas rutas que antes).
@@ -264,8 +265,8 @@ function Header({ children }) {
                 aria-label="Menú principal"
             >
                 <div className="sb-brand">
-                    <span className="sb-mark" aria-hidden="true">
-                        <Music size={20} strokeWidth={1.75} />
+                    <span className="sb-mark sb-mark--logo" aria-hidden="true">
+                        <LogoSigac />
                     </span>
                     <span className="sb-brand-text">
                         <span className="sb-name">SIGAC</span>
