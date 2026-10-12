@@ -1,40 +1,50 @@
 /*
  * HU-036 - Cambio/restablecimiento de contraseña.
  *
- * La aplicación actualmente implementa el flujo público en /recuperar-contrasena.
- * Las pruebas de interfaz usan respuestas simuladas para no enviar correos ni cambiar
- * contraseñas de cuentas reales.
+ * Estas pruebas navegan el sitio oficial y dejan pasar las peticiones al backend real.
+ * Los intercepts solo observan las solicitudes; no reemplazan respuestas del servidor.
  *
- * Variables locales opcionales en frontend/cypress.env.json:
- * ESTUDIANTE_CEDULA: identificación existente para el caso con API real (solo si se autoriza).
- * HU036_CEDULA_NO_REGISTRADA: identificación confirmada como no registrada.
- * HU036_PERMITIR_CORREO_REAL="SI": permite la prueba de no enumeración contra el backend real.
+ * frontend/cypress.env.json (archivo local, no versionar):
+ * - HU036_CEDULA_NO_REGISTRADA: identificación confirmada como no registrada.
+ * - ESTUDIANTE_CEDULA: identificación registrada (solo para no enumeración opcional).
+ * - HU036_PERMITIR_CORREO_REAL="SI": autoriza un envío real para probar no enumeración.
  *
- * La prueba que cambia la contraseña de verdad necesita leer el código del correo
- * recibido; esta suite no asume ni inventa un acceso a la bandeja de correo.
+ * No se fuerza el caso de éxito del restablecimiento: requiere leer el código de un correo
+ * real y cambiar la contraseña de una cuenta. No se simula ese código ni la respuesta.
  */
 
-const CEDULA_UI = Cypress.env('ESTUDIANTE_CEDULA') || 'HU036_CEDULA_PRUEBA';
+const CEDULA_NO_REGISTRADA = Cypress.env('HU036_CEDULA_NO_REGISTRADA');
+const CEDULA_REGISTRADA = Cypress.env('ESTUDIANTE_CEDULA');
 const MENSAJE_GENERICO =
     'Si la cédula está registrada, recibirá un código en el correo de la cuenta en unos minutos.';
 const MENSAJE_ERROR_CODIGO = 'El código no es válido o ya venció. Solicite uno nuevo.';
 const CLAVE_VALIDA = 'NuevaClave#2026';
 
-function stubSolicitudCodigo(statusCode = 200, body = { message: MENSAJE_GENERICO }) {
-    cy.intercept('POST', '**/api/auth/recuperar-contrasena/solicitar', {
-        statusCode,
-        body,
-    }).as('solicitarCodigo');
+function omitirSiFaltan(contexto, nombres) {
+    const faltantes = nombres.filter((nombre) => {
+        const valor = Cypress.env(nombre);
+        return valor === undefined || valor === null || String(valor).trim() === '';
+    });
+    if (faltantes.length) {
+        cy.log('Completa frontend/cypress.env.json: ' + faltantes.join(', '));
+        contexto.skip();
+        return true;
+    }
+    return false;
 }
 
-function stubConfirmacion(statusCode, body) {
-    cy.intercept('POST', '**/api/auth/recuperar-contrasena/confirmar', {
-        statusCode,
-        body,
-    }).as('confirmarRecuperacion');
+function observarSolicitudCodigo() {
+    // Sin respuesta estática: Cypress deja que la solicitud llegue al servidor real.
+    cy.intercept('POST', '**/api/auth/recuperar-contrasena/solicitar').as('solicitarCodigo');
 }
 
-function solicitarCodigoEnInterfaz(cedula = CEDULA_UI) {
+function observarConfirmacion() {
+    // Sin respuesta estática: el backend valida el código y la contraseña.
+    cy.intercept('POST', '**/api/auth/recuperar-contrasena/confirmar').as('confirmarRecuperacion');
+}
+
+function solicitarCodigoEnInterfaz(cedula) {
+    observarSolicitudCodigo();
     cy.visit('/recuperar-contrasena');
     cy.get('#cedula').clear().type(String(cedula));
     cy.contains('button', 'Enviar código').click();
@@ -45,18 +55,12 @@ function introducirCodigoSeisDigitos(codigo = '123456') {
     cy.get('#codigo').should('be.visible').type(codigo);
 }
 
-function avanzarAlFormularioNuevaContrasena() {
-    introducirCodigoSeisDigitos();
-    cy.get('button').contains('Verificar código').should('be.enabled').click();
-    cy.contains('h1', 'Cree una contraseña nueva').should('be.visible');
-}
-
 function escribirContrasena(contrasena, confirmacion = contrasena) {
     cy.get('#nuevaContrasena').clear().type(contrasena);
     cy.get('#confirmarContrasena').clear().type(confirmacion);
 }
 
-describe('HU-036 - Restablecer contraseña olvidada', () => {
+describe('HU-036 - Restablecer contraseña olvidada (sitio real)', () => {
     it('permite abrir la recuperación desde la pantalla de inicio de sesión', () => {
         cy.visit('/login');
         cy.contains('a', '¿Olvidó su contraseña?').should('be.visible').click();
@@ -66,108 +70,53 @@ describe('HU-036 - Restablecer contraseña olvidada', () => {
     });
 
     it('requiere la identificación y no solicita un código si está vacía', () => {
-        cy.intercept('POST', '**/api/auth/recuperar-contrasena/solicitar').as('solicitarCodigo');
+        observarSolicitudCodigo();
         cy.visit('/recuperar-contrasena');
         cy.contains('button', 'Enviar código').click();
         cy.contains('Escriba su número de cédula.').should('be.visible');
         cy.get('@solicitarCodigo.all').should('have.length', 0);
     });
 
-    it('muestra una respuesta genérica al solicitar el código', () => {
-        stubSolicitudCodigo();
-        solicitarCodigoEnInterfaz().then(({ request, response }) => {
-            expect(request.body.cedula).to.eq(String(CEDULA_UI));
+    it('usa el backend real y valida el flujo de solicitud, los controles y el rechazo de un código inválido', function () {
+        if (omitirSiFaltan(this, ['HU036_CEDULA_NO_REGISTRADA'])) return;
+
+        solicitarCodigoEnInterfaz(CEDULA_NO_REGISTRADA).then(({ request, response }) => {
+            expect(request.body.cedula).to.eq(String(CEDULA_NO_REGISTRADA));
+            expect(response, 'el servidor real debe responder a la solicitud').to.exist;
             expect(response.statusCode).to.eq(200);
             expect(response.body.message).to.eq(MENSAJE_GENERICO);
         });
+
         cy.contains('h1', 'Revise su correo').should('be.visible');
         cy.contains('Si la cédula').should('be.visible');
         cy.contains('recibirá un código en unos minutos').should('be.visible');
-    });
 
-    it('mantiene el mismo mensaje visible para una identificación registrada y una no registrada (interfaz)', () => {
-        const cedulaNoRegistrada = 'HU036_NO_REGISTRADA';
-        stubSolicitudCodigo();
-
-        solicitarCodigoEnInterfaz(CEDULA_UI).then(({ response: primera }) => {
-            expect(primera.body.message).to.eq(MENSAJE_GENERICO);
+        let vigenciaSegundos = 0;
+        cy.get('#vigencia-codigo b').should('be.visible').invoke('text').then((valor) => {
+            const [minutos, segundos] = valor.trim().split(':').map(Number);
+            vigenciaSegundos = minutos * 60 + segundos;
         });
 
-        cy.contains('button', 'Usar otra cédula').click();
-        cy.get('#cedula').clear().type(cedulaNoRegistrada);
-        cy.contains('button', 'Enviar código').click();
+        cy.contains('button', 'Reenviar en').should('be.disabled');
 
-        cy.wait('@solicitarCodigo').then(({ request, response }) => {
-            expect(request.body.cedula).to.eq(cedulaNoRegistrada);
-            expect(response.statusCode).to.eq(200);
-            expect(response.body.message).to.eq(MENSAJE_GENERICO);
-        });
-        cy.contains('Si la cédula').should('be.visible');
-        cy.contains('no está registrada').should('not.exist');
-    });
-
-    it('no permite verificar hasta tener los seis dígitos y filtra caracteres no numéricos', () => {
-        stubSolicitudCodigo();
-        solicitarCodigoEnInterfaz();
+        // La interfaz debe descartar caracteres no numéricos y exigir seis dígitos.
         cy.get('#codigo').type('12ab');
         cy.get('button').contains('Verificar código').should('be.disabled');
         cy.get('[aria-label="Dígito 1 de 6"]').should('have.value', '1');
         cy.get('[aria-label="Dígito 2 de 6"]').should('have.value', '2');
         cy.get('[aria-label="Dígito 3 de 6"]').should('have.value', '');
 
-        // Vaciar el código usando Backspace (la entrada es controlada por seis casillas).
         cy.get('[aria-label="Dígito 1 de 6"]').type('{selectall}{backspace}');
         ['1', '2', '3', '4', '5', '6'].forEach((digito, indice) => {
             cy.get('[aria-label="Dígito ' + (indice + 1) + ' de 6"]').type(digito);
         });
-        cy.get('button').contains('Verificar código').should('be.enabled');
-    });
+        cy.get('button').contains('Verificar código').should('be.enabled').click();
+        cy.contains('h1', 'Cree una contraseña nueva').should('be.visible');
 
-    it('bloquea el reenvío inmediato del código en la interfaz', () => {
-        stubSolicitudCodigo();
-        solicitarCodigoEnInterfaz();
-        cy.contains('button', 'Reenviar en').should('be.disabled');
-    });
-
-    it('muestra el error devuelto cuando el servicio limita solicitudes de códigos', () => {
-        const mensajeLimite = 'Demasiadas solicitudes de códigos. Espere un momento e intente de nuevo.';
-        stubSolicitudCodigo(400, { status: 400, message: mensajeLimite });
-        cy.visit('/recuperar-contrasena');
-        cy.get('#cedula').type(String(CEDULA_UI));
-        cy.contains('button', 'Enviar código').click();
-        cy.wait('@solicitarCodigo').its('response.statusCode').should('eq', 400);
-        cy.contains(mensajeLimite).should('be.visible');
-        cy.contains('h1', 'Recuperar contraseña').should('be.visible');
-    });
-
-    it('refleja una vigencia máxima de 10 minutos para el código', () => {
-        // Criterio de aceptación HU-036: el código vence como máximo a los 10 minutos.
-        // Actualmente frontend y backend declaran 15 minutos, por lo que este caso
-        // señalará esa discrepancia hasta que se corrija la implementación.
-        stubSolicitudCodigo();
-        solicitarCodigoEnInterfaz();
-
-        cy.get('#vigencia-codigo b').should('be.visible').invoke('text').then((valor) => {
-            const [minutos, segundos] = valor.trim().split(':').map(Number);
-            const segundosRestantes = minutos * 60 + segundos;
-            expect(segundosRestantes, 'la vigencia inicial no puede superar 10 minutos')
-                .to.be.at.most(10 * 60);
-        });
-    });
-
-    it('mantiene deshabilitado el guardado si la contraseña y su confirmación no coinciden', () => {
-        stubSolicitudCodigo();
-        solicitarCodigoEnInterfaz();
-        avanzarAlFormularioNuevaContrasena();
+        // Las validaciones de contraseña se verifican en el navegador real del sitio.
         escribirContrasena(CLAVE_VALIDA, 'OtraClave#2026');
         cy.contains('Las contraseñas no coinciden.').should('be.visible');
         cy.contains('button', 'Guardar contraseña').should('be.disabled');
-    });
-
-    it('requiere que la nueva contraseña cumpla la política y que ambas entradas coincidan', () => {
-        stubSolicitudCodigo();
-        solicitarCodigoEnInterfaz();
-        avanzarAlFormularioNuevaContrasena();
 
         escribirContrasena('corta', 'corta');
         cy.contains('button', 'Guardar contraseña').should('be.disabled');
@@ -178,87 +127,61 @@ describe('HU-036 - Restablecer contraseña olvidada', () => {
         cy.contains('Un número').should('be.visible');
         cy.contains('Un carácter especial').should('be.visible');
         cy.contains('button', 'Guardar contraseña').should('be.enabled');
-    });
 
-    it('rechaza un código inválido o expirado y vuelve al paso de verificación', () => {
-        stubSolicitudCodigo();
-        stubConfirmacion(400, { status: 400, message: MENSAJE_ERROR_CODIGO });
-        solicitarCodigoEnInterfaz();
-        avanzarAlFormularioNuevaContrasena();
-        escribirContrasena(CLAVE_VALIDA);
+        // El identificador se configuró como no registrado, así que el código inventado
+        // no debería permitir un cambio real de contraseña.
+        observarConfirmacion();
         cy.contains('button', 'Guardar contraseña').click();
-
         cy.wait('@confirmarRecuperacion').then(({ request, response }) => {
-            expect(request.body.cedula).to.eq(String(CEDULA_UI));
+            expect(request.body.cedula).to.eq(String(CEDULA_NO_REGISTRADA));
             expect(request.body.codigo).to.eq('123456');
             expect(request.body.contrasenaNueva).to.eq(CLAVE_VALIDA);
             expect(response.statusCode).to.eq(400);
+            expect(response.body.message).to.eq(MENSAJE_ERROR_CODIGO);
         });
+
         cy.contains('h1', 'Revise su correo').should('be.visible');
         cy.contains(MENSAJE_ERROR_CODIGO).should('be.visible');
-        cy.get('button').contains('Verificar código').should('be.disabled');
+
+        // Se valida al final para que el resto de controles se pruebe aunque el entorno
+        // publicado todavía tenga una vigencia mayor que el criterio de aceptación.
+        expect(vigenciaSegundos, 'la vigencia inicial no puede superar 10 minutos')
+            .to.be.at.most(10 * 60);
     });
 
-    it('presenta confirmación de éxito cuando el servidor confirma el restablecimiento (respuesta simulada)', () => {
-        stubSolicitudCodigo();
-        stubConfirmacion(200, { message: 'La contraseña se actualizó correctamente.' });
-        solicitarCodigoEnInterfaz();
-        avanzarAlFormularioNuevaContrasena();
-        escribirContrasena(CLAVE_VALIDA);
-        cy.contains('button', 'Guardar contraseña').click();
-
-        cy.wait('@confirmarRecuperacion').then(({ request, response }) => {
-            expect(request.body.codigo).to.eq('123456');
-            expect(request.body.contrasenaNueva).to.eq(CLAVE_VALIDA);
-            expect(response.statusCode).to.eq(200);
-        });
-
-        cy.contains('h1', 'Contraseña actualizada').should('be.visible');
-        cy.contains('Su contraseña se actualizó correctamente. Ya puede ingresar con la nueva contraseña.')
-            .should('be.visible');
-        cy.contains('button', 'Ir a ingresar').click();
-        cy.location('pathname').should('eq', '/login');
-    });
-
-    it('no revela si una cédula existe cuando se consulta al backend real (opcional; envía un correo)', function () {
+    it('mantiene una respuesta genérica para cédula registrada y no registrada (opcional; envía correo real)', function () {
         if (Cypress.env('HU036_PERMITIR_CORREO_REAL') !== 'SI') {
-            cy.log('Omitido por seguridad. Configure HU036_PERMITIR_CORREO_REAL="SI" solo si autoriza el envío de un correo real.');
+            cy.log('Omitido por seguridad. Configure HU036_PERMITIR_CORREO_REAL="SI" solo con autorización para enviar un correo real.');
             this.skip();
             return;
         }
+        if (omitirSiFaltan(this, ['ESTUDIANTE_CEDULA', 'HU036_CEDULA_NO_REGISTRADA'])) return;
 
-        const identificacionRegistrada = Cypress.env('ESTUDIANTE_CEDULA');
-        const identificacionNoRegistrada = Cypress.env('HU036_CEDULA_NO_REGISTRADA');
-        if (!identificacionRegistrada || !identificacionNoRegistrada) {
-            cy.log('Configurar ESTUDIANTE_CEDULA y HU036_CEDULA_NO_REGISTRADA.');
-            this.skip();
-            return;
-        }
-
-        cy.request({
-            method: 'POST',
-            url: '/api/auth/recuperar-contrasena/solicitar',
-            body: { cedula: identificacionRegistrada },
-            failOnStatusCode: false,
-        }).then((registrada) => {
-            cy.request({
-                method: 'POST',
-                url: '/api/auth/recuperar-contrasena/solicitar',
-                body: { cedula: identificacionNoRegistrada },
-                failOnStatusCode: false,
-            }).then((noRegistrada) => {
-                expect(registrada.status).to.eq(200);
-                expect(noRegistrada.status).to.eq(200);
-                expect(registrada.body.message).to.eq(noRegistrada.body.message);
-                expect(registrada.body.message).to.eq(MENSAJE_GENERICO);
-            });
+        solicitarCodigoEnInterfaz(CEDULA_REGISTRADA).then(({ response }) => {
+            expect(response.statusCode).to.eq(200);
+            expect(response.body.message).to.eq(MENSAJE_GENERICO);
         });
+        cy.contains('Si la cédula').should('be.visible');
+
+        cy.contains('button', 'Usar otra cédula').click();
+        cy.get('#cedula').clear().type(String(CEDULA_NO_REGISTRADA));
+        cy.contains('button', 'Enviar código').click();
+        cy.wait('@solicitarCodigo').then(({ request, response }) => {
+            expect(request.body.cedula).to.eq(String(CEDULA_NO_REGISTRADA));
+            expect(response.statusCode).to.eq(200);
+            expect(response.body.message).to.eq(MENSAJE_GENERICO);
+        });
+        cy.contains('Si la cédula').should('be.visible');
+        cy.contains('no está registrada').should('not.exist');
     });
 });
 
 /*
- * No se automatizan aquí el código real recibido por correo, la reutilización de un
- * código ya gastado, la invalidez del anterior tras reenviar, el hash en almacenamiento
- * ni un login real tras el reset. Requieren capturar el email y/o inspeccionar datos
- * internos; el código de verificación nunca debe exponerse en la respuesta HTTP.
+ * Cobertura aún pendiente para un entorno de pruebas con buzón accesible:
+ * - código de correo correcto y vencimiento real después de 10 minutos;
+ * - reutilización del código, invalidación al reenviar y cambio de contraseña exitoso;
+ * - login real con la nueva contraseña y revisión segura del hash persistido.
+ *
+ * No se simulan respuestas del servidor ni se realizan escrituras exitosas sobre cuentas
+ * reales sin un buzón y una cuenta de prueba identificados explícitamente.
  */
