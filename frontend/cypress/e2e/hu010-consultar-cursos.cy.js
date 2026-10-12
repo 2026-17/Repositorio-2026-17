@@ -43,8 +43,10 @@ function seleccionarOpcionExistente(selector, configurada) {
             expect(opcionElegida, 'debe existir una opción real para ' + selector).to.exist;
         }
 
-        cy.get(selector).select(String(opcionElegida.value));
-        return String(opcionElegida.value);
+        // Devolver la cadena Cypress, no un valor sincrónico después de cy.get().
+        return cy.get(selector)
+            .select(String(opcionElegida.value))
+            .then(() => String(opcionElegida.value));
     });
 }
 
