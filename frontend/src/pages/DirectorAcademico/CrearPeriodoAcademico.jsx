@@ -4,11 +4,11 @@ import { CalendarPlus } from "lucide-react";
 import "./crearCurso.css";
 import Alert from "../../components/ui/Alert";
 import Field from "../../components/ui/Field";
-import PageHead from "../../components/ui/PageHead";
 import { listaErrores } from "../../components/ui/utilidades";
 
 import { useDialog } from "../../components/dialog/useDialog";
 import { formularioModificado, useAvisoCambiosSinGuardar } from "../../hooks/useAvisoCambiosSinGuardar";
+import { ESTADOS_PERIODO } from "./estadosPeriodo";
 
 const FORM_VACIO = {
     nombre: "",
@@ -19,14 +19,14 @@ const FORM_VACIO = {
     estado: "PLANIFICADO",
 };
 
-const ESTADOS = [
-    { value: "PLANIFICADO", label: "Planificado" },
-    { value: "MATRICULA", label: "Matrícula" },
-    { value: "EN_CURSO", label: "Activo (en curso)" },
-    { value: "CERRADO", label: "Cerrado" },
-];
+// Un período nuevo no se crea cancelado
+const ESTADOS = ESTADOS_PERIODO.filter((e) => e.value !== "CANCELADO");
 
-function CrearPeriodoAcademico() {
+/*
+ * Crear un período académico. Se abre dentro de la pantalla
+ * Períodos académicos (botón "Nuevo período").
+ */
+function CrearPeriodoAcademico({ onCancel, onSuccess }) {
     const dialog = useDialog();
 
     const token = localStorage.getItem("token");
@@ -36,7 +36,14 @@ function CrearPeriodoAcademico() {
     const [guardando, setGuardando] = useState(false);
 
     // Avisa al salir con datos escritos que no se han guardado
-    useAvisoCambiosSinGuardar(formularioModificado(form, FORM_VACIO));
+    const hayCambios = formularioModificado(form, FORM_VACIO);
+    const { confirmarDescarte, permitirSalida } = useAvisoCambiosSinGuardar(hayCambios);
+
+    async function cancelar() {
+        if (hayCambios && !(await confirmarDescarte())) return;
+        permitirSalida();
+        onCancel();
+    }
 
     const [errores, setErrores] = useState({});
     const [intento, setIntento] = useState(0);
@@ -173,7 +180,8 @@ function CrearPeriodoAcademico() {
                 `El período "${data.nombre || payload.nombre}" fue creado correctamente.`
             );
 
-            setForm(FORM_VACIO);
+            permitirSalida();
+            onSuccess();
 
         } catch (e) {
 
@@ -188,13 +196,6 @@ function CrearPeriodoAcademico() {
         }
     }
 
-    function limpiarFormulario() {
-
-        setForm(FORM_VACIO);
-
-        setErrores({});
-    }
-
     const aria = (campo) => ({
         "aria-invalid": errores[campo] ? "true" : undefined,
         "aria-describedby": errores[campo] ? `${campo}-error` : undefined,
@@ -203,10 +204,7 @@ function CrearPeriodoAcademico() {
 
     return (
         <div className="curso-page">
-            <PageHead
-                title="Crear período académico"
-                sub="Defina el nombre, las fechas y el estado del nuevo período para habilitar la organización de cursos, grupos, matrícula y pagos."
-            />
+            <h2 className="form-section-title form-titulo">Nuevo período académico</h2>
 
             <form onSubmit={handleSubmit} noValidate>
                 {resumen.length > 0 && (
@@ -260,8 +258,8 @@ function CrearPeriodoAcademico() {
                         </Field>
                     </div>
                     <div className="panel-foot">
-                        <button type="button" className="sg-btn sg-btn--secondary" onClick={limpiarFormulario} disabled={guardando}>
-                            Limpiar
+                        <button type="button" className="sg-btn sg-btn--secondary" onClick={cancelar} disabled={guardando}>
+                            Cancelar
                         </button>
                         <button type="submit" className={`sg-btn sg-btn--primary${guardando ? " is-loading" : ""}`} disabled={guardando} aria-busy={guardando || undefined}>
                             {guardando ? <span className="sg-spinner" aria-hidden="true" /> : <CalendarPlus size={18} strokeWidth={1.75} aria-hidden="true" />}

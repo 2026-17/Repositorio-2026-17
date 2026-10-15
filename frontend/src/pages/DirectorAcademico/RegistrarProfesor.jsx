@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import { ArrowLeft, Check } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { API_URL } from "../../config/api";
 import "../AdminSis/styles/CreateStudent.css";
 import "./Profesores.css";
@@ -12,7 +11,6 @@ import UbicacionSelects from "../../components/UbicacionSelects";
 import { UBICACION_VACIA } from "../../components/ubicacion";
 import Alert from "../../components/ui/Alert";
 import Field from "../../components/ui/Field";
-import PageHead from "../../components/ui/PageHead";
 import Stepper from "../../components/ui/Stepper";
 import { listaErrores } from "../../components/ui/utilidades";
 import { campoDeConflicto, erroresDeCampos, lanzarError, leerError, mensajeDeExcepcion } from "../../utils/api";
@@ -72,7 +70,8 @@ const initialForm = {
   fechaIngreso: "",
 };
 
-export default function RegistrarProfesor() {
+// Asistente para registrar un profesor; se abre dentro de Profesores ("Nuevo profesor").
+export default function RegistrarProfesor({ onCancel, onSuccess }) {
   const dialog = useDialog();
   const [tipos, setTipos] = useState([]);
   const [grados, setGrados] = useState([]);
@@ -84,10 +83,17 @@ export default function RegistrarProfesor() {
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
   const [catalogLoading, setCatalogLoading] = useState(true);
-  const [registrado, setRegistrado] = useState(null);
 
-  // Avisa al salir con datos escritos que no se han guardado (después de registrar ya no)
-  useAvisoCambiosSinGuardar(!registrado && (confirmado || formularioModificado(form, initialForm)));
+  // Avisa al salir con datos escritos que no se han guardado
+  const hayCambios = confirmado || formularioModificado(form, initialForm);
+  const { confirmarDescarte, permitirSalida } = useAvisoCambiosSinGuardar(hayCambios);
+
+  // Cancelar dentro de Profesores: también pregunta si hay cambios
+  const cancelar = async () => {
+    if (hayCambios && !(await confirmarDescarte())) return;
+    permitirSalida();
+    onCancel();
+  };
 
   const tipoSeleccionado = tipos.find((t) => String(t.id) === String(form.idTipoIdentificacion));
 
@@ -131,15 +137,6 @@ export default function RegistrarProfesor() {
         ? f.especialidades.filter((e) => e !== nombre)
         : [...f.especialidades, nombre],
     }));
-  };
-
-  const reset = () => {
-    setForm(initialForm);
-    setErrors({});
-    setConfirmado(false);
-    setPaso(0);
-    setRegistrado(null);
-    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   // Mismas reglas que tenía el formulario de profesores, más la confirmación final
@@ -237,9 +234,8 @@ export default function RegistrarProfesor() {
         throw new Error(error.message);
       }
 
-      const body = await response.json().catch(() => ({}));
-      setRegistrado({ id: body.id });
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      permitirSalida();
+      onSuccess({ nombre: nombreCompleto, correo: profesor.correo });
     } catch (e) {
       if (dialog?.error) dialog.error(e.message);
     } finally {
@@ -273,28 +269,6 @@ export default function RegistrarProfesor() {
 
   const nombreDe = (lista, id) => lista.find((x) => String(x.id) === String(id))?.nombre || "—";
   const resumen = listaErrores(errors, P);
-
-  // ---------- Pantalla de éxito ----------
-  if (registrado) {
-    return (
-      <div className="wizard">
-        <div className="panel">
-          <div className="success-screen">
-            <span className="success-mark"><Check size={32} strokeWidth={1.75} aria-hidden="true" /></span>
-            <h2 id="page-title" tabIndex={-1}>Profesor registrado</h2>
-            <p className="muted">
-              {`${form.nombres} ${form.primerApellido}`.trim()} quedó registrado con estado activo y ya tiene su cuenta de usuario con rol Profesor. Se envió una contraseña temporal a {form.correo}.
-            </p>
-            {registrado.id && <p className="receipt">ID asignado <b>{registrado.id}</b></p>}
-            <div className="page-actions success-actions">
-              <button type="button" className="sg-btn sg-btn--secondary" onClick={reset}>Registrar otro profesor</button>
-              <Link to="/director-academico/profesores" className="sg-btn sg-btn--primary">Ir a profesores</Link>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   // ---------- Contenido de cada paso ----------
   let cuerpo;
@@ -439,7 +413,7 @@ export default function RegistrarProfesor() {
 
   return (
     <div className="wizard">
-      <PageHead title="Registrar profesor" sub="Datos personales, académicos y la cuenta de usuario del profesor." />
+      <h2 className="form-section-title form-titulo">Registrar profesor</h2>
 
       <Stepper pasos={PASOS} actual={paso} etiqueta="Pasos del registro" />
 
@@ -468,7 +442,7 @@ export default function RegistrarProfesor() {
               Anterior
             </button>
           ) : (
-            <Link to="/director-academico/profesores" className="sg-btn sg-btn--ghost">Cancelar</Link>
+            <button type="button" className="sg-btn sg-btn--ghost" onClick={cancelar}>Cancelar</button>
           )}
           <div className="right">
             <button

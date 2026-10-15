@@ -1,9 +1,10 @@
 /* =========================================
-   HU-031 - Listar y desactivar cursos.
+   Cursos y Períodos académicos: lista con los formularios de crear y
+   modificar abiertos sobre ella (HU-028, HU-030, HU-031).
    Usa .panel, .filters, .dtable y los componentes del sistema de
    diseño (src/styles/app.css); aquí solo el ancho de la página.
    ========================================= */
 
-.desactivar-curso {
+.cursos {
     max-width: 1080px;
 }

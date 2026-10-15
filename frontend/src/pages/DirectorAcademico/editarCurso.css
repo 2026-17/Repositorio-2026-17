@@ -1,7 +1,7 @@
 /* =========================================================
-   HU-030 - Modificar curso de la malla curricular.
-   Usa .panel, .filters, .list-rows, .form-grid y los componentes
-   del sistema de diseño (src/styles/app.css).
+   HU-030 - Modificar curso de la malla curricular (se abre en Cursos).
+   Usa .panel, .form-grid y los componentes del sistema de diseño
+   (src/styles/app.css).
    ========================================================= */
 
 .modificar-curso {
@@ -15,11 +15,6 @@
 .modificar-curso .panel + .panel,
 .modificar-curso .panel + .sticky-save {
     margin-top: var(--space-5);
-}
-
-/* Barra de filtros dentro de un panel con encabezado: sin esquinas redondeadas */
-.filters--sin-radio {
-    border-radius: 0;
 }
 
 .guardado-estado {

@@ -19,19 +19,15 @@ import SeleccionCursos from "./pages/Estudiante/SeleccionCursos";
 import CreateUsers from "./pages/AdminSis/createUsers";
 import Estudiantes from "./pages/AdminSis/Estudiantes";
 
-import CrearCurso from "./pages/DirectorAcademico/CrearCurso";
-import ModificarCurso from "./pages/DirectorAcademico/ModificarCurso";
-import DesactivarCurso from "./pages/DirectorAcademico/DesactivarCurso";
+import Cursos from "./pages/DirectorAcademico/Cursos";
 import CrearGrupo from "./pages/DirectorAcademico/CrearGrupo";
 import AsignarProfesores from "./pages/DirectorAcademico/AsignarProfesores";
 import AsignarInstrumento from "./pages/Comun/AsignarInstrumento.jsx";
-import CrearPeriodoAcademico from "./pages/DirectorAcademico/CrearPeriodoAcademico";
-import ModificarPeriodoAcademico from "./pages/DirectorAcademico/ModificarPeriodoAcademico";
+import PeriodosAcademicos from "./pages/DirectorAcademico/PeriodosAcademicos";
 
 import BecasPagos from "./pages/Administrativa/BecasPagos.jsx";
 import Matricula from "./pages/Administrativa/Matricula.jsx";
 import Profesores from "./pages/DirectorAcademico/Profesores.jsx";
-import RegistrarProfesor from "./pages/DirectorAcademico/RegistrarProfesor.jsx";
 import Reportes from "./pages/Administrativa/Reportes.jsx";
 
 import Inicio from "./pages/Inicio/Inicio";
@@ -140,23 +136,20 @@ const router = createBrowserRouter(
                             DIRECTOR ACADÉMICO
                            ================================================= */}
 
-                        {/* HU-028 - Crear curso */}
+                        {/* HU-028, HU-030, HU-031 - Crear, modificar y desactivar cursos */}
                         <Route
-                            path="/director-academico/cursos/crear"
-                            element={<CrearCurso />}
+                            path="/director-academico/cursos"
+                            element={<Cursos />}
                         />
 
-                        {/* HU-030 - Modificar curso */}
-                        <Route
-                            path="/director-academico/cursos/modificar"
-                            element={<ModificarCurso />}
-                        />
-
-                        {/* HU-031 - Desactivar curso */}
-                        <Route
-                            path="/director-academico/cursos/desactivar"
-                            element={<DesactivarCurso />}
-                        />
+                        {/* Crear, modificar y desactivar se hacen dentro de Cursos; las rutas viejas llevan ahí */}
+                        {["crear", "modificar", "desactivar"].map((accion) => (
+                            <Route
+                                key={accion}
+                                path={`/director-academico/cursos/${accion}`}
+                                element={<Navigate to="/director-academico/cursos" replace />}
+                            />
+                        ))}
 
                         {/* Crear grupo de un curso en un período */}
                         <Route
@@ -170,17 +163,20 @@ const router = createBrowserRouter(
                             element={<AsignarProfesores />}
                         />
 
-                        {/* Crear período académico */}
+                        {/* Crear, consultar y modificar períodos académicos */}
                         <Route
-                            path="/director-academico/periodos-academicos/crear"
-                            element={<CrearPeriodoAcademico />}
+                            path="/director-academico/periodos-academicos"
+                            element={<PeriodosAcademicos />}
                         />
 
-                        {/* Consultar / modificar período académico */}
-                        <Route
-                            path="/director-academico/periodos-academicos/modificar"
-                            element={<ModificarPeriodoAcademico />}
-                        />
+                        {/* Crear y modificar se hacen dentro de Períodos académicos; las rutas viejas llevan ahí */}
+                        {["crear", "modificar"].map((accion) => (
+                            <Route
+                                key={accion}
+                                path={`/director-academico/periodos-academicos/${accion}`}
+                                element={<Navigate to="/director-academico/periodos-academicos" replace />}
+                            />
+                        ))}
                         {/* Administración Académica - HU-026 */}
                         <Route
                             path="/director-academico/estudiantes/instrumentos"
@@ -190,9 +186,10 @@ const router = createBrowserRouter(
                             path="/director-academico/profesores"
                             element={<Profesores />}
                         />
+                        {/* Registrar se hace dentro de Profesores; la ruta vieja lleva ahí */}
                         <Route
                             path="/director-academico/profesores/registrar"
-                            element={<RegistrarProfesor />}
+                            element={<Navigate to="/director-academico/profesores" replace />}
                         />
 
                         {/* =================================================

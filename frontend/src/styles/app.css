@@ -329,6 +329,8 @@ h1, h2, h3, h4, p { margin: 0; }
 .dtable td:first-child .skeleton { width: 160px; }
 .chips-clear { margin-left: auto; }
 .form-incrustado { margin-bottom: var(--space-6); }
+/* Título de un formulario abierto dentro de una pantalla de lista */
+.form-titulo { margin-bottom: var(--space-4); }
 /* Áreas de texto y fechas con el aspecto de .sg-input */
 textarea.sg-input { height: auto; min-height: 96px; padding: var(--space-2) var(--space-3); resize: vertical; }
 input[type="date"].sg-input, input[type="file"].sg-input { padding-right: var(--space-3); }

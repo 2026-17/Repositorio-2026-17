@@ -1,11 +1,7 @@
 import {
     Bell,
     BookOpen,
-    BookPlus,
-    BookX,
-    CalendarCog,
     CalendarDays,
-    CalendarPlus,
     ChartColumn,
     ClipboardList,
     GraduationCap,
@@ -51,16 +47,10 @@ export const MENU_POR_ROL = {
             titulo: "Período académico",
             items: [
                 {
-                    to: "/director-academico/periodos-academicos/crear",
-                    label: "Crear período",
-                    icon: CalendarPlus,
-                    descripcion: "Defina el nombre, las fechas y el estado de un nuevo período para organizar cursos, grupos, matrícula y pagos.",
-                },
-                {
-                    to: "/director-academico/periodos-academicos/modificar",
-                    label: "Consultar / Modificar",
-                    icon: CalendarCog,
-                    descripcion: "Busque un período académico y actualice sus fechas o su estado sin perder su información histórica.",
+                    to: "/director-academico/periodos-academicos",
+                    label: "Períodos académicos",
+                    icon: CalendarDays,
+                    descripcion: "Cree períodos con el botón \"Nuevo período\" y consulte o modifique las fechas y el estado de los existentes sin perder su información histórica.",
                 },
             ],
         },
@@ -68,22 +58,10 @@ export const MENU_POR_ROL = {
             titulo: "Cursos",
             items: [
                 {
-                    to: "/director-academico/cursos/crear",
-                    label: "Crear curso",
-                    icon: BookPlus,
-                    descripcion: "Incorpore un nuevo curso a la malla curricular con su información y requisitos.",
-                },
-                {
-                    to: "/director-academico/cursos/modificar",
-                    label: "Modificar curso",
+                    to: "/director-academico/cursos",
+                    label: "Cursos",
                     icon: BookOpen,
-                    descripcion: "Seleccione un curso activo y actualice los datos permitidos de la malla curricular.",
-                },
-                {
-                    to: "/director-academico/cursos/desactivar",
-                    label: "Desactivar curso",
-                    icon: BookX,
-                    descripcion: "Retire un curso de la malla curricular sin eliminar su información histórica.",
+                    descripcion: "Incorpore cursos a la malla curricular con el botón \"Nuevo curso\" y modifique o desactive los existentes sin eliminar su información histórica.",
                 },
                 {
                     to: "/director-academico/grupos/crear",
@@ -106,13 +84,7 @@ export const MENU_POR_ROL = {
                     to: "/director-academico/profesores",
                     label: "Profesores",
                     icon: GraduationCap,
-                    descripcion: "Consulte y administre la información académica y de contacto de los profesores.",
-                },
-                {
-                    to: "/director-academico/profesores/registrar",
-                    label: "Registrar profesor",
-                    icon: UserPlus,
-                    descripcion: "Ingrese los datos personales y académicos de un profesor y cree su cuenta de usuario.",
+                    descripcion: "Registre profesores nuevos con el botón \"Nuevo profesor\" (se crea su cuenta de usuario) y consulte, edite, dé de baja o reactive a los existentes.",
                 },
                 {
                     to: "/director-academico/estudiantes/instrumentos",

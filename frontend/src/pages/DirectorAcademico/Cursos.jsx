@@ -1,22 +1,61 @@
 import { useEffect, useMemo, useState } from "react";
-import { Ban, BookOpen, Music2, Search, X } from "lucide-react";
+import { Ban, BookOpen, Music2, Pencil, Plus, Search, X } from "lucide-react";
 import { API_URL } from "../../config/api";
-import "./desactivarCurso.css";
+import "./cursos.css";
+import CrearCurso from "./CrearCurso";
+import EditarCurso from "./EditarCurso";
 import EmptyState from "../../components/ui/EmptyState";
 import Field from "../../components/ui/Field";
 import PageHead from "../../components/ui/PageHead";
 import Pagination from "../../components/ui/Pagination";
-
+import { paginar } from "../../components/ui/utilidades";
+import { ATAJO_BUSCADOR, useAtajoBuscador } from "../../hooks/useAtajoBuscador";
 
 import { useDialog } from "../../components/dialog/useDialog";
 
 const PAGE_SIZE = 10;
 
-function DesactivarCurso() {
+async function obtenerCursos() {
+    const token = localStorage.getItem("token");
+    const response = await fetch(`${API_URL}/cursos`, {
+        headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (response.status === 401) {
+        throw new Error("La sesión ha expirado. Inicie sesión nuevamente.");
+    }
+    if (response.status === 403) {
+        throw new Error("No tiene permisos para ver el listado de cursos.");
+    }
+    if (!response.ok) {
+        throw new Error("No fue posible cargar el listado de cursos.");
+    }
+
+    const datos = await response.json();
+    return Array.isArray(datos) ? datos : [];
+}
+
+// Lleva a la vista el formulario que se acaba de abrir sobre la lista.
+function mostrarFormulario() {
+    requestAnimationFrame(() =>
+        document.getElementById("form-curso")?.scrollIntoView({
+            behavior: "smooth",
+            block: "start",
+        })
+    );
+}
+
+/*
+ * Cursos de la malla curricular en una sola pantalla:
+ * HU-028 crear ("Nuevo curso"), HU-030 modificar y HU-031 desactivar.
+ */
+function Cursos() {
     const dialog = useDialog();
 
     const token = localStorage.getItem("token");
 
+    // Ctrl+K o "/" enfocan el buscador
+    useAtajoBuscador("txtBuscarCurso");
     const [cursos, setCursos] = useState([]);
     const [cargando, setCargando] = useState(true);
 
@@ -24,62 +63,32 @@ function DesactivarCurso() {
     const [categoria, setCategoria] = useState("Todas");
     const [pagina, setPagina] = useState(1);
 
+    const [formAbierto, setFormAbierto] = useState(false);
+    const [idCursoEditando, setIdCursoEditando] = useState(null);
     const [desactivando, setDesactivando] = useState(false);
 
-    async function cargarCursos() {
+    useEffect(() => {
+        let activo = true;
 
+        obtenerCursos()
+            .then((datos) => { if (activo) setCursos(datos); })
+            .catch((e) => { if (activo) dialog.error(e.message || "Ocurrió un error al cargar los cursos."); })
+            .finally(() => { if (activo) setCargando(false); });
+
+        return () => { activo = false; };
+    }, [dialog]);
+
+    // Recarga después de crear o modificar un curso.
+    async function recargarCursos() {
         setCargando(true);
-
         try {
-
-            const response = await fetch(`${API_URL}/cursos`, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-            });
-
-            if (response.status === 401) {
-                throw new Error(
-                    "La sesión ha expirado. Inicie sesión nuevamente."
-                );
-            }
-
-            if (response.status === 403) {
-                throw new Error(
-                    "No tiene permisos para ver el listado de cursos."
-                );
-            }
-
-            if (!response.ok) {
-                throw new Error(
-                    "No fue posible cargar el listado de cursos."
-                );
-            }
-
-            const data = await response.json();
-            setCursos(data);
-
+            setCursos(await obtenerCursos());
         } catch (e) {
-
-            dialog.error(
-                e.message ||
-                "Ocurrió un error al cargar los cursos."
-            );
-
+            dialog.error(e.message || "Ocurrió un error al cargar los cursos.");
         } finally {
-
             setCargando(false);
         }
     }
-
-    useEffect(() => {
-        // Fuera del render del efecto (igual que en Notificaciones)
-        const timer = setTimeout(() => {
-            void cargarCursos();
-        }, 0);
-        return () => clearTimeout(timer);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
 
     const categorias = useMemo(() => {
 
@@ -101,8 +110,8 @@ function DesactivarCurso() {
         return cursos.filter((c) => {
             const coincideTexto =
                 !texto ||
-                c.nombre.toLowerCase().includes(texto) ||
-                c.codigo.toLowerCase().includes(texto);
+                (c.nombre || "").toLowerCase().includes(texto) ||
+                (c.codigo || "").toLowerCase().includes(texto);
 
             const coincideCategoria =
                 categoria === "Todas" || c.categoria === categoria;
@@ -111,10 +120,7 @@ function DesactivarCurso() {
         });
     }, [cursos, busqueda, categoria]);
 
-    const cursosPagina = cursosFiltrados.slice(
-        (pagina - 1) * PAGE_SIZE,
-        pagina * PAGE_SIZE
-    );
+    const cursosPagina = paginar(cursosFiltrados, pagina, PAGE_SIZE);
 
     function handleBusqueda(e) {
         setBusqueda(e.target.value);
@@ -124,6 +130,29 @@ function DesactivarCurso() {
     function handleCategoria(e) {
         setCategoria(e.target.value);
         setPagina(1);
+    }
+
+    function abrirNuevo() {
+        setIdCursoEditando(null);
+        setFormAbierto(true);
+        mostrarFormulario();
+    }
+
+    function abrirEditar(curso) {
+        setIdCursoEditando(curso.idCurso);
+        setFormAbierto(true);
+        mostrarFormulario();
+    }
+
+    function cerrarFormulario() {
+        setFormAbierto(false);
+        setIdCursoEditando(null);
+    }
+
+    function formularioGuardado() {
+        cerrarFormulario();
+        void recargarCursos();
+        window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
     async function desactivarCurso(curso) {
@@ -186,6 +215,9 @@ function DesactivarCurso() {
                 `"${curso.nombre}" fue desactivado. Su información histórica se conserva.`
             );
 
+            // Si se estaba modificando ese curso, el formulario ya no aplica.
+            if (idCursoEditando === curso.idCurso) cerrarFormulario();
+
             // Se quita de la lista localmente para no recargar todo.
             setCursos((prev) =>
                 prev.filter((c) => c.idCurso !== curso.idCurso)
@@ -213,11 +245,35 @@ function DesactivarCurso() {
     }
 
     return (
-        <div className="desactivar-curso">
+        <div className="cursos">
             <PageHead
-                title="Desactivar curso"
-                sub="Desactive un curso de la malla curricular sin eliminar su información histórica."
+                title="Cursos"
+                sub="Cree, modifique y desactive los cursos de la malla curricular. Al desactivar un curso su información histórica se conserva."
+                actions={(
+                    <button type="button" className="sg-btn sg-btn--primary" onClick={abrirNuevo}>
+                        <Plus size={18} strokeWidth={1.75} aria-hidden="true" />
+                        Nuevo curso
+                    </button>
+                )}
             />
+
+            {formAbierto && (
+                <section id="form-curso" className="form-incrustado">
+                    {idCursoEditando ? (
+                        <EditarCurso
+                            key={idCursoEditando}
+                            idCurso={idCursoEditando}
+                            onCancel={cerrarFormulario}
+                            onSuccess={formularioGuardado}
+                        />
+                    ) : (
+                        <CrearCurso
+                            onCancel={cerrarFormulario}
+                            onSuccess={formularioGuardado}
+                        />
+                    )}
+                </section>
+            )}
 
             <div className="panel">
                 <div className="filters" role="search">
@@ -226,9 +282,10 @@ function DesactivarCurso() {
                             id="txtBuscarCurso"
                             type="search"
                             className="sg-input"
-                            placeholder="Nombre o código del curso"
+                            placeholder="Nombre o código del curso (Ctrl+K)"
                             value={busqueda}
                             onChange={handleBusqueda}
+                            aria-keyshortcuts={ATAJO_BUSCADOR}
                         />
                     </Field>
                     <Field id="cmbCategoriaCurso" label="Categoría" select>
@@ -306,16 +363,27 @@ function DesactivarCurso() {
                                         <td data-label="Docente">{curso.docente || "—"}</td>
                                         <td className="num" data-label="Cupo máximo">{curso.cupoMaximo ?? "—"}</td>
                                         <td className="actions">
-                                            <button
-                                                type="button"
-                                                className="sg-btn sg-btn--ghost sg-btn--sm btn-peligro"
-                                                onClick={() => desactivarCurso(curso)}
-                                                disabled={desactivando}
-                                                aria-label={`Desactivar ${curso.nombre}`}
-                                            >
-                                                <Ban size={16} strokeWidth={1.75} aria-hidden="true" />
-                                                Desactivar
-                                            </button>
+                                            <div className="row-actions">
+                                                <button
+                                                    type="button"
+                                                    className="sg-btn sg-btn--ghost sg-btn--sm"
+                                                    onClick={() => abrirEditar(curso)}
+                                                    aria-label={`Modificar ${curso.nombre}`}
+                                                >
+                                                    <Pencil size={16} strokeWidth={1.75} aria-hidden="true" />
+                                                    Modificar
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className="sg-btn sg-btn--ghost sg-btn--sm btn-peligro"
+                                                    onClick={() => desactivarCurso(curso)}
+                                                    disabled={desactivando}
+                                                    aria-label={`Desactivar ${curso.nombre}`}
+                                                >
+                                                    <Ban size={16} strokeWidth={1.75} aria-hidden="true" />
+                                                    Desactivar
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
@@ -334,4 +402,4 @@ function DesactivarCurso() {
     );
 }
 
-export default DesactivarCurso;
+export default Cursos;

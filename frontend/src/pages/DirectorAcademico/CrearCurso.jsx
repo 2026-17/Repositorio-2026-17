@@ -5,7 +5,6 @@ import { BookPlus } from "lucide-react";
 import "./crearCurso.css";
 import Alert from "../../components/ui/Alert";
 import Field from "../../components/ui/Field";
-import PageHead from "../../components/ui/PageHead";
 import { listaErrores } from "../../components/ui/utilidades";
 
 import { useDialog } from "../../components/dialog/useDialog";
@@ -22,11 +21,14 @@ const FORM_VACIO = {
     idPeriodo: "",
 };
 
-function CrearCurso() {
+/*
+ * HU-028 - Crear curso. Se abre dentro de la pantalla Cursos
+ * (botón "Nuevo curso").
+ */
+function CrearCurso({ onCancel, onSuccess }) {
     const dialog = useDialog();
 
     const token = localStorage.getItem("token");
-    const [revisionRequisitos, setRevisionRequisitos] = useState(0);
 
     const [form, setForm] = useState(FORM_VACIO);
 
@@ -37,7 +39,14 @@ function CrearCurso() {
     const [guardando, setGuardando] = useState(false);
 
     // Avisa al salir con datos escritos que no se han guardado
-    useAvisoCambiosSinGuardar(formularioModificado(form, FORM_VACIO));
+    const hayCambios = formularioModificado(form, FORM_VACIO);
+    const { confirmarDescarte, permitirSalida } = useAvisoCambiosSinGuardar(hayCambios);
+
+    async function cancelar() {
+        if (hayCambios && !(await confirmarDescarte())) return;
+        permitirSalida();
+        onCancel();
+    }
 
     const [errores, setErrores] = useState({});
     const [intento, setIntento] = useState(0);
@@ -257,8 +266,8 @@ function CrearCurso() {
                 `El curso ${data.codigo || payload.codigo} fue creado correctamente y agregado a la malla curricular.`
             );
 
-            setRevisionRequisitos(n => n + 1);
-            setForm(FORM_VACIO);
+            permitirSalida();
+            onSuccess();
 
         } catch (e) {
 
@@ -273,14 +282,6 @@ function CrearCurso() {
         }
     }
 
-    function limpiarFormulario() {
-        setRevisionRequisitos(n => n + 1);
-
-        setForm(FORM_VACIO);
-
-        setErrores({});
-    }
-
     const aria = (campo) => ({
         "aria-invalid": errores[campo] ? "true" : undefined,
         "aria-describedby": errores[campo] ? `${campo}-error` : undefined,
@@ -289,10 +290,7 @@ function CrearCurso() {
 
     return (
         <div className="curso-page">
-            <PageHead
-                title="Crear curso"
-                sub="Complete la información para incorporar un nuevo curso a la malla curricular."
-            />
+            <h2 className="form-section-title form-titulo">Nuevo curso</h2>
 
             {cargandoCatalogos && (
                 <Alert tone="info" title="Cargando información académica..." className="form-alert" />
@@ -363,7 +361,7 @@ function CrearCurso() {
                 </section>
 
                 <RequisitosCursoOpcionales
-                    key={form.idPrograma + ':' + revisionRequisitos}
+                    key={form.idPrograma}
                     idPrograma={form.idPrograma} value={form.requisitos}
                     onChange={requisitos => setForm(prev => ({ ...prev, requisitos }))}
                     disabled={guardando || cargandoCatalogos}
@@ -371,8 +369,8 @@ function CrearCurso() {
 
                 <div className="panel acciones-panel">
                     <div className="panel-foot">
-                        <button type="button" className="sg-btn sg-btn--secondary" onClick={limpiarFormulario} disabled={guardando}>
-                            Limpiar
+                        <button type="button" className="sg-btn sg-btn--secondary" onClick={cancelar} disabled={guardando}>
+                            Cancelar
                         </button>
                         <button type="submit" className={`sg-btn sg-btn--primary${guardando ? " is-loading" : ""}`} disabled={guardando || cargandoCatalogos} aria-busy={guardando || undefined}>
                             {guardando ? <span className="sg-spinner" aria-hidden="true" /> : <BookPlus size={18} strokeWidth={1.75} aria-hidden="true" />}

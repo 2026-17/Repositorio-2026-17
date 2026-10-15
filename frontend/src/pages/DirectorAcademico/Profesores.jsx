@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
 import { API_URL } from "../../config/api.js";
 import { ChevronsUpDown, GraduationCap, Pencil, Plus, Save, Search, X } from "lucide-react";
 import "./Profesores.css";
+import RegistrarProfesor from "./RegistrarProfesor";
 import Alert from "../../components/ui/Alert";
 import EmptyState from "../../components/ui/EmptyState";
 import Field from "../../components/ui/Field";
@@ -88,6 +88,8 @@ function Profesores() {
     const [busqueda, setBusqueda] = useState("");
     const [recargar, setRecargar] = useState(0);
 
+    // Registro de un profesor nuevo (asistente) y modificación de uno existente
+    const [registroAbierto, setRegistroAbierto] = useState(false);
     const [formAbierto, setFormAbierto] = useState(false);
     const [editingId, setEditingId] = useState(null);
     const [form, setForm] = useState(initialForm);
@@ -203,7 +205,30 @@ function Profesores() {
         setErrores((e) => ({ ...e, especialidades: "" }));
     }
 
+    function abrirNuevo() {
+        cerrarFormulario();
+        setRegistroAbierto(true);
+        requestAnimationFrame(() =>
+            document.getElementById("form-registrar-profesor")?.scrollIntoView({
+                behavior: "smooth",
+                block: "start",
+            })
+        );
+    }
+
+    function cerrarRegistro() {
+        setRegistroAbierto(false);
+    }
+
+    function registroGuardado({ nombre, correo }) {
+        setRegistroAbierto(false);
+        dialog.exito(`${nombre} quedó registrado con estado activo y ya tiene su cuenta de usuario con rol Profesor. Se envió una contraseña temporal a ${correo}.`);
+        setRecargar((n) => n + 1);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
     function abrirEditar(p) {
+        setRegistroAbierto(false);
         setEditingId(p.id);
         setForm({
             idTipoIdentificacion: String(p.tipoIdentificacion?.id ?? ""),
@@ -373,18 +398,19 @@ function Profesores() {
             <PageHead
                 title="Profesores"
                 sub="Registre, consulte y administre la información académica y de contacto de los profesores."
-                actions={formAbierto ? (
-                    <button type="button" className="sg-btn sg-btn--secondary" onClick={cerrarFormulario}>
-                        <X size={18} strokeWidth={1.75} aria-hidden="true" />
-                        Cancelar
-                    </button>
-                ) : (
-                    <Link to="/director-academico/profesores/registrar" className="sg-btn sg-btn--primary">
+                actions={(
+                    <button type="button" className="sg-btn sg-btn--primary" onClick={abrirNuevo}>
                         <Plus size={18} strokeWidth={1.75} aria-hidden="true" />
                         Nuevo profesor
-                    </Link>
+                    </button>
                 )}
             />
+
+            {registroAbierto && (
+                <section id="form-registrar-profesor" className="form-incrustado">
+                    <RegistrarProfesor onCancel={cerrarRegistro} onSuccess={registroGuardado} />
+                </section>
+            )}
 
             {formAbierto && (
                 <form ref={formRef} onSubmit={handleSubmit} noValidate className="form-incrustado">
