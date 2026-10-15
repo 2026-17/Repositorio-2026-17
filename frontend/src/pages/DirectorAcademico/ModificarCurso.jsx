@@ -20,6 +20,7 @@ import StatusBadge from "../../components/ui/StatusBadge";
 import { listaErrores } from "../../components/ui/utilidades";
 
 import { useDialog } from "../../components/dialog/useDialog";
+import { useAvisoCambiosSinGuardar } from "../../hooks/useAvisoCambiosSinGuardar";
 
 function construirFormDesdeCurso(curso) {
     return {
@@ -247,6 +248,9 @@ function ModificarCurso() {
         );
 
     }, [form, formInicial]);
+
+    // Avisa al salir de la pantalla o cerrar la pestaña con cambios pendientes
+    const { confirmarDescarte } = useAvisoCambiosSinGuardar(hayCambios);
 
     const camposModificados = useMemo(() => {
 
@@ -620,21 +624,7 @@ function ModificarCurso() {
 
     async function solicitarCancelar() {
 
-        if (hayCambios) {
-            const descartar = await dialog.confirmar(
-                "Hay cambios que todavía no se han guardado. Si continúa, esos cambios se perderán.",
-                {
-                    titulo: "¿Descartar cambios?",
-                    textoAceptar: "Descartar cambios",
-                    textoCancelar: "Continuar editando",
-                    peligro: true,
-                }
-            );
-
-            if (descartar) {
-                cerrarEdicion();
-            }
-
+        if (hayCambios && !(await confirmarDescarte())) {
             return;
         }
 

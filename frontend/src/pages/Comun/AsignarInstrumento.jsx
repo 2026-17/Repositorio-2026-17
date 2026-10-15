@@ -2,17 +2,19 @@ import { useCallback, useEffect, useState } from "react";
 import "../AdminSis/styles/admin_Sis.css";
 import "./AsignarInstrumento.css";
 import { History, Music, Search } from "lucide-react";
+import CedulaInput from "../../components/ui/CedulaInput";
 import EmptyState from "../../components/ui/EmptyState";
 import Field from "../../components/ui/Field";
 import PageHead from "../../components/ui/PageHead";
 import StatusBadge from "../../components/ui/StatusBadge";
 import { iniciales } from "../../components/ui/utilidades";
 import { API_URL } from "../../config/api.js";
-
 import { useDialog } from "../../components/dialog/useDialog";
 import { lanzarError, mensajeDeExcepcion } from "../../utils/api";
+import { mostrarIdentificacion } from "../../utils/cedula";
+import { limpiarIdentificacion } from "../../utils/validaciones";
 
-const initialForm = { idInstrumento: "", observaciones: "" };
+const initialForm = { idInstrumento: "", idProfesor: "", observaciones: "" };
 
 function formatDate(iso) {
     if (!iso) return "—";
@@ -20,12 +22,27 @@ function formatDate(iso) {
     return `${d}/${m}/${y}`;
 }
 
-export default function AsignarInstrumento() {
+/*
+ * HU-026 - Asignar instrumento al estudiante. La usan el Director Académico y
+ * el Administrativo; lo que cambia según el rol llega por props:
+ *
+ * - rutaCatalogo: endpoint del catálogo de instrumentos que el rol puede consultar.
+ * - conProfesor: muestra el profesor del instrumento (selección y columnas).
+ * - coincidenciaExacta: exige que la identificación coincida exactamente; si es
+ *   false y no hay coincidencia exacta, se usa el primer resultado de la búsqueda.
+ */
+export default function AsignarInstrumento({
+    rutaCatalogo = "/instrumentos",
+    conProfesor = false,
+    coincidenciaExacta = false,
+}) {
     const dialog = useDialog();
     const [numeroIdentificacion, setNumeroIdentificacion] = useState("");
     const [idEstudiante, setIdEstudiante] = useState(null);
     const [estudianteActivo, setEstudianteActivo] = useState(null);
     const [instrumentos, setInstrumentos] = useState([]);
+    // Profesores del instrumento elegido (se recuerda para qué instrumento se cargaron)
+    const [profesoresDe, setProfesoresDe] = useState({ idInstrumento: "", lista: [] });
     const [vigentes, setVigentes] = useState([]);
     const [historial, setHistorial] = useState([]);
     const [form, setForm] = useState(initialForm);
@@ -42,14 +59,33 @@ export default function AsignarInstrumento() {
         return headers;
     }, []);
 
+    const profesores = form.idInstrumento && profesoresDe.idInstrumento === form.idInstrumento ? profesoresDe.lista : [];
+    const profesoresLoading = conProfesor && Boolean(form.idInstrumento) && profesoresDe.idInstrumento !== form.idInstrumento;
+
     useEffect(() => {
-        setCatalogLoading(true);
-        fetch(`${API_URL}/registro/catalogos/instrumentos`, { headers: authHeaders() })
+        fetch(`${API_URL}${rutaCatalogo}`, { headers: authHeaders() })
             .then(r => (r.ok ? r.json() : lanzarError(r, "No fue posible cargar el catálogo de instrumentos.")))
             .then(setInstrumentos)
             .catch(e => dialog.error(mensajeDeExcepcion(e, "No fue posible cargar el catálogo de instrumentos.")))
             .finally(() => setCatalogLoading(false));
-    }, [authHeaders, dialog]);
+    }, [authHeaders, dialog, rutaCatalogo]);
+
+    // Cada vez que cambia el instrumento seleccionado, recarga la lista de
+    // profesores que tienen ese instrumento como especialidad.
+    useEffect(() => {
+        const idInstrumento = form.idInstrumento;
+        if (!conProfesor || !idInstrumento) return undefined;
+        let cancelado = false;
+        fetch(`${API_URL}/profesores/por-instrumento/${idInstrumento}`, { headers: authHeaders() })
+            .then(r => (r.ok ? r.json() : lanzarError(r, "No fue posible cargar los profesores de ese instrumento.")))
+            .then(data => { if (!cancelado) setProfesoresDe({ idInstrumento, lista: data }); })
+            .catch(e => {
+                if (cancelado) return;
+                setProfesoresDe({ idInstrumento, lista: [] });
+                dialog.error(mensajeDeExcepcion(e, "No fue posible cargar los profesores de ese instrumento."));
+            });
+        return () => { cancelado = true; };
+    }, [form.idInstrumento, authHeaders, conProfesor, dialog]);
 
     const cargarInstrumentosEstudiante = useCallback(async id => {
         const vigentesRes = await fetch(`${API_URL}/estudiantes/${id}/instrumentos/actual`, { headers: authHeaders() });
@@ -68,10 +104,10 @@ export default function AsignarInstrumento() {
 
     const buscarEstudiante = async event => {
         event.preventDefault();
-        const texto = numeroIdentificacion.trim();
+        // Se busca sin los guiones de la máscara de la cédula
+        const texto = limpiarIdentificacion(numeroIdentificacion.trim());
         if (!texto) {
-            const errores = { numeroIdentificacion: "Ingrese el número de identificación del estudiante." };
-            setErrors(errores);
+            setErrors({ numeroIdentificacion: "Ingrese el número de identificación del estudiante." });
             return;
         }
         setErrors({});
@@ -85,9 +121,12 @@ export default function AsignarInstrumento() {
                 throw new Error(body.message || "No fue posible buscar al estudiante.");
             }
             const resultados = await busquedaRes.json();
-            const encontrado = resultados.find(r => r.numeroIdentificacion === texto) || resultados[0];
+            const exacto = resultados.find(r => limpiarIdentificacion(r.numeroIdentificacion) === texto);
+            const encontrado = exacto || (coincidenciaExacta ? null : resultados[0]);
             if (!encontrado) {
-                throw new Error("No se encontró ningún estudiante con ese número de identificación.");
+                throw new Error(coincidenciaExacta
+                    ? "No se encontró ningún estudiante con ese número de identificación exacto."
+                    : "No se encontró ningún estudiante con ese número de identificación.");
             }
 
             await cargarInstrumentosEstudiante(encontrado.id);
@@ -106,7 +145,13 @@ export default function AsignarInstrumento() {
     };
 
     const setField = (name, value) => {
-        setForm(f => ({ ...f, [name]: value }));
+        setForm(f => ({
+            ...f,
+            [name]: value,
+            // Si cambia el instrumento, el profesor elegido para el
+            // instrumento anterior ya no aplica.
+            ...(name === "idInstrumento" ? { idProfesor: "" } : {}),
+        }));
         setErrors(e => ({ ...e, [name]: "" }));
     };
 
@@ -119,6 +164,7 @@ export default function AsignarInstrumento() {
 
         const payload = {
             idInstrumento: Number(form.idInstrumento),
+            ...(conProfesor ? { idProfesor: form.idProfesor ? Number(form.idProfesor) : null } : {}),
             observaciones: form.observaciones.trim() || null,
         };
 
@@ -170,13 +216,13 @@ export default function AsignarInstrumento() {
                 <div className="panel-head"><h2>Estudiante</h2></div>
                 <form onSubmit={buscarEstudiante} className="panel-body busqueda-estudiante" noValidate>
                     <Field id="txtIdentificacionEstudiante" label="Número de identificación" icon={Search} error={errors.numeroIdentificacion} errorKey="numeroIdentificacion">
-                        <input
+                        <CedulaInput
                             id="txtIdentificacionEstudiante"
                             className="sg-input"
+                            mascara="auto"
                             value={numeroIdentificacion}
-                            onChange={e => { setNumeroIdentificacion(e.target.value); setErrors(err => ({ ...err, numeroIdentificacion: "" })); }}
-                            placeholder="Ej: 118760542"
-                            inputMode="numeric"
+                            onChange={valor => { setNumeroIdentificacion(valor); setErrors(err => ({ ...err, numeroIdentificacion: "" })); }}
+                            placeholder="Ej: 1-1876-0542"
                             aria-invalid={errors.numeroIdentificacion ? "true" : undefined}
                         />
                     </Field>
@@ -191,7 +237,7 @@ export default function AsignarInstrumento() {
                             <span className="avatar avatar--lg" aria-hidden="true">{iniciales(estudianteActivo.nombreCompleto)}</span>
                             <div>
                                 <h3>{estudianteActivo.nombreCompleto}</h3>
-                                <p className="muted tnum">Identificación {estudianteActivo.numeroIdentificacion}</p>
+                                <p className="muted tnum">Identificación {mostrarIdentificacion(estudianteActivo.numeroIdentificacion)}</p>
                             </div>
                         </div>
                     </div>
@@ -211,7 +257,9 @@ export default function AsignarInstrumento() {
                                     <thead>
                                         <tr>
                                             <th scope="col">Instrumento</th>
+                                            {conProfesor && <th scope="col">Profesor</th>}
                                             <th scope="col">Fecha de asignación</th>
+                                            {conProfesor && <th scope="col">Observaciones</th>}
                                             <th scope="col" className="actions"><span className="sr-only">Acciones</span></th>
                                         </tr>
                                     </thead>
@@ -219,7 +267,9 @@ export default function AsignarInstrumento() {
                                         {vigentes.map(v => (
                                             <tr key={v.idEstudianteInstrumento}>
                                                 <td className="c-main"><span className="inst">{v.nombreInstrumento}</span><span className="sub">{v.codigoInstrumento}</span></td>
+                                                {conProfesor && <td data-label="Profesor">{v.nombreProfesor || "—"}</td>}
                                                 <td data-label="Desde" className="tnum">{formatDate(v.fechaInicio)}</td>
+                                                {conProfesor && <td data-label="Observaciones">{v.observaciones || "—"}</td>}
                                                 <td className="actions">
                                                     <button
                                                         type="button"
@@ -255,6 +305,36 @@ export default function AsignarInstrumento() {
                                         {instrumentos.map(i => <option key={i.id} value={i.id}>{i.nombre}</option>)}
                                     </select>
                                 </Field>
+                                {conProfesor && <Field
+                                    id="cmbProfesorAsignar"
+                                    label="Profesor"
+                                    optional
+                                    select
+                                    error={errors.idProfesor}
+                                    errorKey="idProfesor"
+                                    hint={
+                                        !form.idInstrumento
+                                            ? "Seleccione primero un instrumento."
+                                            : !profesoresLoading && profesores.length === 0
+                                                ? "No hay profesores activos con esa especialidad."
+                                                : undefined
+                                    }
+                                >
+                                    <select
+                                        id="cmbProfesorAsignar"
+                                        className="sg-input sg-select"
+                                        value={form.idProfesor}
+                                        onChange={e => setField("idProfesor", e.target.value)}
+                                        disabled={!form.idInstrumento || profesoresLoading}
+                                    >
+                                        <option value="">{profesoresLoading ? "Cargando profesores..." : "Sin asignar"}</option>
+                                        {profesores.map(p => (
+                                            <option key={p.id} value={p.id}>
+                                                {[p.nombres, p.primerApellido, p.segundoApellido].filter(Boolean).join(" ")}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </Field>}
                                 <Field id="txtObservacionesInstrumento" label="Observaciones" optional hint="Máximo 500 caracteres." className="span-all">
                                     <textarea
                                         id="txtObservacionesInstrumento"
@@ -285,6 +365,7 @@ export default function AsignarInstrumento() {
                                     <thead>
                                         <tr>
                                             <th scope="col">Instrumento</th>
+                                            {conProfesor && <th scope="col">Profesor</th>}
                                             <th scope="col">Inicio</th>
                                             <th scope="col">Fin</th>
                                             <th scope="col">Estado</th>
@@ -295,6 +376,7 @@ export default function AsignarInstrumento() {
                                         {historial.map(h => (
                                             <tr key={h.idEstudianteInstrumento}>
                                                 <td className="c-main"><span className="inst">{h.nombreInstrumento}</span></td>
+                                                {conProfesor && <td data-label="Profesor">{h.nombreProfesor || "—"}</td>}
                                                 <td data-label="Inicio" className="tnum">{formatDate(h.fechaInicio)}</td>
                                                 <td data-label="Fin" className="tnum">{formatDate(h.fechaFin)}</td>
                                                 <td>{h.vigente ? <StatusBadge tone="success">Vigente</StatusBadge> : <StatusBadge tone="neutral">Finalizado</StatusBadge>}</td>

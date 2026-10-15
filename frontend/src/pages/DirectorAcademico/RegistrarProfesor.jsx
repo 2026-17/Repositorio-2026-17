@@ -5,6 +5,9 @@ import { API_URL } from "../../config/api";
 import "../AdminSis/styles/CreateStudent.css";
 import "./Profesores.css";
 import { useDialog } from "../../components/dialog/useDialog";
+import { formularioModificado, useAvisoCambiosSinGuardar } from "../../hooks/useAvisoCambiosSinGuardar";
+import CedulaInput from "../../components/ui/CedulaInput";
+import { ajustarIdentificacionAlTipo, esCedulaNacional } from "../../utils/cedula";
 import UbicacionSelects from "../../components/UbicacionSelects";
 import { UBICACION_VACIA } from "../../components/ubicacion";
 import Alert from "../../components/ui/Alert";
@@ -82,6 +85,11 @@ export default function RegistrarProfesor() {
   const [saving, setSaving] = useState(false);
   const [catalogLoading, setCatalogLoading] = useState(true);
   const [registrado, setRegistrado] = useState(null);
+
+  // Avisa al salir con datos escritos que no se han guardado (después de registrar ya no)
+  useAvisoCambiosSinGuardar(!registrado && (confirmado || formularioModificado(form, initialForm)));
+
+  const tipoSeleccionado = tipos.find((t) => String(t.id) === String(form.idTipoIdentificacion));
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -297,13 +305,17 @@ export default function RegistrarProfesor() {
       <p className="form-section-sub">Escriba los datos como aparecen en la cédula o el pasaporte.</p>
       <div className="form-grid">
         <Field id={`${P}idTipoIdentificacion`} errorKey="idTipoIdentificacion" label="Tipo de identificación" error={errors.idTipoIdentificacion} select>
-          <select id={`${P}idTipoIdentificacion`} className="sg-input sg-select" value={form.idTipoIdentificacion} onChange={(e) => setField("idTipoIdentificacion", e.target.value)} {...aria("idTipoIdentificacion", errors)}>
+          <select id={`${P}idTipoIdentificacion`} className="sg-input sg-select" value={form.idTipoIdentificacion} onChange={(e) => {
+            const tipo = tipos.find((t) => String(t.id) === e.target.value);
+            setField("idTipoIdentificacion", e.target.value);
+            setField("numeroIdentificacion", ajustarIdentificacionAlTipo(form.numeroIdentificacion, tipo));
+          }} {...aria("idTipoIdentificacion", errors)}>
             <option value="">Seleccione</option>
             {tipos.map((t) => <option key={t.id} value={t.id}>{t.nombre}</option>)}
           </select>
         </Field>
         <Field id={`${P}numeroIdentificacion`} errorKey="numeroIdentificacion" label="Número de identificación" hint="Debe ser única en el sistema." error={errors.numeroIdentificacion}>
-          <input id={`${P}numeroIdentificacion`} className="sg-input" maxLength={40} autoComplete="off" value={form.numeroIdentificacion} onChange={(e) => setField("numeroIdentificacion", e.target.value)} {...aria("numeroIdentificacion", errors)} />
+          <CedulaInput id={`${P}numeroIdentificacion`} className="sg-input" mascara={esCedulaNacional(tipoSeleccionado)} maxLength={40} autoComplete="off" value={form.numeroIdentificacion} onChange={(valor) => setField("numeroIdentificacion", valor)} {...aria("numeroIdentificacion", errors)} />
         </Field>
         <Field id={`${P}nombres`} errorKey="nombres" label="Nombres" error={errors.nombres}>
           <input id={`${P}nombres`} className="sg-input" maxLength={100} autoComplete="given-name" value={form.nombres} onChange={(e) => setField("nombres", e.target.value)} {...aria("nombres", errors)} />

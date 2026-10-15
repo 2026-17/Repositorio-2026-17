@@ -4,10 +4,13 @@ import { ArrowLeft, Check, Clock } from "lucide-react";
 
 import { API_URL } from "../../config/api";
 import Alert from "../../components/ui/Alert";
+import CedulaInput from "../../components/ui/CedulaInput";
 import Field from "../../components/ui/Field";
 import PasswordField from "../../components/ui/PasswordField";
 import RequisitosContrasena from "../../components/ui/RequisitosContrasena";
 import { revisarContrasena } from "../../components/ui/politicaContrasena";
+import { mostrarIdentificacion } from "../../utils/cedula";
+import { limpiarIdentificacion } from "../../utils/validaciones";
 import AuthLayout from "./AuthLayout";
 
 import "./publico.css";
@@ -136,7 +139,7 @@ function RecuperarContrasena() {
             const response = await fetch(`${API_URL}/auth/recuperar-contrasena/solicitar`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ cedula: cedula.trim() }),
+                body: JSON.stringify({ cedula: limpiarIdentificacion(cedula.trim()) }),
             });
 
             if (!response.ok) {
@@ -189,7 +192,7 @@ function RecuperarContrasena() {
             const response = await fetch(`${API_URL}/auth/recuperar-contrasena/confirmar`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ cedula: cedula.trim(), codigo, contrasenaNueva: contrasena }),
+                body: JSON.stringify({ cedula: limpiarIdentificacion(cedula.trim()), codigo, contrasenaNueva: contrasena }),
             });
 
             if (response.ok) {
@@ -245,13 +248,15 @@ function RecuperarContrasena() {
                         {avisoError}
 
                         <Field id="cedula" label="Cédula">
-                            <input
+                            {/* Con dígitos se muestra como 1-1111-1111; con letras (DIMEX o pasaporte) queda libre */}
+                            <CedulaInput
                                 id="cedula"
-                                type="text"
                                 className="sg-input"
+                                mascara="auto"
                                 inputMode="numeric"
+                                placeholder="1-1111-1111"
                                 value={cedula}
-                                onChange={(e) => setCedula(e.target.value)}
+                                onChange={setCedula}
                                 autoComplete="username"
                                 maxLength={20}
                             />
@@ -275,7 +280,7 @@ function RecuperarContrasena() {
                 <>
                     <h1 id="rec-title" tabIndex={-1}>Revise su correo</h1>
                     <p className="lead">
-                        Si la cédula <b>{cedula.trim()}</b> está registrada, recibirá un código en unos minutos.
+                        Si la cédula <b>{mostrarIdentificacion(limpiarIdentificacion(cedula.trim()))}</b> está registrada, recibirá un código en unos minutos.
                         Revise también la carpeta de correo no deseado.
                     </p>
 

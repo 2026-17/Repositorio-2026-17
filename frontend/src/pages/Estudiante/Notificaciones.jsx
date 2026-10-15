@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from "react";
-import { API_URL } from "../../config/api";
 import { Bell, Check, RefreshCw } from "lucide-react";
 import "./notificaciones.css";
 import EmptyState from "../../components/ui/EmptyState";
@@ -7,6 +6,11 @@ import PageHead from "../../components/ui/PageHead";
 import StatusBadge from "../../components/ui/StatusBadge";
 
 import { useDialog } from "../../components/dialog/useDialog";
+import {
+    cargarNotificaciones,
+    marcarNotificacionLeida,
+    useNotificacionesEstudiante,
+} from "../../hooks/useNotificacionesEstudiante";
 
 function formatearFecha(fecha) {
     if (!fecha) {
@@ -27,74 +31,30 @@ function formatearFecha(fecha) {
 
 function Notificaciones() {
     const dialog = useDialog();
-    const token = localStorage.getItem("token");
 
-    const [notificaciones, setNotificaciones] = useState([]);
-    const [cargando, setCargando] = useState(true);
+    // Mismo almacén que la campana del Header: el contador se actualiza solo
+    const { notificaciones, cargando: consultando, cargado, noLeidas } = useNotificacionesEstudiante();
+    const cargando = consultando || !cargado;
     const [procesandoId, setProcesandoId] = useState(null);
 
-    const cargarNotificaciones = useCallback(async () => {
-        setCargando(true);
-
+    const consultar = useCallback(async () => {
         try {
-            const response = await fetch(
-                `${API_URL}/notificaciones-estudiante/mias`,
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                }
-            );
-
-            let data = {};
-
-            try {
-                data = await response.json();
-            } catch {
-                data = {};
-            }
-
-            if (response.status === 401) {
-                throw new Error(
-                    "La sesión ha expirado. Inicie sesión nuevamente."
-                );
-            }
-
-            if (response.status === 403) {
-                throw new Error(
-                    "No tiene permisos para consultar estas notificaciones."
-                );
-            }
-
-            if (!response.ok) {
-                throw new Error(
-                    data.message ||
-                    "No fue posible consultar las notificaciones."
-                );
-            }
-
-            setNotificaciones(
-                Array.isArray(data) ? data : []
-            );
+            await cargarNotificaciones();
         } catch (errorConsulta) {
-            setNotificaciones([]);
-
             dialog.error(
                 errorConsulta.message ||
                 "Ocurrió un error al consultar las notificaciones."
             );
-        } finally {
-            setCargando(false);
         }
-    }, [token, dialog]);
+    }, [dialog]);
 
     useEffect(() => {
         const timer = setTimeout(() => {
-            void cargarNotificaciones();
+            void consultar();
         }, 0);
 
         return () => clearTimeout(timer);
-    }, [cargarNotificaciones]);
+    }, [consultar]);
 
     async function marcarComoLeida(notificacion) {
         if (notificacion.leida) {
@@ -106,51 +66,7 @@ function Notificaciones() {
         );
 
         try {
-            const response = await fetch(
-                `${API_URL}/notificaciones-estudiante/${notificacion.idNotificacion}/leer`,
-                {
-                    method: "PATCH",
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                }
-            );
-
-            let data = {};
-
-            try {
-                data = await response.json();
-            } catch {
-                data = {};
-            }
-
-            if (response.status === 401) {
-                throw new Error(
-                    "La sesión ha expirado. Inicie sesión nuevamente."
-                );
-            }
-
-            if (response.status === 403) {
-                throw new Error(
-                    "No tiene permisos para modificar esta notificación."
-                );
-            }
-
-            if (!response.ok) {
-                throw new Error(
-                    data.message ||
-                    "No fue posible marcar la notificación como leída."
-                );
-            }
-
-            setNotificaciones((prev) =>
-                prev.map((item) =>
-                    item.idNotificacion ===
-                    notificacion.idNotificacion
-                        ? data
-                        : item
-                )
-            );
+            await marcarNotificacionLeida(notificacion.idNotificacion);
         } catch (errorActualizacion) {
             dialog.error(
                 errorActualizacion.message ||
@@ -180,8 +96,6 @@ function Notificaciones() {
         return "info";
     }
 
-    const noLeidas = notificaciones.filter((n) => !n.leida).length;
-
     return (
         <div className="notificaciones">
             <PageHead
@@ -192,7 +106,7 @@ function Notificaciones() {
                         type="button"
                         className="sg-btn sg-btn--secondary"
                         onClick={() => {
-                            void cargarNotificaciones();
+                            void consultar();
                         }}
                         disabled={cargando || procesandoId !== null}
                     >

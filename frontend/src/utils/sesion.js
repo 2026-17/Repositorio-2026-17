@@ -41,6 +41,11 @@ export function limpiarSesion() {
     CLAVES.forEach((clave) => localStorage.removeItem(clave));
 }
 
+// Hay sesión si quedó un token guardado al iniciar sesión
+export function haySesion() {
+    return Boolean(localStorage.getItem("token"));
+}
+
 // El backend solo acepta el cambio de contraseña mientras esto sea cierto
 export function cambioContrasenaPendiente() {
     return localStorage.getItem("requiereCambioContrasena") === "true";

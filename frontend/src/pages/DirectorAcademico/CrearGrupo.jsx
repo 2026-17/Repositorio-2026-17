@@ -10,6 +10,7 @@ import { listaErrores } from "../../components/ui/utilidades";
 import { lanzarError, mensajeDeExcepcion } from "../../utils/api";
 
 import { useDialog } from "../../components/dialog/useDialog";
+import { formularioModificado, useAvisoCambiosSinGuardar } from "../../hooks/useAvisoCambiosSinGuardar";
 
 const MODALIDADES = [
     { value: "PRESENCIAL", label: "Presencial" },
@@ -68,6 +69,12 @@ function CrearGrupo() {
 
     const [cargandoCatalogos, setCargandoCatalogos] = useState(true);
     const [guardando, setGuardando] = useState(false);
+
+    // Avisa al salir con datos escritos que no se han guardado
+    useAvisoCambiosSinGuardar(
+        formularioModificado(form, FORM_INICIAL) ||
+        formularioModificado(horarios, [HORARIO_VACIO])
+    );
 
     const [errores, setErrores] = useState({});
     const [intento, setIntento] = useState(0);

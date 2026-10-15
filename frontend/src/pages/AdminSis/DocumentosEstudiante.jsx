@@ -6,6 +6,7 @@ import Alert from "../../components/ui/Alert";
 import Field from "../../components/ui/Field";
 import StatusBadge from "../../components/ui/StatusBadge";
 import { useDialog } from "../../components/dialog/useDialog";
+import { mostrarIdentificacion } from "../../utils/cedula";
 
 const MAX_PDF_SIZE = 50 * 1024 * 1024;
 
@@ -423,7 +424,7 @@ function DocumentosEstudiante({ estudiante, onClose }) {
 
                     <p className="panel-head-sub">
                         {estudiante.nombreCompleto} ·{" "}
-                        {estudiante.numeroIdentificacion}
+                        {mostrarIdentificacion(estudiante.numeroIdentificacion)}
                     </p>
                 </div>
 

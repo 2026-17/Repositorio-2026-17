@@ -8,6 +8,16 @@ import PageHead from "../../components/ui/PageHead";
 import { listaErrores } from "../../components/ui/utilidades";
 
 import { useDialog } from "../../components/dialog/useDialog";
+import { formularioModificado, useAvisoCambiosSinGuardar } from "../../hooks/useAvisoCambiosSinGuardar";
+
+const FORM_VACIO = {
+    nombre: "",
+    fechaInicio: "",
+    fechaFin: "",
+    fechaInicioMatricula: "",
+    fechaFinMatricula: "",
+    estado: "PLANIFICADO",
+};
 
 const ESTADOS = [
     { value: "PLANIFICADO", label: "Planificado" },
@@ -21,16 +31,12 @@ function CrearPeriodoAcademico() {
 
     const token = localStorage.getItem("token");
 
-    const [form, setForm] = useState({
-        nombre: "",
-        fechaInicio: "",
-        fechaFin: "",
-        fechaInicioMatricula: "",
-        fechaFinMatricula: "",
-        estado: "PLANIFICADO",
-    });
+    const [form, setForm] = useState(FORM_VACIO);
 
     const [guardando, setGuardando] = useState(false);
+
+    // Avisa al salir con datos escritos que no se han guardado
+    useAvisoCambiosSinGuardar(formularioModificado(form, FORM_VACIO));
 
     const [errores, setErrores] = useState({});
     const [intento, setIntento] = useState(0);
@@ -167,14 +173,7 @@ function CrearPeriodoAcademico() {
                 `El período "${data.nombre || payload.nombre}" fue creado correctamente.`
             );
 
-            setForm({
-                nombre: "",
-                fechaInicio: "",
-                fechaFin: "",
-                fechaInicioMatricula: "",
-                fechaFinMatricula: "",
-                estado: "PLANIFICADO",
-            });
+            setForm(FORM_VACIO);
 
         } catch (e) {
 
@@ -191,14 +190,7 @@ function CrearPeriodoAcademico() {
 
     function limpiarFormulario() {
 
-        setForm({
-            nombre: "",
-            fechaInicio: "",
-            fechaFin: "",
-            fechaInicioMatricula: "",
-            fechaFinMatricula: "",
-            estado: "PLANIFICADO",
-        });
+        setForm(FORM_VACIO);
 
         setErrores({});
     }

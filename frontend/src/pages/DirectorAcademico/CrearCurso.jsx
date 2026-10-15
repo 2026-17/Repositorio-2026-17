@@ -9,6 +9,18 @@ import PageHead from "../../components/ui/PageHead";
 import { listaErrores } from "../../components/ui/utilidades";
 
 import { useDialog } from "../../components/dialog/useDialog";
+import { formularioModificado, useAvisoCambiosSinGuardar } from "../../hooks/useAvisoCambiosSinGuardar";
+
+const FORM_VACIO = {
+    codigo: "",
+    nombre: "",
+    descripcion: "",
+    horasTotales: "",
+    idPrograma: "",
+    nivel: "",
+    cupos: "",
+    idPeriodo: "",
+};
 
 function CrearCurso() {
     const dialog = useDialog();
@@ -16,22 +28,16 @@ function CrearCurso() {
     const token = localStorage.getItem("token");
     const [revisionRequisitos, setRevisionRequisitos] = useState(0);
 
-    const [form, setForm] = useState({
-        codigo: "",
-        nombre: "",
-        descripcion: "",
-        horasTotales: "",
-        idPrograma: "",
-        nivel: "",
-        cupos: "",
-        idPeriodo: "",
-    });
+    const [form, setForm] = useState(FORM_VACIO);
 
     const [programas, setProgramas] = useState([]);
     const [periodos, setPeriodos] = useState([]);
 
     const [cargandoCatalogos, setCargandoCatalogos] = useState(true);
     const [guardando, setGuardando] = useState(false);
+
+    // Avisa al salir con datos escritos que no se han guardado
+    useAvisoCambiosSinGuardar(formularioModificado(form, FORM_VACIO));
 
     const [errores, setErrores] = useState({});
     const [intento, setIntento] = useState(0);
@@ -252,16 +258,7 @@ function CrearCurso() {
             );
 
             setRevisionRequisitos(n => n + 1);
-            setForm({
-                codigo: "",
-                nombre: "",
-                descripcion: "",
-                horasTotales: "",
-                idPrograma: "",
-                nivel: "",
-                cupos: "",
-                idPeriodo: "",
-            });
+            setForm(FORM_VACIO);
 
         } catch (e) {
 
@@ -279,16 +276,7 @@ function CrearCurso() {
     function limpiarFormulario() {
         setRevisionRequisitos(n => n + 1);
 
-        setForm({
-            codigo: "",
-            nombre: "",
-            descripcion: "",
-            horasTotales: "",
-            idPrograma: "",
-            nivel: "",
-            cupos: "",
-            idPeriodo: "",
-        });
+        setForm(FORM_VACIO);
 
         setErrores({});
     }

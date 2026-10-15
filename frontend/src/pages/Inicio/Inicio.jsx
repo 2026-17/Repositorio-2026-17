@@ -5,6 +5,7 @@ import "./inicio.css";
 import EmptyState from "../../components/ui/EmptyState";
 import PageHead from "../../components/ui/PageHead";
 import Panel from "../../components/ui/Panel";
+import StatusBadge from "../../components/ui/StatusBadge";
 import { CONTACTO_ACUSAB, soloDigitos } from "../../constants/contacto";
 import { MENU_POR_ROL } from "../../constants/menu";
 import { etiquetaRol } from "../../constants/roles";
@@ -62,6 +63,21 @@ function Inicio() {
                     <ul className="inicio__lista">
                         {grupo.items.map((item) => {
                             const Icono = item.icon;
+                            if (item.proximamente) {
+                                return (
+                                    <li key={item.to}>
+                                        <span className="inicio__opcion is-disabled" aria-disabled="true">
+                                            <span className="inicio__icono" aria-hidden="true">
+                                                <Icono size={20} strokeWidth={1.75} />
+                                            </span>
+                                            <span className="inicio__texto">
+                                                <b>{item.label} <StatusBadge tone="neutral" icon={null}>Próximamente</StatusBadge></b>
+                                                <span>{item.descripcion}</span>
+                                            </span>
+                                        </span>
+                                    </li>
+                                );
+                            }
                             return (
                                 <li key={item.to}>
                                     <Link to={item.to} className="inicio__opcion">

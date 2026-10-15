@@ -26,11 +26,6 @@ function DesactivarCurso() {
 
     const [desactivando, setDesactivando] = useState(false);
 
-    useEffect(() => {
-        cargarCursos();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
-
     async function cargarCursos() {
 
         setCargando(true);
@@ -76,6 +71,15 @@ function DesactivarCurso() {
             setCargando(false);
         }
     }
+
+    useEffect(() => {
+        // Fuera del render del efecto (igual que en Notificaciones)
+        const timer = setTimeout(() => {
+            void cargarCursos();
+        }, 0);
+        return () => clearTimeout(timer);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const categorias = useMemo(() => {
 

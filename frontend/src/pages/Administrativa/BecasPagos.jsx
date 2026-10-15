@@ -20,7 +20,10 @@ import StatusBadge from "../../components/ui/StatusBadge";
 import { iniciales, listaErrores } from "../../components/ui/utilidades";
 
 import { useDialog } from "../../components/dialog/useDialog";
+import CedulaInput from "../../components/ui/CedulaInput";
 import { lanzarError, mensajeDeExcepcion } from "../../utils/api";
+import { mostrarIdentificacion, pareceCedula } from "../../utils/cedula";
+import { limpiarIdentificacion } from "../../utils/validaciones";
 
 // Mismo límite que valida el backend (PagoService).
 const MAX_COMPROBANTE = 15 * 1024 * 1024;
@@ -56,8 +59,12 @@ function Estudiantes() {
 
     // --- Búsqueda de estudiante ---
     const [texto, setTexto] = useState("");
-    const [resultados, setResultados] = useState([]);
-    const [buscando, setBuscando] = useState(false);
+    // Resultados de la última búsqueda hecha (y para qué texto)
+    const [busqueda, setBusqueda] = useState({ consulta: "", lista: [] });
+    // Una cédula escrita con la máscara se busca sin guiones
+    const consulta = pareceCedula(texto.trim()) ? limpiarIdentificacion(texto.trim()) : texto.trim();
+    const resultados = busqueda.lista;
+    const buscando = consulta.length >= 2 && busqueda.consulta !== consulta;
 
     // --- Estudiante seleccionado ---
     const [estudiante, setEstudiante] = useState(null);
@@ -102,13 +109,8 @@ function Estudiantes() {
 
     // Búsqueda con un pequeño debounce para no golpear el backend en cada tecla.
     useEffect(() => {
-        const consulta = texto.trim();
-        if (consulta.length < 2) {
-            setResultados([]);
-            return;
-        }
+        if (consulta.length < 2) return undefined;
 
-        setBuscando(true);
         const temporizador = setTimeout(async () => {
             try {
                 const response = await fetch(`${API_URL}/estudiantes?texto=${encodeURIComponent(consulta)}`, {
@@ -116,18 +118,16 @@ function Estudiantes() {
                 });
                 if (!response.ok) await lanzarError(response, "No fue posible buscar estudiantes.");
                 const data = await response.json();
-                setResultados(data);
+                setBusqueda({ consulta, lista: data });
             } catch (e) {
-                setResultados([]);
+                setBusqueda({ consulta, lista: [] });
                 dialog.error(mensajeDeExcepcion(e, "No fue posible buscar estudiantes."));
-            } finally {
-                setBuscando(false);
             }
         }, 300);
 
         return () => clearTimeout(temporizador);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [texto]);
+    }, [consulta]);
 
     function limpiarFormulario() {
         setSeleccion([]);
@@ -146,7 +146,6 @@ function Estudiantes() {
 
     async function seleccionarEstudiante(idEstudiante) {
         setTexto("");
-        setResultados([]);
         setEstudiante(null);
         setCargandoPerfil(true);
         limpiarSeleccion();
@@ -369,19 +368,20 @@ function Estudiantes() {
                 <div className="panel-body">
                     <div className="buscador-estudiante">
                         <Field id="txtBuscarEstudiantePago" label="Estudiante" icon={Search}>
-                            <input
+                            <CedulaInput
                                 id="txtBuscarEstudiantePago"
                                 className="sg-input"
                                 type="search"
+                                mascara="auto"
                                 autoComplete="off"
-                                placeholder="Ej. María Solano o 205950123"
+                                placeholder="Ej. María Solano o 2-0595-0123"
                                 value={texto}
-                                onChange={(e) => setTexto(e.target.value)}
+                                onChange={setTexto}
                                 aria-controls="resultados-estudiante"
                             />
                         </Field>
 
-                        {texto.trim().length >= 2 && (
+                        {consulta.length >= 2 && (
                             <div className="search-results" id="resultados-estudiante" role="listbox" aria-label="Resultados de la búsqueda">
                                 {buscando && <div className="search-results__empty">Buscando...</div>}
                                 {!buscando && resultados.length === 0 && (
@@ -400,7 +400,7 @@ function Estudiantes() {
                                             <span className="avatar avatar--sm" aria-hidden="true">{iniciales(r.nombreCompleto)}</span>
                                             <b>{r.nombreCompleto}</b>
                                         </span>
-                                        <span className="search-results__cedula">{r.numeroIdentificacion}</span>
+                                        <span className="search-results__cedula">{mostrarIdentificacion(r.numeroIdentificacion)}</span>
                                     </button>
                                 ))}
                             </div>
@@ -420,7 +420,7 @@ function Estudiantes() {
                                 <span className="avatar avatar--lg" aria-hidden="true">{iniciales(nombreCompleto)}</span>
                                 <div>
                                     <h3>{nombreCompleto}</h3>
-                                    <p className="muted tnum">Identificación {estudiante.numeroIdentificacion}</p>
+                                    <p className="muted tnum">Identificación {mostrarIdentificacion(estudiante.numeroIdentificacion)}</p>
                                 </div>
                             </div>
                         </div>

@@ -26,6 +26,10 @@ export const RUTA_INICIO = "/inicio";
  * Cada grupo tiene un título y sus enlaces; cada enlace lleva el ícono
  * que se ve en el menú (y es lo único visible cuando está contraído)
  * y la descripción que se muestra en la pantalla de inicio.
+ * proximamente: la opción se muestra deshabilitada con la etiqueta "Próximamente".
+ *
+ * Este menú también define los permisos: un rol solo puede abrir las
+ * rutas de sus propias opciones (ver tieneAcceso).
  */
 export const MENU_POR_ROL = {
     [ROLES.ADMINISTRADOR]: [
@@ -163,6 +167,8 @@ export const MENU_POR_ROL = {
                     label: "Reportes",
                     icon: ChartColumn,
                     descripcion: "Consulte indicadores y listados de la escuela.",
+                    // Todavía no está disponible: se ve en el menú, pero deshabilitado
+                    proximamente: true,
                 },
             ],
         },
@@ -209,3 +215,19 @@ export const MENU_POR_ROL = {
         },
     ],
 };
+
+// La ruta pertenece a la opción si es la misma o una subruta (p. ej. ".../registrar").
+function rutaDeOpcion(pathname, to) {
+    return pathname === to || pathname.startsWith(`${to}/`);
+}
+
+/*
+ * Indica si el rol puede abrir la ruta. Se deriva del menú para no mantener
+ * otra lista de permisos: la pantalla de inicio es de todos los roles y el
+ * resto de rutas solo de los roles que tienen la opción en su menú.
+ */
+export function tieneAcceso(rol, pathname) {
+    if (pathname === RUTA_INICIO) return true;
+    const grupos = MENU_POR_ROL[rol] || [];
+    return grupos.some((grupo) => grupo.items.some((item) => rutaDeOpcion(pathname, item.to)));
+}

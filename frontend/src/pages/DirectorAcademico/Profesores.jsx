@@ -6,6 +6,9 @@ import "./Profesores.css";
 import Alert from "../../components/ui/Alert";
 import EmptyState from "../../components/ui/EmptyState";
 import Field from "../../components/ui/Field";
+import CedulaInput from "../../components/ui/CedulaInput";
+import { ATAJO_BUSCADOR, useAtajoBuscador } from "../../hooks/useAtajoBuscador";
+import { ajustarIdentificacionAlTipo, esCedulaNacional, formatearCedula, identificacionCoincide, mostrarIdentificacion, textoDeBusqueda } from "../../utils/cedula";
 import PageHead from "../../components/ui/PageHead";
 import Pagination from "../../components/ui/Pagination";
 import StatusBadge from "../../components/ui/StatusBadge";
@@ -72,6 +75,9 @@ function especialidadesATexto(lista) {
 
 function Profesores() {
     const dialog = useDialog();
+
+    // Ctrl+K o "/" enfocan el buscador
+    useAtajoBuscador("txtBuscarProfesor");
     const [profesores, setProfesores] = useState([]);
     const [tipos, setTipos] = useState([]);
     const [gradosAcademicos, setGradosAcademicos] = useState([]);
@@ -162,11 +168,12 @@ function Profesores() {
     }, [filtroActivo, getHeaders, recargar, dialog]);
 
     const profesoresFiltrados = useMemo(() => {
-        const texto = busqueda.trim().toLowerCase();
+        // La cédula se puede buscar con o sin guiones
+        const texto = textoDeBusqueda(busqueda);
         if (!texto) return profesores;
         return profesores.filter((p) =>
             nombreCompleto(p).toLowerCase().includes(texto) ||
-            (p.numeroIdentificacion || "").toLowerCase().includes(texto) ||
+            identificacionCoincide(p.numeroIdentificacion, texto) ||
             (p.correo || "").toLowerCase().includes(texto)
         );
     }, [profesores, busqueda]);
@@ -200,7 +207,10 @@ function Profesores() {
         setEditingId(p.id);
         setForm({
             idTipoIdentificacion: String(p.tipoIdentificacion?.id ?? ""),
-            numeroIdentificacion: p.numeroIdentificacion || "",
+            // La cédula nacional se muestra con su máscara (1-1111-1111)
+            numeroIdentificacion: esCedulaNacional(p.tipoIdentificacion)
+                ? formatearCedula(p.numeroIdentificacion)
+                : p.numeroIdentificacion || "",
             nombres: p.nombres || "",
             primerApellido: p.primerApellido || "",
             segundoApellido: p.segundoApellido || "",
@@ -400,7 +410,11 @@ function Profesores() {
                                 <p className="form-section-sub">Identificación y contacto del profesor.</p>
                                 <div className="form-grid">
                                     <Field id={`${P}idTipoIdentificacion`} errorKey="idTipoIdentificacion" label="Tipo de identificación" error={errores.idTipoIdentificacion} select>
-                                        <select id={`${P}idTipoIdentificacion`} className="sg-input sg-select" value={form.idTipoIdentificacion} onChange={(e) => setField("idTipoIdentificacion", e.target.value)} {...aria("idTipoIdentificacion")}>
+                                        <select id={`${P}idTipoIdentificacion`} className="sg-input sg-select" value={form.idTipoIdentificacion} onChange={(e) => {
+                                            const tipo = tipos.find((t) => String(t.id) === e.target.value);
+                                            setField("idTipoIdentificacion", e.target.value);
+                                            setField("numeroIdentificacion", ajustarIdentificacionAlTipo(form.numeroIdentificacion, tipo));
+                                        }} {...aria("idTipoIdentificacion")}>
                                             <option value="">Seleccione</option>
                                             {tipos.map((t) => (
                                                 <option key={t.id} value={t.id}>{t.nombre}</option>
@@ -408,7 +422,7 @@ function Profesores() {
                                         </select>
                                     </Field>
                                     <Field id={`${P}numeroIdentificacion`} errorKey="numeroIdentificacion" label="Cédula / Número de identificación" error={errores.numeroIdentificacion}>
-                                        <input id={`${P}numeroIdentificacion`} className="sg-input" maxLength={40} value={form.numeroIdentificacion} onChange={(e) => setField("numeroIdentificacion", e.target.value)} {...aria("numeroIdentificacion")} />
+                                        <CedulaInput id={`${P}numeroIdentificacion`} className="sg-input" mascara={esCedulaNacional(tipos.find((t) => String(t.id) === String(form.idTipoIdentificacion)))} maxLength={40} value={form.numeroIdentificacion} onChange={(valor) => setField("numeroIdentificacion", valor)} {...aria("numeroIdentificacion")} />
                                     </Field>
                                     <Field id={`${P}nombres`} errorKey="nombres" label="Nombre" error={errores.nombres}>
                                         <input id={`${P}nombres`} className="sg-input" maxLength={100} value={form.nombres} onChange={(e) => setField("nombres", e.target.value)} {...aria("nombres")} />
@@ -508,13 +522,15 @@ function Profesores() {
             <div className="panel">
                 <div className="filters" role="search">
                     <Field id="txtBuscarProfesor" label="Buscar" icon={Search} className="f-search">
-                        <input
+                        <CedulaInput
                             id="txtBuscarProfesor"
                             type="search"
                             className="sg-input"
-                            placeholder="Nombre, identificación o correo"
+                            mascara="auto"
+                            placeholder="Nombre, identificación o correo (Ctrl+K)"
                             value={busqueda}
-                            onChange={(e) => { setBusqueda(e.target.value); setPagina(1); }}
+                            onChange={(valor) => { setBusqueda(valor); setPagina(1); }}
+                            aria-keyshortcuts={ATAJO_BUSCADOR}
                         />
                     </Field>
                     <Field id="cmbEstadoProfesor" label="Estado" select>
@@ -602,7 +618,7 @@ function Profesores() {
                                                 <span className="avatar avatar--sm" aria-hidden="true">{iniciales(nombreCompleto(p))}</span>
                                                 <div>
                                                     <b>{nombreCompleto(p)}</b>
-                                                    <span>{p.tipoIdentificacion?.codigo ? `${p.tipoIdentificacion.codigo}: ` : ""}{p.numeroIdentificacion}</span>
+                                                    <span>{p.tipoIdentificacion?.codigo ? `${p.tipoIdentificacion.codigo}: ` : ""}{mostrarIdentificacion(p.numeroIdentificacion, p.tipoIdentificacion)}</span>
                                                 </div>
                                             </div>
                                         </td>
