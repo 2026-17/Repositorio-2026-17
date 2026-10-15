@@ -9,6 +9,9 @@ import Field from "../../components/ui/Field";
 import PageHead from "../../components/ui/PageHead";
 
 import { useDialog } from "../../components/dialog/useDialog";
+import CedulaInput from "../../components/ui/CedulaInput";
+import { formularioModificado, useAvisoCambiosSinGuardar } from "../../hooks/useAvisoCambiosSinGuardar";
+import { ajustarIdentificacionAlTipo, esCedulaNacional, formatearCedula } from "../../utils/cedula";
 import UbicacionSelects from "../../components/UbicacionSelects";
 import { UBICACION_VACIA, ubicacionDesdeRespuesta } from "../../components/ubicacion";
 import { API_URL } from "../../config/api";
@@ -67,10 +70,23 @@ function EditarEstudiante({ studentId, onCancel, onSuccess } = {}) {
     const [instruments, setInstruments] = useState([]);
     const [planes, setPlanes] = useState([]);
     const [form, setForm] = useState(initialForm);
+    // Datos tal como se cargaron, para saber si hay cambios sin guardar
+    const [formCargado, setFormCargado] = useState(initialForm);
     const [errors, setErrors] = useState({});
     const [loading, setLoading] = useState(idValido);
     const [saving, setSaving] = useState(false);
     const [intento, setIntento] = useState(0);
+
+    const hayCambios = formularioModificado(form, formCargado);
+    const { confirmarDescarte, permitirSalida } = useAvisoCambiosSinGuardar(hayCambios);
+    const tipoDe = (idTipo) => types.find(t => String(t.id) === String(idTipo));
+
+    // Cancelar dentro de Estudiantes: también pregunta si hay cambios
+    async function cancelar() {
+        if (hayCambios && !(await confirmarDescarte())) return;
+        permitirSalida();
+        onCancel();
+    }
 
     const edad = useMemo(() => ageFromDate(form.fechaNacimiento), [form.fechaNacimiento]);
     const requiereCentro = edad !== null && edad >= 6 && edad < 18;
@@ -96,8 +112,11 @@ function EditarEstudiante({ studentId, onCancel, onSuccess } = {}) {
                 if (!instrumentsResponse.ok) throw new Error("No se pudo cargar el catálogo de instrumentos.");
                 if (!plansResponse.ok) throw new Error("No se pudo cargar el catálogo de planes de estudio.");
                 const [student, typeData, instrumentData, planData] = await Promise.all([studentResponse.json(), typesResponse.json(), instrumentsResponse.json(), plansResponse.json()]);
-                setForm({
-                    idTipoIdentificacion: String(student.idTipoIdentificacion ?? ""), numeroIdentificacion: student.numeroIdentificacion ?? "",
+                // La cédula nacional se muestra con su máscara (1-1111-1111)
+                const tipo = typeData.find(t => String(t.id) === String(student.idTipoIdentificacion));
+                const numero = student.numeroIdentificacion ?? "";
+                const cargado = {
+                    idTipoIdentificacion: String(student.idTipoIdentificacion ?? ""), numeroIdentificacion: esCedulaNacional(tipo) ? formatearCedula(numero) : numero,
                     nombres: student.nombres ?? "", primerApellido: student.primerApellido ?? "", segundoApellido: student.segundoApellido ?? "",
                     fechaNacimiento: student.fechaNacimiento ?? "", genero: student.genero ?? "", ubicacion: ubicacionDesdeRespuesta(student.ubicacion), direccion: student.direccion ?? "",
                     telefono: student.telefono ?? "", correo: student.correo ?? "", nivelEscolar: student.nivelEscolar ?? "",
@@ -105,7 +124,9 @@ function EditarEstudiante({ studentId, onCancel, onSuccess } = {}) {
                     centroEducativo: student.centroEducativo ?? "",
                     condicionesRelevantes: student.condicionesRelevantes ?? "", idInstrumento: student.idInstrumento == null ? "" : String(student.idInstrumento),
                     idsPlanEstudio: Array.isArray(student.idsPlanEstudio) ? student.idsPlanEstudio : [],
-                });
+                };
+                setForm(cargado);
+                setFormCargado(cargado);
                 setTypes(typeData);
                 setInstruments(instrumentData);
                 setPlanes(planData);
@@ -204,6 +225,9 @@ function EditarEstudiante({ studentId, onCancel, onSuccess } = {}) {
                 }
                 throw new Error(error.message);
             }
+            // Guardado: ya no hay cambios que avisar al salir
+            permitirSalida();
+            setFormCargado(form);
             if (onSuccess) onSuccess();
             else navigate("/admin/administracion/estudiantes");
         } catch (e) {
@@ -255,13 +279,16 @@ function EditarEstudiante({ studentId, onCancel, onSuccess } = {}) {
                     <div className="panel-head"><h2>Datos personales</h2></div>
                     <div className="panel-body form-grid">
                         <Field id={IDS.idTipoIdentificacion} errorKey="idTipoIdentificacion" label="Tipo de identificación" error={errors.idTipoIdentificacion} select>
-                            <select id={IDS.idTipoIdentificacion} className="sg-input sg-select" value={form.idTipoIdentificacion} onChange={e => setField("idTipoIdentificacion", e.target.value)} {...err("idTipoIdentificacion")}>
+                            <select id={IDS.idTipoIdentificacion} className="sg-input sg-select" value={form.idTipoIdentificacion} onChange={e => {
+                                setField("idTipoIdentificacion", e.target.value);
+                                setField("numeroIdentificacion", ajustarIdentificacionAlTipo(form.numeroIdentificacion, tipoDe(e.target.value)));
+                            }} {...err("idTipoIdentificacion")}>
                                 <option value="">Seleccione</option>
                                 {types.map(type => <option key={type.id} value={type.id}>{type.nombre}</option>)}
                             </select>
                         </Field>
                         <Field id={IDS.numeroIdentificacion} errorKey="numeroIdentificacion" label="Número de identificación" error={errors.numeroIdentificacion}>
-                            <input id={IDS.numeroIdentificacion} className="sg-input" maxLength={40} value={form.numeroIdentificacion} onChange={e => setField("numeroIdentificacion", e.target.value)} {...err("numeroIdentificacion")} />
+                            <CedulaInput id={IDS.numeroIdentificacion} className="sg-input" mascara={esCedulaNacional(tipoDe(form.idTipoIdentificacion))} maxLength={40} value={form.numeroIdentificacion} onChange={valor => setField("numeroIdentificacion", valor)} {...err("numeroIdentificacion")} />
                         </Field>
                         <Field id={IDS.nombres} errorKey="nombres" label="Nombres" error={errors.nombres}>
                             <input id={IDS.nombres} className="sg-input" maxLength={100} value={form.nombres} onChange={e => setField("nombres", e.target.value)} {...err("nombres")} />
@@ -354,7 +381,7 @@ function EditarEstudiante({ studentId, onCancel, onSuccess } = {}) {
                     </div>
                     <div className="panel-foot">
                         {onCancel
-                            ? <button type="button" className="sg-btn sg-btn--secondary" onClick={onCancel}>Cancelar</button>
+                            ? <button type="button" className="sg-btn sg-btn--secondary" onClick={cancelar}>Cancelar</button>
                             : <Link className="sg-btn sg-btn--secondary" to="/admin/administracion/estudiantes">Cancelar</Link>}
                         <button id="btnGuardarCambios" className={`sg-btn sg-btn--primary${saving ? " is-loading" : ""}`} type="submit" disabled={saving} aria-busy={saving || undefined}>
                             {saving ? <span className="sg-spinner" aria-hidden="true" /> : <Save size={18} strokeWidth={1.75} aria-hidden="true" />}

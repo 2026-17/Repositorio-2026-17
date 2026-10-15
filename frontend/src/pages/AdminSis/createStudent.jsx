@@ -3,6 +3,9 @@ import { Link } from "react-router-dom";
 import { ArrowLeft, Check, FileUp, Plus, X } from "lucide-react";
 import { API_URL } from "../../config/api";
 import "./styles/CreateStudent.css";
+import { formularioModificado, useAvisoCambiosSinGuardar } from "../../hooks/useAvisoCambiosSinGuardar";
+import CedulaInput from "../../components/ui/CedulaInput";
+import { ajustarIdentificacionAlTipo, esCedulaNacional } from "../../utils/cedula";
 import { useDialog } from "../../components/dialog/useDialog";
 import UbicacionSelects from "../../components/UbicacionSelects";
 import { UBICACION_VACIA } from "../../components/ubicacion";
@@ -142,8 +145,8 @@ export default function CreateStudent({ onCancel, onSuccess } = {}) {
   const [types, setTypes] = useState([]);
   const [instruments, setInstruments] = useState([]);
   const [planes, setPlanes] = useState([]);
-  const [profesores, setProfesores] = useState([]);
-  const [profesoresLoading, setProfesoresLoading] = useState(false);
+  // Profesores del instrumento elegido (se recuerda para qué instrumento se cargaron)
+  const [profesoresDe, setProfesoresDe] = useState({ idInstrumento: "", lista: [] });
   const [periodos, setPeriodos] = useState([]);
   const [tiposBeca, setTiposBeca] = useState([]);
   const [policy, setPolicy] = useState(null);
@@ -157,6 +160,22 @@ export default function CreateStudent({ onCancel, onSuccess } = {}) {
   const [saving, setSaving] = useState(false);
   const [catalogLoading, setCatalogLoading] = useState(true);
   const [registrado, setRegistrado] = useState(null);
+
+  const profesores = form.idInstrumento && profesoresDe.idInstrumento === form.idInstrumento ? profesoresDe.lista : [];
+  const profesoresLoading = Boolean(form.idInstrumento) && profesoresDe.idInstrumento !== form.idInstrumento;
+
+  // Avisa al salir con datos escritos que no se han guardado (después de registrar ya no)
+  const hayCambios = !registrado && (
+    confirmado || tieneBeca || Boolean(policy) || formularioModificado(form, initialForm)
+  );
+  const { confirmarDescarte, permitirSalida } = useAvisoCambiosSinGuardar(hayCambios);
+
+  // Cancelar dentro de Estudiantes: también pregunta si hay cambios
+  const cancelar = async () => {
+    if (hayCambios && !(await confirmarDescarte())) return;
+    permitirSalida();
+    onCancel();
+  };
 
   const edad = useMemo(() => ageFromDate(form.fechaNacimiento), [form.fechaNacimiento]);
   // Edad permitida: de 2 a 100 años
@@ -172,7 +191,6 @@ export default function CreateStudent({ onCancel, onSuccess } = {}) {
   useEffect(() => {
     const token = localStorage.getItem("token");
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
-    setCatalogLoading(true);
     Promise.all([
       fetch(`${API_URL}/registro/catalogos/tipos-identificacion`, { headers }).then((r) => (r.ok ? r.json() : lanzarError(r, "No se pudo cargar tipos de identificación."))),
       fetch(`${API_URL}/registro/catalogos/centros-educativos`, { headers }).then((r) => (r.ok ? r.json() : lanzarError(r, "No se pudo cargar centros educativos."))),
@@ -195,30 +213,22 @@ export default function CreateStudent({ onCancel, onSuccess } = {}) {
   }, [dialog]);
 
   useEffect(() => {
-    if (!menor) setForm((f) => ({ ...f, encargados: [], centroEducativo: "" }));
-  }, [menor]);
-
-  useEffect(() => {
-    if (!form.idInstrumento) {
-      setProfesores([]);
-      return undefined;
-    }
+    const idInstrumento = form.idInstrumento;
+    if (!idInstrumento) return undefined;
 
     const token = localStorage.getItem("token");
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
     let cancelado = false;
-    setProfesoresLoading(true);
 
-    fetch(`${API_URL}/profesores/por-instrumento/${form.idInstrumento}`, { headers })
+    fetch(`${API_URL}/profesores/por-instrumento/${idInstrumento}`, { headers })
       .then((r) => (r.ok ? r.json() : lanzarError(r, "No se pudo cargar los profesores.")))
       .then((data) => {
-        if (!cancelado) setProfesores(data);
+        if (!cancelado) setProfesoresDe({ idInstrumento, lista: data });
       })
       .catch((e) => {
-        if (!cancelado) setErrors((prev) => ({ ...prev, idProfesor: mensajeDeExcepcion(e, "No fue posible cargar los profesores de ese instrumento.") }));
-      })
-      .finally(() => {
-        if (!cancelado) setProfesoresLoading(false);
+        if (cancelado) return;
+        setProfesoresDe({ idInstrumento, lista: [] });
+        setErrors((prev) => ({ ...prev, idProfesor: mensajeDeExcepcion(e, "No fue posible cargar los profesores de ese instrumento.") }));
       });
 
     return () => {
@@ -231,6 +241,8 @@ export default function CreateStudent({ onCancel, onSuccess } = {}) {
     if (paso === 0) return;
     document.getElementById("est-step-title")?.focus();
   }, [paso]);
+
+  const tipoDe = (idTipo) => types.find((t) => String(t.id) === String(idTipo));
 
   const setField = (name, value) => {
     setForm((f) => {
@@ -453,6 +465,7 @@ export default function CreateStudent({ onCancel, onSuccess } = {}) {
       const body = await response.json().catch(() => ({}));
 
       if (onSuccess) {
+        permitirSalida();
         onSuccess(body.id);
         return;
       }
@@ -529,13 +542,16 @@ export default function CreateStudent({ onCancel, onSuccess } = {}) {
       <p className="form-section-sub">Escriba los datos como aparecen en la cédula o el pasaporte.</p>
       <div className="form-grid">
         <Field id={`${P}idTipoIdentificacion`} errorKey="idTipoIdentificacion" label="Tipo de identificación" error={errors.idTipoIdentificacion} select>
-          <select id={`${P}idTipoIdentificacion`} className="sg-input sg-select" value={form.idTipoIdentificacion} onChange={(e) => setField("idTipoIdentificacion", e.target.value)} {...aria("idTipoIdentificacion", errors)}>
+          <select id={`${P}idTipoIdentificacion`} className="sg-input sg-select" value={form.idTipoIdentificacion} onChange={(e) => {
+            setField("idTipoIdentificacion", e.target.value);
+            setField("numeroIdentificacion", ajustarIdentificacionAlTipo(form.numeroIdentificacion, tipoDe(e.target.value)));
+          }} {...aria("idTipoIdentificacion", errors)}>
             <option value="">Seleccione</option>
             {types.map((t) => <option key={t.id} value={t.id}>{t.nombre}</option>)}
           </select>
         </Field>
         <Field id={`${P}numeroIdentificacion`} errorKey="numeroIdentificacion" label="Número de identificación" hint="Debe ser única en el sistema." error={errors.numeroIdentificacion}>
-          <input id={`${P}numeroIdentificacion`} className="sg-input" maxLength={40} autoComplete="off" value={form.numeroIdentificacion} onChange={(e) => setField("numeroIdentificacion", e.target.value)} {...aria("numeroIdentificacion", errors)} />
+          <CedulaInput id={`${P}numeroIdentificacion`} className="sg-input" mascara={esCedulaNacional(tipoDe(form.idTipoIdentificacion))} maxLength={40} autoComplete="off" value={form.numeroIdentificacion} onChange={(valor) => setField("numeroIdentificacion", valor)} {...aria("numeroIdentificacion", errors)} />
         </Field>
         <Field id={`${P}nombres`} errorKey="nombres" label="Nombres" error={errors.nombres}>
           <input id={`${P}nombres`} className="sg-input" maxLength={100} autoComplete="given-name" value={form.nombres} onChange={(e) => setField("nombres", e.target.value)} {...aria("nombres", errors)} />
@@ -627,13 +643,16 @@ export default function CreateStudent({ onCancel, onSuccess } = {}) {
                       </select>
                     </Field>
                     <Field id={`${P}${k("idTipoIdentificacion")}`} errorKey={k("idTipoIdentificacion")} label="Tipo de identificación" optional select error={errors[k("idTipoIdentificacion")]}>
-                      <select id={`${P}${k("idTipoIdentificacion")}`} className="sg-input sg-select" value={g.idTipoIdentificacion} onChange={(e) => updateGuardian(index, "idTipoIdentificacion", e.target.value)} {...aria(k("idTipoIdentificacion"), errors)}>
+                      <select id={`${P}${k("idTipoIdentificacion")}`} className="sg-input sg-select" value={g.idTipoIdentificacion} onChange={(e) => {
+                        updateGuardian(index, "idTipoIdentificacion", e.target.value);
+                        updateGuardian(index, "numeroIdentificacion", ajustarIdentificacionAlTipo(g.numeroIdentificacion, tipoDe(e.target.value)));
+                      }} {...aria(k("idTipoIdentificacion"), errors)}>
                         <option value="">Seleccione</option>
                         {types.map((t) => <option key={t.id} value={t.id}>{t.nombre}</option>)}
                       </select>
                     </Field>
                     <Field id={`${P}${k("numeroIdentificacion")}`} errorKey={k("numeroIdentificacion")} label="Número de identificación" optional error={errors[k("numeroIdentificacion")]}>
-                      <input id={`${P}${k("numeroIdentificacion")}`} className="sg-input" maxLength={40} value={g.numeroIdentificacion} onChange={(e) => updateGuardian(index, "numeroIdentificacion", e.target.value)} {...aria(k("numeroIdentificacion"), errors)} />
+                      <CedulaInput id={`${P}${k("numeroIdentificacion")}`} className="sg-input" mascara={esCedulaNacional(tipoDe(g.idTipoIdentificacion))} maxLength={40} value={g.numeroIdentificacion} onChange={(valor) => updateGuardian(index, "numeroIdentificacion", valor)} {...aria(k("numeroIdentificacion"), errors)} />
                     </Field>
                     <Field id={`${P}${k("telefonoPrincipal")}`} errorKey={k("telefonoPrincipal")} label="Teléfono principal" error={errors[k("telefonoPrincipal")]}>
                       <input id={`${P}${k("telefonoPrincipal")}`} className="sg-input" type="tel" inputMode="tel" maxLength={9} value={g.telefonoPrincipal} onChange={(e) => updateGuardian(index, "telefonoPrincipal", e.target.value)} {...aria(k("telefonoPrincipal"), errors)} />
@@ -893,7 +912,7 @@ export default function CreateStudent({ onCancel, onSuccess } = {}) {
               Anterior
             </button>
           ) : (
-            <button type="button" className="sg-btn sg-btn--ghost" onClick={onCancel || reset}>Cancelar</button>
+            <button type="button" className="sg-btn sg-btn--ghost" onClick={onCancel ? cancelar : reset}>Cancelar</button>
           )}
           <div className="right">
             <button

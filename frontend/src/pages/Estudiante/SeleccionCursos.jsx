@@ -14,6 +14,7 @@ import {
     validarSeleccion,
 } from "../../utils/matricula";
 import "./seleccionCursos.css";
+import { mostrarIdentificacion } from "../../utils/cedula";
 
 // Historia 2 - Matricular cursos previamente autorizados.
 //
@@ -205,7 +206,7 @@ function SeleccionCursos() {
                         <div>
                             <p className="kpi-label"><User size={18} strokeWidth={1.75} aria-hidden="true" />Estudiante</p>
                             <p className="resumen-valor">{datos.estudiante.nombreCompleto}</p>
-                            <p className="kpi-note tnum">{datos.estudiante.numeroIdentificacion}</p>
+                            <p className="kpi-note tnum">{mostrarIdentificacion(datos.estudiante.numeroIdentificacion)}</p>
                         </div>
 
                         {datos.periodo && (

@@ -11,6 +11,7 @@ import StatusBadge from "../../components/ui/StatusBadge";
 import { listaErrores } from "../../components/ui/utilidades";
 
 import { useDialog } from "../../components/dialog/useDialog";
+import { formularioModificado, useAvisoCambiosSinGuardar } from "../../hooks/useAvisoCambiosSinGuardar";
 
 const ESTADOS = [
     { value: "PLANIFICADO", label: "Planificado" },
@@ -56,14 +57,14 @@ function ModificarPeriodoAcademico() {
 
     const [periodoEnEdicion, setPeriodoEnEdicion] = useState(null);
     const [form, setForm] = useState(null);
+    const [formInicial, setFormInicial] = useState(null);
     const [errores, setErrores] = useState({});
     const [intento, setIntento] = useState(0);
     const [guardando, setGuardando] = useState(false);
 
-    useEffect(() => {
-        cargarPeriodos();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    // Avisa al salir de la pantalla o cerrar la pestaña con cambios pendientes
+    const hayCambios = Boolean(form && formInicial) && formularioModificado(form, formInicial);
+    const { confirmarDescarte } = useAvisoCambiosSinGuardar(hayCambios);
 
     async function cargarPeriodos() {
 
@@ -111,6 +112,15 @@ function ModificarPeriodoAcademico() {
         }
     }
 
+    useEffect(() => {
+        // Fuera del render del efecto (igual que en Notificaciones)
+        const timer = setTimeout(() => {
+            void cargarPeriodos();
+        }, 0);
+        return () => clearTimeout(timer);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
     const periodosFiltrados = periodos.filter((p) => {
         const texto = busqueda.trim().toLowerCase();
 
@@ -123,21 +133,25 @@ function ModificarPeriodoAcademico() {
 
     function iniciarEdicion(periodo) {
 
-        setPeriodoEnEdicion(periodo);
-        setForm({
+        const inicial = {
             nombre: periodo.nombre || "",
             fechaInicio: periodo.fechaInicio || "",
             fechaFin: periodo.fechaFin || "",
             fechaInicioMatricula: periodo.fechaInicioMatricula || "",
             fechaFinMatricula: periodo.fechaFinMatricula || "",
             estado: periodo.estado || "PLANIFICADO",
-        });
+        };
+        setPeriodoEnEdicion(periodo);
+        setForm(inicial);
+        setFormInicial(inicial);
         setErrores({});
     }
 
-    function cancelarEdicion() {
+    async function cancelarEdicion() {
+        if (hayCambios && !(await confirmarDescarte())) return;
         setPeriodoEnEdicion(null);
         setForm(null);
+        setFormInicial(null);
         setErrores({});
     }
 
@@ -285,6 +299,7 @@ function ModificarPeriodoAcademico() {
 
             setPeriodoEnEdicion(null);
             setForm(null);
+            setFormInicial(null);
 
         } catch (e) {
 

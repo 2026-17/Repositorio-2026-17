@@ -2,6 +2,8 @@ import { useEffect, useState, useCallback } from "react";
 import { UserPlus } from "lucide-react";
 import { API_URL } from "../../config/api";
 import { useDialog } from "../../components/dialog/useDialog";
+import { useAvisoCambiosSinGuardar } from "../../hooks/useAvisoCambiosSinGuardar";
+import CedulaInput from "../../components/ui/CedulaInput";
 import Alert from "../../components/ui/Alert";
 import Field from "../../components/ui/Field";
 import PageHead from "../../components/ui/PageHead";
@@ -31,6 +33,10 @@ function CreateUsers() {
     const [intento, setIntento] = useState(0);
     const [guardando, setGuardando] = useState(false);
     const [form, setForm] = useState(FORM_VACIO);
+
+    // Avisa al salir con datos escritos que no se han guardado
+    const hayCambios = Object.keys(FORM_VACIO).some((campo) => form[campo] !== FORM_VACIO[campo]);
+    useAvisoCambiosSinGuardar(hayCambios);
 
     const getHeaders = useCallback(() => {
         const token = localStorage.getItem("token");
@@ -162,8 +168,8 @@ function CreateUsers() {
                 <section className="panel">
                     <div className="panel-head"><h2>Datos de la cuenta</h2></div>
                     <div className="panel-body form-grid">
-                        <Field id={`${P}cedula`} errorKey="cedula" label="Cédula" error={errores.cedula}>
-                            <input id={`${P}cedula`} className="sg-input" type="text" maxLength={40} autoComplete="off" value={form.cedula} onChange={(e) => setCampo("cedula", e.target.value)} {...aria("cedula")} />
+                        <Field id={`${P}cedula`} errorKey="cedula" label="Cédula" hint="La cédula nacional se escribe como 1-1111-1111; un DIMEX o pasaporte se escribe tal cual." error={errores.cedula}>
+                            <CedulaInput id={`${P}cedula`} className="sg-input" mascara="auto" inputMode="numeric" placeholder="1-1111-1111" maxLength={40} autoComplete="off" value={form.cedula} onChange={(valor) => setCampo("cedula", valor)} {...aria("cedula")} />
                         </Field>
                         <Field id={`${P}nombre`} errorKey="nombre" label="Nombre" error={errores.nombre}>
                             <input id={`${P}nombre`} className="sg-input" type="text" maxLength={150} autoComplete="name" value={form.nombre} onChange={(e) => setCampo("nombre", e.target.value)} {...aria("nombre")} />

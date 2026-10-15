@@ -112,7 +112,11 @@ function AsignarProfesores() {
     }, []);
 
     useEffect(() => {
-        cargar();
+        // Fuera del render del efecto (igual que en Notificaciones)
+        const timer = setTimeout(() => {
+            void cargar();
+        }, 0);
+        return () => clearTimeout(timer);
     }, [cargar]);
 
     const periodos = useMemo(() => {

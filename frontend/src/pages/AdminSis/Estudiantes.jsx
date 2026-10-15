@@ -6,6 +6,9 @@ import EditarEstudiante from "./EditarEstudiante";
 import DocumentosEstudiante from "./DocumentosEstudiante";
 import EmptyState from "../../components/ui/EmptyState";
 import Field from "../../components/ui/Field";
+import CedulaInput from "../../components/ui/CedulaInput";
+import { ATAJO_BUSCADOR, useAtajoBuscador } from "../../hooks/useAtajoBuscador";
+import { identificacionCoincide, mostrarIdentificacion, textoDeBusqueda } from "../../utils/cedula";
 import PageHead from "../../components/ui/PageHead";
 import Pagination from "../../components/ui/Pagination";
 import StatusBadge from "../../components/ui/StatusBadge";
@@ -40,6 +43,9 @@ async function obtenerEstudiantes(filtroActivo) {
 
 function Estudiantes() {
     const dialog = useDialog();
+
+    // Ctrl+K o "/" enfocan el buscador
+    useAtajoBuscador("txtBuscarEstudiante");
     const [estudiantes, setEstudiantes] = useState([]);
     const [busqueda, setBusqueda] = useState("");
     const [filtroActivo, setFiltroActivo] = useState("true");
@@ -81,10 +87,11 @@ function Estudiantes() {
     }
 
     const estudiantesFiltrados = useMemo(() => {
-        const texto = busqueda.trim().toLowerCase();
+        // La cédula se puede buscar con o sin guiones
+        const texto = textoDeBusqueda(busqueda);
         const lista = !texto ? [...estudiantes] : estudiantes.filter((e) =>
             (e.nombreCompleto || "").toLowerCase().includes(texto) ||
-            (e.numeroIdentificacion || "").toLowerCase().includes(texto)
+            identificacionCoincide(e.numeroIdentificacion, texto)
         );
 
         lista.sort((a, b) => {
@@ -316,7 +323,7 @@ function Estudiantes() {
                         <div>
                             <h2 id="titulo-baja-estudiante">Dar de baja estudiante</h2>
                             <p className="panel-head-sub">
-                                {bajaEstudiante.nombreCompleto} — {bajaEstudiante.numeroIdentificacion || "Sin identificación"}
+                                {bajaEstudiante.nombreCompleto} — {mostrarIdentificacion(bajaEstudiante.numeroIdentificacion) || "Sin identificación"}
                             </p>
                         </div>
                     </div>
@@ -399,13 +406,15 @@ function Estudiantes() {
             <div className="panel">
                 <div className="filters" role="search">
                     <Field id="txtBuscarEstudiante" label="Buscar" icon={Search} className="f-search">
-                        <input
+                        <CedulaInput
                             id="txtBuscarEstudiante"
                             className="sg-input"
                             type="search"
+                            mascara="auto"
                             value={busqueda}
-                            onChange={(e) => cambiarBusqueda(e.target.value)}
-                            placeholder="Nombre o número de identificación"
+                            onChange={cambiarBusqueda}
+                            placeholder="Nombre o número de identificación (Ctrl+K)"
+                            aria-keyshortcuts={ATAJO_BUSCADOR}
                         />
                     </Field>
                     <Field id="cmbEstadoEstudiante" label="Estado" select>
@@ -506,7 +515,7 @@ function Estudiantes() {
                                                 <span className="avatar avatar--sm" aria-hidden="true">{iniciales(e.nombreCompleto)}</span>
                                                 <div>
                                                     <b>{e.nombreCompleto}</b>
-                                                    <span>{e.numeroIdentificacion || "—"}</span>
+                                                    <span>{mostrarIdentificacion(e.numeroIdentificacion) || "—"}</span>
                                                 </div>
                                             </div>
                                         </td>

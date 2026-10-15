@@ -6,6 +6,10 @@ import "./matricula.css";
 import Alert from "../../components/ui/Alert";
 import EmptyState from "../../components/ui/EmptyState";
 import Field from "../../components/ui/Field";
+import CedulaInput from "../../components/ui/CedulaInput";
+import { ATAJO_BUSCADOR, useAtajoBuscador } from "../../hooks/useAtajoBuscador";
+import { mostrarIdentificacion, pareceCedula } from "../../utils/cedula";
+import { limpiarIdentificacion } from "../../utils/validaciones";
 import PageHead from "../../components/ui/PageHead";
 import StatusBadge from "../../components/ui/StatusBadge";
 import { iniciales } from "../../components/ui/utilidades";
@@ -99,6 +103,9 @@ function RequisitoItem({ etiqueta, cumplido, valor }) {
 
 function Matricula() {
     const dialog = useDialog();
+
+    // Ctrl+K o "/" enfocan el buscador
+    useAtajoBuscador("txtEstudiantePreaprobacion");
     const token = localStorage.getItem("token");
 
     const [pestanaActiva, setPestanaActiva] =
@@ -292,7 +299,8 @@ function Matricula() {
             try {
                 const response = await fetch(
                     `${API_URL}/estudiantes?texto=${encodeURIComponent(
-                        valor.trim()
+                        // Una cédula escrita con la máscara se busca sin guiones
+                        pareceCedula(valor.trim()) ? limpiarIdentificacion(valor.trim()) : valor.trim()
                     )}`,
                     {
                         headers: {
@@ -675,14 +683,16 @@ function Matricula() {
                 <div className="panel-body form-grid">
                     <div className="buscador-estudiante">
                         <Field id="txtEstudiantePreaprobacion" label="Estudiante" icon={Search}>
-                            <input
+                            <CedulaInput
                                 id="txtEstudiantePreaprobacion"
                                 className="sg-input"
                                 type="search"
+                                mascara="auto"
                                 autoComplete="off"
-                                placeholder="Nombre o número de identificación"
+                                placeholder="Nombre o número de identificación (Ctrl+K)"
                                 value={textoBusquedaEstudiante}
-                                onChange={(event) => cambiarTextoBusquedaEstudiante(event.target.value)}
+                                onChange={cambiarTextoBusquedaEstudiante}
+                                aria-keyshortcuts={ATAJO_BUSCADOR}
                                 disabled={creandoPreaprobacion}
                             />
                         </Field>
@@ -711,7 +721,7 @@ function Matricula() {
                                             <span className="avatar avatar--sm" aria-hidden="true">{iniciales(estudiante.nombreCompleto)}</span>
                                             <b>{estudiante.nombreCompleto}</b>
                                         </span>
-                                        <span className="search-results__cedula">{estudiante.numeroIdentificacion}</span>
+                                        <span className="search-results__cedula">{mostrarIdentificacion(estudiante.numeroIdentificacion)}</span>
                                     </button>
                                 ))}
                             </div>

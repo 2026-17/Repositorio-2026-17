@@ -375,3 +375,10 @@ a.sg-btn { text-decoration: none; }
   .sticky-save .inline-actions { width: 100%; }
   .sticky-save .inline-actions .sg-btn { flex: 1 1 100%; }
 }
+
+/* ---------- Opciones del menú aún no disponibles y contador de la campana ---------- */
+.sb-item.is-disabled { cursor: not-allowed; opacity: 0.6; }
+.sb-item.is-disabled:hover { background: transparent; color: var(--sidebar-muted); }
+.sb-soon { margin-left: auto; padding: 0 var(--space-2); border-radius: var(--radius-pill); border: 1px solid currentColor; font: 600 11px/18px var(--font-sans); white-space: nowrap; }
+.is-collapsed .sb-soon { display: none; }
+.tb-count { position: absolute; top: 2px; right: 0; min-width: 18px; padding: 0 5px; border-radius: var(--radius-pill); background: var(--danger-fill); color: var(--on-danger); font: 700 11px/18px var(--font-sans); text-align: center; box-shadow: 0 0 0 2px var(--bg); }

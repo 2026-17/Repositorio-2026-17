@@ -14,6 +14,7 @@ import {
 import { API_URL } from "../config/api";
 import { MENU_POR_ROL, RUTA_INICIO } from "../constants/menu";
 import { etiquetaRol, ROLES } from "../constants/roles";
+import { cargarNotificaciones, useNotificacionesEstudiante } from "../hooks/useNotificacionesEstudiante";
 import { limpiarSesion } from "../utils/sesion";
 import { iniciales } from "./ui/utilidades";
 import LogoSigac from "./LogoSigac";
@@ -78,6 +79,9 @@ function Header({ children }) {
     const [tema, setTema] = useState(temaInicial);
     const primerRender = useRef(true);
 
+    const esEstudiante = rol === ROLES.ESTUDIANTE;
+    const { noLeidas } = useNotificacionesEstudiante();
+
     const grupos = MENU_POR_ROL[rol] || [];
     const enInicio = location.pathname === RUTA_INICIO;
     const actual = enInicio ? SECCION_INICIO : seccionActual(grupos, location.pathname);
@@ -98,6 +102,14 @@ function Header({ children }) {
         if (titulo) titulo.focus({ preventScroll: true });
         window.scrollTo(0, 0);
     }, [location.pathname, actual]);
+
+    // Contador de la campana: solo el estudiante tiene notificaciones
+    useEffect(() => {
+        if (!esEstudiante) return;
+        cargarNotificaciones().catch(() => {
+            /* La campana queda sin contador; la pantalla de notificaciones muestra el error. */
+        });
+    }, [esEstudiante]);
 
     // Esc cierra el menú en móvil
     useEffect(() => {
@@ -184,6 +196,21 @@ function Header({ children }) {
                             {grupo.items.map((item) => {
                                 const Icono = item.icon;
                                 const activo = actual?.item.to === item.to;
+                                if (item.proximamente) {
+                                    // Aún no disponible: visible, pero sin enlace
+                                    return (
+                                        <span
+                                            key={item.to}
+                                            className="sb-item is-disabled"
+                                            aria-disabled="true"
+                                            title={contraido ? `${item.label} (próximamente)` : undefined}
+                                        >
+                                            <Icono size={20} strokeWidth={1.75} aria-hidden="true" />
+                                            <span className="sb-label">{item.label}</span>
+                                            <span className="sb-soon">Próximamente</span>
+                                        </span>
+                                    );
+                                }
                                 return (
                                     <NavLink
                                         key={item.to}
@@ -285,9 +312,19 @@ function Header({ children }) {
                     </nav>
 
                     <div className="tb-right">
-                        {rol === ROLES.ESTUDIANTE && (
-                            <Link to="/estudiante/notificaciones" className="tb-btn" aria-label="Notificaciones" title="Notificaciones">
+                        {esEstudiante && (
+                            <Link
+                                to="/estudiante/notificaciones"
+                                className="tb-btn"
+                                aria-label={noLeidas > 0 ? `Notificaciones, ${noLeidas} sin leer` : "Notificaciones"}
+                                title={noLeidas > 0 ? `Notificaciones (${noLeidas} sin leer)` : "Notificaciones"}
+                            >
                                 <Bell size={20} strokeWidth={1.75} aria-hidden="true" />
+                                {noLeidas > 0 && (
+                                    <span className="tb-count" aria-hidden="true">
+                                        {noLeidas > 99 ? "99+" : noLeidas}
+                                    </span>
+                                )}
                             </Link>
                         )}
                         <button
