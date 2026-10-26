@@ -23,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
@@ -51,6 +52,10 @@ public class GrupoService {
             "CERRADO",
             "CANCELADO"
     );
+
+    // Franja permitida para las lecciones: no se imparten en la madrugada.
+    private static final LocalTime HORA_MINIMA = LocalTime.of(7, 0);
+    private static final LocalTime HORA_MAXIMA = LocalTime.of(22, 0);
 
     private final GrupoRepository grupoRepository;
     private final HorarioGrupoRepository horarioGrupoRepository;
@@ -295,6 +300,13 @@ public class GrupoService {
             if (!horario.getHoraFin().isAfter(horario.getHoraInicio())) {
                 throw new BusinessException(
                         "En cada horario, la hora de fin debe ser posterior a la hora de inicio."
+                );
+            }
+
+            if (horario.getHoraInicio().isBefore(HORA_MINIMA)
+                    || horario.getHoraFin().isAfter(HORA_MAXIMA)) {
+                throw new BusinessException(
+                        "Los horarios deben estar entre las 7:00 a. m. y las 10:00 p. m."
                 );
             }
         }

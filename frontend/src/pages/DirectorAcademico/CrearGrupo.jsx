@@ -36,6 +36,10 @@ const DIAS = [
 
 const HORARIO_VACIO = { diaSemana: "", horaInicio: "", horaFin: "", aula: "" };
 
+// Franja permitida para las lecciones (igual que en GrupoService).
+const HORA_MINIMA = "07:00";
+const HORA_MAXIMA = "22:00";
+
 const FORM_INICIAL = {
     idCurso: "",
     idPeriodo: "",
@@ -252,12 +256,16 @@ function CrearGrupo() {
 
             if (!h.horaInicio) {
                 siguientesErrores[`horario-${i}-horaInicio`] = `Horario ${numero}: ingrese la hora de inicio.`;
+            } else if (h.horaInicio < HORA_MINIMA || h.horaInicio >= HORA_MAXIMA) {
+                siguientesErrores[`horario-${i}-horaInicio`] = `Horario ${numero}: la hora de inicio debe estar entre las 7:00 a. m. y las 10:00 p. m.`;
             }
 
             if (!h.horaFin) {
                 siguientesErrores[`horario-${i}-horaFin`] = `Horario ${numero}: ingrese la hora de fin.`;
             } else if (h.horaInicio && h.horaFin <= h.horaInicio) {
                 siguientesErrores[`horario-${i}-horaFin`] = `Horario ${numero}: la hora de fin debe ser posterior a la de inicio.`;
+            } else if (h.horaFin > HORA_MAXIMA) {
+                siguientesErrores[`horario-${i}-horaFin`] = `Horario ${numero}: la hora de fin no puede pasar de las 10:00 p. m.`;
             }
         });
 
@@ -482,7 +490,7 @@ function CrearGrupo() {
                     <div className="panel-head">
                         <div>
                             <h2>Horario semanal</h2>
-                            <p className="panel-head-sub">Días y horas en que se reúne el grupo.</p>
+                            <p className="panel-head-sub">Días y horas en que se reúne el grupo, entre las 7:00 a. m. y las 10:00 p. m.</p>
                         </div>
                     </div>
                     <div className="panel-body">
@@ -505,10 +513,10 @@ function CrearGrupo() {
                                             </select>
                                         </Field>
                                         <Field id={id("horaInicio")} label="Hora de inicio" error={errores[id("horaInicio")]}>
-                                            <input id={id("horaInicio")} type="time" className="sg-input" value={h.horaInicio} onChange={(e) => handleHorarioChange(i, "horaInicio", e.target.value)} {...aria(id("horaInicio"))} />
+                                            <input id={id("horaInicio")} type="time" min={HORA_MINIMA} max={HORA_MAXIMA} className="sg-input" value={h.horaInicio} onChange={(e) => handleHorarioChange(i, "horaInicio", e.target.value)} {...aria(id("horaInicio"))} />
                                         </Field>
                                         <Field id={id("horaFin")} label="Hora de fin" error={errores[id("horaFin")]}>
-                                            <input id={id("horaFin")} type="time" className="sg-input" value={h.horaFin} onChange={(e) => handleHorarioChange(i, "horaFin", e.target.value)} {...aria(id("horaFin"))} />
+                                            <input id={id("horaFin")} type="time" min={HORA_MINIMA} max={HORA_MAXIMA} className="sg-input" value={h.horaFin} onChange={(e) => handleHorarioChange(i, "horaFin", e.target.value)} {...aria(id("horaFin"))} />
                                         </Field>
                                         <Field id={id("aula")} label="Aula" optional>
                                             <input id={id("aula")} type="text" className="sg-input" maxLength="80" value={h.aula} onChange={(e) => handleHorarioChange(i, "aula", e.target.value)} placeholder={form.aula || "Igual al grupo"} autoComplete="off" />
