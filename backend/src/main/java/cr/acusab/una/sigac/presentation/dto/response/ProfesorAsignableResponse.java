@@ -4,6 +4,7 @@ public record ProfesorAsignableResponse(
         Long idProfesor,
         String numeroIdentificacion,
         String nombreCompleto,
-        String especialidad
+        String especialidad,
+        Boolean activo
 ) {
 }

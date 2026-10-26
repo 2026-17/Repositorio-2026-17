@@ -21,8 +21,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.time.LocalDate;
-import java.time.ZoneId;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
@@ -33,16 +31,12 @@ public class AsignacionProfesorService {
     private static final Set<String> ESTADOS_GRUPO_ACTIVOS =
             Set.of("PLANIFICADO", "PUBLICADO", "EN_CURSO");
 
-    private static final Set<String> ESTADOS_PERIODO_CERRADOS =
-            Set.of("CERRADO", "CANCELADO");
-
     private final GrupoRepository grupoRepository;
     private final CursoRepository cursoRepository;
     private final ProfesorRepository profesorRepository;
     private final PeriodoAcademicoRepository periodoRepository;
     private final HorarioGrupoRepository horarioRepository;
     private final UsuarioRepository usuarioRepository;
-    private final ValidacionHorarioProfesorService validacionHorarioProfesorService;
 
     public AsignacionProfesorService(
             GrupoRepository grupoRepository,
@@ -50,8 +44,7 @@ public class AsignacionProfesorService {
             ProfesorRepository profesorRepository,
             PeriodoAcademicoRepository periodoRepository,
             HorarioGrupoRepository horarioRepository,
-            UsuarioRepository usuarioRepository,
-            ValidacionHorarioProfesorService validacionHorarioProfesorService
+            UsuarioRepository usuarioRepository
     ) {
         this.grupoRepository = grupoRepository;
         this.cursoRepository = cursoRepository;
@@ -59,18 +52,19 @@ public class AsignacionProfesorService {
         this.periodoRepository = periodoRepository;
         this.horarioRepository = horarioRepository;
         this.usuarioRepository = usuarioRepository;
-        this.validacionHorarioProfesorService = validacionHorarioProfesorService;
     }
 
     @Transactional(readOnly = true)
     public List<ProfesorAsignableResponse> listarProfesoresActivos() {
-        return profesorRepository.findByActivoTrueOrderByNombresAscPrimerApellidoAsc()
+        // Se listan todos los profesores: la asignación no se restringe por estado.
+        return profesorRepository.findAllByOrderByNombresAscPrimerApellidoAsc()
                 .stream()
                 .map(p -> new ProfesorAsignableResponse(
                         p.getId(),
                         p.getNumeroIdentificacion(),
                         nombreProfesor(p),
-                        p.getEspecialidad()
+                        p.getEspecialidad(),
+                        Boolean.TRUE.equals(p.getActivo())
                 ))
                 .toList();
     }
@@ -90,63 +84,13 @@ public class AsignacionProfesorService {
             throw new BusinessException("El grupo y el profesor son obligatorios.");
         }
 
-        // Se bloquea primero el profesor: las asignaciones concurrentes a la
-        // misma persona quedan serializadas antes de consultar sus horarios.
-        Profesor profesor = profesorRepository.findByIdParaAsignacion(idProfesor)
+        // La asignación siempre se permite: no se valida estado del profesor,
+        // del grupo, del curso o del período, ni fechas, horario o traslapes.
+        Profesor profesor = profesorRepository.findById(idProfesor)
                 .orElseThrow(() -> new BusinessException("El profesor indicado no existe."));
-        if (!Boolean.TRUE.equals(profesor.getActivo())) {
-            throw new BusinessException("Solo se pueden asignar profesores activos y registrados.");
-        }
 
         Grupo grupo = grupoRepository.findByIdParaAsignacion(idGrupo)
                 .orElseThrow(() -> new BusinessException("El grupo indicado no existe."));
-
-        if ("CANCELADO".equals(grupo.getEstado()) || "CERRADO".equals(grupo.getEstado())) {
-            throw new BusinessException("No se puede asignar un profesor a un grupo cerrado o cancelado.");
-        }
-
-        PeriodoAcademico periodo = periodoRepository.findById(grupo.getIdPeriodo())
-                .orElseThrow(() -> new BusinessException("El período académico del grupo no existe."));
-
-        if (ESTADOS_PERIODO_CERRADOS.contains(periodo.getEstado())) {
-            throw new BusinessException("No se pueden modificar asignaciones de un período cerrado o cancelado.");
-        }
-
-        if (!LocalDate.now(ZoneId.of("America/Costa_Rica")).isBefore(periodo.getFechaInicio())) {
-            throw new BusinessException("Las asignaciones solo se pueden modificar antes del inicio del período académico.");
-        }
-
-        Curso curso = cursoRepository.findById(grupo.getIdCurso())
-                .orElseThrow(() -> new BusinessException("El curso asociado al grupo no existe."));
-        if (!Boolean.TRUE.equals(curso.getActivo())) {
-            throw new BusinessException("El curso debe estar activo para asignarle un profesor.");
-        }
-
-        LocalDate fechaInicioDestino = grupo.getFechaInicio() != null
-                ? grupo.getFechaInicio()
-                : periodo.getFechaInicio();
-        LocalDate fechaFinDestino = grupo.getFechaFin() != null
-                ? grupo.getFechaFin()
-                : periodo.getFechaFin();
-        List<ValidacionHorarioProfesorService.BloqueHorario> horariosPropuestos =
-                horarioRepository.findByIdGrupoInOrderByDiaSemanaAscHoraInicioAsc(
-                                List.of(grupo.getId())
-                        ).stream()
-                        .map(horario -> new ValidacionHorarioProfesorService.BloqueHorario(
-                                horario.getDiaSemana(),
-                                horario.getHoraInicio(),
-                                horario.getHoraFin()
-                        ))
-                        .toList();
-
-        validacionHorarioProfesorService.validarDisponibilidad(
-                idProfesor,
-                grupo.getIdPeriodo(),
-                fechaInicioDestino,
-                fechaFinDestino,
-                grupo.getId(),
-                horariosPropuestos
-        );
 
         Long idUsuario = obtenerIdUsuarioAutenticado();
         grupo.setIdProfesor(profesor.getId());
@@ -170,21 +114,6 @@ public class AsignacionProfesorService {
 
         if (grupo.getIdProfesor() == null) {
             throw new BusinessException("El grupo no tiene un profesor asignado.");
-        }
-
-        if ("CANCELADO".equals(grupo.getEstado()) || "CERRADO".equals(grupo.getEstado())) {
-            throw new BusinessException("No se puede modificar una asignación de un grupo cerrado o cancelado.");
-        }
-
-        PeriodoAcademico periodo = periodoRepository.findById(grupo.getIdPeriodo())
-                .orElseThrow(() -> new BusinessException("El período académico del grupo no existe."));
-
-        if (ESTADOS_PERIODO_CERRADOS.contains(periodo.getEstado())) {
-            throw new BusinessException("No se pueden modificar asignaciones de un período cerrado o cancelado.");
-        }
-
-        if (!LocalDate.now(ZoneId.of("America/Costa_Rica")).isBefore(periodo.getFechaInicio())) {
-            throw new BusinessException("Las asignaciones solo se pueden eliminar antes del inicio del período académico.");
         }
 
         Long idUsuario = obtenerIdUsuarioAutenticado();

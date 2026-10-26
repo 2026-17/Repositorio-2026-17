@@ -17,40 +17,6 @@ function nombreCompleto(nombre) {
     return nombre || "Sin asignar";
 }
 
-function fechaActualCostaRica() {
-    const partes = new Intl.DateTimeFormat("en-CA", {
-        timeZone: "America/Costa_Rica",
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-    }).formatToParts(new Date());
-    const obtener = (tipo) => partes.find((parte) => parte.type === tipo)?.value || "";
-    return `${obtener("year")}-${obtener("month")}-${obtener("day")}`;
-}
-
-function fechaLegiblePeriodo(fecha) {
-    if (!fecha) return "fecha no disponible";
-
-    const fechaISO = String(fecha).slice(0, 10);
-    const partes = /^(\d{4})-(\d{2})-(\d{2})$/.exec(fechaISO);
-    if (!partes) return fechaISO;
-
-    // Mediodía UTC evita que la conversión de zona horaria cambie el día.
-    const fechaUTC = new Date(Date.UTC(
-        Number(partes[1]),
-        Number(partes[2]) - 1,
-        Number(partes[3]),
-        12
-    ));
-
-    return new Intl.DateTimeFormat("es-CR", {
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-        timeZone: "America/Costa_Rica",
-    }).format(fechaUTC);
-}
-
 function AsignarProfesores() {
     const dialog = useDialog();
     const [asignaciones, setAsignaciones] = useState([]);
@@ -167,37 +133,10 @@ function AsignarProfesores() {
         setPagina(1);
     }
 
-    function fechaPeriodoPendiente(item) {
-        return Boolean(item.inicioPeriodo) && item.inicioPeriodo > fechaActualCostaRica();
-    }
-
-    function puedeAsignar(item) {
-        return fechaPeriodoPendiente(item)
-            && Array.isArray(item.horarios)
-            && item.horarios.length > 0;
-    }
-
-    function motivoBloqueo(item) {
-        if (!Array.isArray(item.horarios) || item.horarios.length === 0) {
-            return "Registre el horario del grupo en la pantalla de gestión de grupos y horarios antes de asignar un profesor.";
-        }
-        if (!item.inicioPeriodo) {
-            return "El grupo no tiene una fecha de inicio válida para determinar el plazo de asignación.";
-        }
-        if (!fechaPeriodoPendiente(item)) {
-            return `El período ya inició; la asignación solo puede modificarse antes de la fecha de inicio (${fechaLegiblePeriodo(item.inicioPeriodo)}).`;
-        }
-        return "";
-    }
-
     async function asignar(item) {
         const idProfesor = selecciones[item.idGrupo];
         if (!idProfesor) {
-            setError("Seleccione un profesor activo antes de guardar la asignación.");
-            return;
-        }
-        if (!puedeAsignar(item)) {
-            setError(motivoBloqueo(item));
+            setError("Seleccione un profesor antes de guardar la asignación.");
             return;
         }
         setOcupado(item.idGrupo);
@@ -226,10 +165,6 @@ function AsignarProfesores() {
     async function eliminar(item) {
         if (!item.idProfesor) {
             setError("Este grupo no tiene una asignación que eliminar.");
-            return;
-        }
-        if (!fechaPeriodoPendiente(item)) {
-            setError("La asignación solo puede quitarse antes del inicio del período académico.");
             return;
         }
         const confirmado = await dialog.confirmar(
@@ -289,11 +224,6 @@ function AsignarProfesores() {
                     </button>,
                 ]}
             />
-
-            <div className="asignar-profesores-nota">
-                <CalendarClock size={20} strokeWidth={1.75} aria-hidden="true" />
-                <p>Las asignaciones solo se pueden modificar antes del inicio del período académico. Los grupos deben tener horario registrado.</p>
-            </div>
 
             {error && (
                 <Alert tone="danger" title="No se pudo completar la operación" onDismiss={() => setError("")} className="asignar-profesores-alert">
@@ -398,14 +328,11 @@ function AsignarProfesores() {
                                 <tbody>
                                     {asignacionesPagina.map((item) => {
                                         const horarioRegistrado = Array.isArray(item.horarios) && item.horarios.length > 0;
-                                        const plazoAbierto = fechaPeriodoPendiente(item);
-                                        const habilitado = puedeAsignar(item);
                                         const mismaAsignacion = Boolean(
                                             item.idProfesor
                                             && String(item.idProfesor) === selecciones[item.idGrupo]
                                         );
                                         const tieneProfesorSeleccionado = Boolean(selecciones[item.idGrupo]);
-                                        const motivo = motivoBloqueo(item);
                                         return (
                                             <tr key={item.idGrupo}>
                                                 <td>
@@ -435,12 +362,12 @@ function AsignarProfesores() {
                                                         className="sg-input sg-select asignar-profesores-select"
                                                         value={selecciones[item.idGrupo] || ""}
                                                         onChange={(event) => setSelecciones((prev) => ({ ...prev, [item.idGrupo]: event.target.value }))}
-                                                        disabled={ocupado !== null || !habilitado}
+                                                        disabled={ocupado !== null}
                                                     >
-                                                        <option value="">Seleccione un profesor activo</option>
+                                                        <option value="">Seleccione un profesor</option>
                                                         {profesores.map((profesor) => (
                                                             <option key={profesor.idProfesor} value={profesor.idProfesor}>
-                                                                {nombreCompleto(profesor.nombreCompleto)}{profesor.especialidad ? ` — ${profesor.especialidad}` : ""}
+                                                                {nombreCompleto(profesor.nombreCompleto)}{profesor.especialidad ? ` — ${profesor.especialidad}` : ""}{profesor.activo === false ? " (inactivo)" : ""}
                                                             </option>
                                                         ))}
                                                     </select>
@@ -462,12 +389,11 @@ function AsignarProfesores() {
                                                             type="button"
                                                             className="sg-btn sg-btn--primary sg-btn--sm"
                                                             onClick={() => asignar(item)}
-                                                            disabled={ocupado !== null || !habilitado || !tieneProfesorSeleccionado || mismaAsignacion}
+                                                            disabled={ocupado !== null || !tieneProfesorSeleccionado || mismaAsignacion}
                                                             title={mismaAsignacion
                                                                 ? "Seleccione un profesor diferente para cambiar la asignación."
-                                                                : !habilitado ? motivo
-                                                                    : !tieneProfesorSeleccionado ? "Seleccione un profesor activo."
-                                                                        : "Guardar la asignación del profesor"}
+                                                                : !tieneProfesorSeleccionado ? "Seleccione un profesor."
+                                                                    : "Guardar la asignación del profesor"}
                                                         >
                                                             <UserCheck size={20} strokeWidth={1.75} aria-hidden="true" />
                                                             {ocupado === item.idGrupo ? "Guardando…" : item.idProfesor ? "Cambiar" : "Asignar"}
@@ -478,20 +404,19 @@ function AsignarProfesores() {
                                                                 type="button"
                                                                 className="sg-btn sg-btn--danger sg-btn--sm"
                                                                 onClick={() => eliminar(item)}
-                                                                disabled={ocupado !== null || !plazoAbierto}
-                                                                title={!plazoAbierto ? "El período ya inició o no tiene fecha válida." : !horarioRegistrado ? motivo : "Quitar la asignación"}
+                                                                disabled={ocupado !== null}
+                                                                title="Quitar la asignación"
                                                             >
                                                                 <UserMinus size={20} strokeWidth={1.75} aria-hidden="true" />
                                                                 Quitar
                                                             </button>
                                                         )}
                                                     </div>
-                                                    {!habilitado && <small className="asignar-profesores-bloqueo">{motivo}</small>}
-                                                    {habilitado && mismaAsignacion && (
+                                                    {mismaAsignacion && (
                                                         <small className="asignar-profesores-bloqueo">El profesor seleccionado ya está asignado.</small>
                                                     )}
-                                                    {habilitado && !tieneProfesorSeleccionado && !item.idProfesor && (
-                                                        <small className="asignar-profesores-bloqueo">Seleccione un profesor activo para continuar.</small>
+                                                    {!tieneProfesorSeleccionado && !item.idProfesor && (
+                                                        <small className="asignar-profesores-bloqueo">Seleccione un profesor para continuar.</small>
                                                     )}
                                                 </td>
                                             </tr>

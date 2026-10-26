@@ -29,6 +29,9 @@ public interface ProfesorRepository extends JpaRepository<Profesor, Long> {
 
     List<Profesor> findByActivoTrueOrderByNombresAscPrimerApellidoAsc();
 
+    // Catálogo completo (activos e inactivos) para la pantalla de asignación.
+    List<Profesor> findAllByOrderByNombresAscPrimerApellidoAsc();
+
     // HU-026 - Profesores activos habilitados para dar cierto instrumento
     // (su campo especialidad, texto separado por comas, contiene el nombre
     // del instrumento). Se usa para el selector de profesor al asignar
