@@ -36,6 +36,7 @@ import cr.acusab.una.sigac.presentation.dto.response.MatriculaConfirmadaResponse
 import cr.acusab.una.sigac.presentation.dto.response.OfertaMatriculaResponseDTO;
 
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -105,6 +106,21 @@ public class MatriculaEstudianteService {
     private static final String REQUISITO_PANTALLA = "REQUISITO";
     private static final String CORREQUISITO_PANTALLA = "CORREQUISITO";
 
+    /*
+     * Marca de sesión que entiende el trigger
+     * trg_matriculas_detalles_bi_validar_requisitos. El trigger revisa los
+     * correquisitos fila por fila y por eso nunca acepta dos cursos que se
+     * exigen mutuamente (el primero en insertarse no encuentra al otro).
+     * Este servicio ya los validó con la selección completa, así que
+     * mientras inserta le pide al trigger omitir esa revisión. La marca
+     * vive solo en la conexión actual y se quita siempre al terminar,
+     * porque las conexiones se reutilizan.
+     */
+    static final String SQL_MARCAR_CORREQUISITOS_VALIDADOS =
+            "SET @sigac_correquisitos_validados = 1";
+    static final String SQL_QUITAR_MARCA_CORREQUISITOS =
+            "SET @sigac_correquisitos_validados = NULL";
+
     private static final DateTimeFormatter FORMATO_HORA =
             DateTimeFormatter.ofPattern("HH:mm");
 
@@ -122,6 +138,7 @@ public class MatriculaEstudianteService {
     private final MatriculaRepository matriculaRepository;
     private final MatriculaDetalleRepository matriculaDetalleRepository;
     private final EstadoMatriculaRepository estadoMatriculaRepository;
+    private final JdbcTemplate jdbcTemplate;
 
     public MatriculaEstudianteService(
             EstudianteRepository estudianteRepository,
@@ -137,7 +154,8 @@ public class MatriculaEstudianteService {
             RequisitosCursoRepository requisitosCursoRepository,
             MatriculaRepository matriculaRepository,
             MatriculaDetalleRepository matriculaDetalleRepository,
-            EstadoMatriculaRepository estadoMatriculaRepository
+            EstadoMatriculaRepository estadoMatriculaRepository,
+            JdbcTemplate jdbcTemplate
     ) {
         this.estudianteRepository = estudianteRepository;
         this.periodoAcademicoRepository = periodoAcademicoRepository;
@@ -153,6 +171,7 @@ public class MatriculaEstudianteService {
         this.matriculaRepository = matriculaRepository;
         this.matriculaDetalleRepository = matriculaDetalleRepository;
         this.estadoMatriculaRepository = estadoMatriculaRepository;
+        this.jdbcTemplate = jdbcTemplate;
     }
 
     /*
@@ -693,25 +712,44 @@ public class MatriculaEstudianteService {
                                     .getIdPlanEstudio()
                     );
 
-            for (Grupo grupo : gruposParaInsertar) {
+            /*
+             * Los correquisitos ya se validaron arriba con la selección
+             * completa (validarRequisitos). Se le avisa al trigger para que
+             * no los vuelva a revisar fila por fila, lo que haría imposible
+             * matricular cursos que son correquisitos mutuos.
+             */
+            jdbcTemplate.execute(
+                    SQL_MARCAR_CORREQUISITOS_VALIDADOS
+            );
 
-                MatriculaDetalle detalle =
-                        new MatriculaDetalle();
+            try {
 
-                detalle.setMatricula(
-                        matricula
-                );
+                for (Grupo grupo : gruposParaInsertar) {
 
-                detalle.setIdGrupo(
-                        grupo.getId()
-                );
+                    MatriculaDetalle detalle =
+                            new MatriculaDetalle();
 
-                matriculaDetalleRepository.save(
-                        detalle
+                    detalle.setMatricula(
+                            matricula
+                    );
+
+                    detalle.setIdGrupo(
+                            grupo.getId()
+                    );
+
+                    matriculaDetalleRepository.save(
+                            detalle
+                    );
+                }
+
+                matriculaDetalleRepository.flush();
+
+            } finally {
+
+                jdbcTemplate.execute(
+                        SQL_QUITAR_MARCA_CORREQUISITOS
                 );
             }
-
-            matriculaDetalleRepository.flush();
 
         } catch (BusinessException ex) {
 
@@ -1205,7 +1243,10 @@ public class MatriculaEstudianteService {
         while (!pendientes.isEmpty()) {
 
             // Si dos cursos se exigen mutuamente no existe un orden posible:
-            // se sigue el orden original y la base de datos informará el motivo.
+            // se sigue el orden original. Funciona porque, al insertar, se
+            // marca @sigac_correquisitos_validados y el trigger omite esa
+            // revisión. El orden se conserva por si la base de datos aún
+            // no tiene la versión del trigger que entiende la marca.
             Grupo siguiente =
                     pendientes
                             .stream()

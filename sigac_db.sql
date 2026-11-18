@@ -1298,7 +1298,11 @@ BEGIN
 
     -- Correquisitos: valido si ya lo aprobo antes, o si lo esta
     -- matriculando en la misma matricula (mismo periodo).
-    IF EXISTS (
+    -- Si el backend ya los valido con la seleccion completa, marca
+    -- @sigac_correquisitos_validados = 1 y esta revision se omite: fila
+    -- por fila es imposible aceptar correquisitos mutuos (A exige B y
+    -- B exige A), porque el primero en insertarse nunca encuentra al otro.
+    IF @sigac_correquisitos_validados IS NULL AND EXISTS (
         SELECT 1
         FROM requisitos_cursos AS rc
                  INNER JOIN tipos_requisitos_cursos AS trc

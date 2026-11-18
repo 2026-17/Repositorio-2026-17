@@ -46,6 +46,9 @@ import org.junit.jupiter.api.Test;
 
 import org.mockito.ArgumentCaptor;
 
+import org.mockito.InOrder;
+
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.orm.jpa.JpaSystemException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
@@ -90,6 +93,7 @@ class MatriculaEstudianteServiceTest {
     private MatriculaRepository matriculaRepository;
     private MatriculaDetalleRepository detalleRepository;
     private EstadoMatriculaRepository estadoMatriculaRepository;
+    private JdbcTemplate jdbcTemplate;
 
     private MatriculaEstudianteService service;
 
@@ -119,6 +123,7 @@ class MatriculaEstudianteServiceTest {
         matriculaRepository = mock(MatriculaRepository.class);
         detalleRepository = mock(MatriculaDetalleRepository.class);
         estadoMatriculaRepository = mock(EstadoMatriculaRepository.class);
+        jdbcTemplate = mock(JdbcTemplate.class);
 
         service = new MatriculaEstudianteService(
                 estudianteRepository,
@@ -134,7 +139,8 @@ class MatriculaEstudianteServiceTest {
                 requisitosRepository,
                 matriculaRepository,
                 detalleRepository,
-                estadoMatriculaRepository
+                estadoMatriculaRepository,
+                jdbcTemplate
         );
 
         Authentication authentication = mock(Authentication.class);
@@ -625,6 +631,63 @@ class MatriculaEstudianteServiceTest {
                 List.of(1L, 2L),
                 guardados.getAllValues().stream().map(MatriculaDetalle::getIdGrupo).toList()
         );
+    }
+
+    /*
+     * Primer ciclo típico: todos los cursos son correquisitos entre sí.
+     * Ningún orden de inserción satisface al trigger fila por fila, por
+     * eso el servicio le avisa que ya validó los correquisitos.
+     */
+    @Test
+    void confirmar_correquisitosMutuos_seAceptanYSeAvisaAlTrigger() {
+
+        grupos.add(grupo(1L, 101L, 10));
+        grupos.add(grupo(2L, 102L, 10));
+        requisitos.add(requisito("CORREQUISITO", 101L, 102L, null));
+        requisitos.add(requisito("CORREQUISITO", 102L, 101L, null));
+
+        assertDoesNotThrow(() -> service.confirmar(solicitud(1L, 2L)));
+
+        InOrder orden = inOrder(jdbcTemplate, detalleRepository);
+        orden.verify(jdbcTemplate).execute("SET @sigac_correquisitos_validados = 1");
+        orden.verify(detalleRepository, times(2)).save(any(MatriculaDetalle.class));
+        orden.verify(detalleRepository).flush();
+        orden.verify(jdbcTemplate).execute("SET @sigac_correquisitos_validados = NULL");
+    }
+
+    /*
+     * Las conexiones se reutilizan: si la marca quedara puesta, la
+     * siguiente operación en esa conexión se saltaría la revisión.
+     */
+    @Test
+    void confirmar_siLaBaseDeDatosRechaza_igualSeQuitaLaMarca() {
+
+        grupos.add(grupo(1L, 101L, 10));
+
+        when(detalleRepository.save(any(MatriculaDetalle.class)))
+                .thenThrow(new JpaSystemException(new RuntimeException(
+                        "no se pudo insertar",
+                        new SQLException("El estudiante no cumple los prerrequisitos del curso", "45000")
+                )));
+
+        assertThrows(MatriculaInvalidaException.class, () -> service.confirmar(solicitud(1L)));
+
+        verify(jdbcTemplate).execute("SET @sigac_correquisitos_validados = NULL");
+    }
+
+    /*
+     * La marca solo se pone después de que la selección pasó todas las
+     * validaciones del servidor.
+     */
+    @Test
+    void confirmar_seleccionInvalida_noMarcaLosCorrequisitos() {
+
+        grupos.add(grupo(2L, 102L, 10));
+        requisitos.add(requisito("CORREQUISITO", 102L, 101L, null));
+
+        assertThrows(MatriculaInvalidaException.class, () -> service.confirmar(solicitud(2L)));
+
+        verifyNoInteractions(jdbcTemplate);
     }
 
     @Test
