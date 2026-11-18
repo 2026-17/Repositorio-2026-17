@@ -108,35 +108,8 @@ export function hoyISO() {
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
-/*
- * Sugerencia de código a partir del nombre: iniciales de las palabras
- * importantes en mayúsculas, sin tildes (ej. "Formación Musical
- * Infantil" → "FMI"). El director puede cambiarla.
- */
-const PALABRAS_VACIAS = new Set(["de", "del", "la", "las", "el", "los", "y", "e", "en", "para", "con", "a"]);
+// La sugerencia de código a partir del nombre está en src/utils/codigos.js.
 
-export function sugerirCodigo(nombre) {
-    const palabras = nombre
-        .normalize("NFD")
-        .replace(/\p{M}/gu, "")
-        .replace(/[^A-Za-z0-9 ]+/g, " ")
-        .split(/\s+/)
-        .filter(Boolean);
-
-    const importantes = palabras.filter((p) => !PALABRAS_VACIAS.has(p.toLowerCase()));
-    const fuente = importantes.length > 0 ? importantes : palabras;
-
-    if (fuente.length === 1) return fuente[0].slice(0, 6).toUpperCase();
-
-    return fuente
-        .map((p) => (/^\d+$/.test(p) ? `-${p}` : p[0]))
-        .join("")
-        .toUpperCase()
-        .replace(/^-+/, "")
-        .slice(0, 30);
-}
-
-export const PATRON_CODIGO = /^[A-Za-z0-9]+(-[A-Za-z0-9]+)*$/;
 export const PATRON_VERSION = /^[0-9A-Za-z][0-9A-Za-z.-]*$/;
 
 // Valida los datos del plan; devuelve { campo: mensaje }.

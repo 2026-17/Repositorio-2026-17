@@ -54,6 +54,17 @@ public class CursoController {
     }
 
     /*
+     * Validación en vivo del código en "Nuevo curso": indica si el
+     * código escrito (o sugerido a partir del nombre) ya está en uso.
+     */
+    @GetMapping("/disponibilidad")
+    public Map<String, Boolean> consultarDisponibilidad(
+            @RequestParam String codigo) {
+
+        return Map.of("codigoDisponible", cursoService.codigoDisponible(codigo));
+    }
+
+    /*
      * HU-030 - Obtener los datos actuales de un curso.
      *
      * Se utiliza para precargar el formulario de modificación

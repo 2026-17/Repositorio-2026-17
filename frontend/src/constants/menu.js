@@ -76,10 +76,10 @@ export const MENU_POR_ROL = {
                     descripcion: "Incorpore cursos a la malla curricular con el botón \"Nuevo curso\" y modifique o desactive los existentes sin eliminar su información histórica.",
                 },
                 {
-                    to: "/director-academico/grupos/crear",
-                    label: "Crear grupo",
+                    to: "/director-academico/grupos",
+                    label: "Grupos",
                     icon: Users,
-                    descripcion: "Abra un grupo de un curso en un período académico: cupo, profesor, modalidad y horario semanal.",
+                    descripcion: "Abra grupos de un curso en un período con el botón \"Nuevo grupo\" (el código se sugiere solo) y consulte, modifique o elimine los existentes. Los que tienen matrículas se cancelan en lugar de eliminarse.",
                 },
                 {
                     to: "/director-academico/asignar-profesores",

@@ -216,6 +216,26 @@ public class SecurityConfig {
                         )
                         .hasRole("DIRECTOR_ACADEMICO")
 
+                        // Listar, sugerir código, consultar, modificar y eliminar.
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/grupos",
+                                "/grupos/*"
+                        )
+                        .hasRole("DIRECTOR_ACADEMICO")
+
+                        .requestMatchers(
+                                HttpMethod.PUT,
+                                "/grupos/*"
+                        )
+                        .hasRole("DIRECTOR_ACADEMICO")
+
+                        .requestMatchers(
+                                HttpMethod.DELETE,
+                                "/grupos/*"
+                        )
+                        .hasRole("DIRECTOR_ACADEMICO")
+
                         /*
                          * =====================================================
                          * Gestión de períodos académicos

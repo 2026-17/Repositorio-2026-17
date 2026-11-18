@@ -20,7 +20,7 @@ import CreateUsers from "./pages/AdminSis/createUsers";
 import Estudiantes from "./pages/AdminSis/Estudiantes";
 
 import Cursos from "./pages/DirectorAcademico/Cursos";
-import CrearGrupo from "./pages/DirectorAcademico/CrearGrupo";
+import Grupos from "./pages/DirectorAcademico/Grupos";
 import AsignarProfesores from "./pages/DirectorAcademico/AsignarProfesores";
 import AsignarInstrumento from "./pages/Comun/AsignarInstrumento.jsx";
 import PeriodosAcademicos from "./pages/DirectorAcademico/PeriodosAcademicos";
@@ -158,10 +158,16 @@ const router = createBrowserRouter(
                             />
                         ))}
 
-                        {/* Crear grupo de un curso en un período */}
+                        {/* Grupos: listar, crear, modificar y eliminar */}
+                        <Route
+                            path="/director-academico/grupos"
+                            element={<Grupos />}
+                        />
+
+                        {/* Crear se hace dentro de Grupos; la ruta vieja abre ahí el formulario */}
                         <Route
                             path="/director-academico/grupos/crear"
-                            element={<CrearGrupo />}
+                            element={<Navigate to="/director-academico/grupos" replace state={{ nuevoGrupo: true }} />}
                         />
 
                         {/* HU-014 - Asignar profesores a cursos y grupos */}

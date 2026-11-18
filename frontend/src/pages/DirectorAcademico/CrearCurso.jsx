@@ -4,8 +4,11 @@ import { API_URL } from "../../config/api";
 import { BookPlus } from "lucide-react";
 import "./crearCurso.css";
 import Alert from "../../components/ui/Alert";
+import { AyudaCodigoSugerido, EstadoDisponibilidad } from "../../components/ui/CodigoSugerido";
 import Field from "../../components/ui/Field";
 import { listaErrores } from "../../components/ui/utilidades";
+import { useDisponibilidad } from "../../hooks/useDisponibilidad";
+import { normalizarCodigoEscrito, sugerirCodigo } from "../../utils/codigos";
 
 import { useDialog } from "../../components/dialog/useDialog";
 import { formularioModificado, useAvisoCambiosSinGuardar } from "../../hooks/useAvisoCambiosSinGuardar";
@@ -46,6 +49,30 @@ function CrearCurso({ onCancel, onSuccess, idProgramaInicial }) {
 
     // Avisa al salir con datos escritos que no se han guardado
     const hayCambios = formularioModificado(form, formInicial);
+
+    // Código sugerido a partir del nombre y verificado en vivo.
+    const [codigoEditado, setCodigoEditado] = useState(false);
+    const disponibilidadCodigo = useDisponibilidad(form.codigo, (codigo, signal) =>
+        fetch(`${API_URL}/cursos/disponibilidad?${new URLSearchParams({ codigo })}`, {
+            headers: { Authorization: `Bearer ${token}` },
+            signal,
+        }).then((r) => (r.ok ? r.json() : null)).then((d) => d?.codigoDisponible)
+    );
+
+    function limpiarErrorCodigo() {
+        setErrores((prev) => {
+            if (!prev.codigo) return prev;
+            const siguiente = { ...prev };
+            delete siguiente.codigo;
+            return siguiente;
+        });
+    }
+
+    function usarSugerencia() {
+        setCodigoEditado(false);
+        setForm((prev) => ({ ...prev, codigo: sugerirCodigo(prev.nombre) }));
+        limpiarErrorCodigo();
+    }
     const { confirmarDescarte, permitirSalida } = useAvisoCambiosSinGuardar(hayCambios);
 
     async function cancelar() {
@@ -139,9 +166,14 @@ function CrearCurso({ onCancel, onSuccess, idProgramaInicial }) {
 
         setForm((prev) => ({
             ...prev,
-            [name]: value,
+            [name]: name === "codigo" ? normalizarCodigoEscrito(value) : value,
             ...(name === "idPrograma" ? { requisitos: undefined } : {}),
+            // Mientras no se escriba un código propio, se sugiere desde el nombre.
+            ...(name === "nombre" && !codigoEditado ? { codigo: sugerirCodigo(value) } : {}),
         }));
+
+        if (name === "codigo") setCodigoEditado(value.trim() !== "");
+        if (name === "nombre" && !codigoEditado) limpiarErrorCodigo();
 
         // Limpiar el error del campo que el usuario está corrigiendo.
         setErrores((prev) => {
@@ -162,6 +194,8 @@ function CrearCurso({ onCancel, onSuccess, idProgramaInicial }) {
             siguientesErrores.codigo = "Ingrese el código del curso.";
         } else if (form.codigo.trim().length > 30) {
             siguientesErrores.codigo = "El código del curso no puede superar los 30 caracteres.";
+        } else if (disponibilidadCodigo === "ocupado") {
+            siguientesErrores.codigo = "Ya existe un curso con este código.";
         }
 
         if (!form.nombre.trim()) {
@@ -317,12 +351,29 @@ function CrearCurso({ onCancel, onSuccess, idProgramaInicial }) {
                 <section className="panel">
                     <div className="panel-head"><h2>Información del curso</h2></div>
                     <div className="panel-body form-grid">
-                        <Field id="codigo" label="Código del curso" hint="Debe ser un código único." error={errores.codigo}>
-                            <input id="codigo" name="codigo" type="text" className="sg-input" maxLength="30" value={form.codigo} onChange={handleChange} placeholder="Ej. MUS-101" autoComplete="off" {...aria("codigo")} />
-                        </Field>
                         <Field id="nombre" label="Nombre del curso" error={errores.nombre}>
                             <input id="nombre" name="nombre" type="text" className="sg-input" maxLength="160" value={form.nombre} onChange={handleChange} placeholder="Ej. Introducción a la música" autoComplete="off" {...aria("nombre")} />
                         </Field>
+                        <div>
+                            <Field
+                                id="codigo"
+                                label="Código del curso"
+                                hint={codigoEditado ? "Debe ser un código único." : "Se sugiere a partir del nombre; puede cambiarlo."}
+                                error={errores.codigo}
+                            >
+                                <input id="codigo" name="codigo" type="text" className="sg-input tnum" maxLength="30" value={form.codigo} onChange={handleChange} placeholder="Ej. IM" autoComplete="off" spellCheck={false} {...aria("codigo")} aria-describedby={errores.codigo ? "codigo-error" : "codigo-estado"} />
+                            </Field>
+                            <AyudaCodigoSugerido
+                                editado={codigoEditado}
+                                codigo={form.codigo}
+                                sugerencia={sugerirCodigo(form.nombre)}
+                                onUsarSugerencia={usarSugerencia}
+                            >
+                                {!errores.codigo && (
+                                    <EstadoDisponibilidad id="codigo-estado" estado={disponibilidadCodigo} mensajeOcupado="Ya existe un curso con este código." />
+                                )}
+                            </AyudaCodigoSugerido>
+                        </div>
                         <Field id="descripcion" label="Descripción" optional className="span-all" hint="Máximo 2000 caracteres." error={errores.descripcion}>
                             <textarea id="descripcion" name="descripcion" className="sg-input" rows="4" maxLength={2000} value={form.descripcion} onChange={handleChange} placeholder="Describa brevemente el contenido del curso." />
                         </Field>

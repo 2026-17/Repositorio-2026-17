@@ -67,4 +67,22 @@ public interface MatriculaDetalleRepository
     List<Object[]> findCursosAprobados(
             @Param("idEstudiante") Long idEstudiante
     );
+
+    /*
+     * Gestión de grupos - Cantidad de detalles de matrícula de cada grupo
+     * (incluye retirados y matrículas de cualquier estado). Un grupo con
+     * historial de matrícula no se puede eliminar ni cambiar de curso o
+     * período.
+     *
+     * Devuelve filas [idGrupo, cantidad].
+     */
+    @Query("""
+            SELECT d.idGrupo, COUNT(d)
+            FROM MatriculaDetalle d
+            WHERE d.idGrupo IN :idsGrupo
+            GROUP BY d.idGrupo
+            """)
+    List<Object[]> contarDetallesPorGrupo(
+            @Param("idsGrupo") Collection<Long> idsGrupo
+    );
 }
