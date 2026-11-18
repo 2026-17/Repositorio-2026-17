@@ -58,6 +58,7 @@ public class AutorizacionMatriculaService {
     private final PeriodoAcademicoRepository periodoAcademicoRepository;
     private final MensualidadEstudianteRepository mensualidadEstudianteRepository;
     private final DocumentoEstudianteRepository documentoEstudianteRepository;
+    private final BecaVigenteService becaVigenteService;
 
     public AutorizacionMatriculaService(
             AutorizacionesMatriculaRepository autorizacionRepository,
@@ -67,7 +68,8 @@ public class AutorizacionMatriculaService {
             EstudianteRepository estudianteRepository,
             PeriodoAcademicoRepository periodoAcademicoRepository,
             MensualidadEstudianteRepository mensualidadEstudianteRepository,
-            DocumentoEstudianteRepository documentoEstudianteRepository
+            DocumentoEstudianteRepository documentoEstudianteRepository,
+            BecaVigenteService becaVigenteService
     ) {
         this.autorizacionRepository = autorizacionRepository;
         this.estadoRepository = estadoRepository;
@@ -77,6 +79,7 @@ public class AutorizacionMatriculaService {
         this.periodoAcademicoRepository = periodoAcademicoRepository;
         this.mensualidadEstudianteRepository = mensualidadEstudianteRepository;
         this.documentoEstudianteRepository = documentoEstudianteRepository;
+        this.becaVigenteService = becaVigenteService;
     }
 
     /*
@@ -333,7 +336,8 @@ public class AutorizacionMatriculaService {
 
         autorizacion.setMensualidadesAlDia(
                 mensualidadesAlDia(
-                        estudiante.getId()
+                        estudiante.getId(),
+                        periodo.getId()
                 )
         );
 
@@ -679,10 +683,23 @@ public class AutorizacionMatriculaService {
      * "Al día" significa que no existe ninguna mensualidad sin
      * pagar correspondiente a un mes ya vencido (anio/mes menor o
      * igual al mes actual).
+     *
+     * Un estudiante con beca del 100% vigente para el período (por
+     * ejemplo, la beca permanente de inclusión) no paga mensualidades:
+     * cuenta como al día aunque no tenga pagos registrados.
      */
     private boolean mensualidadesAlDia(
-            Long idEstudiante
+            Long idEstudiante,
+            Long idPeriodo
     ) {
+
+        if (BecaVigenteService.cubreTotalidad(
+                becaVigenteService
+                        .obtenerBecaVigente(idEstudiante, idPeriodo)
+                        .orElse(null)
+        )) {
+            return true;
+        }
 
         LocalDate hoy = LocalDate.now();
 

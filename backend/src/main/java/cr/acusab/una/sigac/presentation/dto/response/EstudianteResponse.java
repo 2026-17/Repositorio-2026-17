@@ -26,5 +26,7 @@ public record EstudianteResponse(
         List<Long> idsPlanEstudio,
         // Necesarios para precargar el formulario de edición.
         Integer idTipoIdentificacion,
-        String condicionesRelevantes
+        String condicionesRelevantes,
+        // REGULAR o INCLUSION
+        TipoEstudianteResponse tipoEstudiante
 ) {}

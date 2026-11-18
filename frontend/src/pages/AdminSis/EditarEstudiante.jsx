@@ -51,12 +51,13 @@ const IDS = {
     direccion: "txtDireccion", nivelEscolar: "cmbNivelEscolar", idInstrumento: "cmbInstrumento", centroEducativo: "txtCentroEducativo",
     segundoApellido: "txtSegundoApellido", telefono: "txtTelefono", condicionesRelevantes: "txtCondicionesRelevantes",
     idsPlanEstudio: "edit-idsPlanEstudio", idProvincia: "edit-idProvincia", codigoCanton: "edit-codigoCanton", codigoDistrito: "edit-codigoDistrito",
+    idTipoEstudiante: "cmbTipoEstudiante",
 };
 
 const initialForm = {
     idTipoIdentificacion: "", numeroIdentificacion: "", nombres: "", primerApellido: "", segundoApellido: "",
     fechaNacimiento: "", genero: "", ubicacion: UBICACION_VACIA, direccion: "", telefono: "", correo: "", nivelEscolar: "",
-    centroEducativo: "", condicionesRelevantes: "", idInstrumento: "", idsPlanEstudio: [],
+    centroEducativo: "", condicionesRelevantes: "", idInstrumento: "", idsPlanEstudio: [], idTipoEstudiante: "",
 };
 
 function EditarEstudiante({ studentId, onCancel, onSuccess } = {}) {
@@ -69,6 +70,7 @@ function EditarEstudiante({ studentId, onCancel, onSuccess } = {}) {
     const [types, setTypes] = useState([]);
     const [instruments, setInstruments] = useState([]);
     const [planes, setPlanes] = useState([]);
+    const [tiposEstudiante, setTiposEstudiante] = useState([]);
     const [form, setForm] = useState(initialForm);
     // Datos tal como se cargaron, para saber si hay cambios sin guardar
     const [formCargado, setFormCargado] = useState(initialForm);
@@ -93,17 +95,30 @@ function EditarEstudiante({ studentId, onCancel, onSuccess } = {}) {
     // Edad permitida: de 2 a 100 años
     const limitesNacimiento = useMemo(() => limitesFechaNacimiento(), []);
 
+    // Tipo de estudiante: al cambiarlo se avisa qué pasa con la beca permanente
+    const codigoTipo = (idTipo) => tiposEstudiante.find(t => String(t.id) === String(idTipo))?.codigo;
+    const eraInclusion = codigoTipo(formCargado.idTipoEstudiante) === "INCLUSION";
+    const esInclusion = codigoTipo(form.idTipoEstudiante) === "INCLUSION";
+    const avisoTipo = esInclusion && !eraInclusion
+        ? "Al guardar se asignará automáticamente la beca del 100% permanente."
+        : eraInclusion && !esInclusion
+            ? "Al guardar se cerrará la beca permanente de inclusión (queda en el historial)."
+            : esInclusion
+                ? "Beca del 100% asignada automáticamente."
+                : undefined;
+
     useEffect(() => {
         if (!idValido) return;
         async function cargar() {
             try {
                 const token = localStorage.getItem("token");
                 const headers = token ? { Authorization: `Bearer ${token}` } : {};
-                const [studentResponse, typesResponse, instrumentsResponse, plansResponse] = await Promise.all([
+                const [studentResponse, typesResponse, instrumentsResponse, plansResponse, tiposEstudianteResponse] = await Promise.all([
                     fetch(`${API_URL}/estudiantes/${id}`, { headers }),
                     fetch(`${API_URL}/registro/catalogos/tipos-identificacion`, { headers }),
                     fetch(`${API_URL}/registro/catalogos/instrumentos`, { headers }),
                     fetch(`${API_URL}/planes-estudio`, { headers }),
+                    fetch(`${API_URL}/tipos-estudiante`, { headers }),
                 ]);
                 if (!studentResponse.ok) await lanzarError(studentResponse, "No fue posible cargar la información del estudiante.");
                 // Si falla un catálogo se indica cuál, para no confundirlo con un problema del estudiante
@@ -111,7 +126,8 @@ function EditarEstudiante({ studentId, onCancel, onSuccess } = {}) {
 
                 if (!instrumentsResponse.ok) throw new Error("No se pudo cargar el catálogo de instrumentos.");
                 if (!plansResponse.ok) throw new Error("No se pudo cargar el catálogo de planes de estudio.");
-                const [student, typeData, instrumentData, planData] = await Promise.all([studentResponse.json(), typesResponse.json(), instrumentsResponse.json(), plansResponse.json()]);
+                if (!tiposEstudianteResponse.ok) throw new Error("No se pudo cargar el catálogo de tipos de estudiante.");
+                const [student, typeData, instrumentData, planData, tiposEstudianteData] = await Promise.all([studentResponse.json(), typesResponse.json(), instrumentsResponse.json(), plansResponse.json(), tiposEstudianteResponse.json()]);
                 // La cédula nacional se muestra con su máscara (1-1111-1111)
                 const tipo = typeData.find(t => String(t.id) === String(student.idTipoIdentificacion));
                 const numero = student.numeroIdentificacion ?? "";
@@ -124,12 +140,14 @@ function EditarEstudiante({ studentId, onCancel, onSuccess } = {}) {
                     centroEducativo: student.centroEducativo ?? "",
                     condicionesRelevantes: student.condicionesRelevantes ?? "", idInstrumento: student.idInstrumento == null ? "" : String(student.idInstrumento),
                     idsPlanEstudio: Array.isArray(student.idsPlanEstudio) ? student.idsPlanEstudio : [],
+                    idTipoEstudiante: student.tipoEstudiante?.id == null ? "" : String(student.tipoEstudiante.id),
                 };
                 setForm(cargado);
                 setFormCargado(cargado);
                 setTypes(typeData);
                 setInstruments(instrumentData);
                 setPlanes(planData);
+                setTiposEstudiante(tiposEstudianteData);
             } catch (e) {
                 dialog.error(mensajeDeExcepcion(e, "No fue posible cargar la información del estudiante."));
             } finally {
@@ -206,6 +224,8 @@ function EditarEstudiante({ studentId, onCancel, onSuccess } = {}) {
             idTipoIdentificacion: Number(form.idTipoIdentificacion),
             idInstrumento: Number(form.idInstrumento),
             centroEducativo: form.centroEducativo.trim() || null,
+            // null = no cambiar el tipo
+            idTipoEstudiante: form.idTipoEstudiante ? Number(form.idTipoEstudiante) : null,
         };
         try {
             setSaving(true);
@@ -359,7 +379,12 @@ function EditarEstudiante({ studentId, onCancel, onSuccess } = {}) {
                         >
                             <input id={IDS.centroEducativo} className="sg-input" maxLength={180} value={form.centroEducativo} onChange={e => setField("centroEducativo", e.target.value)} disabled={!requiereCentro} placeholder={requiereCentro ? "Nombre del centro educativo" : "No aplica"} {...err("centroEducativo")} />
                         </Field>
-                        <div />
+                        <Field id={IDS.idTipoEstudiante} errorKey="idTipoEstudiante" label="Tipo de estudiante" select error={errors.idTipoEstudiante} hint={avisoTipo}>
+                            <select id={IDS.idTipoEstudiante} className="sg-input sg-select" value={form.idTipoEstudiante} onChange={e => setField("idTipoEstudiante", e.target.value)} {...err("idTipoEstudiante")}>
+                                {!form.idTipoEstudiante && <option value="">Seleccione</option>}
+                                {tiposEstudiante.map(tipo => <option key={tipo.id} value={tipo.id}>{tipo.nombre}</option>)}
+                            </select>
+                        </Field>
                         <fieldset className="fieldset span-all" id={IDS.idsPlanEstudio} tabIndex={-1} data-error-field="idsPlanEstudio" aria-describedby={errors.idsPlanEstudio ? `${IDS.idsPlanEstudio}-error` : undefined}>
                             <legend>Planes de estudio</legend>
                             <p className="sg-field__hint plan-hint">

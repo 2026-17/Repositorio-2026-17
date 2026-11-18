@@ -27,9 +27,10 @@ function getHeaders() {
     return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
-async function obtenerEstudiantes(filtroActivo) {
+async function obtenerEstudiantes(filtroActivo, filtroTipo) {
     const params = new URLSearchParams();
     if (filtroActivo) params.set("activo", filtroActivo);
+    if (filtroTipo) params.set("idTipoEstudiante", filtroTipo);
 
     const response = await fetch(
         `${API_URL}/estudiantes/listado${params.toString() ? `?${params.toString()}` : ""}`,
@@ -49,6 +50,9 @@ function Estudiantes() {
     const [estudiantes, setEstudiantes] = useState([]);
     const [busqueda, setBusqueda] = useState("");
     const [filtroActivo, setFiltroActivo] = useState("true");
+    // "" = todos los tipos de estudiante
+    const [filtroTipo, setFiltroTipo] = useState("");
+    const [tiposEstudiante, setTiposEstudiante] = useState([]);
     const [orden, setOrden] = useState("asc");
     const [pagina, setPagina] = useState(1);
     const [cargando, setCargando] = useState(true);
@@ -66,19 +70,28 @@ function Estudiantes() {
     useEffect(() => {
         let activo = true;
 
-        obtenerEstudiantes(filtroActivo)
+        obtenerEstudiantes(filtroActivo, filtroTipo)
             .then((datos) => { if (activo) setEstudiantes(datos); })
             .catch((e) => { if (activo) dialog.error(mensajeDeExcepcion(e, "No se pudo cargar la lista de estudiantes.")); })
             .finally(() => { if (activo) setCargando(false); });
 
         return () => { activo = false; };
-    }, [filtroActivo, dialog]);
+    }, [filtroActivo, filtroTipo, dialog]);
+
+    // Opciones del filtro "Tipo de estudiante". Si falla, el filtro queda
+    // solo con "Todos" y la lista sigue funcionando.
+    useEffect(() => {
+        fetch(`${API_URL}/tipos-estudiante`, { headers: getHeaders() })
+            .then((r) => (r.ok ? r.json() : []))
+            .then((datos) => setTiposEstudiante(Array.isArray(datos) ? datos : []))
+            .catch(() => setTiposEstudiante([]));
+    }, []);
 
     // Recarga desde acciones del usuario (guardar, dar de baja, reactivar).
     async function recargarEstudiantes() {
         setCargando(true);
         try {
-            setEstudiantes(await obtenerEstudiantes(filtroActivo));
+            setEstudiantes(await obtenerEstudiantes(filtroActivo, filtroTipo));
         } catch (e) {
             dialog.error(mensajeDeExcepcion(e, "No se pudo cargar la lista de estudiantes."));
         } finally {
@@ -116,10 +129,19 @@ function Estudiantes() {
         setPagina(1);
     }
 
+    function cambiarTipo(valor) {
+        if (valor !== filtroTipo) setCargando(true);
+        setFiltroTipo(valor);
+        setPagina(1);
+    }
+
     function quitarFiltros() {
         cambiarBusqueda("");
         cambiarEstado("true");
+        cambiarTipo("");
     }
+
+    const nombreTipoFiltro = tiposEstudiante.find((t) => String(t.id) === String(filtroTipo))?.nombre || "";
 
     function abrirNuevo() {
         setBajaEstudiante(null);
@@ -298,7 +320,7 @@ function Estudiantes() {
         window.scrollTo({ top: 0, behavior: "smooth" });
     }
 
-    const hayFiltros = Boolean(busqueda.trim()) || filtroActivo !== "true";
+    const hayFiltros = Boolean(busqueda.trim()) || filtroActivo !== "true" || Boolean(filtroTipo);
 
     return (
         <>
@@ -429,6 +451,19 @@ function Estudiantes() {
                             <option value="">Todos</option>
                         </select>
                     </Field>
+                    <Field id="cmbTipoEstudiante" label="Tipo" select>
+                        <select
+                            id="cmbTipoEstudiante"
+                            className="sg-input sg-select"
+                            value={filtroTipo}
+                            onChange={(e) => cambiarTipo(e.target.value)}
+                        >
+                            <option value="">Todos</option>
+                            {tiposEstudiante.map((t) => (
+                                <option key={t.id} value={t.id}>{t.nombre}</option>
+                            ))}
+                        </select>
+                    </Field>
                 </div>
 
                 <div className="chips">
@@ -448,6 +483,14 @@ function Estudiantes() {
                         <span className="chip">
                             Estado: {ETIQUETA_ESTADO[filtroActivo]}
                             <button type="button" aria-label="Quitar filtro de estado" onClick={() => cambiarEstado("true")}>
+                                <X size={14} strokeWidth={1.75} aria-hidden="true" />
+                            </button>
+                        </span>
+                    )}
+                    {filtroTipo && (
+                        <span className="chip">
+                            Tipo: {nombreTipoFiltro}
+                            <button type="button" aria-label="Quitar filtro de tipo" onClick={() => cambiarTipo("")}>
                                 <X size={14} strokeWidth={1.75} aria-hidden="true" />
                             </button>
                         </span>
@@ -503,6 +546,7 @@ function Estudiantes() {
                                     <th scope="col">Nivel escolar</th>
                                     <th scope="col">Instrumento</th>
                                     <th scope="col">Centro educativo</th>
+                                    <th scope="col">Tipo</th>
                                     <th scope="col">Estado</th>
                                     <th scope="col" className="actions"><span className="sr-only">Acciones</span></th>
                                 </tr>
@@ -523,6 +567,11 @@ function Estudiantes() {
                                         <td data-label="Nivel">{e.nivelEscolar || "—"}</td>
                                         <td data-label="Instrumento">{e.instrumento ? <span className="inst">{e.instrumento}</span> : "—"}</td>
                                         <td data-label="Centro">{e.centroEducativo || "—"}</td>
+                                        <td data-label="Tipo">
+                                            <StatusBadge tone={e.tipoEstudiante?.codigo === "INCLUSION" ? "primary" : "neutral"} icon={null}>
+                                                {e.tipoEstudiante?.nombre || "Regular"}
+                                            </StatusBadge>
+                                        </td>
                                         <td>
                                             <StatusBadge tone={e.activo ? "success" : "neutral"}>
                                                 {e.activo ? "Activo" : "Inactivo"}

@@ -15,4 +15,9 @@ public interface BecaRepository extends JpaRepository<Beca, Long> {
     Optional<Beca> findByIdEstudiante_IdAndIdPeriodo_IdAndActivaTrue(Long idEstudiante, Long idPeriodo);
 
     boolean existsByIdEstudiante_IdAndIdPeriodo_IdAndActivaTrue(Long idEstudiante, Long idPeriodo);
+
+    // Becas permanentes activas (sin período) de un tipo de beca: la de
+    // inclusión. Debería haber como máximo una por estudiante.
+    List<Beca> findByIdEstudiante_IdAndIdTipoBeca_CodigoAndIdPeriodoIsNullAndActivaTrue(
+            Long idEstudiante, String codigoTipoBeca);
 }

@@ -81,7 +81,7 @@ class ValidacionDatosPersonaTest {
     private EstudianteCreateRequest estudianteConTelefono(String telefono) {
         return new EstudianteCreateRequest(1, "118760542", "Ana", "Mora", null, LocalDate.now().minusYears(20),
                 "FEMENINO", 10101, "Barrio Centro", telefono, "ana@correo.com", "Universitaria", null,
-                null, 3, null, List.of(1L), List.of(), null);
+                null, 3, null, List.of(1L), List.of(), null, null);
     }
 
     private Set<String> mensajes(Object dto) {

@@ -34,6 +34,13 @@ public class Estudiante {
     @JoinColumn(name = "id_tipo_identificacion", nullable = false)
     private TiposIdentificacion idTipoIdentificacion;
 
+    // Categoría administrativa (REGULAR / INCLUSION). No se deduce de
+    // condicionesRelevantes.
+    @NotNull
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "id_tipo_estudiante", nullable = false)
+    private TiposEstudiante idTipoEstudiante;
+
     @Size(max = 40)
     @NotNull
     @Column(name = "numero_identificacion", nullable = false, length = 40)

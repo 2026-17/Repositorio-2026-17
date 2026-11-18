@@ -8,5 +8,6 @@ public record EstudianteListadoResponse(
         String nivelEscolar,
         String instrumento,
         String centroEducativo,
-        boolean activo
+        boolean activo,
+        TipoEstudianteResponse tipoEstudiante
 ) {}

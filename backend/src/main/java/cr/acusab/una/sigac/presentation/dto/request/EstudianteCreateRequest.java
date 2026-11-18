@@ -82,8 +82,12 @@ public record EstudianteCreateRequest(
         List<EncargadoRequest> encargados,
 
         // Opcional: si viene presente, se asigna la beca junto con el registro del estudiante.
+        // No se permite para estudiantes de inclusión (ya tienen beca del 100%).
         @Valid
-        BecaRequest beca
+        BecaRequest beca,
+
+        // Opcional: REGULAR o INCLUSION. Si viene null se registra como REGULAR.
+        Integer idTipoEstudiante
 ) {
     public record BecaRequest(
             @NotNull(message = "El período académico de la beca es obligatorio")

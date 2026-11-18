@@ -42,7 +42,7 @@ const P = "est-";
 // En qué paso está cada campo (para mostrar solo los errores del paso actual)
 function pasoDeCampo(campo) {
   if (campo === "guardians" || campo.startsWith("guardian-")) return 1;
-  if (["nivelEscolar", "idInstrumento", "idProfesor", "idsPlanEstudio", "centroEducativo", "becaIdPeriodo", "becaIdTipoBeca", "becaPorcentaje"].includes(campo)) return 2;
+  if (["nivelEscolar", "idInstrumento", "idProfesor", "idsPlanEstudio", "centroEducativo", "idTipoEstudiante", "becaIdPeriodo", "becaIdTipoBeca", "becaPorcentaje"].includes(campo)) return 2;
   if (campo === "policy" || campo === "confirmado") return 3;
   return 0;
 }
@@ -137,6 +137,8 @@ const initialForm = {
   idInstrumento: "",
   idProfesor: "",
   idsPlanEstudio: [],
+  // "" = Regular (el valor por defecto del backend)
+  idTipoEstudiante: "",
   encargados: [],
 };
 
@@ -149,6 +151,7 @@ export default function CreateStudent({ onCancel, onSuccess } = {}) {
   const [profesoresDe, setProfesoresDe] = useState({ idInstrumento: "", lista: [] });
   const [periodos, setPeriodos] = useState([]);
   const [tiposBeca, setTiposBeca] = useState([]);
+  const [tiposEstudiante, setTiposEstudiante] = useState([]);
   const [policy, setPolicy] = useState(null);
   const [form, setForm] = useState(initialForm);
   const [tieneBeca, setTieneBeca] = useState(false);
@@ -188,6 +191,14 @@ export default function CreateStudent({ onCancel, onSuccess } = {}) {
   const pasoSiguiente = pasosVisibles[pasosVisibles.indexOf(paso) + 1];
   const pasoAnterior = pasosVisibles[pasosVisibles.indexOf(paso) - 1];
 
+  // Tipo de estudiante: sin elegir se muestra (y se registra) como Regular.
+  const idTipoRegular = tiposEstudiante.find((t) => t.codigo === "REGULAR")?.id ?? "";
+  const idTipoEstudiante = form.idTipoEstudiante || String(idTipoRegular);
+  const tipoEstudianteElegido = tiposEstudiante.find((t) => String(t.id) === String(idTipoEstudiante));
+  // Inclusión: beca del 100% permanente, asignada por el sistema.
+  const esInclusion = tipoEstudianteElegido?.codigo === "INCLUSION";
+  const conBeca = tieneBeca && !esInclusion;
+
   useEffect(() => {
     const token = localStorage.getItem("token");
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
@@ -198,13 +209,15 @@ export default function CreateStudent({ onCancel, onSuccess } = {}) {
       fetch(`${API_URL}/periodos-academicos`, { headers }).then((r) => (r.ok ? r.json() : lanzarError(r, "No se pudo cargar períodos académicos."))),
       fetch(`${API_URL}/becas/tipos-becas`, { headers }).then((r) => (r.ok ? r.json() : lanzarError(r, "No se pudo cargar tipos de beca."))),
       fetch(`${API_URL}/planes-estudio`, { headers }).then((r) => (r.ok ? r.json() : lanzarError(r, "No se pudo cargar los planes de estudio."))),
+      fetch(`${API_URL}/tipos-estudiante`, { headers }).then((r) => (r.ok ? r.json() : lanzarError(r, "No se pudo cargar los tipos de estudiante."))),
     ])
-      .then(([t, , i, p, tb, pl]) => {
+      .then(([t, , i, p, tb, pl, te]) => {
         setTypes(t);
         setInstruments(i);
         setPeriodos(p);
         setTiposBeca(tb);
         setPlanes(pl);
+        setTiposEstudiante(te);
       })
       .catch((e) => {
         if (dialog?.error) dialog.error(mensajeDeExcepcion(e, "No fue posible cargar los catálogos. Intente de nuevo en unos momentos."));
@@ -355,7 +368,7 @@ export default function CreateStudent({ onCancel, onSuccess } = {}) {
 
     if (menor && (form.encargados.length < 1 || form.encargados.length > 2)) nextErrors.guardians = "Un menor debe tener uno o dos encargados.";
 
-    if (tieneBeca) {
+    if (conBeca) {
       if (!becaForm.idPeriodo) nextErrors.becaIdPeriodo = "Seleccione el período académico de la beca.";
       if (!becaForm.idTipoBeca) nextErrors.becaIdTipoBeca = "Seleccione el tipo de beca.";
       if (!becaForm.porcentaje) nextErrors.becaPorcentaje = "Seleccione el porcentaje de la beca.";
@@ -423,6 +436,8 @@ export default function CreateStudent({ onCancel, onSuccess } = {}) {
       idInstrumento: Number(form.idInstrumento),
       idProfesor: form.idProfesor ? Number(form.idProfesor) : null,
       centroEducativo: form.centroEducativo.trim() || null,
+      // Sin elegir: null, y el backend lo registra como Regular
+      idTipoEstudiante: form.idTipoEstudiante ? Number(form.idTipoEstudiante) : null,
       encargados: menor ? form.encargados.map((g) => ({
         ...g,
         idTipoIdentificacion: g.idTipoIdentificacion ? Number(g.idTipoIdentificacion) : null,
@@ -431,7 +446,8 @@ export default function CreateStudent({ onCancel, onSuccess } = {}) {
         telefonoSecundario: limpiarTelefono(g.telefonoSecundario),
         correo: g.correo.trim(),
       })) : [],
-      beca: tieneBeca ? {
+      // Inclusión no envía beca: el backend le asigna la permanente del 100%
+      beca: conBeca ? {
         idPeriodo: Number(becaForm.idPeriodo),
         idTipoBeca: Number(becaForm.idTipoBeca),
         porcentaje: Number(becaForm.porcentaje),
@@ -520,7 +536,9 @@ export default function CreateStudent({ onCancel, onSuccess } = {}) {
             <p className="receipt">ID asignado <b>{registrado.id}</b></p>
             {registrado.beca && (
               <p className="muted">
-                Beca: {registrado.beca.nombreTipoBeca} — {Number(registrado.beca.porcentaje)}% · Descuento: {formatoColones(registrado.beca.montoDescuento)} · Monto a pagar: {formatoColones(registrado.beca.montoAPagar)}
+                {registrado.beca.permanente
+                  ? "Beca: Inclusión — permanente (100%) · Monto a pagar: ₡0,00"
+                  : `Beca: ${registrado.beca.nombreTipoBeca} — ${Number(registrado.beca.porcentaje)}% · Descuento: ${formatoColones(registrado.beca.montoDescuento)} · Monto a pagar: ${formatoColones(registrado.beca.montoAPagar)}`}
               </p>
             )}
             <div className="page-actions success-actions">
@@ -752,18 +770,44 @@ export default function CreateStudent({ onCancel, onSuccess } = {}) {
           </div>
         </fieldset>
 
-        <div className="span-all beca-bloque">
-          <label className="check-line">
-            <input type="checkbox" checked={tieneBeca} onChange={(e) => {
-              setTieneBeca(e.target.checked);
-              setErrors((err) => ({ ...err, becaIdPeriodo: "", becaIdTipoBeca: "", becaPorcentaje: "" }));
-            }} />
-            El estudiante posee beca
-          </label>
-          {!tieneBeca && <p className="sg-field__hint">Beca: 0% — no se asignará ninguna beca en este registro.</p>}
-        </div>
+        <Field
+          id={`${P}idTipoEstudiante`}
+          errorKey="idTipoEstudiante"
+          label="Tipo de estudiante"
+          select
+          error={errors.idTipoEstudiante}
+          hint="Categoría administrativa. Se puede corregir después al editar el estudiante."
+        >
+          <select id={`${P}idTipoEstudiante`} className="sg-input sg-select" value={idTipoEstudiante} onChange={(e) => {
+            setField("idTipoEstudiante", e.target.value);
+            setErrors((err) => ({ ...err, becaIdPeriodo: "", becaIdTipoBeca: "", becaPorcentaje: "" }));
+          }} disabled={catalogLoading} {...aria("idTipoEstudiante", errors)}>
+            {tiposEstudiante.length === 0 && <option value="">Regular</option>}
+            {tiposEstudiante.map((t) => <option key={t.id} value={t.id}>{t.nombre}</option>)}
+          </select>
+        </Field>
+        <div />
 
-        {tieneBeca && (
+        {esInclusion ? (
+          <div className="span-all beca-bloque">
+            <Alert tone="info" title="Beca del 100% asignada automáticamente">
+              Los estudiantes de inclusión tienen beca permanente del 100%: cubre la mensualidad base y los instrumentos adicionales.
+            </Alert>
+          </div>
+        ) : (
+          <div className="span-all beca-bloque">
+            <label className="check-line">
+              <input type="checkbox" checked={tieneBeca} onChange={(e) => {
+                setTieneBeca(e.target.checked);
+                setErrors((err) => ({ ...err, becaIdPeriodo: "", becaIdTipoBeca: "", becaPorcentaje: "" }));
+              }} />
+              El estudiante posee beca
+            </label>
+            {!tieneBeca && <p className="sg-field__hint">Beca: 0% — no se asignará ninguna beca en este registro.</p>}
+          </div>
+        )}
+
+        {conBeca && (
           <div className="form-grid form-grid--3 span-all">
             <Field id={`${P}becaIdPeriodo`} errorKey="becaIdPeriodo" label="Período académico" error={errors.becaIdPeriodo} select>
               <select id={`${P}becaIdPeriodo`} className="sg-input sg-select" value={becaForm.idPeriodo} onChange={(e) => {
@@ -856,7 +900,10 @@ export default function CreateStudent({ onCancel, onSuccess } = {}) {
             <dt>Profesor</dt><dd>{form.idProfesor ? [profesores.find((p) => String(p.id) === String(form.idProfesor))].filter(Boolean).map((p) => [p.nombres, p.primerApellido].join(" "))[0] : "Sin asignar"}</dd>
             <dt>Planes de estudio</dt><dd>{planes.filter((p) => form.idsPlanEstudio.includes(p.id)).map((p) => p.nombre).join(", ") || "—"}</dd>
             {requiereCentro && <><dt>Centro educativo</dt><dd>{form.centroEducativo || "—"}</dd></>}
-            <dt>Beca</dt><dd>{tieneBeca ? `${nombreDe(tiposBeca, becaForm.idTipoBeca)} · ${becaForm.porcentaje || "—"}%` : "Sin beca"}</dd>
+            <dt>Tipo de estudiante</dt><dd>{tipoEstudianteElegido?.nombre || "Regular"}</dd>
+            <dt>Beca</dt><dd>{esInclusion
+              ? "Inclusión — permanente (100%), asignada automáticamente"
+              : conBeca ? `${nombreDe(tiposBeca, becaForm.idTipoBeca)} · ${becaForm.porcentaje || "—"}%` : "Sin beca"}</dd>
           </dl>
         </section>
 

@@ -9,5 +9,7 @@ import java.util.Optional;
 public interface TiposBecaRepository extends JpaRepository<TiposBeca, Integer> {
     Optional<TiposBeca> findByIdAndActivoTrue(Integer id);
 
+    Optional<TiposBeca> findByCodigo(String codigo);
+
     List<TiposBeca> findByActivoTrueOrderByNombreAsc();
 }

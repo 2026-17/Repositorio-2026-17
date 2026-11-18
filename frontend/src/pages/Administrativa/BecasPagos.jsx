@@ -352,6 +352,7 @@ function Estudiantes() {
 
     const resumenPago = listaErrores(erroresPago, "pago-");
     const matricula = estadoPeriodo?.matricula;
+    const esInclusion = estudiante?.tipoEstudiante?.codigo === "INCLUSION";
 
     return (
         <div className="becas-pagos">
@@ -423,6 +424,14 @@ function Estudiantes() {
                                     <p className="muted tnum">Identificación {mostrarIdentificacion(estudiante.numeroIdentificacion)}</p>
                                 </div>
                             </div>
+                            {/* Beca permanente de inclusión: solo informativa. No se edita
+                                ni se borra aquí; se maneja con el tipo de estudiante. */}
+                            {esInclusion && (
+                                <Alert tone="info" title="Beca: Inclusión — permanente (100%)" className="bloque-separado">
+                                    Cubre la mensualidad base y los instrumentos adicionales en todos los períodos.
+                                    Para quitarla, cambie el tipo de estudiante a Regular en la edición del estudiante.
+                                </Alert>
+                            )}
                         </div>
                     </section>
 
@@ -467,7 +476,7 @@ function Estudiantes() {
                                     )}
 
                                     {estadoPeriodo.sinPagosPendientes && (
-                                        <Alert tone="success" title="Becado al 100%">
+                                        <Alert tone="success" title={estadoPeriodo.becaPermanente ? "Inclusión — permanente (100%)" : "Becado al 100%"}>
                                             Este estudiante no paga mensualidades en este período; solo puede registrarse el pago de matrícula.
                                         </Alert>
                                     )}

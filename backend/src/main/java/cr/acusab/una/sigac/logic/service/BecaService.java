@@ -47,12 +47,17 @@ public class BecaService {
             BigDecimal.valueOf(100)
     );
 
+    public static final String MENSAJE_INCLUSION_YA_BECADO =
+            "Los estudiantes de inclusión ya tienen beca del 100%";
+    public static final String MOTIVO_BECA_INCLUSION = "Estudiante de inclusión";
+
     private final BecaRepository becaRepository;
     private final EstudianteRepository estudianteRepository;
     private final TiposBecaRepository tiposBecaRepository;
     private final PeriodoAcademicoRepository periodoAcademicoRepository;
     private final MensualidadCalculoService mensualidadCalculoService;
     private final UsuarioRepository usuarioRepository;
+    private final BecaVigenteService becaVigenteService;
 
     public BecaService(
             BecaRepository becaRepository,
@@ -60,7 +65,8 @@ public class BecaService {
             TiposBecaRepository tiposBecaRepository,
             PeriodoAcademicoRepository periodoAcademicoRepository,
             MensualidadCalculoService mensualidadCalculoService,
-            UsuarioRepository usuarioRepository
+            UsuarioRepository usuarioRepository,
+            BecaVigenteService becaVigenteService
     ) {
         this.becaRepository = becaRepository;
         this.estudianteRepository = estudianteRepository;
@@ -68,6 +74,7 @@ public class BecaService {
         this.periodoAcademicoRepository = periodoAcademicoRepository;
         this.mensualidadCalculoService = mensualidadCalculoService;
         this.usuarioRepository = usuarioRepository;
+        this.becaVigenteService = becaVigenteService;
     }
 
     /*
@@ -83,8 +90,14 @@ public class BecaService {
             throw new BusinessException("El estudiante indicado se encuentra inactivo.");
         }
 
+        // Un estudiante de inclusión ya tiene la beca permanente del 100%.
+        if (esInclusion(estudiante)) {
+            throw new BusinessException(MENSAJE_INCLUSION_YA_BECADO);
+        }
+
         TiposBeca tipoBeca = tiposBecaRepository.findByIdAndActivoTrue(request.getIdTipoBeca())
                 .orElseThrow(() -> new BusinessException("El tipo de beca indicado no existe o está inactivo."));
+        validarTipoBecaAsignable(tipoBeca);
 
         PeriodoAcademico periodo = periodoAcademicoRepository.findById(request.getIdPeriodo())
                 .orElseThrow(() -> new BusinessException("El período académico indicado no existe."));
@@ -132,14 +145,19 @@ public class BecaService {
         Beca beca = becaRepository.findById(idBeca)
                 .orElseThrow(() -> new BusinessException("La beca indicada no existe."));
 
+        validarNoEsPermanente(beca, "modificar");
+
         TiposBeca tipoBeca = tiposBecaRepository.findByIdAndActivoTrue(request.getIdTipoBeca())
                 .orElseThrow(() -> new BusinessException("El tipo de beca indicado no existe o está inactivo."));
+        validarTipoBecaAsignable(tipoBeca);
 
         PeriodoAcademico periodo = periodoAcademicoRepository.findById(request.getIdPeriodo())
                 .orElseThrow(() -> new BusinessException("El período académico indicado no existe."));
 
         BigDecimal porcentaje = validarPorcentaje(request.getPorcentaje());
 
+        // Si la beca quedó sin período (se borró el período: ON DELETE SET
+        // NULL), al editarla se le asigna el período indicado.
         boolean cambiaPeriodo = beca.getIdPeriodo() == null
                 || !Objects.equals(beca.getIdPeriodo().getId(), periodo.getId());
 
@@ -175,6 +193,8 @@ public class BecaService {
         Beca beca = becaRepository.findById(idBeca)
                 .orElseThrow(() -> new BusinessException("La beca indicada no existe."));
 
+        validarNoEsPermanente(beca, "eliminar");
+
         becaRepository.delete(beca);
     }
 
@@ -200,10 +220,88 @@ public class BecaService {
 
     @Transactional(readOnly = true)
     public List<TipoBecaResponse> listarTiposBeca() {
+        // La beca de inclusión no se elige a mano: depende del tipo de estudiante.
         return tiposBecaRepository.findByActivoTrueOrderByNombreAsc()
                 .stream()
+                .filter(t -> !BecaVigenteService.CODIGO_TIPO_BECA_INCLUSION.equalsIgnoreCase(t.getCodigo()))
                 .map(t -> new TipoBecaResponse(t.getId(), t.getCodigo(), t.getNombre(), t.getDescripcion()))
                 .toList();
+    }
+
+    /*
+     * Beca permanente de inclusión: 100%, sin período, desde hoy y sin fecha
+     * de fin. Se llama al registrar un estudiante de inclusión o al cambiarlo
+     * a ese tipo. Si ya tiene una activa se devuelve esa (máximo una).
+     */
+    @Transactional
+    public BecaResponse asignarBecaPermanenteInclusion(Estudiante estudiante) {
+
+        Beca existente = becaVigenteService.obtenerBecaPermanenteActiva(estudiante.getId()).orElse(null);
+        if (existente != null) {
+            return construirRespuesta(existente);
+        }
+
+        TiposBeca tipoInclusion = tiposBecaRepository
+                .findByCodigo(BecaVigenteService.CODIGO_TIPO_BECA_INCLUSION)
+                .orElseThrow(() -> new BusinessException(
+                        "No está configurado el tipo de beca INCLUSION. "
+                                + "Ejecute el script 2026-11-17_tipo_estudiante_inclusion.sql."));
+
+        Instant ahora = Instant.now();
+
+        Beca beca = new Beca();
+        beca.setIdEstudiante(estudiante);
+        beca.setIdTipoBeca(tipoInclusion);
+        beca.setIdPeriodo(null);
+        beca.setPorcentaje(BigDecimal.valueOf(100));
+        beca.setFechaInicio(LocalDate.now());
+        beca.setFechaFin(null);
+        beca.setMotivo(MOTIVO_BECA_INCLUSION);
+        beca.setActiva(true);
+        beca.setIdUsuarioAsigna(usuarioAutenticadoOpcional());
+        beca.setCreadoEn(ahora);
+        beca.setActualizadoEn(ahora);
+
+        return construirRespuesta(becaRepository.save(beca));
+    }
+
+    /*
+     * Al pasar un estudiante de inclusión a regular se cierra su beca
+     * permanente (activa = false, fecha_fin = hoy). Nunca se borra, para
+     * conservar el historial.
+     */
+    @Transactional
+    public void cerrarBecaPermanenteInclusion(Long idEstudiante) {
+        LocalDate hoy = LocalDate.now();
+        List<Beca> activas = becaRepository
+                .findByIdEstudiante_IdAndIdTipoBeca_CodigoAndIdPeriodoIsNullAndActivaTrue(
+                        idEstudiante, BecaVigenteService.CODIGO_TIPO_BECA_INCLUSION);
+        for (Beca beca : activas) {
+            beca.setActiva(false);
+            // ck_becas_fechas: la fecha de fin no puede ser anterior al inicio
+            boolean iniciaDespues = beca.getFechaInicio() != null && beca.getFechaInicio().isAfter(hoy);
+            beca.setFechaFin(iniciaDespues ? beca.getFechaInicio() : hoy);
+            beca.setActualizadoEn(Instant.now());
+            becaRepository.save(beca);
+        }
+    }
+
+    private boolean esInclusion(Estudiante estudiante) {
+        return estudiante.getIdTipoEstudiante() != null && estudiante.getIdTipoEstudiante().esInclusion();
+    }
+
+    private void validarNoEsPermanente(Beca beca, String accion) {
+        if (BecaVigenteService.esBecaPermanenteInclusion(beca)) {
+            throw new BusinessException("La beca permanente de inclusión no se puede " + accion
+                    + ": se maneja con el tipo de estudiante.");
+        }
+    }
+
+    private void validarTipoBecaAsignable(TiposBeca tipoBeca) {
+        if (BecaVigenteService.CODIGO_TIPO_BECA_INCLUSION.equalsIgnoreCase(tipoBeca.getCodigo())) {
+            throw new BusinessException("La beca de inclusión se asigna automáticamente "
+                    + "al marcar al estudiante como de inclusión.");
+        }
     }
 
     /*
@@ -263,6 +361,7 @@ public class BecaService {
         response.setFechaFin(beca.getFechaFin());
         response.setActiva(beca.getActiva());
         response.setMotivo(beca.getMotivo());
+        response.setPermanente(BecaVigenteService.esBecaPermanenteInclusion(beca));
 
         return response;
     }
@@ -294,6 +393,18 @@ public class BecaService {
         return usuarioRepository.findByCedula(cedula)
                 .orElseThrow(() -> new IllegalStateException(
                         "El usuario autenticado no existe en el sistema."));
+    }
+
+    /*
+     * Igual que obtenerUsuarioAutenticado, pero sin fallar: la beca de
+     * inclusión se crea como parte de otra operación y no debe impedirla.
+     */
+    private Usuario usuarioAutenticadoOpcional() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated() || authentication.getName() == null) {
+            return null;
+        }
+        return usuarioRepository.findByCedula(authentication.getName()).orElse(null);
     }
 
     private String normalizarNullable(String value) {

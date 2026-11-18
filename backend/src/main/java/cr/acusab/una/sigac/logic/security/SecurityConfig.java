@@ -330,6 +330,21 @@ public class SecurityConfig {
                         .hasAnyRole("ADMINISTRATIVO", "DIRECTOR_ACADEMICO")
 
                         /*
+                         * =====================================================
+                         * Tipos de estudiante (REGULAR / INCLUSION)
+                         * Roles: ADMINISTRATIVO y DIRECTOR_ACADEMICO
+                         *
+                         * Opciones del selector "Tipo de estudiante" al
+                         * registrar, editar y filtrar estudiantes.
+                         * =====================================================
+                         */
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/tipos-estudiante"
+                        )
+                        .hasAnyRole("ADMINISTRATIVO", "DIRECTOR_ACADEMICO")
+
+                        /*
                          * Cualquier otro endpoint necesita
                          * un usuario autenticado.
                          */

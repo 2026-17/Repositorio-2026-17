@@ -5,6 +5,7 @@ import cr.acusab.una.sigac.data.entity.DocumentosEstudiante;
 import cr.acusab.una.sigac.data.entity.Estudiante;
 import cr.acusab.una.sigac.data.entity.MensualidadesEstudiante;
 import cr.acusab.una.sigac.data.entity.PeriodoAcademico;
+import cr.acusab.una.sigac.data.entity.TiposBeca;
 import cr.acusab.una.sigac.data.entity.TiposDocumento;
 import cr.acusab.una.sigac.data.entity.Usuario;
 import cr.acusab.una.sigac.data.repository.AutorizacionesMatriculaRepository;
@@ -17,11 +18,13 @@ import cr.acusab.una.sigac.data.repository.TipoDocumentoRepository;
 import cr.acusab.una.sigac.data.repository.UsuarioRepository;
 import cr.acusab.una.sigac.logic.exception.BusinessException;
 import cr.acusab.una.sigac.logic.service.AutorizacionMatriculaService;
+import cr.acusab.una.sigac.logic.service.BecaVigenteService;
 import cr.acusab.una.sigac.logic.service.MensualidadCalculoService;
 import cr.acusab.una.sigac.logic.service.PagoService;
 import cr.acusab.una.sigac.presentation.dto.request.RegistrarPagoRequest;
 import cr.acusab.una.sigac.presentation.dto.request.RegistrarPagosRequest;
 import cr.acusab.una.sigac.presentation.dto.response.EstadoMesPagoResponse;
+import cr.acusab.una.sigac.presentation.dto.response.EstadoPeriodoPagoResponse;
 import cr.acusab.una.sigac.presentation.dto.response.PagoResponse;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -80,7 +83,9 @@ class PagoServiceTest {
                 mensualidadEstudianteRepository,
                 estudianteRepository,
                 periodoAcademicoRepository,
-                becaRepository,
+                // Servicio real sobre el repositorio simulado: así se prueba
+                // también qué beca se elige (permanente o del período).
+                new BecaVigenteService(becaRepository),
                 mensualidadCalculoService,
                 documentoEstudianteRepository,
                 tipoDocumentoRepository,
@@ -745,6 +750,98 @@ class PagoServiceTest {
         assertEquals("La solicitud de matrícula ya fue procesada.", exception.getMessage());
         verify(mensualidadEstudianteRepository, never()).save(any(MensualidadesEstudiante.class));
         verify(documentoEstudianteRepository, never()).save(any(DocumentosEstudiante.class));
+    }
+
+    /*
+     * ============================================================
+     * Beca permanente de inclusión
+     * ============================================================
+     */
+
+    @Test
+    void noDebeRegistrarPagoSiTieneBecaPermanenteDeInclusion() {
+
+        when(estudianteRepository.findById(1L)).thenReturn(Optional.of(estudianteActivo()));
+        when(periodoAcademicoRepository.findById(2L)).thenReturn(Optional.of(periodo()));
+        when(becaRepository.findByIdEstudiante_IdAndIdTipoBeca_CodigoAndIdPeriodoIsNullAndActivaTrue(1L, "INCLUSION"))
+                .thenReturn(List.of(becaPermanenteInclusion()));
+
+        RegistrarPagoRequest request = requestValido();
+        MultipartFile comprobante = comprobanteValido();
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> pagoService.registrar(request, comprobante)
+        );
+
+        assertEquals(
+                "El estudiante tiene una beca del 100% para este período académico; no tiene pagos pendientes.",
+                exception.getMessage()
+        );
+        // La beca permanente tiene prioridad: ni siquiera se busca la del período.
+        verify(becaRepository, never()).findByIdEstudiante_IdAndIdPeriodo_IdAndActivaTrue(anyLong(), anyLong());
+        verify(mensualidadEstudianteRepository, never()).save(any(MensualidadesEstudiante.class));
+    }
+
+    @Test
+    void noDebeRegistrarVariosMesesSiTieneBecaPermanenteDeInclusion() {
+
+        when(estudianteRepository.findById(1L)).thenReturn(Optional.of(estudianteActivo()));
+        when(periodoAcademicoRepository.findById(2L)).thenReturn(Optional.of(periodo()));
+        when(becaRepository.findByIdEstudiante_IdAndIdTipoBeca_CodigoAndIdPeriodoIsNullAndActivaTrue(1L, "INCLUSION"))
+                .thenReturn(List.of(becaPermanenteInclusion()));
+
+        RegistrarPagosRequest request = requestVarios(false, 3);
+        MultipartFile comprobante = comprobanteValido();
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> pagoService.registrarVarios(request, comprobante)
+        );
+
+        assertTrue(exception.getMessage().contains("beca del 100%"));
+        verify(mensualidadEstudianteRepository, never()).save(any(MensualidadesEstudiante.class));
+    }
+
+    @Test
+    void consultarEstadoPeriodoTomaLaBecaPermanenteDeInclusion() {
+
+        when(estudianteRepository.findById(1L)).thenReturn(Optional.of(estudianteActivo()));
+        PeriodoAcademico periodo = periodo();
+        periodo.setFechaInicio(LocalDate.of(2026, 2, 1));
+        periodo.setFechaFin(LocalDate.of(2026, 3, 31));
+        when(periodoAcademicoRepository.findById(2L)).thenReturn(Optional.of(periodo));
+        when(becaRepository.findByIdEstudiante_IdAndIdTipoBeca_CodigoAndIdPeriodoIsNullAndActivaTrue(1L, "INCLUSION"))
+                .thenReturn(List.of(becaPermanenteInclusion()));
+        when(mensualidadCalculoService.calcularMontoBase(1L)).thenReturn(new BigDecimal("42000.00"));
+
+        EstadoPeriodoPagoResponse respuesta = pagoService.consultarEstadoPeriodo(1L, 2L);
+
+        assertTrue(respuesta.isSinPagosPendientes());
+        assertTrue(respuesta.isBecaPermanente());
+        assertEquals(0, BigDecimal.valueOf(100).compareTo(respuesta.getPorcentajeBeca()));
+        // Cubre todo, incluso el recargo por instrumentos adicionales.
+        assertEquals(0, BigDecimal.ZERO.compareTo(respuesta.getMontoEsperado()));
+        assertEquals(2, respuesta.getMeses().size());
+        assertTrue(respuesta.getMeses().stream().allMatch(EstadoMesPagoResponse::isSinPagosPendientes));
+        verify(becaRepository, never()).findByIdEstudiante_IdAndIdPeriodo_IdAndActivaTrue(anyLong(), anyLong());
+    }
+
+    private Beca becaPermanenteInclusion() {
+        TiposBeca tipo = new TiposBeca();
+        tipo.setId(9);
+        tipo.setCodigo("INCLUSION");
+        tipo.setNombre("Inclusión");
+
+        Beca beca = new Beca();
+        beca.setId(800L);
+        beca.setIdEstudiante(estudianteActivo());
+        beca.setIdTipoBeca(tipo);
+        beca.setIdPeriodo(null);
+        beca.setPorcentaje(BigDecimal.valueOf(100));
+        beca.setFechaInicio(LocalDate.of(2026, 1, 15));
+        beca.setActiva(true);
+        return beca;
     }
 
     private RegistrarPagosRequest requestVarios(boolean incluirMatricula, int... meses) {

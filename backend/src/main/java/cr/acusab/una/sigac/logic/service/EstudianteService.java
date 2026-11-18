@@ -10,6 +10,7 @@ import cr.acusab.una.sigac.presentation.dto.response.BecaResponse;
 import cr.acusab.una.sigac.presentation.dto.response.EstudianteBusquedaResponse;
 import cr.acusab.una.sigac.presentation.dto.response.EstudianteResponse;
 import cr.acusab.una.sigac.presentation.dto.response.EstudianteListadoResponse;
+import cr.acusab.una.sigac.presentation.dto.response.TipoEstudianteResponse;
 import cr.acusab.una.sigac.presentation.dto.response.UbicacionResponse;
 import cr.acusab.una.sigac.presentation.dto.request.EstudianteUpdateRequest;
 import org.springframework.beans.factory.annotation.Value;
@@ -59,6 +60,7 @@ public class EstudianteService {
     private final InscripcionPlanEstudioService inscripcionPlanService;
     private final DistritoRepository distritoRepository;
     private final CuentaUsuarioService cuentaUsuarioService;
+    private final TiposEstudianteRepository tiposEstudianteRepository;
 
     @Value("${sigac.storage.documents:./storage/documents}")
     private String storageDirectory;
@@ -80,8 +82,10 @@ public class EstudianteService {
                              BecaService becaService,
                              InscripcionPlanEstudioService inscripcionPlanService,
                              DistritoRepository distritoRepository,
-                             CuentaUsuarioService cuentaUsuarioService) {
+                             CuentaUsuarioService cuentaUsuarioService,
+                             TiposEstudianteRepository tiposEstudianteRepository) {
         this.cuentaUsuarioService = cuentaUsuarioService;
+        this.tiposEstudianteRepository = tiposEstudianteRepository;
         this.estudianteRepository = estudianteRepository;
         this.encargadoRepository = encargadoRepository;
         this.estudianteEncargadoRepository = estudianteEncargadoRepository;
@@ -111,6 +115,13 @@ public class EstudianteService {
             throw new DuplicateResourceException("Ya existe un estudiante con esa identificación");
         }
         validarGenero(request.genero());
+        // Tipo de estudiante: si no se indica, REGULAR. Un estudiante de
+        // inclusión recibe la beca permanente del 100%, así que no se le
+        // puede enviar otra beca en el registro.
+        TiposEstudiante tipoEstudiante = tipoEstudianteParaRegistro(request.idTipoEstudiante());
+        if (tipoEstudiante.esInclusion() && request.beca() != null) {
+            throw new BusinessException(BecaService.MENSAJE_INCLUSION_YA_BECADO);
+        }
         validarPdf(politica);
         inscripcionPlanService.validarParaRegistro(request.idsPlanEstudio());
         validarEdad(request.fechaNacimiento());
@@ -137,6 +148,7 @@ public class EstudianteService {
         aplicarDatos(estudiante, tipo, identificacion, request.nombres(), request.primerApellido(), request.segundoApellido(), request.fechaNacimiento(),
                 request.genero(), distrito, request.direccion(), request.telefono(), request.correo(), request.nivelEscolar(), centro, request.condicionesRelevantes());
         estudiante.setUsuario(usuario);
+        estudiante.setIdTipoEstudiante(tipoEstudiante);
         estudiante.setFechaIngreso(LocalDate.now());
         estudiante.setActivo(true);
         Instant ahora = Instant.now();
@@ -166,7 +178,10 @@ public class EstudianteService {
         guardarPolitica(estudiante, politica, tipoPoliza);
 
         BecaResponse becaAsignada = null;
-        if (request.beca() != null) {
+        if (tipoEstudiante.esInclusion()) {
+            // Misma transacción: si falla la beca, no se registra el estudiante.
+            becaAsignada = becaService.asignarBecaPermanenteInclusion(estudiante);
+        } else if (request.beca() != null) {
             BecaAsignarRequest becaRequest = new BecaAsignarRequest();
             becaRequest.setIdEstudiante(estudiante.getId());
             becaRequest.setIdPeriodo(request.beca().idPeriodo());
@@ -226,8 +241,33 @@ public class EstudianteService {
         return estudianteRepository
                 .buscarPorNombreOIdentificacion(normalizado, PageRequest.of(0, LIMITE_RESULTADOS_BUSQUEDA))
                 .stream()
-                .map(e -> new EstudianteBusquedaResponse(e.getId(), e.getNumeroIdentificacion(), nombreCompleto(e)))
+                .map(e -> new EstudianteBusquedaResponse(e.getId(), e.getNumeroIdentificacion(), nombreCompleto(e),
+                        TipoEstudianteResponse.de(e.getIdTipoEstudiante())))
                 .toList();
+    }
+
+    // Opciones del selector "Tipo de estudiante" (solo activos).
+    @Transactional(readOnly = true)
+    public List<TipoEstudianteResponse> listarTiposEstudiante() {
+        return tiposEstudianteRepository.findByActivoTrueOrderByNombreAsc()
+                .stream()
+                .map(TipoEstudianteResponse::de)
+                .toList();
+    }
+
+    private TiposEstudiante tipoEstudianteParaRegistro(Integer idTipoEstudiante) {
+        if (idTipoEstudiante == null) {
+            return tiposEstudianteRepository.findByCodigo(TiposEstudiante.CODIGO_REGULAR)
+                    .orElseThrow(() -> new BusinessException(
+                            "No está configurado el tipo de estudiante REGULAR. "
+                                    + "Ejecute el script 2026-11-17_tipo_estudiante_inclusion.sql."));
+        }
+        return tipoEstudianteActivo(idTipoEstudiante);
+    }
+
+    private TiposEstudiante tipoEstudianteActivo(Integer idTipoEstudiante) {
+        return tiposEstudianteRepository.findByIdAndActivoTrue(idTipoEstudiante)
+                .orElseThrow(() -> new BusinessException("El tipo de estudiante indicado no existe o está inactivo"));
     }
 
     private String nombreCompleto(Estudiante e) {
@@ -240,10 +280,13 @@ public class EstudianteService {
     }
 
     @Transactional(readOnly = true)
-    public List<EstudianteListadoResponse> listado(String texto, Boolean activo) {
+    public List<EstudianteListadoResponse> listado(String texto, Boolean activo, Integer idTipoEstudiante) {
         String normalizado = normalizarNullable(texto);
         List<Estudiante> estudiantes = estudianteRepository.findAll().stream()
                 .filter(e -> activo == null || Objects.equals(e.getActivo(), activo))
+                .filter(e -> idTipoEstudiante == null
+                        || (e.getIdTipoEstudiante() != null
+                        && Objects.equals(e.getIdTipoEstudiante().getId(), idTipoEstudiante)))
                 .filter(e -> normalizado == null
                         || normalizado.length() < 2
                         || nombreCompleto(e).toLowerCase(Locale.ROOT).contains(normalizado.toLowerCase(Locale.ROOT))
@@ -270,7 +313,8 @@ public class EstudianteService {
                     e.getNivelEscolar(),
                     instrumento,
                     centro,
-                    Boolean.TRUE.equals(e.getActivo())
+                    Boolean.TRUE.equals(e.getActivo()),
+                    TipoEstudianteResponse.de(e.getIdTipoEstudiante())
             );
         }).toList();
     }
@@ -312,14 +356,34 @@ public class EstudianteService {
                 .orElseThrow(() -> new BusinessException("El instrumento indicado no existe o está inactivo"));
         Distrito distrito = obtenerDistrito(request.codigoDistrito());
 
+        // Tipo de estudiante: null = no cambiar. Permite corregir un registro
+        // hecho con el tipo equivocado.
+        TiposEstudiante tipoAnterior = estudiante.getIdTipoEstudiante();
+        TiposEstudiante tipoNuevo = tipoAnterior;
+        if (request.idTipoEstudiante() != null
+                && (tipoAnterior == null || !Objects.equals(tipoAnterior.getId(), request.idTipoEstudiante()))) {
+            tipoNuevo = tipoEstudianteActivo(request.idTipoEstudiante());
+        }
+
         // La cuenta de usuario ingresa con la identificación y recupera la
         // contraseña con el correo: se mantienen iguales a los del estudiante.
         cuentaUsuarioService.sincronizarIdentidad(estudiante.getUsuario(), identificacion, normalizarNullable(request.correo()));
 
         aplicarDatos(estudiante, tipo, identificacion, request.nombres(), request.primerApellido(), request.segundoApellido(), request.fechaNacimiento(),
                 request.genero(), distrito, request.direccion(), request.telefono(), request.correo(), request.nivelEscolar(), centro, request.condicionesRelevantes());
+        estudiante.setIdTipoEstudiante(tipoNuevo);
         estudiante.setActualizadoEn(Instant.now());
         estudianteRepository.save(estudiante);
+
+        // Beca permanente según el tipo: al pasar a INCLUSION se crea (si no
+        // tiene una activa); al pasar a REGULAR se cierra, sin borrarla.
+        boolean eraInclusion = tipoAnterior != null && tipoAnterior.esInclusion();
+        boolean esInclusion = tipoNuevo != null && tipoNuevo.esInclusion();
+        if (esInclusion && !eraInclusion) {
+            becaService.asignarBecaPermanenteInclusion(estudiante);
+        } else if (eraInclusion && !esInclusion) {
+            becaService.cerrarBecaPermanenteInclusion(estudiante.getId());
+        }
 
         var vigentes = estudianteInstrumentoRepository.findAll().stream()
                 .filter(x -> x.getEstudiante() != null && Objects.equals(x.getEstudiante().getId(), id)
@@ -401,7 +465,8 @@ public class EstudianteService {
                 e.getCorreo(), e.getNivelEscolar(), e.getCentroEducativo(),
                 instrumentoId, edad < 18, beca, idsPlanEstudio,
                 e.getIdTipoIdentificacion() == null ? null : e.getIdTipoIdentificacion().getId(),
-                e.getCondicionesRelevantes());
+                e.getCondicionesRelevantes(),
+                TipoEstudianteResponse.de(e.getIdTipoEstudiante()));
     }
 
     private int calcularEdad(LocalDate nacimiento) {

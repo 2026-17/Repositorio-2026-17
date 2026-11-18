@@ -37,4 +37,8 @@ public class BecaResponse {
     private LocalDate fechaFin;
     private Boolean activa;
     private String motivo;
+
+    // true para la beca permanente de inclusión (sin período). No se edita
+    // ni se borra: se maneja con el tipo de estudiante.
+    private boolean permanente;
 }

@@ -9,7 +9,10 @@ import cr.acusab.una.sigac.data.entity.NotificacionEstudiante;
 import cr.acusab.una.sigac.data.entity.PeriodoAcademico;
 import cr.acusab.una.sigac.data.entity.Usuario;
 
+import cr.acusab.una.sigac.data.entity.Beca;
+import cr.acusab.una.sigac.data.entity.TiposBeca;
 import cr.acusab.una.sigac.data.repository.AutorizacionesMatriculaRepository;
+import cr.acusab.una.sigac.data.repository.BecaRepository;
 import cr.acusab.una.sigac.data.repository.DocumentoEstudianteRepository;
 import cr.acusab.una.sigac.data.repository.EstadosAutorizacionesMatriculaRepository;
 import cr.acusab.una.sigac.data.repository.EstudianteRepository;
@@ -20,6 +23,9 @@ import cr.acusab.una.sigac.data.repository.UsuarioRepository;
 
 import cr.acusab.una.sigac.logic.exception.BusinessException;
 import cr.acusab.una.sigac.logic.service.AutorizacionMatriculaService;
+import cr.acusab.una.sigac.logic.service.BecaVigenteService;
+
+import java.math.BigDecimal;
 
 import cr.acusab.una.sigac.presentation.dto.request.ConfirmarMatriculaRequestDTO;
 import cr.acusab.una.sigac.presentation.dto.request.IniciarPreaprobacionRequestDTO;
@@ -63,6 +69,8 @@ class AutorizacionMatriculaServiceTest {
 
     private DocumentoEstudianteRepository documentoEstudianteRepository;
 
+    private BecaRepository becaRepository;
+
     private AutorizacionMatriculaService autorizacionMatriculaService;
 
     @BeforeEach
@@ -92,6 +100,9 @@ class AutorizacionMatriculaServiceTest {
         documentoEstudianteRepository =
                 mock(DocumentoEstudianteRepository.class);
 
+        becaRepository =
+                mock(BecaRepository.class);
+
         autorizacionMatriculaService =
                 new AutorizacionMatriculaService(
                         autorizacionRepository,
@@ -101,7 +112,8 @@ class AutorizacionMatriculaServiceTest {
                         estudianteRepository,
                         periodoAcademicoRepository,
                         mensualidadEstudianteRepository,
-                        documentoEstudianteRepository
+                        documentoEstudianteRepository,
+                        new BecaVigenteService(becaRepository)
                 );
     }
 
@@ -1035,6 +1047,89 @@ class AutorizacionMatriculaServiceTest {
      * Historia 1 - Iniciar preaprobación
      * ============================================================
      */
+
+    /*
+     * Estudiante de inclusión (beca permanente del 100%): cuenta como al
+     * día aunque tenga una mensualidad vencida sin pagar.
+     */
+    @Test
+    void estudianteConBecaPermanenteDel100CuentaComoAlDia() {
+
+        Estudiante estudiante = crearEstudianteConDatosCompletos();
+
+        PeriodoAcademico periodo = new PeriodoAcademico();
+        periodo.setId(30L);
+        periodo.setCodigo("2026-02");
+
+        when(estudianteRepository.findById(20L)).thenReturn(Optional.of(estudiante));
+        when(periodoAcademicoRepository.findById(30L)).thenReturn(Optional.of(periodo));
+        when(autorizacionRepository.findByIdEstudiante_IdAndIdPeriodo_Id(20L, 30L)).thenReturn(Optional.empty());
+        when(estadoRepository.findByCodigoAndActivoTrue("PENDIENTE"))
+                .thenReturn(Optional.of(crearEstado("PENDIENTE")));
+
+        MensualidadesEstudiante vencidaSinPagar = new MensualidadesEstudiante();
+        vencidaSinPagar.setAnio(LocalDate.now().getYear() - 1);
+        vencidaSinPagar.setMes((short) 1);
+        vencidaSinPagar.setPagada(false);
+        when(mensualidadEstudianteRepository.findByIdEstudiante_IdOrderByAnioDescMesDesc(20L))
+                .thenReturn(List.of(vencidaSinPagar));
+
+        TiposBeca tipoInclusion = new TiposBeca();
+        tipoInclusion.setCodigo("INCLUSION");
+        Beca permanente = new Beca();
+        permanente.setIdTipoBeca(tipoInclusion);
+        permanente.setPorcentaje(BigDecimal.valueOf(100));
+        permanente.setActiva(true);
+        when(becaRepository.findByIdEstudiante_IdAndIdTipoBeca_CodigoAndIdPeriodoIsNullAndActivaTrue(20L, "INCLUSION"))
+                .thenReturn(List.of(permanente));
+
+        when(autorizacionRepository.saveAndFlush(any(AutorizacionesMatricula.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        IniciarPreaprobacionRequestDTO request = new IniciarPreaprobacionRequestDTO();
+        request.setIdEstudiante(20L);
+        request.setIdPeriodo(30L);
+
+        AutorizacionMatriculaResponseDTO resultado =
+                autorizacionMatriculaService.iniciarPreaprobacion(request);
+
+        assertTrue(resultado.getMensualidadesAlDia());
+    }
+
+    @Test
+    void estudianteSinBecaConMensualidadVencidaNoEstaAlDia() {
+
+        Estudiante estudiante = crearEstudianteConDatosCompletos();
+
+        PeriodoAcademico periodo = new PeriodoAcademico();
+        periodo.setId(30L);
+        periodo.setCodigo("2026-02");
+
+        when(estudianteRepository.findById(20L)).thenReturn(Optional.of(estudiante));
+        when(periodoAcademicoRepository.findById(30L)).thenReturn(Optional.of(periodo));
+        when(autorizacionRepository.findByIdEstudiante_IdAndIdPeriodo_Id(20L, 30L)).thenReturn(Optional.empty());
+        when(estadoRepository.findByCodigoAndActivoTrue("PENDIENTE"))
+                .thenReturn(Optional.of(crearEstado("PENDIENTE")));
+
+        MensualidadesEstudiante vencidaSinPagar = new MensualidadesEstudiante();
+        vencidaSinPagar.setAnio(LocalDate.now().getYear() - 1);
+        vencidaSinPagar.setMes((short) 1);
+        vencidaSinPagar.setPagada(false);
+        when(mensualidadEstudianteRepository.findByIdEstudiante_IdOrderByAnioDescMesDesc(20L))
+                .thenReturn(List.of(vencidaSinPagar));
+
+        when(autorizacionRepository.saveAndFlush(any(AutorizacionesMatricula.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        IniciarPreaprobacionRequestDTO request = new IniciarPreaprobacionRequestDTO();
+        request.setIdEstudiante(20L);
+        request.setIdPeriodo(30L);
+
+        AutorizacionMatriculaResponseDTO resultado =
+                autorizacionMatriculaService.iniciarPreaprobacion(request);
+
+        assertFalse(resultado.getMensualidadesAlDia());
+    }
 
     @Test
     void debeIniciarPreaprobacionCalculandoComprobacionesAutomaticas() {

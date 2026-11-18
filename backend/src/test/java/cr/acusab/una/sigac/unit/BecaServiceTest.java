@@ -4,6 +4,7 @@ import cr.acusab.una.sigac.data.entity.Beca;
 import cr.acusab.una.sigac.data.entity.Estudiante;
 import cr.acusab.una.sigac.data.entity.PeriodoAcademico;
 import cr.acusab.una.sigac.data.entity.TiposBeca;
+import cr.acusab.una.sigac.data.entity.TiposEstudiante;
 import cr.acusab.una.sigac.data.entity.Usuario;
 import cr.acusab.una.sigac.data.repository.BecaRepository;
 import cr.acusab.una.sigac.data.repository.EstudianteInstrumentoRepository;
@@ -14,6 +15,7 @@ import cr.acusab.una.sigac.data.repository.UsuarioRepository;
 import cr.acusab.una.sigac.logic.exception.BusinessException;
 import cr.acusab.una.sigac.logic.exception.DuplicateResourceException;
 import cr.acusab.una.sigac.logic.service.BecaService;
+import cr.acusab.una.sigac.logic.service.BecaVigenteService;
 import cr.acusab.una.sigac.logic.service.MensualidadCalculoService;
 import cr.acusab.una.sigac.presentation.dto.request.BecaActualizarRequest;
 import cr.acusab.una.sigac.presentation.dto.request.BecaAsignarRequest;
@@ -61,7 +63,8 @@ class BecaServiceTest {
                 tiposBecaRepository,
                 periodoAcademicoRepository,
                 new MensualidadCalculoService(estudianteInstrumentoRepository),
-                usuarioRepository
+                usuarioRepository,
+                new BecaVigenteService(becaRepository)
         );
     }
 
@@ -429,9 +432,230 @@ class BecaServiceTest {
 
     /*
      * ============================================================
+     * Estudiantes de inclusión y beca permanente
+     * ============================================================
+     */
+
+    @Test
+    void noDebeAsignarBecaAEstudianteDeInclusion() {
+
+        Estudiante estudiante = estudianteActivo();
+        estudiante.setIdTipoEstudiante(tipoEstudiante("INCLUSION"));
+        when(estudianteRepository.findById(1L)).thenReturn(Optional.of(estudiante));
+
+        BecaAsignarRequest request = new BecaAsignarRequest();
+        request.setIdEstudiante(1L);
+        request.setIdTipoBeca(3);
+        request.setIdPeriodo(2L);
+        request.setPorcentaje(BigDecimal.valueOf(50));
+
+        BusinessException exception = assertThrows(BusinessException.class, () -> becaService.asignar(request));
+
+        assertEquals("Los estudiantes de inclusión ya tienen beca del 100%", exception.getMessage());
+        verify(becaRepository, never()).save(any());
+    }
+
+    @Test
+    void noDebeAsignarAManoElTipoDeBecaInclusion() {
+
+        when(estudianteRepository.findById(1L)).thenReturn(Optional.of(estudianteActivo()));
+        when(tiposBecaRepository.findByIdAndActivoTrue(9)).thenReturn(Optional.of(tipoBecaInclusion()));
+
+        BecaAsignarRequest request = new BecaAsignarRequest();
+        request.setIdEstudiante(1L);
+        request.setIdTipoBeca(9);
+        request.setIdPeriodo(2L);
+        request.setPorcentaje(BigDecimal.valueOf(100));
+
+        BusinessException exception = assertThrows(BusinessException.class, () -> becaService.asignar(request));
+
+        assertTrue(exception.getMessage().contains("se asigna automáticamente"));
+        verify(becaRepository, never()).save(any());
+    }
+
+    @Test
+    void noDebeModificarLaBecaPermanenteDeInclusion() {
+
+        when(becaRepository.findById(800L)).thenReturn(Optional.of(becaPermanente()));
+
+        BecaActualizarRequest request = new BecaActualizarRequest();
+        request.setIdTipoBeca(3);
+        request.setIdPeriodo(2L);
+        request.setPorcentaje(BigDecimal.valueOf(50));
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> becaService.actualizar(800L, request)
+        );
+
+        assertEquals(
+                "La beca permanente de inclusión no se puede modificar: se maneja con el tipo de estudiante.",
+                exception.getMessage()
+        );
+        verify(becaRepository, never()).save(any());
+    }
+
+    @Test
+    void noDebeEliminarLaBecaPermanenteDeInclusion() {
+
+        when(becaRepository.findById(800L)).thenReturn(Optional.of(becaPermanente()));
+
+        BusinessException exception = assertThrows(BusinessException.class, () -> becaService.eliminar(800L));
+
+        assertEquals(
+                "La beca permanente de inclusión no se puede eliminar: se maneja con el tipo de estudiante.",
+                exception.getMessage()
+        );
+        verify(becaRepository, never()).delete(any());
+    }
+
+    @Test
+    void actualizarBecaSinPeriodoNoFalla() {
+
+        // Beca cuyo período se borró (id_periodo quedó NULL), no de inclusión
+        Beca beca = becaExistente();
+        beca.setIdPeriodo(null);
+        when(becaRepository.findById(500L)).thenReturn(Optional.of(beca));
+        when(tiposBecaRepository.findByIdAndActivoTrue(3)).thenReturn(Optional.of(tipoBecaActivo()));
+        when(periodoAcademicoRepository.findById(2L)).thenReturn(Optional.of(periodo()));
+        when(becaRepository.existsByIdEstudiante_IdAndIdPeriodo_IdAndActivaTrue(1L, 2L)).thenReturn(false);
+        when(becaRepository.save(any(Beca.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        BecaActualizarRequest request = new BecaActualizarRequest();
+        request.setIdTipoBeca(3);
+        request.setIdPeriodo(2L);
+        request.setPorcentaje(BigDecimal.valueOf(75));
+
+        BecaResponse respuesta = becaService.actualizar(500L, request);
+
+        assertEquals(2L, respuesta.getIdPeriodo());
+        assertEquals(BigDecimal.valueOf(75), respuesta.getPorcentaje());
+    }
+
+    @Test
+    void asignarBecaPermanenteDeInclusionCreaBecaDel100SinPeriodo() {
+
+        when(tiposBecaRepository.findByCodigo("INCLUSION")).thenReturn(Optional.of(tipoBecaInclusion()));
+        when(estudianteInstrumentoRepository.countByIdEstudiante_IdAndFechaFinIsNull(1L)).thenReturn(2L);
+        when(becaRepository.save(any(Beca.class))).thenAnswer(invocation -> {
+            Beca beca = invocation.getArgument(0);
+            beca.setId(800L);
+            return beca;
+        });
+
+        BecaResponse respuesta = becaService.asignarBecaPermanenteInclusion(estudianteActivo());
+
+        ArgumentCaptor<Beca> captor = ArgumentCaptor.forClass(Beca.class);
+        verify(becaRepository).save(captor.capture());
+        Beca guardada = captor.getValue();
+        assertEquals("INCLUSION", guardada.getIdTipoBeca().getCodigo());
+        assertEquals(0, BigDecimal.valueOf(100).compareTo(guardada.getPorcentaje()));
+        assertNull(guardada.getIdPeriodo());
+        assertNull(guardada.getFechaFin());
+        assertEquals(LocalDate.now(), guardada.getFechaInicio());
+        assertTrue(guardada.getActiva());
+        assertEquals("Estudiante de inclusión", guardada.getMotivo());
+
+        // Cubre la mensualidad base y el instrumento adicional
+        assertTrue(respuesta.isPermanente());
+        assertNull(respuesta.getIdPeriodo());
+        assertEquals(new BigDecimal("42000.00"), respuesta.getMontoMensualidadBase());
+        assertEquals(0, BigDecimal.ZERO.compareTo(respuesta.getMontoAPagar()));
+    }
+
+    @Test
+    void asignarBecaPermanenteNoDuplicaSiYaTieneUnaActiva() {
+
+        when(becaRepository.findByIdEstudiante_IdAndIdTipoBeca_CodigoAndIdPeriodoIsNullAndActivaTrue(1L, "INCLUSION"))
+                .thenReturn(List.of(becaPermanente()));
+        when(estudianteInstrumentoRepository.countByIdEstudiante_IdAndFechaFinIsNull(1L)).thenReturn(1L);
+
+        BecaResponse respuesta = becaService.asignarBecaPermanenteInclusion(estudianteActivo());
+
+        assertEquals(800L, respuesta.getIdBeca());
+        verify(becaRepository, never()).save(any());
+    }
+
+    @Test
+    void cerrarBecaPermanenteLaDesactivaSinBorrarla() {
+
+        Beca permanente = becaPermanente();
+        when(becaRepository.findByIdEstudiante_IdAndIdTipoBeca_CodigoAndIdPeriodoIsNullAndActivaTrue(1L, "INCLUSION"))
+                .thenReturn(List.of(permanente));
+
+        becaService.cerrarBecaPermanenteInclusion(1L);
+
+        assertFalse(permanente.getActiva());
+        assertEquals(LocalDate.now(), permanente.getFechaFin());
+        verify(becaRepository).save(permanente);
+        verify(becaRepository, never()).delete(any());
+    }
+
+    @Test
+    void listarBecasIncluyeLaPermanenteSinPeriodo() {
+
+        when(estudianteRepository.existsById(1L)).thenReturn(true);
+        when(estudianteInstrumentoRepository.countByIdEstudiante_IdAndFechaFinIsNull(1L)).thenReturn(1L);
+        when(becaRepository.findByIdEstudiante_IdOrderByFechaInicioDesc(1L))
+                .thenReturn(List.of(becaPermanente(), becaExistente()));
+
+        List<BecaResponse> resultado = becaService.listarPorEstudiante(1L);
+
+        assertEquals(2, resultado.size());
+        assertTrue(resultado.get(0).isPermanente());
+        assertNull(resultado.get(0).getIdPeriodo());
+        assertNull(resultado.get(0).getCodigoPeriodo());
+        assertFalse(resultado.get(1).isPermanente());
+    }
+
+    @Test
+    void listarTiposBecaNoOfreceElTipoInclusion() {
+
+        when(tiposBecaRepository.findByActivoTrueOrderByNombreAsc())
+                .thenReturn(List.of(tipoBecaInclusion(), tipoBecaActivo()));
+
+        var tipos = becaService.listarTiposBeca();
+
+        assertEquals(1, tipos.size());
+        assertEquals("SOCIOECONOMICA", tipos.get(0).getCodigo());
+    }
+
+    /*
+     * ============================================================
      * Métodos auxiliares para las pruebas
      * ============================================================
      */
+
+    private TiposEstudiante tipoEstudiante(String codigo) {
+        TiposEstudiante tipo = new TiposEstudiante();
+        tipo.setId("INCLUSION".equals(codigo) ? 2 : 1);
+        tipo.setCodigo(codigo);
+        tipo.setNombre(codigo);
+        tipo.setActivo(true);
+        return tipo;
+    }
+
+    private TiposBeca tipoBecaInclusion() {
+        TiposBeca tipo = new TiposBeca();
+        tipo.setId(9);
+        tipo.setCodigo("INCLUSION");
+        tipo.setNombre("Inclusión");
+        tipo.setActivo(true);
+        return tipo;
+    }
+
+    private Beca becaPermanente() {
+        Beca beca = new Beca();
+        beca.setId(800L);
+        beca.setIdEstudiante(estudianteActivo());
+        beca.setIdTipoBeca(tipoBecaInclusion());
+        beca.setIdPeriodo(null);
+        beca.setPorcentaje(BigDecimal.valueOf(100));
+        beca.setFechaInicio(LocalDate.of(2026, 1, 15));
+        beca.setMotivo("Estudiante de inclusión");
+        beca.setActiva(true);
+        return beca;
+    }
 
     private Estudiante estudianteActivo() {
         Estudiante estudiante = new Estudiante();

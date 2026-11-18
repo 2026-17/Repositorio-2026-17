@@ -152,6 +152,7 @@ El script crea la base `sigac_db`, utiliza `utf8mb4_0900_ai_ci` y no elimina inf
 | Archivo | Cuándo usarlo |
 |---|---|
 | `sigac_migracion_estudiantes_planes.sql` | En una base **ya existente**: crea la tabla `estudiantes_planes_estudio` (planes de estudio en los que está inscrito cada estudiante). Una instalación limpia con `sigac_db.sql` ya la incluye. Es idempotente. |
+| `backend/src/main/resources/db/cambios/2026-11-17_tipo_estudiante_inclusion.sql` | **Obligatorio**, después de `sigac_db.sql` y **antes** de desplegar el backend que lo usa. Crea el catálogo `tipos_estudiante` (REGULAR, INCLUSION), agrega `estudiantes.id_tipo_estudiante` (los existentes quedan REGULAR) y el tipo de beca INCLUSION. Seleccione la base con `USE` antes de ejecutarlo. Es idempotente. |
 | `sigac_datos_prueba.sql` | **Solo desarrollo.** Carga programas, planes, cursos, malla, requisitos, un período en matrícula, profesores y grupos con horario para probar la matrícula del estudiante. Antes de ejecutarlo, cambie en el archivo el número de identificación del estudiante que se inscribirá a los planes. Es idempotente. |
 
 > [!NOTE]

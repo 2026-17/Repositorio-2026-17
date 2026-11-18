@@ -28,6 +28,9 @@ public class EstadoPeriodoPagoResponse {
     // true con beca del 100%: las mensualidades no se cobran (la matrícula sí).
     private boolean sinPagosPendientes;
 
+    // true si la beca que aplica es la permanente de inclusión (100%, sin período).
+    private boolean becaPermanente;
+
     private EstadoMatriculaPago matricula = new EstadoMatriculaPago();
 
     private List<EstadoMesPagoResponse> meses = new ArrayList<>();

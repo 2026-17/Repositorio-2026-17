@@ -9,7 +9,6 @@ import cr.acusab.una.sigac.data.entity.PeriodoAcademico;
 import cr.acusab.una.sigac.data.entity.TiposDocumento;
 import cr.acusab.una.sigac.data.entity.Usuario;
 import cr.acusab.una.sigac.data.repository.AutorizacionesMatriculaRepository;
-import cr.acusab.una.sigac.data.repository.BecaRepository;
 import cr.acusab.una.sigac.data.repository.DocumentoEstudianteRepository;
 import cr.acusab.una.sigac.data.repository.EstudianteRepository;
 import cr.acusab.una.sigac.data.repository.MensualidadEstudianteRepository;
@@ -71,7 +70,7 @@ public class PagoService {
     private final MensualidadEstudianteRepository mensualidadEstudianteRepository;
     private final EstudianteRepository estudianteRepository;
     private final PeriodoAcademicoRepository periodoAcademicoRepository;
-    private final BecaRepository becaRepository;
+    private final BecaVigenteService becaVigenteService;
     private final MensualidadCalculoService mensualidadCalculoService;
     private final DocumentoEstudianteRepository documentoEstudianteRepository;
     private final TipoDocumentoRepository tipoDocumentoRepository;
@@ -86,7 +85,7 @@ public class PagoService {
             MensualidadEstudianteRepository mensualidadEstudianteRepository,
             EstudianteRepository estudianteRepository,
             PeriodoAcademicoRepository periodoAcademicoRepository,
-            BecaRepository becaRepository,
+            BecaVigenteService becaVigenteService,
             MensualidadCalculoService mensualidadCalculoService,
             DocumentoEstudianteRepository documentoEstudianteRepository,
             TipoDocumentoRepository tipoDocumentoRepository,
@@ -97,7 +96,7 @@ public class PagoService {
         this.mensualidadEstudianteRepository = mensualidadEstudianteRepository;
         this.estudianteRepository = estudianteRepository;
         this.periodoAcademicoRepository = periodoAcademicoRepository;
-        this.becaRepository = becaRepository;
+        this.becaVigenteService = becaVigenteService;
         this.mensualidadCalculoService = mensualidadCalculoService;
         this.documentoEstudianteRepository = documentoEstudianteRepository;
         this.tipoDocumentoRepository = tipoDocumentoRepository;
@@ -125,12 +124,13 @@ public class PagoService {
 
         validarFechasDelPeriodo(periodo, request.getAnio(), request.getMes(), request.getFechaPago());
 
-        // Estudiante becado al 100%: no tiene pagos pendientes para este período.
-        Beca becaActiva = becaRepository
-                .findByIdEstudiante_IdAndIdPeriodo_IdAndActivaTrue(estudiante.getId(), periodo.getId())
+        // Estudiante becado al 100% (incluye la beca permanente de inclusión):
+        // no tiene pagos pendientes para este período.
+        Beca becaActiva = becaVigenteService
+                .obtenerBecaVigente(estudiante.getId(), periodo.getId())
                 .orElse(null);
 
-        if (becaActiva != null && becaActiva.getPorcentaje().compareTo(BigDecimal.valueOf(100)) == 0) {
+        if (BecaVigenteService.cubreTotalidad(becaActiva)) {
             throw new BusinessException(
                     "El estudiante tiene una beca del 100% para este período académico; no tiene pagos pendientes.");
         }
@@ -199,12 +199,11 @@ public class PagoService {
             }
         }
 
-        Beca becaActiva = becaRepository
-                .findByIdEstudiante_IdAndIdPeriodo_IdAndActivaTrue(estudiante.getId(), periodo.getId())
+        Beca becaActiva = becaVigenteService
+                .obtenerBecaVigente(estudiante.getId(), periodo.getId())
                 .orElse(null);
 
-        if (!meses.isEmpty() && becaActiva != null
-                && becaActiva.getPorcentaje().compareTo(BigDecimal.valueOf(100)) == 0) {
+        if (!meses.isEmpty() && BecaVigenteService.cubreTotalidad(becaActiva)) {
             throw new BusinessException(
                     "El estudiante tiene una beca del 100% para este período académico; sus mensualidades no se cobran.");
         }
@@ -265,13 +264,13 @@ public class PagoService {
         PeriodoAcademico periodo = periodoAcademicoRepository.findById(idPeriodo)
                 .orElseThrow(() -> new BusinessException("El período académico indicado no existe."));
 
-        Beca becaActiva = becaRepository
-                .findByIdEstudiante_IdAndIdPeriodo_IdAndActivaTrue(estudiante.getId(), periodo.getId())
+        Beca becaActiva = becaVigenteService
+                .obtenerBecaVigente(estudiante.getId(), periodo.getId())
                 .orElse(null);
 
         BigDecimal montoBase = mensualidadCalculoService.calcularMontoBase(estudiante.getId());
         BigDecimal porcentajeBeca = becaActiva != null ? becaActiva.getPorcentaje() : null;
-        boolean becado100 = porcentajeBeca != null && porcentajeBeca.compareTo(BigDecimal.valueOf(100)) == 0;
+        boolean becado100 = BecaVigenteService.cubreTotalidad(becaActiva);
         BigDecimal montoEsperado = becado100
                 ? BigDecimal.ZERO.setScale(2)
                 : mensualidadCalculoService.calcularMontoNeto(montoBase, porcentajeBeca);
@@ -281,6 +280,7 @@ public class PagoService {
         response.setMontoEsperado(montoEsperado);
         response.setPorcentajeBeca(porcentajeBeca);
         response.setSinPagosPendientes(becado100);
+        response.setBecaPermanente(BecaVigenteService.esBecaPermanenteInclusion(becaActiva));
 
         for (YearMonth mesPeriodo : mesesDelPeriodo(periodo)) {
             Short mes = (short) mesPeriodo.getMonthValue();
@@ -434,15 +434,15 @@ public class PagoService {
         PeriodoAcademico periodo = periodoAcademicoRepository.findById(idPeriodo)
                 .orElseThrow(() -> new BusinessException("El período académico indicado no existe."));
 
-        Beca becaActiva = becaRepository
-                .findByIdEstudiante_IdAndIdPeriodo_IdAndActivaTrue(estudiante.getId(), periodo.getId())
+        Beca becaActiva = becaVigenteService
+                .obtenerBecaVigente(estudiante.getId(), periodo.getId())
                 .orElse(null);
 
         BigDecimal montoBase = mensualidadCalculoService.calcularMontoBase(estudiante.getId());
         BigDecimal porcentajeBeca = becaActiva != null ? becaActiva.getPorcentaje() : null;
         BigDecimal montoEsperado = mensualidadCalculoService.calcularMontoNeto(montoBase, porcentajeBeca);
 
-        boolean becado100 = porcentajeBeca != null && porcentajeBeca.compareTo(BigDecimal.valueOf(100)) == 0;
+        boolean becado100 = BecaVigenteService.cubreTotalidad(becaActiva);
 
         MensualidadesEstudiante mensualidad = mensualidadEstudianteRepository
                 .findByIdEstudiante_IdAndAnioAndMes(idEstudiante, anio, mes)
@@ -536,8 +536,9 @@ public class PagoService {
                         m,
                         estudiante,
                         m.getIdPeriodo(),
-                        m.getIdPeriodo() == null ? null : becaRepository
-                                .findByIdEstudiante_IdAndIdPeriodo_IdAndActivaTrue(idEstudiante, m.getIdPeriodo().getId())
+                        becaVigenteService
+                                .obtenerBecaVigente(idEstudiante,
+                                        m.getIdPeriodo() == null ? null : m.getIdPeriodo().getId())
                                 .orElse(null),
                         null
                 ))

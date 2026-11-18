@@ -57,10 +57,12 @@ public class EstudianteController {
     @GetMapping("/listado")
     public ResponseEntity<List<EstudianteListadoResponse>> listado(
             @RequestParam(required = false) String texto,
-            @RequestParam(required = false) Boolean activo
+            @RequestParam(required = false) Boolean activo,
+            // Opcional: filtra por tipo de estudiante (REGULAR / INCLUSION)
+            @RequestParam(required = false) Integer idTipoEstudiante
     ) {
         return ResponseEntity.ok(
-                estudianteService.listado(texto, activo)
+                estudianteService.listado(texto, activo, idTipoEstudiante)
         );
     }
 

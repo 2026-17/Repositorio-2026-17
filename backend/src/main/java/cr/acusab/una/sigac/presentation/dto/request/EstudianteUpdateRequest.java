@@ -72,5 +72,8 @@ public record EstudianteUpdateRequest(
         @NotNull(message = "El instrumento es obligatorio")
         Integer idInstrumento,
 
-        @NotEmpty(message = "Debe seleccionar al menos un plan de estudio") List<Long> idsPlanEstudio
+        @NotEmpty(message = "Debe seleccionar al menos un plan de estudio") List<Long> idsPlanEstudio,
+
+        // Opcional: null significa "no cambiar el tipo de estudiante".
+        Integer idTipoEstudiante
 ) {}
