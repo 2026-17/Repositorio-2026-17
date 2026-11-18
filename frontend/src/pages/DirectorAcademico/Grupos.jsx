@@ -94,13 +94,19 @@ function Grupos() {
     const [idPeriodo, setIdPeriodo] = useState("");
     const [pagina, setPagina] = useState(1);
 
-    // La ruta vieja /grupos/crear llega con { nuevoGrupo: true }.
-    const [formAbierto, setFormAbierto] = useState(() => Boolean(location.state?.nuevoGrupo));
+    // Se llega con el formulario abierto desde la ruta vieja /grupos/crear
+    // ({ nuevoGrupo: true }) o desde «Abrir un grupo ahora» al crear un
+    // curso ({ nuevoGrupoIdCurso }), que deja el curso ya elegido.
+    const [idCursoInicial, setIdCursoInicial] = useState(() => location.state?.nuevoGrupoIdCurso ?? null);
+    const [formAbierto, setFormAbierto] = useState(() => Boolean(location.state?.nuevoGrupo || location.state?.nuevoGrupoIdCurso));
     const [grupoEditando, setGrupoEditando] = useState(null);
     const [procesando, setProcesando] = useState(null);
 
+    // Se limpia el estado de la navegación para que recargar no reabra el formulario.
     useEffect(() => {
-        if (location.state?.nuevoGrupo) navigate(location.pathname, { replace: true, state: null });
+        if (location.state?.nuevoGrupo || location.state?.nuevoGrupoIdCurso) {
+            navigate(location.pathname, { replace: true, state: null });
+        }
     }, [location, navigate]);
 
     useEffect(() => {
@@ -170,6 +176,7 @@ function Grupos() {
     function cambiarPeriodo(v) { setIdPeriodo(v); setPagina(1); }
 
     function abrirNuevo() {
+        setIdCursoInicial(null);
         setGrupoEditando(null);
         setFormAbierto(true);
         mostrarFormulario();
@@ -270,8 +277,9 @@ function Grupos() {
             {formAbierto && (
                 <section id="form-grupo" className="form-incrustado">
                     <FormularioGrupo
-                        key={grupoEditando ? grupoEditando.id : "nuevo"}
+                        key={grupoEditando ? grupoEditando.id : `nuevo-${idCursoInicial ?? ""}`}
                         grupo={grupoEditando}
+                        idCursoInicial={idCursoInicial}
                         onCancel={cerrarFormulario}
                         onSuccess={formularioGuardado}
                     />
