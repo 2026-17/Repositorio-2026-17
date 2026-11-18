@@ -85,22 +85,9 @@
     padding-top: var(--space-5);
 }
 
-.programa-disponibilidad {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    margin: calc(var(--space-4) * -1) 0 0;
-    font-size: 13px;
-    line-height: 18px;
-    color: var(--ink-muted);
-}
+.programa-nombre-estado { margin-top: calc(var(--space-4) * -1); }
 
-.programa-codigo-extra .programa-disponibilidad { margin: 0; }
-.programa-disponibilidad.is-libre { color: var(--success); }
-.programa-disponibilidad.is-ocupado { color: var(--danger-strong); }
 
-.programa-girando { animation: programa-girar 1s linear infinite; }
-@keyframes programa-girar { to { transform: rotate(360deg); } }
 
 .programa-contador {
     margin: calc(var(--space-4) * -1) 0 0;

@@ -26,6 +26,8 @@ class GrupoServiceTest {
     private CursoRepository cursoRepository;
     private PeriodoAcademicoRepository periodoRepository;
     private ProfesorRepository profesorRepository;
+    private UsuarioRepository usuarioRepository;
+    private MatriculaDetalleRepository matriculaDetalleRepository;
     private GrupoService service;
 
     @BeforeEach
@@ -35,11 +37,14 @@ class GrupoServiceTest {
         cursoRepository = mock(CursoRepository.class);
         periodoRepository = mock(PeriodoAcademicoRepository.class);
         profesorRepository = mock(ProfesorRepository.class);
+        usuarioRepository = mock(UsuarioRepository.class);
+        matriculaDetalleRepository = mock(MatriculaDetalleRepository.class);
         service = new GrupoService(
                 grupoRepository, horarioRepository, cursoRepository,
                 periodoRepository, profesorRepository,
                 new ValidacionHorarioProfesorService(grupoRepository, horarioRepository),
-                mock(UsuarioRepository.class)
+                usuarioRepository,
+                matriculaDetalleRepository
         );
 
         Curso curso = new Curso();
@@ -126,5 +131,142 @@ class GrupoServiceTest {
 
         assertTrue(error.getMessage().contains("Conflicto de horario"));
         verify(grupoRepository, never()).save(any(Grupo.class));
+    }
+
+    /* ============================================================
+     * Gestión: sugerir código, modificar y eliminar
+     * ============================================================ */
+
+    @Test
+    void sugerirCodigo_usaLaPrimeraLetraLibreDelPeriodo() {
+        Curso curso = cursoRepository.findById(3L).orElseThrow();
+        curso.setCodigo("mus-101");
+        when(grupoRepository.existsByIdPeriodoAndCodigo(4L, "MUS-101-A")).thenReturn(true);
+        when(grupoRepository.existsByIdPeriodoAndCodigo(4L, "MUS-101-B")).thenReturn(true);
+
+        assertEquals("MUS-101-C", service.sugerirCodigo(3L, 4L));
+    }
+
+    @Test
+    void actualizar_rechazaGrupoCancelado() {
+        Grupo grupo = grupoExistente();
+        grupo.setEstado("CANCELADO");
+
+        BusinessException error = assertThrows(
+                BusinessException.class,
+                () -> service.actualizar(20L, request(LocalTime.of(9, 0), LocalTime.of(10, 0)))
+        );
+
+        assertTrue(error.getMessage().contains("cerrado o cancelado"));
+        verify(grupoRepository, never()).save(any(Grupo.class));
+    }
+
+    @Test
+    void actualizar_noCambiaElCursoSiHayMatriculas() {
+        grupoExistente().setIdCurso(99L);
+        when(matriculaDetalleRepository.contarDetallesPorGrupo(anyCollection()))
+                .thenReturn(List.<Object[]>of(new Object[]{20L, 1L}));
+
+        BusinessException error = assertThrows(
+                BusinessException.class,
+                () -> service.actualizar(20L, request(LocalTime.of(9, 0), LocalTime.of(10, 0)))
+        );
+
+        assertTrue(error.getMessage().contains("no se puede cambiar su curso"));
+    }
+
+    @Test
+    void actualizar_noDejaElCupoPorDebajoDeLosInscritos() {
+        grupoExistente();
+        when(matriculaDetalleRepository.contarCuposOcupados(anyCollection(), eq("REGISTRADA")))
+                .thenReturn(List.<Object[]>of(new Object[]{20L, 18L}));
+
+        BusinessException error = assertThrows(
+                BusinessException.class,
+                () -> service.actualizar(20L, request(LocalTime.of(9, 0), LocalTime.of(10, 0)))
+        );
+
+        assertTrue(error.getMessage().contains("18 estudiantes"));
+    }
+
+    @Test
+    void actualizar_guardaYReemplazaElHorario() {
+        Grupo grupo = grupoExistente();
+        autenticar();
+        when(grupoRepository.save(any(Grupo.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        GrupoRequestDTO request = request(LocalTime.of(9, 0), LocalTime.of(10, 0));
+        request.setCupoMaximo((short) 25);
+        request.setAula("Aula 2");
+
+        service.actualizar(20L, request);
+
+        assertEquals((short) 25, grupo.getCupoMaximo());
+        assertEquals("MUS-01-B", grupo.getCodigo());
+        assertEquals(7L, grupo.getIdUsuarioUltimaModificacion());
+        verify(horarioRepository).eliminarPorGrupo(20L);
+        verify(horarioRepository).saveAll(argThat(lista ->
+                lista instanceof List<?> l && l.size() == 1
+                        && "Aula 2".equals(((HorarioGrupo) l.get(0)).getAula())));
+    }
+
+    @Test
+    void eliminar_rechazaGrupoConMatriculas() {
+        grupoExistente();
+        when(matriculaDetalleRepository.contarDetallesPorGrupo(anyCollection()))
+                .thenReturn(List.<Object[]>of(new Object[]{20L, 3L}));
+
+        BusinessException error = assertThrows(BusinessException.class, () -> service.eliminar(20L));
+
+        assertTrue(error.getMessage().contains("Cancelado"));
+        verify(grupoRepository, never()).delete(any(Grupo.class));
+    }
+
+    @Test
+    void eliminar_rechazaGrupoConClasesRegistradas() {
+        grupoExistente();
+        when(grupoRepository.contarSesionesPorGrupo(anyCollection()))
+                .thenReturn(List.<Object[]>of(new Object[]{20L, 2L}));
+
+        assertThrows(BusinessException.class, () -> service.eliminar(20L));
+        verify(grupoRepository, never()).delete(any(Grupo.class));
+    }
+
+    @Test
+    void eliminar_borraGrupoSinHistorial() {
+        Grupo grupo = grupoExistente();
+        autenticar();
+
+        service.eliminar(20L);
+
+        assertEquals(7L, grupo.getIdUsuarioUltimaModificacion());
+        verify(grupoRepository).delete(grupo);
+    }
+
+    private Grupo grupoExistente() {
+        Grupo grupo = new Grupo();
+        grupo.setId(20L);
+        grupo.setIdCurso(3L);
+        grupo.setIdPeriodo(4L);
+        grupo.setCodigo("MUS-01-B");
+        grupo.setEstado("PLANIFICADO");
+        when(grupoRepository.findById(20L)).thenReturn(Optional.of(grupo));
+        return grupo;
+    }
+
+    private void autenticar() {
+        Usuario usuario = new Usuario();
+        usuario.setId(7L);
+        when(usuarioRepository.findByCedula("123")).thenReturn(Optional.of(usuario));
+
+        org.springframework.security.core.context.SecurityContextHolder.getContext().setAuthentication(
+                new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(
+                        "123", null, List.of())
+        );
+    }
+
+    @org.junit.jupiter.api.AfterEach
+    void limpiarSeguridad() {
+        org.springframework.security.core.context.SecurityContextHolder.clearContext();
     }
 }

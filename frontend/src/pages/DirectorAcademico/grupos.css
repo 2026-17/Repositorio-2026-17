@@ -1,0 +1,30 @@
+/* =========================================
+   Grupos: lista con resumen y formulario de crear / modificar.
+   Reutiliza las tarjetas de resumen de programas.css (.programa-resumen)
+   y la tabla del sistema de diseño; aquí solo lo propio.
+   ========================================= */
+
+.grupos { max-width: 1180px; }
+
+.grupos-tabs { padding: 0 var(--space-5) var(--space-3); }
+.grupos-tabs .tabs { flex-wrap: wrap; }
+
+.grupos-meta { font-size: 13px; color: var(--ink-subtle); }
+
+.grupos-profesor { display: inline-flex; align-items: center; gap: 6px; }
+.grupos-profesor svg { flex: none; color: var(--ink-muted); }
+
+.grupos-horario { margin: 0; padding: 0; list-style: none; font-size: 13px; line-height: 20px; white-space: nowrap; }
+
+.grupos-cupo { display: grid; gap: 4px; min-width: 72px; }
+.grupos-cupo__barra { display: block; height: 6px; border-radius: var(--radius-pill); background: var(--surface-sunken); overflow: hidden; }
+.grupos-cupo__barra i { display: block; height: 100%; border-radius: inherit; background: var(--primary-fill); }
+.grupos-cupo__barra.is-lleno i { background: var(--warning); }
+
+.grupos-eliminar { color: var(--danger-strong); }
+.grupos-eliminar:hover:not(:disabled) { background: var(--danger-soft); }
+
+@media (max-width: 640px) {
+    .grupos-tabs { padding: 0 var(--space-4) var(--space-3); }
+    .grupos-horario { white-space: normal; }
+}

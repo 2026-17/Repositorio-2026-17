@@ -9,23 +9,32 @@ import cr.acusab.una.sigac.data.entity.Usuario;
 import cr.acusab.una.sigac.data.repository.CursoRepository;
 import cr.acusab.una.sigac.data.repository.GrupoRepository;
 import cr.acusab.una.sigac.data.repository.HorarioGrupoRepository;
+import cr.acusab.una.sigac.data.repository.MatriculaDetalleRepository;
 import cr.acusab.una.sigac.data.repository.PeriodoAcademicoRepository;
 import cr.acusab.una.sigac.data.repository.ProfesorRepository;
 import cr.acusab.una.sigac.data.repository.UsuarioRepository;
 import cr.acusab.una.sigac.logic.exception.BusinessException;
 import cr.acusab.una.sigac.presentation.dto.request.GrupoRequestDTO;
 import cr.acusab.una.sigac.presentation.dto.request.HorarioGrupoRequestDTO;
+import cr.acusab.una.sigac.presentation.dto.response.GrupoGestionResponse;
 import cr.acusab.una.sigac.presentation.dto.response.GrupoResponseDTO;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 @Service
@@ -62,8 +71,37 @@ public class GrupoService {
     private final CursoRepository cursoRepository;
     private final PeriodoAcademicoRepository periodoAcademicoRepository;
     private final ProfesorRepository profesorRepository;
+    /*
+     * Estados permitidos al modificar un grupo. Un grupo CERRADO o
+     * CANCELADO ya no se modifica (es un estado final).
+     */
+    private static final Set<String> ESTADOS_VALIDOS_ACTUALIZACION = Set.of(
+            "PLANIFICADO",
+            "PUBLICADO",
+            "EN_CURSO",
+            "CERRADO",
+            "CANCELADO"
+    );
+
+    private static final Set<String> ESTADOS_GRUPO_FINALES = Set.of(
+            "CERRADO",
+            "CANCELADO"
+    );
+
+    // Estados en que el grupo se imparte y por eso necesita profesor.
+    private static final Set<String> ESTADOS_QUE_REQUIEREN_PROFESOR = Set.of(
+            "PUBLICADO",
+            "EN_CURSO"
+    );
+
+    // Igual que ConsultaCursosService: un cupo lo ocupa una matrícula REGISTRADA.
+    private static final String ESTADO_MATRICULA_REGISTRADA = "REGISTRADA";
+
+    private static final int LONGITUD_MAXIMA_CODIGO = 40;
+
     private final ValidacionHorarioProfesorService validacionHorarioProfesorService;
     private final UsuarioRepository usuarioRepository;
+    private final MatriculaDetalleRepository matriculaDetalleRepository;
 
     public GrupoService(
             GrupoRepository grupoRepository,
@@ -72,7 +110,8 @@ public class GrupoService {
             PeriodoAcademicoRepository periodoAcademicoRepository,
             ProfesorRepository profesorRepository,
             ValidacionHorarioProfesorService validacionHorarioProfesorService,
-            UsuarioRepository usuarioRepository
+            UsuarioRepository usuarioRepository,
+            MatriculaDetalleRepository matriculaDetalleRepository
     ) {
         this.grupoRepository = grupoRepository;
         this.horarioGrupoRepository = horarioGrupoRepository;
@@ -81,6 +120,381 @@ public class GrupoService {
         this.profesorRepository = profesorRepository;
         this.validacionHorarioProfesorService = validacionHorarioProfesorService;
         this.usuarioRepository = usuarioRepository;
+        this.matriculaDetalleRepository = matriculaDetalleRepository;
+    }
+
+    /* =================================================================
+     * Gestión de grupos: listar, sugerir código, modificar y eliminar
+     * ================================================================= */
+
+    /*
+     * Listado de grupos para la pantalla de gestión. Ambos filtros son
+     * opcionales.
+     */
+    @Transactional(readOnly = true)
+    public List<GrupoGestionResponse> listar(Long idPeriodo, Long idCurso) {
+
+        List<Grupo> grupos = grupoRepository.findAllByOrderByIdPeriodoDescCodigoAsc()
+                .stream()
+                .filter(g -> idPeriodo == null || idPeriodo.equals(g.getIdPeriodo()))
+                .filter(g -> idCurso == null || idCurso.equals(g.getIdCurso()))
+                .toList();
+
+        return mapearAGestion(grupos);
+    }
+
+    @Transactional(readOnly = true)
+    public GrupoGestionResponse obtener(Long idGrupo) {
+        return mapearAGestion(List.of(buscarGrupoOLanzarError(idGrupo))).get(0);
+    }
+
+    /*
+     * Código sugerido para un grupo nuevo: código del curso + la primera
+     * letra libre en el período (MUS-101-A, MUS-101-B…). Es la misma
+     * convención que usa Crear curso para su primer grupo.
+     */
+    public String sugerirCodigo(Long idCurso, Long idPeriodo) {
+
+        Curso curso = cursoRepository
+                .findById(idCurso)
+                .orElseThrow(() -> new BusinessException("El curso seleccionado no existe."));
+
+        String base = curso.getCodigo().trim().toUpperCase(Locale.ROOT);
+        if (base.length() > LONGITUD_MAXIMA_CODIGO - 4) {
+            base = base.substring(0, LONGITUD_MAXIMA_CODIGO - 4);
+        }
+
+        if (idPeriodo == null) {
+            return base + "-A";
+        }
+
+        for (char letra = 'A'; letra <= 'Z'; letra++) {
+            String codigo = base + "-" + letra;
+            if (!grupoRepository.existsByIdPeriodoAndCodigo(idPeriodo, codigo)) {
+                return codigo;
+            }
+        }
+
+        // Más de 26 grupos del mismo curso en un período: se numeran.
+        int numero = 27;
+        while (grupoRepository.existsByIdPeriodoAndCodigo(idPeriodo, base + "-" + numero)) {
+            numero++;
+        }
+        return base + "-" + numero;
+    }
+
+    /*
+     * Modificar un grupo y reemplazar su horario semanal.
+     *
+     * Reglas:
+     * - Un grupo CERRADO o CANCELADO no se modifica.
+     * - Si el grupo tiene matrículas, no se cambia su curso ni su período,
+     *   y el cupo no puede quedar por debajo de los estudiantes inscritos.
+     * - PUBLICADO y EN_CURSO requieren un profesor activo.
+     */
+    @Transactional
+    public GrupoGestionResponse actualizar(Long idGrupo, GrupoRequestDTO request) {
+
+        Grupo grupo = buscarGrupoOLanzarError(idGrupo);
+
+        if (ESTADOS_GRUPO_FINALES.contains(grupo.getEstado())) {
+            throw new BusinessException(
+                    "Un grupo cerrado o cancelado no se puede modificar."
+            );
+        }
+
+        String codigo = request.getCodigo().trim().toUpperCase(Locale.ROOT);
+        String modalidad = request.getModalidad().trim().toUpperCase(Locale.ROOT);
+        String estado = request.getEstado().trim().toUpperCase(Locale.ROOT);
+        String aula = textoOpcional(request.getAula());
+        LocalDate fechaInicio = request.getFechaInicio();
+        LocalDate fechaFin = request.getFechaFin();
+
+        boolean cambiaCurso = !grupo.getIdCurso().equals(request.getIdCurso());
+        boolean cambiaPeriodo = !grupo.getIdPeriodo().equals(request.getIdPeriodo());
+
+        // 1. Con matrículas, el grupo queda atado a su curso y período.
+        boolean tieneMatriculas = contar(
+                matriculaDetalleRepository.contarDetallesPorGrupo(List.of(idGrupo))
+        ).getOrDefault(idGrupo, 0L) > 0;
+
+        if (tieneMatriculas && (cambiaCurso || cambiaPeriodo)) {
+            throw new BusinessException(
+                    "El grupo tiene matrículas registradas: no se puede cambiar su curso ni su período."
+            );
+        }
+
+        // 2. Curso: si cambia, el nuevo debe existir y estar activo.
+        Curso curso = cursoRepository
+                .findById(request.getIdCurso())
+                .orElseThrow(() -> new BusinessException("El curso seleccionado no existe."));
+
+        if (cambiaCurso && !Boolean.TRUE.equals(curso.getActivo())) {
+            throw new BusinessException("El curso seleccionado se encuentra inactivo.");
+        }
+
+        // 3. Período: si cambia, no puede estar cerrado ni cancelado.
+        PeriodoAcademico periodo = periodoAcademicoRepository
+                .findById(request.getIdPeriodo())
+                .orElseThrow(() -> new BusinessException("El período académico seleccionado no existe."));
+
+        if (cambiaPeriodo && ESTADOS_PERIODO_CERRADOS.contains(periodo.getEstado())) {
+            throw new BusinessException(
+                    "No se pueden mover grupos a un período cerrado o cancelado."
+            );
+        }
+
+        // 4. Profesor opcional, pero activo.
+        Profesor profesor = null;
+
+        if (request.getIdProfesor() != null) {
+            profesor = profesorRepository
+                    .findByIdParaAsignacion(request.getIdProfesor())
+                    .orElseThrow(() -> new BusinessException("El profesor seleccionado no existe."));
+
+            if (!Boolean.TRUE.equals(profesor.getActivo())) {
+                throw new BusinessException("El profesor seleccionado se encuentra inactivo.");
+            }
+        }
+
+        // 5. Modalidad y estado.
+        if (!MODALIDADES_VALIDAS.contains(modalidad)) {
+            throw new BusinessException("La modalidad indicada no es válida.");
+        }
+
+        if (!ESTADOS_VALIDOS_ACTUALIZACION.contains(estado)) {
+            throw new BusinessException("El estado indicado no es válido.");
+        }
+
+        if (ESTADOS_QUE_REQUIEREN_PROFESOR.contains(estado) && profesor == null) {
+            throw new BusinessException(
+                    "Un grupo publicado o en curso debe tener un profesor activo asignado."
+            );
+        }
+
+        // 6. El cupo no puede quedar por debajo de los inscritos.
+        long inscritos = contar(
+                matriculaDetalleRepository.contarCuposOcupados(List.of(idGrupo), ESTADO_MATRICULA_REGISTRADA)
+        ).getOrDefault(idGrupo, 0L);
+
+        if (request.getCupoMaximo() < inscritos) {
+            throw new BusinessException(
+                    "El cupo no puede ser menor que los " + inscritos + " estudiantes inscritos en el grupo."
+            );
+        }
+
+        // 7. Fechas, código único en el período y horario.
+        validarFechas(fechaInicio, fechaFin, periodo);
+
+        if (grupoRepository.existsByIdPeriodoAndCodigoAndIdNot(periodo.getId(), codigo, idGrupo)) {
+            throw new BusinessException(
+                    "Ya existe otro grupo con ese código en el período seleccionado."
+            );
+        }
+
+        validarHorarios(request.getHorarios());
+
+        if (profesor != null) {
+            validarDisponibilidadProfesor(profesor, periodo, fechaInicio, fechaFin, idGrupo, request.getHorarios());
+        }
+
+        // 8. Guardar el grupo.
+        grupo.setIdUsuarioUltimaModificacion(obtenerIdUsuarioAutenticado());
+        grupo.setIdCurso(curso.getId());
+        grupo.setIdPeriodo(periodo.getId());
+        grupo.setIdProfesor(profesor != null ? profesor.getId() : null);
+        grupo.setCodigo(codigo);
+        grupo.setCupoMaximo(request.getCupoMaximo());
+        grupo.setModalidad(modalidad);
+        grupo.setAula(aula);
+        grupo.setFechaInicio(fechaInicio);
+        grupo.setFechaFin(fechaFin);
+        grupo.setEstado(estado);
+        grupo.setActualizadoEn(Instant.now());
+
+        Grupo guardado = grupoRepository.save(grupo);
+
+        // 9. Reemplazar el horario semanal.
+        horarioGrupoRepository.eliminarPorGrupo(idGrupo);
+        horarioGrupoRepository.saveAll(crearHorarios(guardado.getId(), request.getHorarios(), aula));
+
+        return mapearAGestion(List.of(guardado)).get(0);
+    }
+
+    /*
+     * Eliminar un grupo. Solo se permite si nunca tuvo matrículas, ni
+     * sesiones de clase, ni avances curriculares: de lo contrario se
+     * perdería historial académico. En ese caso, el grupo se cancela.
+     *
+     * El horario se borra en cascada (fk_horarios_grupos_grupos).
+     */
+    @Transactional
+    public void eliminar(Long idGrupo) {
+
+        Grupo grupo = buscarGrupoOLanzarError(idGrupo);
+        List<Long> ids = List.of(idGrupo);
+
+        if (contar(matriculaDetalleRepository.contarDetallesPorGrupo(ids)).getOrDefault(idGrupo, 0L) > 0) {
+            throw new BusinessException(
+                    "El grupo tiene matrículas registradas y no se puede eliminar. Si ya no se impartirá, cámbielo al estado Cancelado."
+            );
+        }
+
+        if (contar(grupoRepository.contarSesionesPorGrupo(ids)).getOrDefault(idGrupo, 0L) > 0
+                || contar(grupoRepository.contarAvancesPorGrupo(ids)).getOrDefault(idGrupo, 0L) > 0) {
+            throw new BusinessException(
+                    "El grupo ya tiene clases o avances registrados y no se puede eliminar. Cámbielo al estado Cancelado."
+            );
+        }
+
+        // Se registra quién elimina: el trigger de bitácora del DELETE
+        // usa id_usuario_ultima_modificacion.
+        grupo.setIdUsuarioUltimaModificacion(obtenerIdUsuarioAutenticado());
+        grupoRepository.saveAndFlush(grupo);
+
+        grupoRepository.delete(grupo);
+    }
+
+    private Grupo buscarGrupoOLanzarError(Long idGrupo) {
+        return grupoRepository
+                .findById(idGrupo)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "El grupo indicado no existe."
+                ));
+    }
+
+    // Convierte filas [id, cantidad] en un mapa id → cantidad.
+    private static Map<Long, Long> contar(List<Object[]> filas) {
+        Map<Long, Long> mapa = new HashMap<>();
+        for (Object[] fila : filas) {
+            mapa.put(((Number) fila[0]).longValue(), ((Number) fila[1]).longValue());
+        }
+        return mapa;
+    }
+
+    private List<GrupoGestionResponse> mapearAGestion(List<Grupo> grupos) {
+
+        if (grupos.isEmpty()) {
+            return List.of();
+        }
+
+        List<Long> ids = grupos.stream().map(Grupo::getId).toList();
+
+        Map<Long, Curso> cursos = new HashMap<>();
+        cursoRepository.findAllById(grupos.stream().map(Grupo::getIdCurso).distinct().toList())
+                .forEach(c -> cursos.put(c.getId(), c));
+
+        Map<Long, PeriodoAcademico> periodos = new HashMap<>();
+        periodoAcademicoRepository.findAllById(grupos.stream().map(Grupo::getIdPeriodo).distinct().toList())
+                .forEach(p -> periodos.put(p.getId(), p));
+
+        Map<Long, Profesor> profesores = new HashMap<>();
+        profesorRepository.findAllById(grupos.stream().map(Grupo::getIdProfesor).filter(Objects::nonNull).distinct().toList())
+                .forEach(p -> profesores.put(p.getId(), p));
+
+        Map<Long, List<GrupoResponseDTO.Horario>> horarios = new HashMap<>();
+        horarioGrupoRepository.findByIdGrupoInOrderByDiaSemanaAscHoraInicioAsc(ids)
+                .forEach(h -> horarios.computeIfAbsent(h.getIdGrupo(), k -> new ArrayList<>())
+                        .add(new GrupoResponseDTO.Horario(h.getId(), h.getDiaSemana(), h.getHoraInicio(), h.getHoraFin(), h.getAula())));
+
+        Map<Long, Long> inscritos = contar(matriculaDetalleRepository.contarCuposOcupados(ids, ESTADO_MATRICULA_REGISTRADA));
+        Map<Long, Long> detalles = contar(matriculaDetalleRepository.contarDetallesPorGrupo(ids));
+        Map<Long, Long> sesiones = contar(grupoRepository.contarSesionesPorGrupo(ids));
+        Map<Long, Long> avances = contar(grupoRepository.contarAvancesPorGrupo(ids));
+
+        return grupos.stream().map(g -> {
+            Curso curso = cursos.get(g.getIdCurso());
+            PeriodoAcademico periodo = periodos.get(g.getIdPeriodo());
+            Profesor profesor = g.getIdProfesor() != null ? profesores.get(g.getIdProfesor()) : null;
+
+            boolean tieneMatriculas = detalles.getOrDefault(g.getId(), 0L) > 0;
+            boolean tieneClases = sesiones.getOrDefault(g.getId(), 0L) > 0
+                    || avances.getOrDefault(g.getId(), 0L) > 0;
+
+            return new GrupoGestionResponse(
+                    g.getId(),
+                    g.getCodigo(),
+                    g.getIdCurso(),
+                    curso != null ? curso.getCodigo() : null,
+                    curso != null ? curso.getNombre() : null,
+                    g.getIdPeriodo(),
+                    periodo != null ? periodo.getNombre() : null,
+                    periodo != null ? periodo.getEstado() : null,
+                    periodo != null ? periodo.getFechaInicio() : null,
+                    periodo != null ? periodo.getFechaFin() : null,
+                    g.getIdProfesor(),
+                    nombreCompleto(profesor),
+                    g.getCupoMaximo(),
+                    inscritos.getOrDefault(g.getId(), 0L),
+                    g.getModalidad(),
+                    g.getAula(),
+                    g.getFechaInicio(),
+                    g.getFechaFin(),
+                    g.getEstado(),
+                    horarios.getOrDefault(g.getId(), List.of()),
+                    !ESTADOS_GRUPO_FINALES.contains(g.getEstado()),
+                    !tieneMatriculas && !tieneClases,
+                    tieneMatriculas
+            );
+        }).toList();
+    }
+
+    private static String nombreCompleto(Profesor profesor) {
+        if (profesor == null) {
+            return null;
+        }
+        return String.join(
+                " ",
+                profesor.getNombres(),
+                profesor.getPrimerApellido(),
+                profesor.getSegundoApellido() != null ? profesor.getSegundoApellido() : ""
+        ).trim().replaceAll("\\s+", " ");
+    }
+
+    private void validarDisponibilidadProfesor(
+            Profesor profesor,
+            PeriodoAcademico periodo,
+            LocalDate fechaInicio,
+            LocalDate fechaFin,
+            Long idGrupoExcluido,
+            List<HorarioGrupoRequestDTO> horarios
+    ) {
+        List<ValidacionHorarioProfesorService.BloqueHorario> horariosPropuestos =
+                horarios.stream()
+                        .map(horario -> new ValidacionHorarioProfesorService.BloqueHorario(
+                                horario.getDiaSemana(),
+                                horario.getHoraInicio(),
+                                horario.getHoraFin()
+                        ))
+                        .toList();
+
+        validacionHorarioProfesorService.validarDisponibilidad(
+                profesor.getId(),
+                periodo.getId(),
+                fechaInicio != null ? fechaInicio : periodo.getFechaInicio(),
+                fechaFin != null ? fechaFin : periodo.getFechaFin(),
+                idGrupoExcluido,
+                horariosPropuestos
+        );
+    }
+
+    // Un bloque sin aula propia usa el aula del grupo.
+    private List<HorarioGrupo> crearHorarios(Long idGrupo, List<HorarioGrupoRequestDTO> horarios, String aulaGrupo) {
+        return horarios.stream()
+                .map(h -> {
+                    HorarioGrupo horario = new HorarioGrupo();
+                    horario.setIdGrupo(idGrupo);
+                    horario.setDiaSemana(h.getDiaSemana());
+                    horario.setHoraInicio(h.getHoraInicio());
+                    horario.setHoraFin(h.getHoraFin());
+
+                    String aulaHorario = textoOpcional(h.getAula());
+                    horario.setAula(aulaHorario != null ? aulaHorario : aulaGrupo);
+
+                    return horario;
+                })
+                .toList();
     }
 
     /*

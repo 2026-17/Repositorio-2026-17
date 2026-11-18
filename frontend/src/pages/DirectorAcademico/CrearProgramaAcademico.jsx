@@ -1,23 +1,23 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, BookPlus, CircleCheck, CircleCheckBig, FilePlus2, GraduationCap, Loader2, Sparkles } from "lucide-react";
+import { ArrowLeft, BookPlus, CircleCheckBig, FilePlus2, GraduationCap } from "lucide-react";
 import "./programas.css";
 import Alert from "../../components/ui/Alert";
+import { AyudaCodigoSugerido, EstadoDisponibilidad } from "../../components/ui/CodigoSugerido";
 import Field from "../../components/ui/Field";
 import Stepper from "../../components/ui/Stepper";
 import { listaErrores } from "../../components/ui/utilidades";
 import { useDialog } from "../../components/dialog/useDialog";
 import { formularioModificado, useAvisoCambiosSinGuardar } from "../../hooks/useAvisoCambiosSinGuardar";
+import { PATRON_CODIGO, normalizarCodigoEscrito, sugerirCodigo } from "../../utils/codigos";
 import CamposPlanEstudio from "./CamposPlanEstudio";
 import {
-    PATRON_CODIGO,
     PLAN_VACIO,
     consultarDisponibilidad,
     crearPrograma,
     fechaLegible,
     hoyISO,
     planAPayload,
-    sugerirCodigo,
     validarPlan,
 } from "./programasApi";
 
@@ -126,7 +126,7 @@ function CrearProgramaAcademico({ onCancel, onSuccess }) {
         const { name, value } = e.target;
 
         setForm((prev) => {
-            const siguiente = { ...prev, [name]: name === "codigo" ? value.toUpperCase().replace(/\s+/g, "-") : value };
+            const siguiente = { ...prev, [name]: name === "codigo" ? normalizarCodigoEscrito(value) : value };
             // Mientras el director no escriba su propio código, se sugiere uno.
             if (name === "nombre" && !codigoEditado) siguiente.codigo = sugerirCodigo(value);
             return siguiente;
@@ -351,7 +351,7 @@ function CrearProgramaAcademico({ onCancel, onSuccess }) {
                             {...aria("nombre")}
                         />
                     </Field>
-                    {!errores.nombre && <EstadoDisponibilidad id="nombre-estado" estado={disponibilidad.nombre} que="nombre" className="span-all" />}
+                    {!errores.nombre && <EstadoDisponibilidad id="nombre-estado" estado={disponibilidad.nombre} que="nombre" mensajeOcupado="Ya existe un programa con este nombre." className="span-all programa-nombre-estado" />}
 
                     <Field
                         id="codigo"
@@ -374,15 +374,16 @@ function CrearProgramaAcademico({ onCancel, onSuccess }) {
                         />
                     </Field>
                     <div className="programa-codigo-extra">
-                        {!codigoEditado && form.codigo && (
-                            <span className="sg-badge sg-badge--primary"><Sparkles size={14} strokeWidth={2} aria-hidden="true" /> Sugerido</span>
-                        )}
-                        {codigoEditado && form.nombre.trim() && (
-                            <button type="button" className="link-btn" onClick={restaurarSugerencia}>
-                                Usar la sugerencia «{sugerirCodigo(form.nombre)}»
-                            </button>
-                        )}
-                        {!errores.codigo && <EstadoDisponibilidad id="codigo-estado" estado={disponibilidad.codigo} que="código" />}
+                        <AyudaCodigoSugerido
+                            editado={codigoEditado}
+                            codigo={form.codigo}
+                            sugerencia={sugerirCodigo(form.nombre)}
+                            onUsarSugerencia={restaurarSugerencia}
+                        >
+                            {!errores.codigo && (
+                                <EstadoDisponibilidad id="codigo-estado" estado={disponibilidad.codigo} que="código" mensajeOcupado="Ya existe un programa con este código." />
+                            )}
+                        </AyudaCodigoSugerido>
                     </div>
 
                     <Field id="descripcion" label="Descripción" optional error={errores.descripcion} className="span-all">
@@ -555,23 +556,6 @@ function CrearProgramaAcademico({ onCancel, onSuccess }) {
                 </div>
             </div>
         </div>
-    );
-}
-
-// Mensaje bajo el campo: «Verificando…», «Disponible» o «Ya existe».
-function EstadoDisponibilidad({ id, estado, que, className = "" }) {
-    if (!estado) return <span id={id} hidden />;
-
-    const contenido = {
-        consultando: <><Loader2 size={14} strokeWidth={2} className="programa-girando" aria-hidden="true" /> Verificando {que}…</>,
-        libre: <><CircleCheck size={14} strokeWidth={2} aria-hidden="true" /> {que === "código" ? "Código disponible" : "Nombre disponible"}</>,
-        ocupado: <>Ya existe un programa con este {que}.</>,
-    }[estado];
-
-    return (
-        <p id={id} className={`programa-disponibilidad is-${estado} ${className}`.trim()} aria-live="polite">
-            {contenido}
-        </p>
     );
 }
 

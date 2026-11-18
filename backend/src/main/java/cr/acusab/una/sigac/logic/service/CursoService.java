@@ -77,6 +77,18 @@ public class CursoService {
      * más reciente asociado, ya que esos datos viven en Grupo y no en
      * Curso (un curso puede tener varios grupos en distintos periodos).
      */
+    /*
+     * Validación en vivo del código en "Nuevo curso". Un código vacío
+     * se informa como disponible (el campo obligatorio lo valida el
+     * formulario).
+     */
+    public boolean codigoDisponible(String codigo) {
+        if (codigo == null || codigo.isBlank()) {
+            return true;
+        }
+        return !cursoRepository.existsByCodigo(codigo.trim());
+    }
+
     @Transactional(readOnly = true)
     public List<CursoListadoResponseDTO> listarActivos() {
 

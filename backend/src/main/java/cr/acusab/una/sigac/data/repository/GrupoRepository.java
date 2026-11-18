@@ -31,6 +31,36 @@ public interface GrupoRepository extends JpaRepository<Grupo, Long> {
      */
     boolean existsByIdPeriodoAndCodigo(Long idPeriodo, String codigo);
 
+    // Modificar grupo: el código no puede repetirse con otro grupo del período.
+    boolean existsByIdPeriodoAndCodigoAndIdNot(Long idPeriodo, String codigo, Long id);
+
+    // Gestión de grupos: listado completo, del período más reciente al más antiguo.
+    List<Grupo> findAllByOrderByIdPeriodoDescCodigoAsc();
+
+    /*
+     * Gestión de grupos - Sesiones de clase y avances curriculares
+     * registrados por grupo. Las tablas no tienen entidad JPA; un grupo
+     * con clases registradas no se puede eliminar (la BD las borraría
+     * en cascada junto con la asistencia).
+     *
+     * Devuelven filas [idGrupo, cantidad].
+     */
+    @Query(value = """
+            SELECT id_grupo, COUNT(*)
+            FROM sesiones_grupos
+            WHERE id_grupo IN (:idsGrupo)
+            GROUP BY id_grupo
+            """, nativeQuery = true)
+    List<Object[]> contarSesionesPorGrupo(@Param("idsGrupo") Collection<Long> idsGrupo);
+
+    @Query(value = """
+            SELECT id_grupo, COUNT(*)
+            FROM avances_curriculares
+            WHERE id_grupo IN (:idsGrupo)
+            GROUP BY id_grupo
+            """, nativeQuery = true)
+    List<Object[]> contarAvancesPorGrupo(@Param("idsGrupo") Collection<Long> idsGrupo);
+
     /*
      * Historia 2 - Oferta de grupos de un período, filtrada por estado.
      */
