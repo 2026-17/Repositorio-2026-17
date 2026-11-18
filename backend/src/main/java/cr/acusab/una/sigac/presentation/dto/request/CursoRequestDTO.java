@@ -43,16 +43,11 @@ public class CursoRequestDTO {
     @Max(value = 999, message = "El nivel académico no puede ser mayor que 999.")
     private Short nivel;
 
-    // --- Primera oferta del curso ---
-
-    @NotNull(message = "La cantidad de cupos es obligatoria.")
-    @Positive(message = "La cantidad de cupos debe ser mayor que cero.")
-    @Max(value = 500, message = "La cantidad de cupos no puede ser mayor que 500.")
-    private Short cupos;
-
-    @NotNull(message = "El período lectivo es obligatorio.")
-    @Positive(message = "El período lectivo seleccionado no es válido.")
-    private Long idPeriodo;
+    /*
+     * El curso no lleva período ni cupos: es parte del catálogo y se
+     * repite todos los años. Su oferta en cada período (cupo, profesor,
+     * horario) es un grupo y se abre desde la pantalla Grupos.
+     */
 
     // --- Getters y setters ---
 
@@ -102,21 +97,5 @@ public class CursoRequestDTO {
 
     public void setNivel(Short nivel) {
         this.nivel = nivel;
-    }
-
-    public Short getCupos() {
-        return cupos;
-    }
-
-    public void setCupos(Short cupos) {
-        this.cupos = cupos;
-    }
-
-    public Long getIdPeriodo() {
-        return idPeriodo;
-    }
-
-    public void setIdPeriodo(Long idPeriodo) {
-        this.idPeriodo = idPeriodo;
     }
 }

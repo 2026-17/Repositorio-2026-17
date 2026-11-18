@@ -12,9 +12,8 @@ public class CursoResponseDTO {
     private Long idMalla;
     private Short nivel;
 
-    private Long idGrupo;
-    private String codigoGrupo;
-    private Short cupos;
+    // Sin datos de grupo: la oferta por período se abre en Grupos.
+
 
     // getters y setters
     public Long getIdCurso() { return idCurso; }
@@ -33,10 +32,4 @@ public class CursoResponseDTO {
     public void setIdMalla(Long idMalla) { this.idMalla = idMalla; }
     public Short getNivel() { return nivel; }
     public void setNivel(Short nivel) { this.nivel = nivel; }
-    public Long getIdGrupo() { return idGrupo; }
-    public void setIdGrupo(Long idGrupo) { this.idGrupo = idGrupo; }
-    public String getCodigoGrupo() { return codigoGrupo; }
-    public void setCodigoGrupo(String codigoGrupo) { this.codigoGrupo = codigoGrupo; }
-    public Short getCupos() { return cupos; }
-    public void setCupos(Short cupos) { this.cupos = cupos; }
 }

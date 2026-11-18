@@ -1,7 +1,8 @@
 import RequisitosCursoOpcionales from "./RequisitosCursoOpcionales";
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { API_URL } from "../../config/api";
-import { BookPlus } from "lucide-react";
+import { BookPlus, CalendarRange } from "lucide-react";
 import "./crearCurso.css";
 import Alert from "../../components/ui/Alert";
 import { AyudaCodigoSugerido, EstadoDisponibilidad } from "../../components/ui/CodigoSugerido";
@@ -20,8 +21,6 @@ const FORM_VACIO = {
     horasTotales: "",
     idPrograma: "",
     nivel: "",
-    cupos: "",
-    idPeriodo: "",
 };
 
 /*
@@ -41,8 +40,9 @@ function CrearCurso({ onCancel, onSuccess, idProgramaInicial }) {
 
     const [form, setForm] = useState(formInicial);
 
+    const navigate = useNavigate();
+
     const [programas, setProgramas] = useState([]);
-    const [periodos, setPeriodos] = useState([]);
 
     const [cargandoCatalogos, setCargandoCatalogos] = useState(true);
     const [guardando, setGuardando] = useState(false);
@@ -96,29 +96,17 @@ function CrearCurso({ onCancel, onSuccess, idProgramaInicial }) {
                     Authorization: `Bearer ${token}`,
                 };
 
-                const [programasResponse, periodosResponse] =
-                    await Promise.all([
-                        fetch(`${API_URL}/programas`, {
-                            headers,
-                        }),
-                        fetch(`${API_URL}/periodos-academicos`, {
-                            headers,
-                        }),
-                    ]);
+                const programasResponse = await fetch(`${API_URL}/programas`, {
+                    headers,
+                });
 
-                if (
-                    programasResponse.status === 401 ||
-                    periodosResponse.status === 401
-                ) {
+                if (programasResponse.status === 401) {
                     throw new Error(
                         "La sesión ha expirado. Inicie sesión nuevamente."
                     );
                 }
 
-                if (
-                    programasResponse.status === 403 ||
-                    periodosResponse.status === 403
-                ) {
+                if (programasResponse.status === 403) {
                     throw new Error(
                         "No tiene permisos para consultar la información académica."
                     );
@@ -130,17 +118,7 @@ function CrearCurso({ onCancel, onSuccess, idProgramaInicial }) {
                     );
                 }
 
-                if (!periodosResponse.ok) {
-                    throw new Error(
-                        "No se pudieron cargar los períodos lectivos."
-                    );
-                }
-
-                const programasData = await programasResponse.json();
-                const periodosData = await periodosResponse.json();
-
-                setProgramas(programasData);
-                setPeriodos(periodosData);
+                setProgramas(await programasResponse.json());
 
             } catch (e) {
 
@@ -223,16 +201,6 @@ function CrearCurso({ onCancel, onSuccess, idProgramaInicial }) {
             siguientesErrores.nivel = "El nivel académico no puede ser mayor que 999.";
         }
 
-        if (!form.cupos || Number(form.cupos) <= 0) {
-            siguientesErrores.cupos = "La cantidad de cupos debe ser mayor que cero.";
-        } else if (Number(form.cupos) > 500) {
-            siguientesErrores.cupos = "La cantidad de cupos no puede ser mayor que 500.";
-        }
-
-        if (!form.idPeriodo) {
-            siguientesErrores.idPeriodo = "Seleccione un período lectivo.";
-        }
-
         return siguientesErrores;
     }
 
@@ -256,8 +224,6 @@ function CrearCurso({ onCancel, onSuccess, idProgramaInicial }) {
             horasTotales: Number(form.horasTotales),
             idPrograma: Number(form.idPrograma),
             nivel: Number(form.nivel),
-            cupos: Number(form.cupos),
-            idPeriodo: Number(form.idPeriodo),
             requisitos: form.requisitos,
         };
 
@@ -301,11 +267,24 @@ function CrearCurso({ onCancel, onSuccess, idProgramaInicial }) {
                 );
             }
 
-            dialog.exito(
-                `El curso ${data.codigo || payload.codigo} fue creado correctamente y agregado a la malla curricular.`
+            permitirSalida();
+
+            // El curso no crea grupos: se ofrece abrir el primero ahora.
+            const abrirGrupo = await dialog.confirmar(
+                `El curso ${data.codigo || payload.codigo} fue creado y agregado a la malla curricular. ` +
+                "Para ofrecerlo en un período, ábrale un grupo con su cupo, profesor y horario.",
+                {
+                    titulo: "Curso creado",
+                    textoAceptar: "Abrir un grupo ahora",
+                    textoCancelar: "Más tarde",
+                }
             );
 
-            permitirSalida();
+            if (abrirGrupo && data.idCurso) {
+                navigate("/director-academico/grupos", { state: { nuevoGrupoIdCurso: data.idCurso } });
+                return;
+            }
+
             onSuccess();
 
         } catch (e) {
@@ -399,20 +378,13 @@ function CrearCurso({ onCancel, onSuccess, idProgramaInicial }) {
                                 ))}
                             </select>
                         </Field>
-                        <Field id="idPeriodo" label="Período lectivo" error={errores.idPeriodo} select>
-                            <select id="idPeriodo" name="idPeriodo" className="sg-input sg-select" value={form.idPeriodo} onChange={handleChange} disabled={cargandoCatalogos} {...aria("idPeriodo")}>
-                                <option value="">Seleccione un período</option>
-                                {periodos.map((periodo) => (
-                                    <option key={periodo.id} value={periodo.id}>
-                                        {periodo.nombre}
-                                        {periodo.codigo ? ` (${periodo.codigo})` : ""}
-                                    </option>
-                                ))}
-                            </select>
-                        </Field>
-                        <Field id="cupos" label="Cantidad de cupos" error={errores.cupos}>
-                            <input id="cupos" name="cupos" type="number" className="sg-input" min="1" max="500" step="1" inputMode="numeric" value={form.cupos} onChange={handleChange} placeholder="Ej. 25" {...aria("cupos")} />
-                        </Field>
+                        <p className="curso-nota-oferta">
+                            <CalendarRange size={16} strokeWidth={1.75} aria-hidden="true" />
+                            <span>
+                                El curso es parte del catálogo y se repite cada año, por eso no lleva período ni cupos.
+                                La oferta de cada período (cupo, profesor y horario) se abre en <b>Grupos</b>.
+                            </span>
+                        </p>
                     </div>
                 </section>
 

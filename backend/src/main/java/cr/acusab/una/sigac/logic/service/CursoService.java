@@ -10,7 +10,6 @@ import cr.acusab.una.sigac.data.entity.Usuario;
 import cr.acusab.una.sigac.data.repository.CursoRepository;
 import cr.acusab.una.sigac.data.repository.GrupoRepository;
 import cr.acusab.una.sigac.data.repository.MallaCurricularRepository;
-import cr.acusab.una.sigac.data.repository.PeriodoAcademicoRepository;
 import cr.acusab.una.sigac.data.repository.PlanEstudioRepository;
 import cr.acusab.una.sigac.data.repository.ProfesorRepository;
 import cr.acusab.una.sigac.data.repository.ProgramaRepository;
@@ -41,7 +40,6 @@ public class CursoService {
     private final MallaCurricularRepository mallaCurricularRepository;
     private final GrupoRepository grupoRepository;
     private final ProgramaRepository programaRepository;
-    private final PeriodoAcademicoRepository periodoAcademicoRepository;
     private final UsuarioRepository usuarioRepository;
     private final ProfesorRepository profesorRepository;
 
@@ -51,7 +49,6 @@ public class CursoService {
             MallaCurricularRepository mallaCurricularRepository,
             GrupoRepository grupoRepository,
             ProgramaRepository programaRepository,
-            PeriodoAcademicoRepository periodoAcademicoRepository,
             UsuarioRepository usuarioRepository,
             ProfesorRepository profesorRepository,
             RequisitosCursoService requisitosCursoService
@@ -62,7 +59,6 @@ public class CursoService {
         this.mallaCurricularRepository = mallaCurricularRepository;
         this.grupoRepository = grupoRepository;
         this.programaRepository = programaRepository;
-        this.periodoAcademicoRepository = periodoAcademicoRepository;
         this.usuarioRepository = usuarioRepository;
         this.profesorRepository = profesorRepository;
     }
@@ -195,7 +191,7 @@ public class CursoService {
      * HU-028 - Crear curso en la malla curricular.
      *
      * @Transactional garantiza que si falla la creación del curso,
-     * la malla o el grupo, se revierta toda la operación.
+     * la malla o los requisitos, se revierta toda la operación.
      */
     @Transactional
     public CursoResponseDTO crear(CursoRequestDTO request) {
@@ -238,29 +234,13 @@ public class CursoService {
                         "El programa seleccionado no tiene un plan de estudio vigente."
                 ));
 
-        // 5. Validar que el período lectivo exista y no esté cerrado ni
-        // cancelado (la primera oferta crea un grupo en ese período; misma
-        // regla y mensaje que GrupoService).
-        String estadoPeriodo = periodoAcademicoRepository
-                .findById(request.getIdPeriodo())
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "El período lectivo seleccionado no existe."
-                ))
-                .getEstado();
-
-        if ("CERRADO".equalsIgnoreCase(estadoPeriodo) || "CANCELADO".equalsIgnoreCase(estadoPeriodo)) {
-            throw new IllegalArgumentException(
-                    "No se pueden crear grupos en un período cerrado o cancelado."
-            );
-        }
-
-        // 6. Obtener el usuario autenticado.
+        // 5. Obtener el usuario autenticado.
         // Este ID será utilizado por los triggers de bitácora.
         Long idUsuario = obtenerIdUsuarioAutenticado();
 
         Instant ahora = Instant.now();
 
-        // 7. Crear el curso.
+        // 6. Crear el curso.
         Curso curso = new Curso();
 
         curso.setCodigo(codigo);
@@ -289,7 +269,7 @@ public class CursoService {
          * la creación utilizando id_usuario_ultima_modificacion.
          */
 
-        // 8. Calcular el siguiente orden disponible dentro del nivel.
+        // 7. Calcular el siguiente orden disponible dentro del nivel.
         Short ultimoOrden = mallaCurricularRepository
                 .findMaxOrdenEnNivel(
                         plan.getId(),
@@ -300,7 +280,7 @@ public class CursoService {
         short siguienteOrden =
                 (short) (ultimoOrden + 1);
 
-        // 9. Incorporar el curso a la malla curricular.
+        // 8. Incorporar el curso a la malla curricular.
         MallaCurricular malla =
                 new MallaCurricular();
 
@@ -325,38 +305,21 @@ public class CursoService {
          * automáticamente la incorporación a la malla.
          */
 
-        // 10. Crear el primer grupo del curso para el período indicado.
-        String codigoGrupo = codigo + "-A";
-
-        Grupo grupo = new Grupo();
-
-        grupo.setIdPeriodo(request.getIdPeriodo());
-        grupo.setIdCurso(cursoGuardado.getId());
-        grupo.setIdUsuarioUltimaModificacion(idUsuario);
-        grupo.setCodigo(codigoGrupo);
-        grupo.setCupoMaximo(request.getCupos());
-
         /*
-         * La BD permite PRESENCIAL, VIRTUAL e HIBRIDA.
-         * HU-028 no solicita seleccionar modalidad, por lo que
-         * se conserva PRESENCIAL como valor inicial.
+         * El curso no crea grupos: es parte del catálogo y se repite
+         * todos los años. Su oferta en cada período (cupo, profesor,
+         * horario) se abre desde la pantalla Grupos.
          */
-        grupo.setModalidad("PRESENCIAL");
-        grupo.setEstado("PLANIFICADO");
-        grupo.setCreadoEn(ahora);
-        grupo.setActualizadoEn(ahora);
 
-        Grupo grupoGuardado =
-                grupoRepository.save(grupo);
-
-        // 11. Construir la respuesta para el frontend.
+        // 9. Requisitos del curso dentro del plan, si se indicaron.
         if (request.getRequisitos() != null) {
             requisitosCursoService.guardarConfiguracion(plan.getId(), cursoGuardado.getId(), request.getRequisitos());
         }
+
+        // 10. Construir la respuesta para el frontend.
         return mapearAResponse(
                 cursoGuardado,
-                mallaGuardada,
-                grupoGuardado
+                mallaGuardada
         );
     }
 
@@ -993,8 +956,7 @@ public class CursoService {
      */
     private CursoResponseDTO mapearAResponse(
             Curso curso,
-            MallaCurricular malla,
-            Grupo grupo
+            MallaCurricular malla
     ) {
 
         CursoResponseDTO dto =
@@ -1030,18 +992,6 @@ public class CursoService {
 
         dto.setNivel(
                 malla.getNivel()
-        );
-
-        dto.setIdGrupo(
-                grupo.getId()
-        );
-
-        dto.setCodigoGrupo(
-                grupo.getCodigo()
-        );
-
-        dto.setCupos(
-                grupo.getCupoMaximo()
         );
 
         return dto;

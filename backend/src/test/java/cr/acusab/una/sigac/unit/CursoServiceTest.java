@@ -3,7 +3,6 @@ package cr.acusab.una.sigac.unit;
 import cr.acusab.una.sigac.data.entity.Curso;
 import cr.acusab.una.sigac.data.entity.Grupo;
 import cr.acusab.una.sigac.data.entity.MallaCurricular;
-import cr.acusab.una.sigac.data.entity.PeriodoAcademico;
 import cr.acusab.una.sigac.data.entity.PlanEstudio;
 import cr.acusab.una.sigac.data.entity.Profesor;
 import cr.acusab.una.sigac.data.entity.Programa;
@@ -11,7 +10,6 @@ import cr.acusab.una.sigac.data.entity.Usuario;
 import cr.acusab.una.sigac.data.repository.CursoRepository;
 import cr.acusab.una.sigac.data.repository.GrupoRepository;
 import cr.acusab.una.sigac.data.repository.MallaCurricularRepository;
-import cr.acusab.una.sigac.data.repository.PeriodoAcademicoRepository;
 import cr.acusab.una.sigac.data.repository.PlanEstudioRepository;
 import cr.acusab.una.sigac.data.repository.ProfesorRepository;
 import cr.acusab.una.sigac.data.repository.ProgramaRepository;
@@ -44,7 +42,6 @@ class CursoServiceTest {
     private MallaCurricularRepository mallaCurricularRepository;
     private GrupoRepository grupoRepository;
     private ProgramaRepository programaRepository;
-    private PeriodoAcademicoRepository periodoAcademicoRepository;
     private UsuarioRepository usuarioRepository;
     private ProfesorRepository profesorRepository;
 
@@ -59,8 +56,6 @@ class CursoServiceTest {
         mallaCurricularRepository = mock(MallaCurricularRepository.class);
         grupoRepository = mock(GrupoRepository.class);
         programaRepository = mock(ProgramaRepository.class);
-        periodoAcademicoRepository =
-                mock(PeriodoAcademicoRepository.class);
         usuarioRepository = mock(UsuarioRepository.class);
         profesorRepository = mock(ProfesorRepository.class);
 
@@ -71,7 +66,6 @@ class CursoServiceTest {
                 mallaCurricularRepository,
                 grupoRepository,
                 programaRepository,
-                periodoAcademicoRepository,
                 usuarioRepository,
                 profesorRepository,
                 requisitosService
@@ -126,11 +120,6 @@ class CursoServiceTest {
                 ))
                 .thenReturn(Optional.of(plan));
 
-        PeriodoAcademico periodo = mock(PeriodoAcademico.class);
-
-        when(periodoAcademicoRepository.findById(2L))
-                .thenReturn(Optional.of(periodo));
-
         Usuario usuario = mock(Usuario.class);
         when(usuario.getId()).thenReturn(7L);
 
@@ -167,15 +156,6 @@ class CursoServiceTest {
                 any(MallaCurricular.class)
         )).thenReturn(mallaGuardada);
 
-        Grupo grupoGuardado = mock(Grupo.class);
-
-        when(grupoGuardado.getId()).thenReturn(300L);
-        when(grupoGuardado.getCodigo()).thenReturn("CUR-101-A");
-        when(grupoGuardado.getCupoMaximo()).thenReturn((short) 25);
-
-        when(grupoRepository.save(any(Grupo.class)))
-                .thenReturn(grupoGuardado);
-
         CursoResponseDTO respuesta =
                 cursoService.crear(request);
 
@@ -187,7 +167,6 @@ class CursoServiceTest {
         assertEquals("Curso de prueba", respuesta.getNombre());
         assertTrue(respuesta.getActivo());
         assertEquals((short) 2, respuesta.getNivel());
-        assertEquals((short) 25, respuesta.getCupos());
 
         ArgumentCaptor<Curso> cursoCaptor =
                 ArgumentCaptor.forClass(Curso.class);
@@ -226,19 +205,9 @@ class CursoServiceTest {
                 mallaCreada.getIdUsuarioUltimaModificacion()
         );
 
-        ArgumentCaptor<Grupo> grupoCaptor =
-                ArgumentCaptor.forClass(Grupo.class);
-
-        verify(grupoRepository).save(grupoCaptor.capture());
-
-        Grupo grupoCreado =
-                grupoCaptor.getValue();
-
-        assertEquals(2L, grupoCreado.getIdPeriodo());
-        assertEquals("CUR-101-A", grupoCreado.getCodigo());
-        assertEquals((short) 25, grupoCreado.getCupoMaximo());
-        assertEquals("PRESENCIAL", grupoCreado.getModalidad());
-        assertEquals("PLANIFICADO", grupoCreado.getEstado());
+        // El curso es parte del catálogo: crearlo no abre ningún grupo
+        // (la oferta por período se abre en la pantalla Grupos).
+        verify(grupoRepository, never()).save(any(Grupo.class));
     }
 
     @Test
@@ -286,46 +255,6 @@ class CursoServiceTest {
 
         assertEquals(
                 "El programa académico seleccionado se encuentra inactivo.",
-                exception.getMessage()
-        );
-
-        verify(cursoRepository, never())
-                .save(any(Curso.class));
-    }
-
-    @Test
-    void noDebeCrearCursoSiPeriodoNoExiste() {
-
-        CursoRequestDTO request = crearRequestValido();
-
-        when(cursoRepository.existsByCodigo("CUR-101"))
-                .thenReturn(false);
-
-        Programa programa = mock(Programa.class);
-        when(programa.getActivo()).thenReturn(true);
-
-        when(programaRepository.findById(1L))
-                .thenReturn(Optional.of(programa));
-
-        PlanEstudio plan = mock(PlanEstudio.class);
-
-        when(planEstudioRepository
-                .findFirstByIdProgramaAndVigenteTrueOrderByFechaVigenciaDesdeDesc(
-                        1L
-                ))
-                .thenReturn(Optional.of(plan));
-
-        when(periodoAcademicoRepository.findById(2L))
-                .thenReturn(Optional.empty());
-
-        IllegalArgumentException exception =
-                assertThrows(
-                        IllegalArgumentException.class,
-                        () -> cursoService.crear(request)
-                );
-
-        assertEquals(
-                "El período lectivo seleccionado no existe.",
                 exception.getMessage()
         );
 
@@ -1663,8 +1592,6 @@ class CursoServiceTest {
         request.setHorasTotales(40);
         request.setIdPrograma(1L);
         request.setNivel((short) 2);
-        request.setCupos((short) 25);
-        request.setIdPeriodo(2L);
 
         return request;
     }

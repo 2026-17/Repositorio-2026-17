@@ -73,12 +73,16 @@ function horariosDesdeGrupo(g) {
  * Al crear, el código se sugiere con el código del curso y la primera
  * letra libre en el período (MUS-101-A, MUS-101-B…).
  */
-function FormularioGrupo({ grupo = null, onCancel, onSuccess }) {
+function FormularioGrupo({ grupo = null, idCursoInicial = null, onCancel, onSuccess }) {
     const dialog = useDialog();
     const token = localStorage.getItem("token");
     const editando = grupo !== null;
 
-    const [inicial] = useState(() => (editando ? formDesdeGrupo(grupo) : FORM_VACIO));
+    // idCursoInicial: viene de «Abrir un grupo ahora» al crear un curso.
+    const [inicial] = useState(() => {
+        if (editando) return formDesdeGrupo(grupo);
+        return idCursoInicial ? { ...FORM_VACIO, idCurso: String(idCursoInicial) } : FORM_VACIO;
+    });
     const [horariosIniciales] = useState(() => (editando ? horariosDesdeGrupo(grupo) : [{ ...HORARIO_VACIO }]));
 
     const [form, setForm] = useState(inicial);
