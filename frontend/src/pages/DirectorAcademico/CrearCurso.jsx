@@ -49,7 +49,6 @@ function CrearCurso({ onCancel, onSuccess, idProgramaInicial }) {
 
     // Avisa al salir con datos escritos que no se han guardado
     const hayCambios = formularioModificado(form, formInicial);
-
     // Código sugerido a partir del nombre y verificado en vivo.
     const [codigoEditado, setCodigoEditado] = useState(false);
     const disponibilidadCodigo = useDisponibilidad(form.codigo, (codigo, signal) =>
