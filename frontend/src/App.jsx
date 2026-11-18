@@ -24,6 +24,7 @@ import CrearGrupo from "./pages/DirectorAcademico/CrearGrupo";
 import AsignarProfesores from "./pages/DirectorAcademico/AsignarProfesores";
 import AsignarInstrumento from "./pages/Comun/AsignarInstrumento.jsx";
 import PeriodosAcademicos from "./pages/DirectorAcademico/PeriodosAcademicos";
+import ProgramasAcademicos from "./pages/DirectorAcademico/ProgramasAcademicos";
 
 import BecasPagos from "./pages/Administrativa/BecasPagos.jsx";
 import Matricula from "./pages/Administrativa/Matricula.jsx";
@@ -135,6 +136,12 @@ const router = createBrowserRouter(
                         {/* =================================================
                             DIRECTOR ACADÉMICO
                            ================================================= */}
+
+                        {/* Crear, modificar y activar/desactivar programas académicos */}
+                        <Route
+                            path="/director-academico/programas"
+                            element={<ProgramasAcademicos />}
+                        />
 
                         {/* HU-028, HU-030, HU-031 - Crear, modificar y desactivar cursos */}
                         <Route

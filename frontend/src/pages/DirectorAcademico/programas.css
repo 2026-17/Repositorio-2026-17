@@ -1,0 +1,159 @@
+/* =========================================
+   Programas académicos: resumen, lista y asistente de creación.
+   Usa .panel, .filters, .dtable, .wizard, .review y los componentes del
+   sistema de diseño (src/styles/app.css); aquí solo lo propio.
+   ========================================= */
+
+/* ---------- Tarjetas de resumen (también filtran la lista) ---------- */
+.programa-resumen {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--space-3);
+    margin: 0 0 var(--space-5);
+    padding: 0;
+    list-style: none;
+}
+
+.programa-resumen__item {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-4);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--surface);
+    color: var(--ink);
+    text-align: left;
+    font: inherit;
+    cursor: pointer;
+    transition: border-color var(--duration-fast) ease, box-shadow var(--duration-fast) ease;
+}
+
+.programa-resumen__item:hover:not(.is-estatico) { border-color: var(--border-strong); box-shadow: var(--shadow-1); }
+.programa-resumen__item.is-activo { border: 2px solid var(--primary); padding: calc(var(--space-4) - 1px); background: var(--primary-soft); }
+.programa-resumen__item.is-estatico { cursor: default; }
+
+.programa-resumen__icono {
+    flex: none;
+    width: 40px;
+    height: 40px;
+    display: grid;
+    place-items: center;
+    border-radius: var(--radius-md);
+    background: var(--surface-sunken);
+    color: var(--ink-muted);
+}
+
+.programa-resumen__icono.is-warning { background: var(--warning-soft); color: var(--warning); }
+.is-activo .programa-resumen__icono { background: var(--surface); color: var(--primary); }
+
+.programa-resumen__texto { display: grid; min-width: 0; }
+.programa-resumen__texto b { font: 600 24px/30px var(--font-display); }
+.programa-resumen__texto span { font-size: 13px; line-height: 18px; color: var(--ink-muted); }
+
+/* ---------- Lista ---------- */
+.programa-filtros { align-items: flex-end; flex-wrap: wrap; }
+.programa-filtros .tabs { flex-wrap: wrap; }
+
+.programa-desc-corta {
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    max-width: 380px;
+    font-size: 13px;
+}
+
+.programa-plan-celda { display: grid; }
+.programa-plan-celda span { font-size: 13px; }
+
+.programa-inactivo .who b { color: var(--ink-muted); }
+
+/* ---------- Asistente ---------- */
+.programa-wizard { max-width: 820px; }
+.programa-wizard .form-alert { margin-bottom: var(--space-5); }
+
+.programa-codigo-input { text-transform: uppercase; letter-spacing: 0.04em; }
+
+.programa-codigo-extra {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    align-content: center;
+    gap: var(--space-2) var(--space-3);
+    padding-top: var(--space-5);
+}
+
+.programa-disponibilidad {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: calc(var(--space-4) * -1) 0 0;
+    font-size: 13px;
+    line-height: 18px;
+    color: var(--ink-muted);
+}
+
+.programa-codigo-extra .programa-disponibilidad { margin: 0; }
+.programa-disponibilidad.is-libre { color: var(--success); }
+.programa-disponibilidad.is-ocupado { color: var(--danger-strong); }
+
+.programa-girando { animation: programa-girar 1s linear infinite; }
+@keyframes programa-girar { to { transform: rotate(360deg); } }
+
+.programa-contador {
+    margin: calc(var(--space-4) * -1) 0 0;
+    text-align: right;
+    font-size: 12px;
+    color: var(--ink-subtle);
+    font-variant-numeric: tabular-nums;
+}
+
+.programa-opciones { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.programa-opciones .choice-main b { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+
+.programa-plan { margin-top: var(--space-5); }
+
+.programa-plan-preview {
+    display: flex;
+    gap: var(--space-3);
+    align-items: flex-start;
+    margin-top: var(--space-5);
+    padding: var(--space-4);
+    border: 1px dashed var(--border-strong);
+    border-radius: var(--radius-md);
+    background: var(--surface-raised);
+}
+
+.panel-body > .programa-plan-preview:first-child { margin-top: 0; }
+.programa-plan-preview > svg { flex: none; margin-top: 2px; color: var(--primary); }
+.programa-plan-preview div { display: grid; gap: 2px; font-size: 14px; }
+
+.programa-descripcion { white-space: pre-line; }
+
+/* ---------- Pantalla de éxito ---------- */
+.programa-recibo { display: grid; gap: var(--space-2); margin: var(--space-2) 0 0; text-align: left; }
+.programa-recibo div { display: flex; gap: var(--space-3); justify-content: space-between; }
+.programa-recibo dt { color: var(--ink-muted); }
+.programa-recibo dd { margin: 0; font-weight: 600; }
+
+.programa-exito-acciones {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--space-2);
+    margin-top: var(--space-3);
+}
+
+/* ---------- Pantallas angostas ---------- */
+@media (max-width: 900px) {
+    .programa-resumen { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 640px) {
+    .programa-opciones { grid-template-columns: 1fr; }
+    .programa-codigo-extra { padding-top: 0; margin-top: calc(var(--space-3) * -1); }
+    .programa-exito-acciones .sg-btn { flex: 1 1 100%; }
+    .programa-desc-corta { max-width: none; }
+}

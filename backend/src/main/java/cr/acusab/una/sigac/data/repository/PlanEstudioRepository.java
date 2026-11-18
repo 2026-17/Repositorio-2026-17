@@ -15,4 +15,12 @@ public interface PlanEstudioRepository
     );
 
     List<PlanEstudio> findByVigenteTrueOrderByNombreAsc();
+
+    // Gestión de programas: todas las versiones del plan de un programa.
+    List<PlanEstudio> findByIdProgramaOrderByFechaVigenciaDesdeDesc(Long idPrograma);
+
+    // La tabla exige código único y versión única por programa.
+    boolean existsByCodigo(String codigo);
+
+    boolean existsByIdProgramaAndVersionIgnoreCase(Long idPrograma, String version);
 }

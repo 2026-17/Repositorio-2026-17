@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 
@@ -46,6 +47,11 @@ public class PlanEstudio {
 
     @Column(name = "fecha_vigencia_hasta")
     private LocalDate fechaVigenciaHasta;
+
+    @NotNull
+    @ColumnDefault("70.00")
+    @Column(name = "nota_minima_aprobacion", nullable = false, precision = 5, scale = 2)
+    private BigDecimal notaMinimaAprobacion;
 
     @NotNull
     @ColumnDefault("1")
