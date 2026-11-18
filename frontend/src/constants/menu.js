@@ -5,6 +5,7 @@ import {
     ChartColumn,
     ClipboardList,
     GraduationCap,
+    Library,
     Music,
     UserPlus,
     Users,
@@ -51,6 +52,17 @@ export const MENU_POR_ROL = {
                     label: "Períodos académicos",
                     icon: CalendarDays,
                     descripcion: "Cree períodos con el botón \"Nuevo período\" y consulte o modifique las fechas y el estado de los existentes sin perder su información histórica.",
+                },
+            ],
+        },
+        {
+            titulo: "Programas",
+            items: [
+                {
+                    to: "/director-academico/programas",
+                    label: "Programas académicos",
+                    icon: Library,
+                    descripcion: "Cree programas de formación con el botón \"Nuevo programa\" junto con su plan de estudio, y modifique, active o desactive los existentes. No dependen de un período.",
                 },
             ],
         },

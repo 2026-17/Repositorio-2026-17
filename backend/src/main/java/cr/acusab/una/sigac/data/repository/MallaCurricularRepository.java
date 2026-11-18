@@ -81,4 +81,10 @@ public interface MallaCurricularRepository
     List<MallaCurricular> findByIdPlanEstudioInAndActivoTrue(
             Collection<Long> idsPlanEstudio
     );
+
+    /*
+     * Gestión de programas: cantidad de cursos activos en la malla de
+     * un plan de estudio (se muestra en el listado de programas).
+     */
+    long countByIdPlanEstudioAndActivoTrue(Long idPlanEstudio);
 }

@@ -169,6 +169,43 @@ public class SecurityConfig {
 
                         /*
                          * =====================================================
+                         * Gestión de programas académicos
+                         * Rol: DIRECTOR_ACADEMICO
+                         *
+                         * GET /programas (activos: selector de Crear curso y
+                         * Consulta de cursos del estudiante) sigue abierto a
+                         * cualquier usuario autenticado. Por eso aquí va
+                         * "/programas/*" y no "/programas/**", que también
+                         * atraparía "/programas".
+                         * =====================================================
+                         */
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/programas/*"
+                        )
+                        .hasRole("DIRECTOR_ACADEMICO")
+
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/programas",
+                                "/programas/*/planes"
+                        )
+                        .hasRole("DIRECTOR_ACADEMICO")
+
+                        .requestMatchers(
+                                HttpMethod.PUT,
+                                "/programas/*"
+                        )
+                        .hasRole("DIRECTOR_ACADEMICO")
+
+                        .requestMatchers(
+                                HttpMethod.PATCH,
+                                "/programas/*/estado"
+                        )
+                        .hasRole("DIRECTOR_ACADEMICO")
+
+                        /*
+                         * =====================================================
                          * Gestión de grupos
                          * Rol: DIRECTOR_ACADEMICO
                          * =====================================================

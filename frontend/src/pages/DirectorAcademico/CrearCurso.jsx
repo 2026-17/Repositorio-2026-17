@@ -25,12 +25,18 @@ const FORM_VACIO = {
  * HU-028 - Crear curso. Se abre dentro de la pantalla Cursos
  * (botón "Nuevo curso").
  */
-function CrearCurso({ onCancel, onSuccess }) {
+function CrearCurso({ onCancel, onSuccess, idProgramaInicial }) {
     const dialog = useDialog();
 
     const token = localStorage.getItem("token");
 
-    const [form, setForm] = useState(FORM_VACIO);
+    // idProgramaInicial: viene de «Crear un curso en este programa» (Programas académicos).
+    const [formInicial] = useState(() => ({
+        ...FORM_VACIO,
+        idPrograma: idProgramaInicial ? String(idProgramaInicial) : "",
+    }));
+
+    const [form, setForm] = useState(formInicial);
 
     const [programas, setProgramas] = useState([]);
     const [periodos, setPeriodos] = useState([]);
@@ -39,7 +45,7 @@ function CrearCurso({ onCancel, onSuccess }) {
     const [guardando, setGuardando] = useState(false);
 
     // Avisa al salir con datos escritos que no se han guardado
-    const hayCambios = formularioModificado(form, FORM_VACIO);
+    const hayCambios = formularioModificado(form, formInicial);
     const { confirmarDescarte, permitirSalida } = useAvisoCambiosSinGuardar(hayCambios);
 
     async function cancelar() {

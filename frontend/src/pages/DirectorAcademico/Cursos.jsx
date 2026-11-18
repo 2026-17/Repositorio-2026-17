@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Ban, BookOpen, Music2, Pencil, Plus, Search, X } from "lucide-react";
 import { API_URL } from "../../config/api";
 import "./cursos.css";
@@ -63,9 +64,25 @@ function Cursos() {
     const [categoria, setCategoria] = useState("Todas");
     const [pagina, setPagina] = useState(1);
 
-    const [formAbierto, setFormAbierto] = useState(false);
+    // «Crear un curso en este programa» (Programas académicos) llega con el
+    // programa elegido: el formulario de nuevo curso se abre ya con él.
+    const location = useLocation();
+    const navigate = useNavigate();
+    const [idProgramaInicial, setIdProgramaInicial] = useState(
+        () => location.state?.nuevoCursoIdPrograma ?? null
+    );
+
+    const [formAbierto, setFormAbierto] = useState(() => idProgramaInicial != null);
     const [idCursoEditando, setIdCursoEditando] = useState(null);
     const [desactivando, setDesactivando] = useState(false);
+
+    // Se limpia el estado de la navegación para que recargar la página no
+    // vuelva a abrir el formulario.
+    useEffect(() => {
+        if (location.state?.nuevoCursoIdPrograma != null) {
+            navigate(location.pathname, { replace: true, state: null });
+        }
+    }, [location, navigate]);
 
     useEffect(() => {
         let activo = true;
@@ -133,6 +150,7 @@ function Cursos() {
     }
 
     function abrirNuevo() {
+        setIdProgramaInicial(null);
         setIdCursoEditando(null);
         setFormAbierto(true);
         mostrarFormulario();
@@ -268,6 +286,8 @@ function Cursos() {
                         />
                     ) : (
                         <CrearCurso
+                            key={idProgramaInicial ?? "nuevo"}
+                            idProgramaInicial={idProgramaInicial}
                             onCancel={cerrarFormulario}
                             onSuccess={formularioGuardado}
                         />
