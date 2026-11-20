@@ -10,7 +10,12 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Optional;
 
+/*
+ * Un profesor no puede tener dos grupos (o espacios de instrumento) a la
+ * misma hora en períodos que se traslapan.
+ */
 @Service
 public class ValidacionHorarioProfesorService {
 
@@ -18,6 +23,14 @@ public class ValidacionHorarioProfesorService {
             Short diaSemana,
             LocalTime horaInicio,
             LocalTime horaFin
+    ) {
+    }
+
+    // Bloque propuesto que choca con el horario de otro grupo del profesor.
+    public record Conflicto(
+            BloqueHorario propuesto,
+            Grupo grupo,
+            HorarioGrupo horario
     ) {
     }
 
@@ -46,14 +59,52 @@ public class ValidacionHorarioProfesorService {
             );
         }
 
-        List<Grupo> gruposDelProfesor = grupoRepository.findGruposProfesorEnPeriodo(
+        Optional<Conflicto> conflicto = buscarConflicto(
                 idProfesor,
                 idPeriodo,
                 fechaInicioDestino,
-                fechaFinDestino
+                fechaFinDestino,
+                idGrupoExcluido,
+                horariosPropuestos
         );
 
-        List<Grupo> gruposComparables = gruposDelProfesor.stream()
+        if (conflicto.isPresent()) {
+            Grupo grupoConflicto = conflicto.get().grupo();
+
+            String detalleGrupo = grupoConflicto == null
+                    ? ""
+                    : " (grupo " + grupoConflicto.getCodigo() + ")";
+
+            throw new BusinessException(
+                    "Conflicto de horario: el profesor ya tiene un grupo asignado en ese horario"
+                            + detalleGrupo + "."
+            );
+        }
+    }
+
+    /*
+     * Igual que validarDisponibilidad, pero sin lanzar: devuelve el primer
+     * choque. Los espacios de instrumento lo usan para informar el motivo
+     * de cada bloque de un lote.
+     */
+    public Optional<Conflicto> buscarConflicto(
+            Long idProfesor,
+            Long idPeriodo,
+            LocalDate fechaInicioDestino,
+            LocalDate fechaFinDestino,
+            Long idGrupoExcluido,
+            List<BloqueHorario> horariosPropuestos
+    ) {
+        if (horariosPropuestos == null || horariosPropuestos.isEmpty()) {
+            return Optional.empty();
+        }
+
+        List<Grupo> gruposComparables = grupoRepository.findGruposProfesorEnPeriodo(
+                        idProfesor,
+                        idPeriodo,
+                        fechaInicioDestino,
+                        fechaFinDestino
+                ).stream()
                 .filter(grupo -> idGrupoExcluido == null
                         || !grupo.getId().equals(idGrupoExcluido))
                 .toList();
@@ -63,7 +114,7 @@ public class ValidacionHorarioProfesorService {
                 .toList();
 
         if (idsGrupos.isEmpty()) {
-            return;
+            return Optional.empty();
         }
 
         List<HorarioGrupo> horariosOcupados =
@@ -81,16 +132,11 @@ public class ValidacionHorarioProfesorService {
                             .findFirst()
                             .orElse(null);
 
-                    String detalleGrupo = grupoConflicto == null
-                            ? ""
-                            : " (grupo " + grupoConflicto.getCodigo() + ")";
-
-                    throw new BusinessException(
-                            "Conflicto de horario: el profesor ya tiene un grupo asignado en ese horario"
-                                    + detalleGrupo + "."
-                    );
+                    return Optional.of(new Conflicto(propuesto, grupoConflicto, ocupado));
                 }
             }
         }
+
+        return Optional.empty();
     }
 }

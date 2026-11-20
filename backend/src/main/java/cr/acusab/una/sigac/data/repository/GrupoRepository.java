@@ -34,6 +34,9 @@ public interface GrupoRepository extends JpaRepository<Grupo, Long> {
     // Modificar grupo: el código no puede repetirse con otro grupo del período.
     boolean existsByIdPeriodoAndCodigoAndIdNot(Long idPeriodo, String codigo, Long id);
 
+    // Eliminar profesor: no se permite si tiene espacios de instrumento (quedarían sin profesor).
+    boolean existsByIdProfesorAndTipoGrupo(Long idProfesor, String tipoGrupo);
+
     // Gestión de grupos: listado completo, del período más reciente al más antiguo.
     List<Grupo> findAllByOrderByIdPeriodoDescCodigoAsc();
 
@@ -109,5 +112,24 @@ public interface GrupoRepository extends JpaRepository<Grupo, Long> {
     @Query("SELECT g FROM Grupo g WHERE g.id IN :ids ORDER BY g.id")
     List<Grupo> findAllByIdParaActualizar(
             @Param("ids") Collection<Long> ids
+    );
+
+    /*
+     * Espacios de instrumento - Agenda: espacios de un período, filtrados
+     * opcionalmente por instrumento y profesor (un filtro nulo no filtra).
+     * Usa idx_grupos_espacios (id_periodo, id_profesor, id_instrumento).
+     */
+    @Query("""
+            SELECT g FROM Grupo g
+            WHERE g.tipoGrupo = 'ESPACIO_INSTRUMENTO'
+              AND (:idPeriodo IS NULL OR g.idPeriodo = :idPeriodo)
+              AND (:idProfesor IS NULL OR g.idProfesor = :idProfesor)
+              AND (:idInstrumento IS NULL OR g.idInstrumento = :idInstrumento)
+            ORDER BY g.idProfesor, g.id
+            """)
+    List<Grupo> findEspacios(
+            @Param("idPeriodo") Long idPeriodo,
+            @Param("idInstrumento") Integer idInstrumento,
+            @Param("idProfesor") Long idProfesor
     );
 }

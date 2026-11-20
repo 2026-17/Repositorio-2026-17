@@ -24,6 +24,17 @@ public class CursoEdicionResponseDTO {
     private Long idPlanEstudio;
     private Short nivel;
 
+    // Se cursa en espacios de instrumento (Instrumento I a XIV).
+    private Boolean esCursoInstrumento;
+
+    public Boolean getEsCursoInstrumento() {
+        return esCursoInstrumento;
+    }
+
+    public void setEsCursoInstrumento(Boolean esCursoInstrumento) {
+        this.esCursoInstrumento = esCursoInstrumento;
+    }
+
     public Long getIdCurso() {
         return idCurso;
     }

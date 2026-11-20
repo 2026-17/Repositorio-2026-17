@@ -1,6 +1,7 @@
 import {
     Bell,
     BookOpen,
+    CalendarClock,
     CalendarDays,
     ChartColumn,
     ClipboardList,
@@ -80,6 +81,12 @@ export const MENU_POR_ROL = {
                     label: "Grupos",
                     icon: Users,
                     descripcion: "Abra grupos de un curso en un período con el botón \"Nuevo grupo\" (el código se sugiere solo) y consulte, modifique o elimine los existentes. Los que tienen matrículas se cancelan en lugar de eliminarse.",
+                },
+                {
+                    to: "/director-academico/espacios-instrumento",
+                    label: "Espacios de instrumento",
+                    icon: CalendarClock,
+                    descripcion: "Cree con el botón \"Crear espacios\" las lecciones individuales semanales de cada profesor (cupo 1, sin nivel) y vea en su agenda cuáles ya tomó un estudiante y con qué nivel.",
                 },
                 {
                     to: "/director-academico/asignar-profesores",

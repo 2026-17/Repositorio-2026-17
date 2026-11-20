@@ -30,6 +30,10 @@ import cr.acusab.una.sigac.data.repository.PeriodoAcademicoRepository;
 import cr.acusab.una.sigac.data.repository.PlanEstudioRepository;
 import cr.acusab.una.sigac.data.repository.ProfesorRepository;
 import cr.acusab.una.sigac.data.repository.RequisitosCursoRepository;
+import cr.acusab.una.sigac.data.repository.CursoReconocidoRepository;
+import cr.acusab.una.sigac.data.repository.EstudianteInstrumentoRepository;
+import cr.acusab.una.sigac.data.repository.InstrumentoRepository;
+import cr.acusab.una.sigac.logic.service.AvanceInstrumentoService;
 
 import cr.acusab.una.sigac.logic.exception.BusinessException;
 import cr.acusab.una.sigac.logic.exception.MatriculaInvalidaException;
@@ -140,7 +144,18 @@ class MatriculaEstudianteServiceTest {
                 matriculaRepository,
                 detalleRepository,
                 estadoMatriculaRepository,
-                jdbcTemplate
+                jdbcTemplate,
+                // Avance real sobre los mismos mocks: los aprobados salen de
+                // detalleRepository.findCursosAprobados, como antes.
+                new AvanceInstrumentoService(
+                        detalleRepository,
+                        mock(CursoReconocidoRepository.class),
+                        mallaRepository,
+                        cursoRepository
+                ),
+                // Sin instrumentos vigentes: estas pruebas no tienen lecciones.
+                mock(EstudianteInstrumentoRepository.class),
+                mock(InstrumentoRepository.class)
         );
 
         Authentication authentication = mock(Authentication.class);

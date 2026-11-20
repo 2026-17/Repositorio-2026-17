@@ -78,6 +78,24 @@ class GrupoServiceTest {
     }
 
     @Test
+    void crear_rechazaCursoDeInstrumento() {
+        Curso instrumentoV = new Curso();
+        instrumentoV.setId(3L);
+        instrumentoV.setNombre("Instrumento V");
+        instrumentoV.setActivo(true);
+        instrumentoV.setEsCursoInstrumento(true);
+        when(cursoRepository.findById(3L)).thenReturn(Optional.of(instrumentoV));
+
+        BusinessException error = assertThrows(
+                BusinessException.class,
+                () -> service.crear(request(LocalTime.of(8, 0), LocalTime.of(9, 0)))
+        );
+
+        assertTrue(error.getMessage().contains("Espacios de instrumento"));
+        verify(grupoRepository, never()).save(any(Grupo.class));
+    }
+
+    @Test
     void crear_rechazaHorarioEnLaMadrugada() {
         BusinessException error = assertThrows(
                 BusinessException.class,

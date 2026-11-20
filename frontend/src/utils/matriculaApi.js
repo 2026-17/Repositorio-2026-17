@@ -49,14 +49,16 @@ export async function consultarMiHorario(token, idPeriodo) {
     return leerRespuesta(response, "No fue posible consultar su horario.");
 }
 
-export async function confirmarMatricula(token, idsGrupo) {
+// idsEspacio: un espacio de instrumento por instrumento vigente (el nivel lo
+// calcula el servidor).
+export async function confirmarMatricula(token, idsGrupo, idsEspacio = []) {
     const response = await fetch(`${API_URL}/matriculas-estudiante/confirmar`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ idsGrupo }),
+        body: JSON.stringify({ idsGrupo, idsEspacio }),
     });
 
     return leerRespuesta(response, "No fue posible registrar la matrícula.");

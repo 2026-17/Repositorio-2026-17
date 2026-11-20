@@ -48,6 +48,16 @@ public class EstudiantesInstrumento {
     @Column(name = "observaciones", length = 500)
     private String observaciones;
 
+    /*
+     * Instrumento del plan: el que cuenta para graduarse. Los demás
+     * vigentes son "extras" (solo avanzan en sus niveles). Exactamente uno
+     * por estudiante con instrumentos vigentes.
+     */
+    @NotNull
+    @ColumnDefault("0")
+    @Column(name = "es_principal", nullable = false)
+    private Boolean esPrincipal = false;
+
     @NotNull
     @ColumnDefault("CURRENT_TIMESTAMP(6)")
     @Column(name = "creado_en", nullable = false)

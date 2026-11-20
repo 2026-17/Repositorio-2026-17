@@ -17,5 +17,7 @@ public record InstrumentoEstudianteResponse(
         LocalDate fechaInicio,
         LocalDate fechaFin,
         boolean vigente,
-        String observaciones
+        String observaciones,
+        // Instrumento del plan (cuenta para graduarse); los demás vigentes son extras.
+        boolean esPrincipal
 ) {}

@@ -15,6 +15,10 @@ public class CursoResponseDTO {
     // Sin datos de grupo: la oferta por período se abre en Grupos.
 
 
+    private Boolean esCursoInstrumento;
+    public Boolean getEsCursoInstrumento() { return esCursoInstrumento; }
+    public void setEsCursoInstrumento(Boolean value) { this.esCursoInstrumento = value; }
+
     // getters y setters
     public Long getIdCurso() { return idCurso; }
     public void setIdCurso(Long idCurso) { this.idCurso = idCurso; }

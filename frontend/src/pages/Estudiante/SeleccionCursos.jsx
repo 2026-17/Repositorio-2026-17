@@ -8,13 +8,23 @@ import PageHead from "../../components/ui/PageHead";
 import StatusBadge from "../../components/ui/StatusBadge";
 import { confirmarMatricula, consultarMiOferta } from "../../utils/matriculaApi";
 import {
+    espacioChocaCon,
     formatearHorarios,
     mapaAprobados,
     tieneBloqueoEstatico,
     validarSeleccion,
 } from "../../utils/matricula";
+import LeccionesInstrumento from "./LeccionesInstrumento";
 import "./seleccionCursos.css";
 import { mostrarIdentificacion } from "../../utils/cedula";
+
+// "Choca con «Solfeo II» (Lun 5:00 – 6:20 p. m.)" o con la lección del otro instrumento.
+function motivoChoque(otro) {
+    const que = otro.espacioInstrumento
+        ? `su lección de ${otro.nombreInstrumento}`
+        : `«${otro.nombreCurso}»`;
+    return `Choca con ${que} (${formatearHorarios(otro.horarios)}).`;
+}
 
 // Historia 2 - Matricular cursos previamente autorizados.
 //
@@ -43,6 +53,8 @@ function SeleccionCursos() {
     const [errorCarga, setErrorCarga] = useState("");
 
     const [seleccionados, setSeleccionados] = useState([]);
+    // Espacio de instrumento elegido por instrumento: { [idInstrumento]: idGrupo }.
+    const [espacios, setEspacios] = useState({});
     const [enviando, setEnviando] = useState(false);
     const [confirmacion, setConfirmacion] = useState(null);
 
@@ -52,8 +64,16 @@ function SeleccionCursos() {
 
         // Si la oferta cambió (cupos agotados, curso ya matriculado), se
         // descartan los grupos que dejaron de estar disponibles.
-        const idsVigentes = new Set(respuesta.oferta.map((g) => g.idGrupo));
+        const idsVigentes = new Set((respuesta.oferta ?? []).map((g) => g.idGrupo));
         setSeleccionados((prev) => prev.filter((id) => idsVigentes.has(id)));
+
+        // Igual con los espacios que otro estudiante tomó mientras tanto.
+        const libres = new Set((respuesta.leccionesInstrumento ?? [])
+            .flatMap((l) => l.espaciosLibres ?? [])
+            .map((e) => e.idGrupo));
+        setEspacios((prev) => Object.fromEntries(
+            Object.entries(prev).filter(([, idGrupo]) => libres.has(idGrupo))
+        ));
     }
 
     // Carga inicial: es la única que muestra "Cargando…".
@@ -114,18 +134,66 @@ function SeleccionCursos() {
         [datos, seleccionados]
     );
 
+    const lecciones = useMemo(() => datos?.leccionesInstrumento ?? [], [datos]);
+
+    /*
+     * Lecciones de instrumento. Un espacio elegido sigue valiendo mientras
+     * no choque con un curso elegido o ya matriculado, ni con la lección
+     * (válida) de otro instrumento. Los demás espacios muestran el motivo
+     * por el que no se pueden elegir.
+     */
+    const { espaciosEfectivos, motivosEspacio } = useMemo(() => {
+        const fijos = [...gruposSeleccionados, ...(datos?.matriculados ?? [])];
+        const efectivos = {};
+        const elegidosValidos = [];
+
+        lecciones.forEach((leccion) => {
+            const espacio = (leccion.espaciosLibres ?? []).find((e) => e.idGrupo === espacios[leccion.idInstrumento]);
+            if (espacio && !espacioChocaCon(espacio, [...fijos, ...elegidosValidos])) {
+                efectivos[leccion.idInstrumento] = espacio.idGrupo;
+                elegidosValidos.push(espacio);
+            }
+        });
+
+        const motivos = {};
+        lecciones.forEach((leccion) => {
+            const otrasLecciones = elegidosValidos.filter((e) => e.idInstrumento !== leccion.idInstrumento);
+            (leccion.espaciosLibres ?? []).forEach((espacio) => {
+                const choque = espacioChocaCon(espacio, [...fijos, ...otrasLecciones]);
+                if (choque) motivos[espacio.idGrupo] = motivoChoque(choque);
+            });
+        });
+
+        return { espaciosEfectivos: efectivos, motivosEspacio: motivos };
+    }, [lecciones, espacios, gruposSeleccionados, datos]);
+
+    const espaciosElegidos = useMemo(
+        () => lecciones
+            .flatMap((l) => l.espaciosLibres ?? [])
+            .filter((e) => Object.values(espaciosEfectivos).includes(e.idGrupo)),
+        [lecciones, espaciosEfectivos]
+    );
+
+    // Lecciones que todavía necesitan su espacio para poder confirmar.
+    const leccionesPendientes = lecciones.filter((l) => l.requerida && !espaciosEfectivos[l.idInstrumento]);
+
     const erroresPorGrupo = useMemo(() => {
         if (!datos) return {};
         return validarSeleccion({
             requisitosPorCurso: datos.requisitosPorCurso,
             aprobados,
             seleccionados: gruposSeleccionados,
-            gruposYaMatriculados: datos.matriculados,
+            gruposYaMatriculados: [...datos.matriculados, ...espaciosElegidos],
         });
-    }, [datos, aprobados, gruposSeleccionados]);
+    }, [datos, aprobados, gruposSeleccionados, espaciosElegidos]);
 
     const hayValidacionesPendientes = Object.keys(erroresPorGrupo).length > 0;
-    const puedeConfirmar = seleccionados.length > 0 && !hayValidacionesPendientes && !enviando;
+    const haySeleccion = seleccionados.length > 0 || espaciosElegidos.length > 0;
+    const puedeConfirmar = haySeleccion && !hayValidacionesPendientes && leccionesPendientes.length === 0 && !enviando;
+
+    function elegirEspacio(idInstrumento, idGrupo) {
+        setEspacios((prev) => ({ ...prev, [idInstrumento]: idGrupo }));
+    }
 
     function toggleSeleccion(grupo) {
         if (bloqueosEstaticos[grupo.idGrupo]) return;
@@ -144,9 +212,14 @@ function SeleccionCursos() {
             "Revise su selección. Al confirmar quedará matriculado en estos cursos y se descontará un cupo en cada grupo.",
             {
                 titulo: "Confirmar matrícula",
-                lista: gruposSeleccionados.map(
-                    (g) => `${g.nombreCurso} (${g.codigo}) · ${formatearHorarios(g.horarios)} · Profesor: ${textoProfesor(g)}`
-                ),
+                lista: [
+                    ...espaciosElegidos.map(
+                        (e) => `Lección individual · ${e.nombreCurso} · ${formatearHorarios(e.horarios)} · Profesor: ${textoProfesor(e)}`
+                    ),
+                    ...gruposSeleccionados.map(
+                        (g) => `${g.nombreCurso} (${g.codigo}) · ${formatearHorarios(g.horarios)} · Profesor: ${textoProfesor(g)}`
+                    ),
+                ],
                 textoAceptar: "Confirmar matrícula",
             }
         );
@@ -156,9 +229,10 @@ function SeleccionCursos() {
         setEnviando(true);
 
         try {
-            const resultado = await confirmarMatricula(token, seleccionados);
+            const resultado = await confirmarMatricula(token, seleccionados, espaciosElegidos.map((e) => e.idGrupo));
             setConfirmacion(resultado);
             setSeleccionados([]);
+            setEspacios({});
             await recargarOferta();
         } catch (error) {
             if (error.errores?.length > 0) {
@@ -299,7 +373,10 @@ function SeleccionCursos() {
                                             <tbody>
                                                 {datos.matriculados.map((grupo) => (
                                                     <tr key={grupo.idGrupo}>
-                                                        <td className="c-main"><b>{grupo.nombreCurso}</b><span className="sub">{grupo.codigo}</span></td>
+                                                        <td className="c-main">
+                                                            <b>{grupo.nombreCurso}</b>
+                                                            <span className="sub">{grupo.espacioInstrumento ? `Lección individual · ${grupo.nombreInstrumento}` : grupo.codigo}</span>
+                                                        </td>
                                                         <td data-label="Horario">{formatearHorarios(grupo.horarios)}</td>
                                                         <td data-label="Profesor">{textoProfesor(grupo)}</td>
                                                     </tr>
@@ -310,11 +387,21 @@ function SeleccionCursos() {
                                 </section>
                             )}
 
+                            <LeccionesInstrumento
+                                lecciones={lecciones}
+                                efectivos={espaciosEfectivos}
+                                motivos={motivosEspacio}
+                                onElegir={elegirEspacio}
+                            />
+
                             <section className="panel bloque">
                                 <div className="panel-head">
                                     <div>
-                                        <h2>Cursos disponibles</h2>
-                                        <p className="panel-head-sub">Los grupos sin cupo o con requisitos pendientes aparecen deshabilitados.</p>
+                                        <h2>{lecciones.length > 0 ? "2. Otros cursos de su plan" : "Cursos disponibles"}</h2>
+                                        <p className="panel-head-sub">
+                                            Los grupos sin cupo o con requisitos pendientes aparecen deshabilitados.
+                                            {lecciones.length > 0 && " Si un curso choca con su lección de instrumento, el sistema se lo indica antes de confirmar."}
+                                        </p>
                                     </div>
                                 </div>
 
@@ -373,10 +460,19 @@ function SeleccionCursos() {
                             </section>
 
                             <div className="panel sticky-save bloque">
-                                <span className={hayValidacionesPendientes ? "dirty" : "muted conteo-seleccion"} aria-live="polite">
-                                    {hayValidacionesPendientes && <i aria-hidden="true" />}
-                                    {seleccionados.length === 1 ? "1 curso seleccionado" : `${seleccionados.length} cursos seleccionados`}
+                                <span
+                                    id="motivo-confirmar"
+                                    className={hayValidacionesPendientes || leccionesPendientes.length > 0 ? "dirty" : "muted conteo-seleccion"}
+                                    aria-live="polite"
+                                >
+                                    {(hayValidacionesPendientes || leccionesPendientes.length > 0) && <i aria-hidden="true" />}
+                                    {(() => {
+                                        const total = seleccionados.length + espaciosElegidos.length;
+                                        return total === 1 ? "1 curso seleccionado" : `${total} cursos seleccionados`;
+                                    })()}
                                     {hayValidacionesPendientes && " — corrija las validaciones marcadas"}
+                                    {!hayValidacionesPendientes && leccionesPendientes.length > 0
+                                        && ` — elija el espacio de su lección de ${leccionesPendientes.map((l) => l.nombreInstrumento).join(" y ")} para continuar`}
                                 </span>
                                 <button
                                     type="button"
@@ -384,6 +480,7 @@ function SeleccionCursos() {
                                     disabled={!puedeConfirmar}
                                     onClick={handleConfirmar}
                                     aria-busy={enviando || undefined}
+                                    aria-describedby="motivo-confirmar"
                                 >
                                     {enviando ? <span className="sg-spinner" aria-hidden="true" /> : <Check size={18} strokeWidth={1.75} aria-hidden="true" />}
                                     {enviando ? "Registrando…" : "Confirmar matrícula"}

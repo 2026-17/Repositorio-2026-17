@@ -7,9 +7,15 @@ import EmptyState from "../../components/ui/EmptyState";
 import Field from "../../components/ui/Field";
 import PageHead from "../../components/ui/PageHead";
 import StatusBadge from "../../components/ui/StatusBadge";
+import { hora12, rangoHoras12 } from "../../utils/horas";
 import { formatearHorarios } from "../../utils/matricula";
 import { consultarMiHorario } from "../../utils/matriculaApi";
 import "./miHorario.css";
+
+// Un espacio de instrumento se distingue de un grupo: es una lección individual.
+function etiquetaLeccion(clase) {
+    return clase.espacioInstrumento ? `Lección individual · ${clase.nombreInstrumento ?? "Instrumento"}` : null;
+}
 
 // Horario semanal del estudiante: los cursos que tiene matriculados en un
 // período, dibujados en una cuadrícula de lunes a viernes (sábado y
@@ -250,7 +256,7 @@ function MiHorario() {
                                         className="mi-horario__hora"
                                         style={{ gridColumn: 1, gridRow: `${filaDe(m, Math.floor)} / span ${60 / MINUTOS_FILA}` }}
                                     >
-                                        {textoHora(m)}
+                                        {hora12(textoHora(m))}
                                     </div>
                                 ))}
 
@@ -272,10 +278,11 @@ function MiHorario() {
                                                 gridColumn: columna,
                                                 gridRow: `${filaDe(b.inicio, Math.floor)} / ${filaDe(b.fin, Math.ceil)}`,
                                             }}
-                                            title={`${b.clase.nombreCurso} · ${textoHora(b.inicio)}-${textoHora(b.fin)}`}
+                                            title={`${b.clase.nombreCurso} · ${rangoHoras12(textoHora(b.inicio), textoHora(b.fin))}`}
                                         >
                                             <b>{b.clase.nombreCurso}</b>
-                                            <span>{textoHora(b.inicio)}–{textoHora(b.fin)}</span>
+                                            {etiquetaLeccion(b.clase) && <span className="mi-horario__leccion">{etiquetaLeccion(b.clase)}</span>}
+                                            <span>{rangoHoras12(textoHora(b.inicio), textoHora(b.fin))}</span>
                                             {b.aula && <span>{b.aula}</span>}
                                         </div>
                                     );
@@ -301,9 +308,12 @@ function MiHorario() {
                                             {delDia.map((b) => (
                                                 <li key={b.clave} className={`tono-${tonoPorGrupo[b.clase.idGrupo]}`}>
                                                     <b>{b.clase.nombreCurso}</b>
+                                                    {etiquetaLeccion(b.clase) && (
+                                                        <span className="mi-horario__leccion">{etiquetaLeccion(b.clase)}</span>
+                                                    )}
                                                     <span>
                                                         <Clock size={14} strokeWidth={1.75} aria-hidden="true" />
-                                                        {textoHora(b.inicio)}–{textoHora(b.fin)}
+                                                        {rangoHoras12(textoHora(b.inicio), textoHora(b.fin))}
                                                     </span>
                                                     {b.aula && (
                                                         <span>
@@ -357,7 +367,11 @@ function MiHorario() {
                                                 </div>
                                             </div>
                                         </td>
-                                        <td data-label="Grupo">{clase.codigo}</td>
+                                        <td data-label="Grupo">
+                                            {etiquetaLeccion(clase)
+                                                ? <StatusBadge tone="primary" icon={null}>{etiquetaLeccion(clase)}</StatusBadge>
+                                                : clase.codigo}
+                                        </td>
                                         <td data-label="Horario">{formatearHorarios(clase.horarios)}</td>
                                         <td data-label="Aula">{clase.aula || "—"}</td>
                                         <td data-label="Profesor">{clase.profesor ?? "Por definir"}</td>

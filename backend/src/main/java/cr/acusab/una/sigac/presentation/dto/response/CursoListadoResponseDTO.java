@@ -26,6 +26,12 @@ public class CursoListadoResponseDTO {
     private String docente;
     private Short cupoMaximo;
 
+    // Se cursa en espacios de instrumento: no aparece en Crear grupo.
+    private Boolean esCursoInstrumento;
+
+    public Boolean getEsCursoInstrumento() { return esCursoInstrumento; }
+    public void setEsCursoInstrumento(Boolean esCursoInstrumento) { this.esCursoInstrumento = esCursoInstrumento; }
+
     public Long getIdCurso() { return idCurso; }
     public void setIdCurso(Long idCurso) { this.idCurso = idCurso; }
 

@@ -134,8 +134,10 @@ public class GrupoService {
     @Transactional(readOnly = true)
     public List<GrupoGestionResponse> listar(Long idPeriodo, Long idCurso) {
 
+        // Los espacios de instrumento tienen su propia pantalla.
         List<Grupo> grupos = grupoRepository.findAllByOrderByIdPeriodoDescCodigoAsc()
                 .stream()
+                .filter(g -> !g.esEspacioInstrumento())
                 .filter(g -> idPeriodo == null || idPeriodo.equals(g.getIdPeriodo()))
                 .filter(g -> idCurso == null || idCurso.equals(g.getIdCurso()))
                 .toList();
@@ -196,6 +198,7 @@ public class GrupoService {
     public GrupoGestionResponse actualizar(Long idGrupo, GrupoRequestDTO request) {
 
         Grupo grupo = buscarGrupoOLanzarError(idGrupo);
+        rechazarEspacio(grupo);
 
         if (ESTADOS_GRUPO_FINALES.contains(grupo.getEstado())) {
             throw new BusinessException(
@@ -231,6 +234,10 @@ public class GrupoService {
 
         if (cambiaCurso && !Boolean.TRUE.equals(curso.getActivo())) {
             throw new BusinessException("El curso seleccionado se encuentra inactivo.");
+        }
+
+        if (cambiaCurso) {
+            rechazarCursoInstrumento(curso);
         }
 
         // 3. Período: si cambia, no puede estar cerrado ni cancelado.
@@ -332,6 +339,7 @@ public class GrupoService {
     public void eliminar(Long idGrupo) {
 
         Grupo grupo = buscarGrupoOLanzarError(idGrupo);
+        rechazarEspacio(grupo);
         List<Long> ids = List.of(idGrupo);
 
         if (contar(matriculaDetalleRepository.contarDetallesPorGrupo(ids)).getOrDefault(idGrupo, 0L) > 0) {
@@ -353,6 +361,28 @@ public class GrupoService {
         grupoRepository.saveAndFlush(grupo);
 
         grupoRepository.delete(grupo);
+    }
+
+    // Los espacios de instrumento se gestionan en su propia pantalla.
+    private static void rechazarEspacio(Grupo grupo) {
+        if (grupo.esEspacioInstrumento()) {
+            throw new BusinessException(
+                    "Ese grupo es un espacio de instrumento: modifíquelo o elimínelo desde «Espacios de instrumento»."
+            );
+        }
+    }
+
+    /*
+     * Instrumento I a XIV no se abren como grupos: cada estudiante lleva su
+     * nivel en un espacio individual de su profesor.
+     */
+    private static void rechazarCursoInstrumento(Curso curso) {
+        if (Boolean.TRUE.equals(curso.getEsCursoInstrumento())) {
+            throw new BusinessException(
+                    "«" + curso.getNombre() + "» es un curso de instrumento: no se abre como grupo. "
+                            + "Cree los espacios del profesor en «Espacios de instrumento»."
+            );
+        }
     }
 
     private Grupo buscarGrupoOLanzarError(Long idGrupo) {
@@ -382,7 +412,7 @@ public class GrupoService {
         List<Long> ids = grupos.stream().map(Grupo::getId).toList();
 
         Map<Long, Curso> cursos = new HashMap<>();
-        cursoRepository.findAllById(grupos.stream().map(Grupo::getIdCurso).distinct().toList())
+        cursoRepository.findAllById(grupos.stream().map(Grupo::getIdCurso).filter(Objects::nonNull).distinct().toList())
                 .forEach(c -> cursos.put(c.getId(), c));
 
         Map<Long, PeriodoAcademico> periodos = new HashMap<>();
@@ -525,6 +555,9 @@ public class GrupoService {
                     "El curso seleccionado se encuentra inactivo."
             );
         }
+
+        // 1.1 Los cursos de instrumento van en espacios, no en grupos.
+        rechazarCursoInstrumento(curso);
 
         // 2. El período debe existir y no estar cerrado ni cancelado.
         PeriodoAcademico periodo = periodoAcademicoRepository

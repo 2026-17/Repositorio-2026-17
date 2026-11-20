@@ -21,6 +21,7 @@ import Estudiantes from "./pages/AdminSis/Estudiantes";
 
 import Cursos from "./pages/DirectorAcademico/Cursos";
 import Grupos from "./pages/DirectorAcademico/Grupos";
+import EspaciosInstrumento from "./pages/DirectorAcademico/EspaciosInstrumento";
 import AsignarProfesores from "./pages/DirectorAcademico/AsignarProfesores";
 import AsignarInstrumento from "./pages/Comun/AsignarInstrumento.jsx";
 import PeriodosAcademicos from "./pages/DirectorAcademico/PeriodosAcademicos";
@@ -168,6 +169,12 @@ const router = createBrowserRouter(
                         <Route
                             path="/director-academico/grupos/crear"
                             element={<Navigate to="/director-academico/grupos" replace state={{ nuevoGrupo: true }} />}
+                        />
+
+                        {/* Espacios de instrumento: agenda del profesor y crear espacios */}
+                        <Route
+                            path="/director-academico/espacios-instrumento"
+                            element={<EspaciosInstrumento />}
                         />
 
                         {/* HU-014 - Asignar profesores a cursos y grupos */}

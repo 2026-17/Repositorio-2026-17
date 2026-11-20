@@ -1,4 +1,5 @@
 import RequisitosCursoOpcionales from "./RequisitosCursoOpcionales";
+import CasillaCursoInstrumento from "./CasillaCursoInstrumento";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { API_URL } from "../../config/api";
@@ -21,6 +22,7 @@ const FORM_VACIO = {
     horasTotales: "",
     idPrograma: "",
     nivel: "",
+    esCursoInstrumento: false,
 };
 
 /*
@@ -224,6 +226,7 @@ function CrearCurso({ onCancel, onSuccess, idProgramaInicial }) {
             horasTotales: Number(form.horasTotales),
             idPrograma: Number(form.idPrograma),
             nivel: Number(form.nivel),
+            esCursoInstrumento: form.esCursoInstrumento,
             requisitos: form.requisitos,
         };
 
@@ -361,6 +364,11 @@ function CrearCurso({ onCancel, onSuccess, idProgramaInicial }) {
                         <Field id="nivel" label="Nivel académico" error={errores.nivel}>
                             <input id="nivel" name="nivel" type="number" className="sg-input" min="1" max="999" step="1" inputMode="numeric" value={form.nivel} onChange={handleChange} placeholder="Ej. 1" {...aria("nivel")} />
                         </Field>
+                        <CasillaCursoInstrumento
+                            checked={form.esCursoInstrumento}
+                            onChange={(valor) => setForm((prev) => ({ ...prev, esCursoInstrumento: valor }))}
+                            disabled={guardando}
+                        />
                     </div>
                 </section>
 

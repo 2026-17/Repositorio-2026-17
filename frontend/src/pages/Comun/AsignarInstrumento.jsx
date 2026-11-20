@@ -13,8 +13,10 @@ import { useDialog } from "../../components/dialog/useDialog";
 import { lanzarError, mensajeDeExcepcion } from "../../utils/api";
 import { mostrarIdentificacion } from "../../utils/cedula";
 import { limpiarIdentificacion } from "../../utils/validaciones";
+import { ROLES } from "../../constants/roles";
+import AvanceInstrumentos from "./AvanceInstrumentos";
 
-const initialForm = { idInstrumento: "", idProfesor: "", observaciones: "" };
+const initialForm = { idInstrumento: "", idProfesor: "", observaciones: "", esPrincipal: false };
 
 function formatDate(iso) {
     if (!iso) return "—";
@@ -51,6 +53,12 @@ export default function AsignarInstrumento({
     const [buscando, setBuscando] = useState(false);
     const [saving, setSaving] = useState(false);
     const [deshabilitandoId, setDeshabilitandoId] = useState(null);
+    const [marcandoId, setMarcandoId] = useState(null);
+    // Cambia cada vez que cambian los instrumentos: recarga el avance.
+    const [versionInstrumentos, setVersionInstrumentos] = useState(0);
+
+    // El nivel de ingreso solo lo registra la dirección académica.
+    const esDirector = localStorage.getItem("rol") === ROLES.DIRECTOR_ACADEMICO;
 
     const authHeaders = useCallback((json = false) => {
         const token = localStorage.getItem("token");
@@ -100,6 +108,7 @@ export default function AsignarInstrumento({
         }
         setVigentes(await vigentesRes.json());
         setHistorial(await historialRes.json());
+        setVersionInstrumentos(n => n + 1);
     }, [authHeaders]);
 
     const buscarEstudiante = async event => {
@@ -166,6 +175,8 @@ export default function AsignarInstrumento({
             idInstrumento: Number(form.idInstrumento),
             ...(conProfesor ? { idProfesor: form.idProfesor ? Number(form.idProfesor) : null } : {}),
             observaciones: form.observaciones.trim() || null,
+            // El primero siempre queda como del plan (lo decide el servidor).
+            esPrincipal: vigentes.length === 0 || form.esPrincipal,
         };
 
         try {
@@ -202,6 +213,29 @@ export default function AsignarInstrumento({
             dialog.error(e.message);
         } finally {
             setDeshabilitandoId(null);
+        }
+    };
+
+    // El instrumento del plan es el que cuenta para graduarse; el anterior pasa a extra.
+    const marcarDelPlan = async vigente => {
+        const acepta = await dialog.confirmar(
+            `${vigente.nombreInstrumento} pasará a ser el instrumento del plan (el que cuenta para graduarse). El actual quedará como instrumento extra y sigue vigente.`,
+            { titulo: "Cambiar el instrumento del plan", textoAceptar: "Cambiar" }
+        );
+        if (!acepta) return;
+
+        setMarcandoId(vigente.idEstudianteInstrumento);
+        try {
+            const response = await fetch(
+                `${API_URL}/estudiantes/${idEstudiante}/instrumentos/${vigente.idEstudianteInstrumento}/del-plan`,
+                { method: "PUT", headers: authHeaders(true) }
+            );
+            if (!response.ok) await lanzarError(response, "No fue posible cambiar el instrumento del plan.");
+            await cargarInstrumentosEstudiante(idEstudiante);
+        } catch (e) {
+            dialog.error(mensajeDeExcepcion(e, "No fue posible cambiar el instrumento del plan."));
+        } finally {
+            setMarcandoId(null);
         }
     };
 
@@ -257,6 +291,7 @@ export default function AsignarInstrumento({
                                     <thead>
                                         <tr>
                                             <th scope="col">Instrumento</th>
+                                            <th scope="col">Del plan o extra</th>
                                             {conProfesor && <th scope="col">Profesor</th>}
                                             <th scope="col">Fecha de asignación</th>
                                             {conProfesor && <th scope="col">Observaciones</th>}
@@ -267,10 +302,25 @@ export default function AsignarInstrumento({
                                         {vigentes.map(v => (
                                             <tr key={v.idEstudianteInstrumento}>
                                                 <td className="c-main"><span className="inst">{v.nombreInstrumento}</span><span className="sub">{v.codigoInstrumento}</span></td>
+                                                <td data-label="Tipo">
+                                                    {v.esPrincipal
+                                                        ? <StatusBadge tone="primary" icon={null}>Instrumento del plan</StatusBadge>
+                                                        : <StatusBadge tone="neutral" icon={null}>Extra</StatusBadge>}
+                                                </td>
                                                 {conProfesor && <td data-label="Profesor">{v.nombreProfesor || "—"}</td>}
                                                 <td data-label="Desde" className="tnum">{formatDate(v.fechaInicio)}</td>
                                                 {conProfesor && <td data-label="Observaciones">{v.observaciones || "—"}</td>}
                                                 <td className="actions">
+                                                    {!v.esPrincipal && (
+                                                        <button
+                                                            type="button"
+                                                            className="sg-btn sg-btn--ghost sg-btn--sm"
+                                                            disabled={marcandoId === v.idEstudianteInstrumento}
+                                                            onClick={() => marcarDelPlan(v)}
+                                                        >
+                                                            {marcandoId === v.idEstudianteInstrumento ? "Cambiando…" : "Hacer del plan"}
+                                                        </button>
+                                                    )}
                                                     <button
                                                         type="button"
                                                         className="sg-btn sg-btn--ghost sg-btn--sm btn-peligro"
@@ -287,6 +337,12 @@ export default function AsignarInstrumento({
                             </div>
                         )}
                     </section>
+
+                    <AvanceInstrumentos
+                        idEstudiante={idEstudiante}
+                        version={versionInstrumentos}
+                        puedeRegistrarNivel={esDirector}
+                    />
 
                     <section className="panel">
                         <div className="panel-head"><h2>Asignar instrumento</h2></div>
@@ -344,6 +400,24 @@ export default function AsignarInstrumento({
                                         onChange={e => setField("observaciones", e.target.value)}
                                     />
                                 </Field>
+                                {vigentes.length === 0 ? (
+                                    <p className="muted span-all">Es su primer instrumento vigente: quedará como instrumento del plan.</p>
+                                ) : (
+                                    <label className={`choice span-all${form.esPrincipal ? " is-checked" : ""}`}>
+                                        <input
+                                            type="checkbox"
+                                            checked={form.esPrincipal}
+                                            onChange={e => setField("esPrincipal", e.target.checked)}
+                                        />
+                                        <span className="choice-main">
+                                            <b>Será el instrumento del plan</b>
+                                            <span>
+                                                El instrumento del plan cuenta para graduarse. Si no lo marca, queda como
+                                                instrumento extra: avanza en sus niveles con su profesor, pero no reemplaza al del plan.
+                                            </span>
+                                        </span>
+                                    </label>
+                                )}
                             </div>
                             <div className="panel-foot">
                                 <button className={`sg-btn sg-btn--primary${saving ? " is-loading" : ""}`} type="submit" disabled={saving || catalogLoading} aria-busy={saving || undefined}>

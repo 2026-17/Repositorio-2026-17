@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.Comparator;
 import java.util.List;
 
 /*
@@ -26,7 +27,12 @@ import java.util.List;
  *
  * Reglas clave de la HU:
  * - Un estudiante puede tener uno o más instrumentos vigentes
- *   al mismo tiempo; no existe un instrumento "principal".
+ *   al mismo tiempo. Cada uno avanza por separado (Instrumento I..XIV),
+ *   con su profesor y su espacio de instrumento.
+ * - Exactamente uno de los vigentes es el "instrumento del plan"
+ *   (es_principal): el que cuenta para graduarse. Los demás son extras
+ *   y solo avanzan en sus niveles. El primero que se asigna queda como
+ *   del plan; después se puede cambiar cuál es.
  * - Cada asignación queda con su propia fecha de inicio.
  * - Un instrumento vigente se puede deshabilitar (finalizar):
  *   se le registra fecha_fin (la fecha en que se deshabilita) y
@@ -82,16 +88,55 @@ public class InstrumentoEstudianteService {
         // y tenga ese instrumento como especialidad.
         Profesor profesor = obtenerProfesorParaInstrumento(request.getIdProfesor(), instrumento);
 
-        // 4. La HU-026 no define un instrumento principal: un estudiante
-        // puede tener varios instrumentos vigentes simultáneamente.
-        // El campo esPrincipal se conserva por compatibilidad del contrato,
-        // pero no dispara ninguna acción adicional al registrar la asignación.
+        // 4. Instrumento del plan: el primero vigente queda como del plan.
+        // Si se pide que este sea el del plan, los demás pasan a extras.
+        List<EstudiantesInstrumento> vigentes =
+                estudianteInstrumentoRepository.findByIdEstudiante_IdAndFechaFinIsNull(idEstudiante);
+
+        boolean delPlan = vigentes.isEmpty() || Boolean.TRUE.equals(request.getEsPrincipal());
+
+        if (delPlan) {
+            vigentes.stream()
+                    .filter(v -> Boolean.TRUE.equals(v.getEsPrincipal()))
+                    .forEach(v -> {
+                        v.setEsPrincipal(false);
+                        estudianteInstrumentoRepository.save(v);
+                    });
+        }
 
         // 5. Registrar la nueva asignación con su fecha de inicio.
         EstudiantesInstrumento asignacion = crearAsignacion(
                 estudiante, instrumento, profesor, request.getObservaciones());
+        asignacion.setEsPrincipal(delPlan);
 
         return mapearAResponse(estudianteInstrumentoRepository.save(asignacion));
+    }
+
+    /*
+     * Cambiar cuál instrumento vigente es el del plan. El anterior pasa a
+     * ser extra.
+     */
+    @Transactional
+    public InstrumentoEstudianteResponse marcarDelPlan(Long idEstudiante, Long idEstudianteInstrumento) {
+        obtenerEstudiante(idEstudiante);
+
+        EstudiantesInstrumento elegido = obtenerAsignacionDelEstudiante(idEstudiante, idEstudianteInstrumento);
+
+        if (elegido.getFechaFin() != null) {
+            throw new BusinessException("Solo un instrumento vigente puede ser el instrumento del plan.");
+        }
+
+        for (EstudiantesInstrumento vigente :
+                estudianteInstrumentoRepository.findByIdEstudiante_IdAndFechaFinIsNull(idEstudiante)) {
+            boolean esElElegido = vigente.getId().equals(elegido.getId());
+            if (!esElElegido && Boolean.TRUE.equals(vigente.getEsPrincipal())) {
+                vigente.setEsPrincipal(false);
+                estudianteInstrumentoRepository.save(vigente);
+            }
+        }
+
+        elegido.setEsPrincipal(true);
+        return mapearAResponse(estudianteInstrumentoRepository.save(elegido));
     }
 
     /*
@@ -105,6 +150,35 @@ public class InstrumentoEstudianteService {
     public InstrumentoEstudianteResponse deshabilitar(Long idEstudiante, Long idEstudianteInstrumento) {
         obtenerEstudiante(idEstudiante);
 
+        EstudiantesInstrumento asignacion = obtenerAsignacionDelEstudiante(idEstudiante, idEstudianteInstrumento);
+
+        if (asignacion.getFechaFin() != null) {
+            throw new BusinessException("Ese instrumento ya se encuentra finalizado.");
+        }
+
+        boolean eraDelPlan = Boolean.TRUE.equals(asignacion.getEsPrincipal());
+
+        asignacion.setFechaFin(LocalDate.now());
+        asignacion.setEsPrincipal(false);
+        EstudiantesInstrumento guardada = estudianteInstrumentoRepository.save(asignacion);
+
+        // Si se finalizó el del plan, el vigente más antiguo pasa a serlo.
+        if (eraDelPlan) {
+            estudianteInstrumentoRepository.findByIdEstudiante_IdAndFechaFinIsNull(idEstudiante)
+                    .stream()
+                    .filter(v -> !v.getId().equals(guardada.getId()))
+                    .min(Comparator.comparing(EstudiantesInstrumento::getFechaInicio)
+                            .thenComparing(EstudiantesInstrumento::getId))
+                    .ifPresent(siguiente -> {
+                        siguiente.setEsPrincipal(true);
+                        estudianteInstrumentoRepository.save(siguiente);
+                    });
+        }
+
+        return mapearAResponse(guardada);
+    }
+
+    private EstudiantesInstrumento obtenerAsignacionDelEstudiante(Long idEstudiante, Long idEstudianteInstrumento) {
         EstudiantesInstrumento asignacion = estudianteInstrumentoRepository
                 .findById(idEstudianteInstrumento)
                 .orElseThrow(() -> new BusinessException("La asignación de instrumento indicada no existe."));
@@ -112,13 +186,7 @@ public class InstrumentoEstudianteService {
         if (!asignacion.getEstudiante().getId().equals(idEstudiante)) {
             throw new BusinessException("La asignación indicada no pertenece a este estudiante.");
         }
-
-        if (asignacion.getFechaFin() != null) {
-            throw new BusinessException("Ese instrumento ya se encuentra finalizado.");
-        }
-
-        asignacion.setFechaFin(LocalDate.now());
-        return mapearAResponse(estudianteInstrumentoRepository.save(asignacion));
+        return asignacion;
     }
 
     /*
@@ -225,7 +293,8 @@ public class InstrumentoEstudianteService {
                 asignacion.getFechaInicio(),
                 asignacion.getFechaFin(),
                 asignacion.getFechaFin() == null,
-                asignacion.getObservaciones()
+                asignacion.getObservaciones(),
+                Boolean.TRUE.equals(asignacion.getEsPrincipal())
         );
     }
 

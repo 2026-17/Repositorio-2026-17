@@ -34,6 +34,14 @@ public class MatriculaDetalle {
     @Column(name = "id_grupo", nullable = false)
     private Long idGrupo;
 
+    /*
+     * Nivel que el estudiante cursa cuando el grupo es un espacio de
+     * instrumento (Instrumento I..XIV). En un grupo normal queda NULL y el
+     * curso es el del grupo.
+     */
+    @Column(name = "id_curso")
+    private Long idCurso;
+
     @NotNull
     @ColumnDefault("0")
     @Column(name = "retirado", nullable = false)
