@@ -30,3 +30,78 @@
 .panel-foot.ficha-estudiante {
     justify-content: flex-start;
 }
+
+/* =========================================
+   Avance por instrumento (tira de niveles I..XIV) y nivel de ingreso
+   ========================================= */
+.avance-alerta { margin: 0 var(--space-5) var(--space-4); }
+
+.avance-lista { display: grid; }
+
+.avance-inst {
+    display: grid;
+    gap: var(--space-3);
+    padding: var(--space-5);
+    border-top: 1px solid var(--border);
+}
+
+.avance-inst__head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.avance-inst__head h3 { margin: 0; font: 600 17px/24px var(--font-sans); }
+
+.avance-inst__datos {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--space-3);
+    margin: 0;
+}
+.avance-inst__datos dt { font-size: 13px; color: var(--ink-muted); }
+.avance-inst__datos dd { margin: 2px 0 0; font-size: 14px; }
+
+.avance-tira {
+    display: grid;
+    grid-template-columns: repeat(14, minmax(44px, 1fr));
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    overflow-x: auto;
+}
+
+.avance-nivel {
+    display: grid;
+    justify-items: center;
+    gap: 2px;
+    min-height: 52px;
+    padding: 6px 2px;
+    border-radius: var(--radius-sm);
+    border: 1px dashed var(--border-strong);
+    background: var(--surface);
+    color: var(--ink-muted);
+    font-size: 11px;
+    text-align: center;
+}
+.avance-nivel b { font: 600 14px/18px var(--font-sans); }
+.avance-nivel.is-aprobado { border: 1px solid var(--success); background: var(--success-soft); color: var(--success); }
+.avance-nivel.is-convalidado { border: 1px solid var(--info); background: var(--info-soft); color: var(--info); }
+.avance-nivel.is-siguiente { border: 2px solid var(--primary); background: var(--primary-soft); color: var(--primary); }
+
+.avance-origen { margin: 0; font-size: 13px; }
+
+.avance-ingreso {
+    display: grid;
+    gap: var(--space-3);
+    margin: 0 var(--space-5) var(--space-5);
+    padding: var(--space-5);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--surface-sunken);
+}
+.avance-ingreso h3 { margin: 0; font: 600 16px/24px var(--font-sans); }
+.avance-ingreso p { margin: 0; font-size: 14px; }
+.avance-ingreso__acciones { display: flex; justify-content: flex-end; }
+
+@media (max-width: 640px) {
+    .avance-inst { padding: var(--space-4); }
+    .avance-tira { grid-template-columns: repeat(7, minmax(40px, 1fr)); }
+    .avance-ingreso { margin: 0 var(--space-4) var(--space-4); padding: var(--space-4); }
+}

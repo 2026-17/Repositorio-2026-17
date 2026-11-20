@@ -1,6 +1,7 @@
 package cr.acusab.una.sigac.logic.service;
 
 import cr.acusab.una.sigac.data.entity.Distrito;
+import cr.acusab.una.sigac.data.entity.Grupo;
 import cr.acusab.una.sigac.data.entity.Profesor;
 import cr.acusab.una.sigac.data.entity.Role;
 import cr.acusab.una.sigac.data.entity.EstadosUsuario;
@@ -44,6 +45,7 @@ public class ProfesorService {
     private final InstrumentoRepository instrumentoRepository;
     private final DistritoRepository distritoRepository;
     private final CuentaUsuarioService cuentaUsuarioService;
+    private final GrupoRepository grupoRepository;
 
     public ProfesorService(
             ProfesorRepository profesorRepository,
@@ -54,9 +56,11 @@ public class ProfesorService {
             UsuarioService usuarioService,
             InstrumentoRepository instrumentoRepository,
             DistritoRepository distritoRepository,
-            CuentaUsuarioService cuentaUsuarioService
+            CuentaUsuarioService cuentaUsuarioService,
+            GrupoRepository grupoRepository
     ) {
         this.cuentaUsuarioService = cuentaUsuarioService;
+        this.grupoRepository = grupoRepository;
         this.profesorRepository = profesorRepository;
         this.tipoIdentificacionRepository = tipoIdentificacionRepository;
         this.usuarioRepository = usuarioRepository;
@@ -237,10 +241,17 @@ public class ProfesorService {
         }
     }
 
-    // Eliminacion fisica, pedida explicitamente en los criterios de aceptacion
+    // Eliminacion fisica, pedida explicitamente en los criterios de aceptacion.
+    // Si el profesor tiene espacios de instrumento, la BD los dejaria sin
+    // profesor (ON DELETE SET NULL) y un espacio no tiene sentido sin el:
+    // en ese caso se rechaza y se sugiere darlo de baja.
     @Transactional
     public void eliminar(Long id) {
         Profesor profesor = buscarOFallar(id);
+        if (grupoRepository.existsByIdProfesorAndTipoGrupo(id, Grupo.TIPO_ESPACIO_INSTRUMENTO)) {
+            throw new BusinessException("No se puede eliminar al profesor porque tiene espacios de instrumento. "
+                    + "Elimine primero sus espacios o dé de baja al profesor.");
+        }
         profesorRepository.delete(profesor);
     }
 

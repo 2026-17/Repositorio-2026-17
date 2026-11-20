@@ -204,3 +204,10 @@
         height: 64px;
     }
 }
+
+/* Lección de instrumento: se distingue de un grupo con su etiqueta */
+.mi-horario__leccion {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+}

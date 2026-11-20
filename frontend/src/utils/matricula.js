@@ -4,13 +4,19 @@
 // Replican las que aplica el servidor al confirmar para dar respuesta
 // inmediata al estudiante; el servidor es quien decide.
 
-const NOMBRES_DIAS = { 1: "Lun", 2: "Mar", 3: "Mié", 4: "Jue", 5: "Vie", 6: "Sáb", 7: "Dom" };
+import { diaCorto, rangoHoras12 } from "./horas";
 
+// [{diaSemana: 1, horaInicio: "07:10", horaFin: "07:50"}] → "Lun 7:10 – 7:50 a. m."
 export function formatearHorarios(horarios) {
     if (!horarios || horarios.length === 0) return "Por definir";
     return horarios
-        .map((h) => `${NOMBRES_DIAS[h.diaSemana] ?? "?"} ${h.horaInicio}-${h.horaFin}`)
+        .map((h) => `${diaCorto(h.diaSemana)} ${rangoHoras12(h.horaInicio, h.horaFin)}`)
         .join(", ");
+}
+
+// Un espacio de instrumento choca con un grupo (o con otro espacio).
+export function espacioChocaCon(espacio, grupos) {
+    return grupos.find((g) => g.idGrupo !== espacio.idGrupo && gruposConflictoHorario(espacio, g)) ?? null;
 }
 
 // La API entrega los cursos aprobados como [{ idCurso, nota }]. Se indexan

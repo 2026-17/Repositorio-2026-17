@@ -20,7 +20,7 @@ import java.util.List;
  * de un estudiante puntual.
  *
  * Un estudiante puede tener varios instrumentos vigentes a la vez;
- * no existe el concepto de instrumento "principal". Un instrumento
+ * uno es el "instrumento del plan" y los demás son extras. Un instrumento
  * vigente se puede deshabilitar (finalizar), lo que registra su
  * fecha de fin y lo conserva en el historial.
  */
@@ -69,6 +69,20 @@ public class InstrumentoEstudianteController {
                 instrumentoEstudianteService.deshabilitar(idEstudiante, idEstudianteInstrumento);
 
         return ResponseEntity.ok(actualizado);
+    }
+
+    /*
+     * Cambiar cuál instrumento vigente es el del plan (el que cuenta para
+     * graduarse). El anterior pasa a ser extra.
+     */
+    @PutMapping("/{idEstudianteInstrumento}/del-plan")
+    @PreAuthorize("hasAnyRole('ADMINISTRATIVO', 'DIRECTOR_ACADEMICO')")
+    public ResponseEntity<InstrumentoEstudianteResponse> marcarDelPlan(
+            @PathVariable Long idEstudiante,
+            @PathVariable Long idEstudianteInstrumento) {
+
+        return ResponseEntity.ok(
+                instrumentoEstudianteService.marcarDelPlan(idEstudiante, idEstudianteInstrumento));
     }
 
     /*

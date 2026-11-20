@@ -159,6 +159,7 @@ public class CursoService {
         dto.setNombre(curso.getNombre());
         dto.setCategoria(curso.getDescripcion());
         dto.setHorasTotales(curso.getHorasTotales());
+        dto.setEsCursoInstrumento(Boolean.TRUE.equals(curso.getEsCursoInstrumento()));
 
         if (grupo != null) {
 
@@ -253,6 +254,7 @@ public class CursoService {
         );
 
         curso.setHorasTotales(request.getHorasTotales());
+        curso.setEsCursoInstrumento(Boolean.TRUE.equals(request.getEsCursoInstrumento()));
         curso.setActivo(true);
 
         // Importante para la bitácora.
@@ -492,6 +494,25 @@ public class CursoService {
         curso.setHorasTotales(
                 request.getHorasTotales()
         );
+
+        /*
+         * Marcarlo como curso de instrumento solo si no tiene grupos
+         * normales abiertos: sus estudiantes quedarían en un grupo que la
+         * matrícula ya no ofrece.
+         */
+        if (request.getEsCursoInstrumento() != null) {
+
+            boolean pasaAInstrumento = request.getEsCursoInstrumento()
+                    && !Boolean.TRUE.equals(curso.getEsCursoInstrumento());
+
+            if (pasaAInstrumento && tieneGruposAbiertos(idCurso)) {
+                throw new IllegalArgumentException(
+                        "El curso tiene grupos abiertos: cancélelos o ciérrelos antes de marcarlo como curso de instrumento."
+                );
+            }
+
+            curso.setEsCursoInstrumento(request.getEsCursoInstrumento());
+        }
 
         curso.setIdUsuarioUltimaModificacion(
                 idUsuario
@@ -887,6 +908,12 @@ public class CursoService {
         return mallasActivas.get(0);
     }
 
+    private boolean tieneGruposAbiertos(Long idCurso) {
+        return grupoRepository.findByIdCursoInOrderByCreadoEnDesc(List.of(idCurso))
+                .stream()
+                .anyMatch(g -> !"CERRADO".equals(g.getEstado()) && !"CANCELADO".equals(g.getEstado()));
+    }
+
     /*
      * Calcula la siguiente posición disponible para un curso
      * dentro de un nivel determinado del plan de estudio.
@@ -986,6 +1013,10 @@ public class CursoService {
                 curso.getActivo()
         );
 
+        dto.setEsCursoInstrumento(
+                Boolean.TRUE.equals(curso.getEsCursoInstrumento())
+        );
+
         dto.setIdMalla(
                 malla.getId()
         );
@@ -1049,6 +1080,10 @@ public class CursoService {
 
         dto.setActivo(
                 curso.getActivo()
+        );
+
+        dto.setEsCursoInstrumento(
+                Boolean.TRUE.equals(curso.getEsCursoInstrumento())
         );
 
         return dto;

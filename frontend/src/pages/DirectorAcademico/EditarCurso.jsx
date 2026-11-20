@@ -1,4 +1,5 @@
 import RequisitosCursoOpcionales from "./RequisitosCursoOpcionales";
+import CasillaCursoInstrumento from "./CasillaCursoInstrumento";
 import { useEffect, useMemo, useState } from "react";
 import { RotateCcw, Save } from "lucide-react";
 
@@ -29,6 +30,7 @@ function construirFormDesdeCurso(curso) {
             curso?.nivel != null
                 ? String(curso.nivel)
                 : "",
+        esCursoInstrumento: Boolean(curso?.esCursoInstrumento),
     };
 }
 
@@ -39,6 +41,7 @@ function normalizarForm(form) {
         horasTotales: Number(form.horasTotales),
         idPrograma: Number(form.idPrograma),
         nivel: Number(form.nivel),
+        esCursoInstrumento: Boolean(form.esCursoInstrumento),
         requisitos: form.requisitos,
     };
 }
@@ -150,6 +153,7 @@ function EditarCurso({ idCurso, onCancel, onSuccess }) {
             actual.horasTotales !== inicial.horasTotales ||
             actual.idPrograma !== inicial.idPrograma ||
             actual.nivel !== inicial.nivel ||
+            actual.esCursoInstrumento !== inicial.esCursoInstrumento ||
             JSON.stringify(actual.requisitos) !== JSON.stringify(inicial.requisitos)
         );
 
@@ -204,6 +208,7 @@ function EditarCurso({ idCurso, onCancel, onSuccess }) {
             cambios.push("Nivel académico");
         }
 
+        if (actual.esCursoInstrumento !== inicial.esCursoInstrumento) cambios.push("Se cursa en espacios de instrumento");
         if (JSON.stringify(actual.requisitos) !== JSON.stringify(inicial.requisitos)) cambios.push("Requisitos del curso");
         return cambios;
 
@@ -482,6 +487,11 @@ function EditarCurso({ idCurso, onCancel, onSuccess }) {
                             <Field id="nivel" label="Nivel académico" error={errores.nivel}>
                                 <input id="nivel" name="nivel" type="number" className="sg-input" min="1" max="999" step="1" inputMode="numeric" value={form.nivel} onChange={handleChange} disabled={guardando} {...aria("nivel")} />
                             </Field>
+                            <CasillaCursoInstrumento
+                                checked={form.esCursoInstrumento}
+                                onChange={(valor) => setForm((prev) => ({ ...prev, esCursoInstrumento: valor }))}
+                                disabled={guardando}
+                            />
                             <Field
                                 id="idPrograma"
                                 label="Programa académico"

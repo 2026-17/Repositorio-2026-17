@@ -133,7 +133,11 @@ function FormularioGrupo({ grupo = null, idCursoInicial = null, onCancel, onSucc
                 if (!periodosResponse.ok) await lanzarError(periodosResponse, "No se pudieron cargar los períodos académicos.");
                 if (!profesoresResponse.ok) await lanzarError(profesoresResponse, "No se pudieron cargar los profesores.");
 
-                let listaCursos = await cursosResponse.json();
+                // Instrumento I a XIV no se abren como grupos: van en
+                // «Espacios de instrumento». (Se conserva el curso actual de
+                // un grupo que ya existía.)
+                let listaCursos = (await cursosResponse.json())
+                    .filter((c) => !c.esCursoInstrumento || (editando && c.idCurso === grupo.idCurso));
                 let listaPeriodos = await periodosResponse.json();
                 const listaProfesores = await profesoresResponse.json();
 
@@ -427,7 +431,7 @@ function FormularioGrupo({ grupo = null, idCursoInicial = null, onCancel, onSucc
                         </div>
                     </div>
                     <div className="panel-body form-grid">
-                        <Field id="idCurso" label="Curso" error={errores.idCurso} select>
+                        <Field id="idCurso" label="Curso" error={errores.idCurso} select hint="Instrumento I a XIV no aparecen aquí: se ofrecen en «Espacios de instrumento».">
                             <select id="idCurso" name="idCurso" className="sg-input sg-select" value={form.idCurso} onChange={handleChange} disabled={cargandoCatalogos || cursoYPeriodoFijos} {...aria("idCurso")}>
                                 <option value="">{cargandoCatalogos ? "Cargando…" : "Seleccione un curso"}</option>
                                 {cursos.map((c) => (

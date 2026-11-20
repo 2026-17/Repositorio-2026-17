@@ -51,6 +51,17 @@ public class ModificarCursoRequestDTO {
     private Short nivel;
 
 
+    // Se cursa en espacios de instrumento. Omitido = se conserva el valor actual.
+    private Boolean esCursoInstrumento;
+
+    public Boolean getEsCursoInstrumento() {
+        return esCursoInstrumento;
+    }
+
+    public void setEsCursoInstrumento(Boolean esCursoInstrumento) {
+        this.esCursoInstrumento = esCursoInstrumento;
+    }
+
     public String getNombre() {
         return nombre;
     }

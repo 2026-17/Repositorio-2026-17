@@ -49,6 +49,20 @@ public class CursoRequestDTO {
      * horario) es un grupo y se abre desde la pantalla Grupos.
      */
 
+    /*
+     * Se cursa en espacios de instrumento (Instrumento I a XIV): no se
+     * abre como grupo normal. Omitido = false.
+     */
+    private Boolean esCursoInstrumento;
+
+    public Boolean getEsCursoInstrumento() {
+        return esCursoInstrumento;
+    }
+
+    public void setEsCursoInstrumento(Boolean esCursoInstrumento) {
+        this.esCursoInstrumento = esCursoInstrumento;
+    }
+
     // --- Getters y setters ---
 
     public String getCodigo() {

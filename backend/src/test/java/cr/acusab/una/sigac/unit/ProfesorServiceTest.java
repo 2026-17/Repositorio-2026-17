@@ -7,6 +7,9 @@ import cr.acusab.una.sigac.data.entity.TiposIdentificacion;
 import cr.acusab.una.sigac.data.entity.Usuario;
 import cr.acusab.una.sigac.data.repository.DistritoRepository;
 import cr.acusab.una.sigac.data.repository.EstadoUsuarioRepository;
+import cr.acusab.una.sigac.data.repository.GrupoRepository;
+import cr.acusab.una.sigac.data.entity.Grupo;
+import cr.acusab.una.sigac.logic.exception.BusinessException;
 import cr.acusab.una.sigac.data.repository.InstrumentoRepository;
 import cr.acusab.una.sigac.data.repository.ProfesorRepository;
 import cr.acusab.una.sigac.data.repository.RoleRepository;
@@ -47,6 +50,7 @@ class ProfesorServiceTest {
     private RoleRepository roleRepository;
     private EstadoUsuarioRepository estadoUsuarioRepository;
     private UsuarioService usuarioService;
+    private GrupoRepository grupoRepository;
 
     private ProfesorService service;
 
@@ -61,6 +65,7 @@ class ProfesorServiceTest {
         roleRepository = mock(RoleRepository.class);
         estadoUsuarioRepository = mock(EstadoUsuarioRepository.class);
         usuarioService = mock(UsuarioService.class);
+        grupoRepository = mock(GrupoRepository.class);
 
         service = new ProfesorService(
                 profesorRepository,
@@ -71,7 +76,8 @@ class ProfesorServiceTest {
                 usuarioService,
                 mock(InstrumentoRepository.class),
                 mock(DistritoRepository.class),
-                mock(CuentaUsuarioService.class)
+                mock(CuentaUsuarioService.class),
+                grupoRepository
         );
 
         TiposIdentificacion cedula = new TiposIdentificacion();
@@ -228,5 +234,31 @@ class ProfesorServiceTest {
         request.setIdEstadoUsuario(idEstado);
 
         return request;
+    }
+
+    // Espacios de instrumento: un profesor con espacios no se borra (quedarían sin profesor).
+    @Test
+    void eliminar_rechazaProfesorConEspaciosDeInstrumento() {
+        Profesor profesor = new Profesor();
+        profesor.setId(7L);
+        when(profesorRepository.findById(7L)).thenReturn(Optional.of(profesor));
+        when(grupoRepository.existsByIdProfesorAndTipoGrupo(7L, Grupo.TIPO_ESPACIO_INSTRUMENTO)).thenReturn(true);
+
+        BusinessException ex = assertThrows(BusinessException.class, () -> service.eliminar(7L));
+
+        assertTrue(ex.getMessage().contains("espacios de instrumento"));
+        verify(profesorRepository, never()).delete(any());
+    }
+
+    @Test
+    void eliminar_borraProfesorSinEspacios() {
+        Profesor profesor = new Profesor();
+        profesor.setId(8L);
+        when(profesorRepository.findById(8L)).thenReturn(Optional.of(profesor));
+        when(grupoRepository.existsByIdProfesorAndTipoGrupo(8L, Grupo.TIPO_ESPACIO_INSTRUMENTO)).thenReturn(false);
+
+        service.eliminar(8L);
+
+        verify(profesorRepository).delete(profesor);
     }
 }

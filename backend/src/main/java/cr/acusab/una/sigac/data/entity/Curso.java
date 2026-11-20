@@ -57,6 +57,15 @@ public class Curso {
     @Column(name = "activo", nullable = false)
     private Boolean activo;
 
+    /*
+     * Instrumento I a XIV: no se ofrecen en grupos normales, se cursan en
+     * los espacios de instrumento de cada profesor.
+     */
+    @NotNull
+    @ColumnDefault("0")
+    @Column(name = "es_curso_instrumento", nullable = false)
+    private Boolean esCursoInstrumento = false;
+
     @Column(name = "id_usuario_ultima_modificacion")
     private Long idUsuarioUltimaModificacion;
 

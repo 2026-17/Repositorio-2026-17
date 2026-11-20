@@ -238,6 +238,56 @@ public class SecurityConfig {
 
                         /*
                          * =====================================================
+                         * Espacios de instrumento
+                         * Consultar la agenda: ADMINISTRATIVO y DIRECTOR_ACADEMICO
+                         * Crear, modificar y eliminar: DIRECTOR_ACADEMICO
+                         * =====================================================
+                         */
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/espacios-instrumento"
+                        )
+                        .hasAnyRole("ADMINISTRATIVO", "DIRECTOR_ACADEMICO")
+
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/espacios-instrumento"
+                        )
+                        .hasRole("DIRECTOR_ACADEMICO")
+
+                        .requestMatchers(
+                                HttpMethod.PUT,
+                                "/espacios-instrumento/*"
+                        )
+                        .hasRole("DIRECTOR_ACADEMICO")
+
+                        .requestMatchers(
+                                HttpMethod.DELETE,
+                                "/espacios-instrumento/*"
+                        )
+                        .hasRole("DIRECTOR_ACADEMICO")
+
+                        /*
+                         * =====================================================
+                         * Avance por instrumento y nivel de ingreso
+                         * Consultar: ADMINISTRATIVO y DIRECTOR_ACADEMICO
+                         * Registrar el nivel de ingreso: DIRECTOR_ACADEMICO
+                         * =====================================================
+                         */
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/estudiantes/*/avance-instrumentos"
+                        )
+                        .hasAnyRole("ADMINISTRATIVO", "DIRECTOR_ACADEMICO")
+
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/estudiantes/*/instrumentos/*/nivel-ingreso"
+                        )
+                        .hasRole("DIRECTOR_ACADEMICO")
+
+                        /*
+                         * =====================================================
                          * Gestión de períodos académicos
                          * Rol: DIRECTOR_ACADEMICO
                          * =====================================================

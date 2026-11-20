@@ -1,9 +1,9 @@
 package cr.acusab.una.sigac.presentation.dto.request;
 
-import jakarta.validation.constraints.NotEmpty;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /*
@@ -11,11 +11,19 @@ import java.util.List;
  *
  * El estudiante y el período no se envían: se obtienen de la sesión
  * activa y del período académico vigente.
+ *
+ * idsGrupo: grupos normales elegidos.
+ * idsEspacio: un espacio de instrumento por cada instrumento vigente. El
+ * nivel no se envía: lo calcula el servidor.
+ *
+ * Que venga al menos uno de los dos lo valida el servicio (puede haber
+ * matrícula solo con lecciones de instrumento).
  */
 @Getter
 @Setter
 public class ConfirmarSeleccionMatriculaRequestDTO {
 
-    @NotEmpty(message = "Debe seleccionar al menos un curso.")
-    private List<Long> idsGrupo;
+    private List<Long> idsGrupo = new ArrayList<>();
+
+    private List<Long> idsEspacio = new ArrayList<>();
 }

@@ -74,6 +74,8 @@ public class AsignacionProfesorService {
         return grupoRepository.findByEstadoInOrderByIdPeriodoAscCodigoAsc(
                         ESTADOS_GRUPO_ACTIVOS
                 ).stream()
+                // Los espacios de instrumento ya nacen con su profesor (no tienen curso).
+                .filter(grupo -> !grupo.esEspacioInstrumento())
                 .map(this::mapear)
                 .toList();
     }
@@ -91,6 +93,7 @@ public class AsignacionProfesorService {
 
         Grupo grupo = grupoRepository.findByIdParaAsignacion(idGrupo)
                 .orElseThrow(() -> new BusinessException("El grupo indicado no existe."));
+        rechazarEspacio(grupo);
 
         Long idUsuario = obtenerIdUsuarioAutenticado();
         grupo.setIdProfesor(profesor.getId());
@@ -111,6 +114,7 @@ public class AsignacionProfesorService {
     public void eliminarAsignacion(Long idGrupo) {
         Grupo grupo = grupoRepository.findByIdParaAsignacion(idGrupo)
                 .orElseThrow(() -> new BusinessException("El grupo indicado no existe."));
+        rechazarEspacio(grupo);
 
         if (grupo.getIdProfesor() == null) {
             throw new BusinessException("El grupo no tiene un profesor asignado.");
@@ -124,6 +128,16 @@ public class AsignacionProfesorService {
         grupo.setIdUsuarioUltimaModificacion(idUsuario);
         grupo.setActualizadoEn(java.time.Instant.now());
         grupoRepository.save(grupo);
+    }
+
+    // Un espacio de instrumento es de un profesor: no se le cambia aquí.
+    private static void rechazarEspacio(Grupo grupo) {
+        if (grupo.esEspacioInstrumento()) {
+            throw new BusinessException(
+                    "Ese grupo es un espacio de instrumento: su profesor no se cambia aquí. "
+                            + "Gestiónelo desde «Espacios de instrumento»."
+            );
+        }
     }
 
     private AsignacionProfesorResponse mapear(Grupo grupo) {

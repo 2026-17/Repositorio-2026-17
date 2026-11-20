@@ -362,6 +362,9 @@ public class EstudianteService {
         relacion.setInstrumento(instrumento);
         relacion.setProfesor(profesor);
         relacion.setFechaInicio(LocalDate.now());
+        // Solo se llama cuando el estudiante no tiene instrumentos vigentes:
+        // el primero siempre es el instrumento del plan.
+        relacion.setEsPrincipal(true);
         estudianteInstrumentoRepository.save(relacion);
     }
 

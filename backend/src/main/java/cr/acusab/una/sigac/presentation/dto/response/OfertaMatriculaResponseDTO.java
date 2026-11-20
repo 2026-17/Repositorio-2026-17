@@ -31,6 +31,13 @@ public class OfertaMatriculaResponseDTO {
     private Map<Long, List<RequisitoDTO>> requisitosPorCurso = new LinkedHashMap<>();
     private List<CursoAprobadoDTO> cursosAprobados = new ArrayList<>();
 
+    /*
+     * Lecciones de instrumento: una por instrumento vigente. Los cursos
+     * Instrumento I..XIV no salen en "oferta": el estudiante elige uno de
+     * los espacios libres de su profesor y el sistema le asigna el nivel.
+     */
+    private List<LeccionInstrumentoDTO> leccionesInstrumento = new ArrayList<>();
+
     @Getter
     @Setter
     public static class EstudianteDTO {
@@ -75,6 +82,50 @@ public class OfertaMatriculaResponseDTO {
         private int cupoMaximo;
         private int cupoDisponible;
         private List<HorarioDTO> horarios = new ArrayList<>();
+
+        /*
+         * Espacio de instrumento (lección individual). idCurso y
+         * nombreCurso son el nivel que el estudiante cursa en él
+         * ("Instrumento VI · Piano").
+         */
+        private boolean espacioInstrumento;
+        private Integer idInstrumento;
+        private String nombreInstrumento;
+        private String nombreNivel;
+    }
+
+    /*
+     * Lección de un instrumento vigente del estudiante.
+     *
+     * - nivel: el siguiente Instrumento de la malla en ESE instrumento.
+     *   motivoNivel explica por qué ("Aprobó Instrumento V en ...").
+     * - requerida: hay un nivel pendiente, así que la matrícula exige
+     *   elegir un espacio de este instrumento.
+     * - disponible = false con motivoNoDisponible: no puede elegirse
+     *   (sin profesor asignado, requisitos incumplidos o sin espacios
+     *   libres).
+     * - espaciosLibres: espacios libres de su profesor e instrumento.
+     * - matriculado: espacio que ya tiene en este período, si lo hay.
+     */
+    @Getter
+    @Setter
+    public static class LeccionInstrumentoDTO {
+        private Long idEstudianteInstrumento;
+        private Integer idInstrumento;
+        private String nombreInstrumento;
+        private boolean delPlan;
+        private Long idProfesor;
+        private String profesor;
+        private Long idCursoNivel;
+        private String codigoNivel;
+        private String nombreNivel;
+        private String motivoNivel;
+        private boolean completado;
+        private boolean requerida;
+        private boolean disponible;
+        private String motivoNoDisponible;
+        private List<GrupoDTO> espaciosLibres = new ArrayList<>();
+        private GrupoDTO matriculado;
     }
 
     @Getter

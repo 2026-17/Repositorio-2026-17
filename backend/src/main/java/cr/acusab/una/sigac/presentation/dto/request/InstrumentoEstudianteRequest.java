@@ -9,7 +9,7 @@ import jakarta.validation.constraints.Size;
  *
  * Se usa para asignar un nuevo instrumento al estudiante. Un
  * estudiante puede tener varios instrumentos vigentes a la vez;
- * no existe la nocion de instrumento "principal".
+ * uno de ellos es el "instrumento del plan" y los demás son extras.
  */
 public class InstrumentoEstudianteRequest {
 
@@ -21,14 +21,12 @@ public class InstrumentoEstudianteRequest {
     private Long idProfesor;
 
     /*
-     * Indica si este instrumento pasa a ser el principal del
-     * estudiante. Si ya existe un instrumento principal vigente,
-     * se le registra fecha_fin y se conserva en el historial.
-     *
-     * Por defecto es true: la mayoría de asignaciones desde la
-     * pantalla de expediente buscan fijar el instrumento principal.
+     * true: este instrumento pasa a ser el instrumento del plan (el que
+     * cuenta para graduarse) y el anterior queda como extra; sigue
+     * vigente. false u omitido: queda como extra, salvo que sea el primer
+     * instrumento vigente del estudiante, que siempre queda como del plan.
      */
-    private Boolean esPrincipal = true;
+    private Boolean esPrincipal = false;
     @Size(max = 500, message = "Las observaciones no pueden superar los 500 caracteres.")
     private String observaciones;
 

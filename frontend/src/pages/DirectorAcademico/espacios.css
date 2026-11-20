@@ -1,0 +1,145 @@
+/* =========================================
+   Espacios de instrumento: agenda del profesor y crear espacios.
+   Usa .panel, .dtable, .choice y los campos sg-* del sistema de diseño;
+   aquí solo lo propio de la pantalla.
+   ========================================= */
+
+.espacios { max-width: 1180px; display: grid; gap: var(--space-5); }
+.espacios .bloque { margin-top: var(--space-4); }
+
+/* ---------- Agenda ---------- */
+.espacios-filtros {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-4);
+    align-items: flex-end;
+    padding: var(--space-4);
+}
+.espacios-filtros > * { flex: 1 1 180px; }
+.espacios-filtros__profesor { flex: 2 1 240px; }
+
+.espacios-kpis {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: var(--space-4);
+}
+.espacios-kpi { display: grid; gap: var(--space-1); padding: var(--space-4) var(--space-5); }
+.espacios-kpi span { font-size: 14px; color: var(--ink-muted); }
+.espacios-kpi b { font: 600 28px/36px var(--font-sans); }
+.espacios-kpi b.is-libre { color: var(--success); }
+
+.espacios-leyenda { display: flex; gap: var(--space-4); font-size: 13px; color: var(--ink-muted); }
+.espacios-leyenda span { display: inline-flex; align-items: center; gap: 6px; }
+.espacios-leyenda i { width: 12px; height: 12px; border-radius: 3px; }
+.espacios-leyenda i.is-ocupado { background: var(--primary-soft); border: 1px solid var(--primary); }
+.espacios-leyenda i.is-libre { border: 1px dashed var(--success); }
+
+.espacios-semana-scroll { overflow-x: auto; padding: 0 var(--space-5) var(--space-4); }
+.espacios-semana { display: grid; gap: var(--space-3); min-width: 720px; }
+.espacios-dia { display: flex; flex-direction: column; gap: var(--space-2); }
+.espacios-dia__titulo {
+    margin: 0;
+    padding: var(--space-2) var(--space-3);
+    border-radius: var(--radius-md);
+    background: var(--surface-sunken);
+    font: 600 14px/20px var(--font-sans);
+    color: var(--ink-muted);
+}
+.espacios-dia__vacio { padding: 0 var(--space-3); font-size: 13px; }
+
+.espacio-tarjeta {
+    display: grid;
+    gap: 4px;
+    padding: var(--space-3);
+    border-radius: var(--radius-md);
+    font-size: 14px;
+}
+.espacio-tarjeta.is-ocupado { background: var(--primary-soft); border: 1px solid var(--border); }
+.espacio-tarjeta.is-libre { border: 1px dashed var(--success); }
+.espacio-tarjeta.is-editando { border: 2px solid var(--primary); background: var(--surface); gap: var(--space-2); }
+.espacio-tarjeta__hora { font-size: 13px; color: var(--ink-muted); }
+.espacio-tarjeta__nivel {
+    justify-self: start;
+    padding: 1px 8px;
+    border-radius: var(--radius-sm);
+    background: var(--warning-soft);
+    color: var(--warning);
+    font-size: 12px;
+    font-weight: 600;
+}
+.espacio-tarjeta__libre { display: inline-flex; align-items: center; gap: 6px; color: var(--success); }
+.espacio-tarjeta .muted { font-size: 12px; }
+.espacio-tarjeta__acciones { display: flex; gap: var(--space-1); justify-content: flex-end; align-items: center; }
+.espacio-tarjeta__horas { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); }
+
+.espacios-pie { font-size: 14px; }
+
+/* ---------- Crear espacios ---------- */
+.espacios-migas { margin: 0 0 var(--space-2); font-size: 14px; color: var(--ink-muted); }
+.espacios-migas__enlace {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--primary);
+    font: inherit;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.espacios-layout {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-5);
+    align-items: flex-start;
+    margin-top: var(--space-5);
+}
+.espacios-principal { flex: 999 1 560px; min-width: 0; display: grid; gap: var(--space-5); }
+.espacios-resumen { flex: 1 1 300px; min-width: 0; position: sticky; top: var(--space-4); }
+
+.espacios-cupo {
+    display: flex;
+    gap: var(--space-3);
+    align-items: center;
+    margin: 0 var(--space-5) var(--space-5);
+    padding: var(--space-3) var(--space-4);
+    border-radius: var(--radius-md);
+    background: var(--surface-sunken);
+    font-size: 14px;
+    color: var(--ink-muted);
+}
+.espacios-cupo svg { flex: none; }
+.espacios-cupo b { color: var(--ink); }
+
+.espacios-generador {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-4);
+    align-items: flex-end;
+}
+.espacios-generador > .sg-field { flex: 1 1 140px; }
+
+.espacios-tabla .sg-input { min-width: 110px; }
+.espacios-tabla tr.has-error td { background: var(--danger-soft); }
+.espacios-tabla tr.has-error td:first-child { box-shadow: inset 2px 0 0 var(--danger); }
+.espacios-fila-error td { padding-top: 0; }
+
+.espacios-dl {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: var(--space-2) var(--space-4);
+    margin: 0;
+    font-size: 14px;
+}
+.espacios-dl dt { color: var(--ink-muted); }
+.espacios-dl dd { margin: 0; }
+
+.espacios-nota { display: flex; gap: var(--space-2); margin: var(--space-4) 0; font-size: 13px; line-height: 19px; }
+.espacios-nota svg { flex: none; margin-top: 2px; }
+
+.espacios-acciones { display: grid; gap: var(--space-2); }
+.espacios-motivo { font-size: 13px; color: var(--danger-strong); }
+
+@media (max-width: 640px) {
+    .espacios-semana-scroll { padding: 0 var(--space-4) var(--space-4); }
+    .espacios-resumen { position: static; }
+}
