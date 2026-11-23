@@ -1,14 +1,19 @@
 package cr.acusab.una.sigac.presentation.controller;
 
+import cr.acusab.una.sigac.logic.exception.EdicionEstudianteException;
 import cr.acusab.una.sigac.logic.service.DocumentoEstudianteService;
+import cr.acusab.una.sigac.logic.service.EstudianteEdicionService;
 import cr.acusab.una.sigac.logic.service.EstudianteService;
 import cr.acusab.una.sigac.presentation.dto.request.EstudianteCreateRequest;
+import cr.acusab.una.sigac.presentation.dto.request.EstudianteEdicionCompletaRequest;
 import cr.acusab.una.sigac.presentation.dto.request.EstudianteUpdateRequest;
 import cr.acusab.una.sigac.presentation.dto.response.DocumentoEstudianteResponse;
 import cr.acusab.una.sigac.presentation.dto.response.EstudianteBusquedaResponse;
+import cr.acusab.una.sigac.presentation.dto.response.EstudianteEdicionResponse;
 import cr.acusab.una.sigac.presentation.dto.response.EstudianteListadoResponse;
 import cr.acusab.una.sigac.presentation.dto.response.EstudianteResponse;
 import jakarta.validation.Valid;
+import jakarta.validation.Validator;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -27,13 +32,19 @@ public class EstudianteController {
 
     private final EstudianteService estudianteService;
     private final DocumentoEstudianteService documentoEstudianteService;
+    private final EstudianteEdicionService estudianteEdicionService;
+    private final Validator validator;
 
     public EstudianteController(
             EstudianteService estudianteService,
-            DocumentoEstudianteService documentoEstudianteService
+            DocumentoEstudianteService documentoEstudianteService,
+            EstudianteEdicionService estudianteEdicionService,
+            Validator validator
     ) {
         this.estudianteService = estudianteService;
         this.documentoEstudianteService = documentoEstudianteService;
+        this.estudianteEdicionService = estudianteEdicionService;
+        this.validator = validator;
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -80,6 +91,50 @@ public class EstudianteController {
     ) {
         return ResponseEntity.ok(
                 estudianteService.actualizar(id, request)
+        );
+    }
+
+    // Todo lo que necesita la pantalla "Editar estudiante".
+    @GetMapping("/{id}/edicion")
+    public ResponseEntity<EstudianteEdicionResponse> obtenerEdicion(
+            @PathVariable Long id
+    ) {
+        return ResponseEntity.ok(
+                estudianteEdicionService.obtener(id)
+        );
+    }
+
+    // Guarda toda la pantalla en una sola transacción: todo o nada.
+    @PutMapping(
+            value = "/{id}/completo",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
+    )
+    public ResponseEntity<EstudianteResponse> actualizarCompleto(
+            @PathVariable Long id,
+
+            @RequestPart("datos")
+            EstudianteEdicionCompletaRequest datos,
+
+            @RequestPart(value = "poliza", required = false)
+            MultipartFile poliza,
+
+            @RequestParam(value = "polizaFechaEmision", required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            LocalDate polizaFechaEmision,
+
+            @RequestParam(value = "polizaFechaVencimiento", required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            LocalDate polizaFechaVencimiento
+    ) {
+        // Se valida aquí para responder los errores agrupados por sección.
+        var errores = EdicionEstudianteException.desdeViolaciones(validator.validate(datos));
+        if (!errores.isEmpty()) {
+            throw new EdicionEstudianteException(errores);
+        }
+        return ResponseEntity.ok(
+                estudianteService.actualizarCompleto(
+                        id, datos, poliza, polizaFechaEmision, polizaFechaVencimiento
+                )
         );
     }
 

@@ -60,23 +60,31 @@ public class CuentaUsuarioService {
         boolean cambiaCorreo = correo != null && !correo.equalsIgnoreCase(usuario.getCorreo());
         if (!cambiaCedula && !cambiaCorreo) return;
 
-        if (cambiaCedula) {
-            usuarioRepository.findByCedula(cedula)
-                    .filter(otro -> !Objects.equals(otro.getId(), usuario.getId()))
-                    .ifPresent(otro -> {
-                        throw new DuplicateResourceException("La cédula ya está registrada en otra cuenta.");
-                    });
-            usuario.setCedula(cedula);
-        }
-        if (cambiaCorreo) {
-            usuarioRepository.findByCorreo(correo)
-                    .filter(otro -> !Objects.equals(otro.getId(), usuario.getId()))
-                    .ifPresent(otro -> {
-                        throw new DuplicateResourceException("El correo ya está registrado en otra cuenta.");
-                    });
-            usuario.setCorreo(correo);
-        }
+        validarCedulaDisponible(usuario, cedula);
+        validarCorreoDisponible(usuario, correo);
+        if (cambiaCedula) usuario.setCedula(cedula);
+        if (cambiaCorreo) usuario.setCorreo(correo);
         usuario.setActualizadoEn(Instant.now());
         usuarioRepository.save(usuario);
+    }
+
+    // Revisa, sin cambiar nada, que ninguna OTRA cuenta tenga esa cédula.
+    public void validarCedulaDisponible(Usuario usuario, String cedula) {
+        if (usuario == null || cedula == null || cedula.equals(usuario.getCedula())) return;
+        usuarioRepository.findByCedula(cedula)
+                .filter(otro -> !Objects.equals(otro.getId(), usuario.getId()))
+                .ifPresent(otro -> {
+                    throw new DuplicateResourceException("La cédula ya está registrada en otra cuenta.");
+                });
+    }
+
+    // Revisa, sin cambiar nada, que ninguna OTRA cuenta tenga ese correo.
+    public void validarCorreoDisponible(Usuario usuario, String correo) {
+        if (usuario == null || correo == null || correo.equalsIgnoreCase(usuario.getCorreo())) return;
+        usuarioRepository.findByCorreo(correo)
+                .filter(otro -> !Objects.equals(otro.getId(), usuario.getId()))
+                .ifPresent(otro -> {
+                    throw new DuplicateResourceException("El correo ya está registrado en otra cuenta.");
+                });
     }
 }
