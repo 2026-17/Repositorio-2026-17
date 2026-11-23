@@ -42,6 +42,18 @@ public class GlobalExceptionHandler {
         return respuesta(HttpStatus.BAD_REQUEST, ex.getMessage(), null);
     }
 
+    // Edición completa del estudiante: errores agrupados por sección.
+    @ExceptionHandler(EdicionEstudianteException.class)
+    public ResponseEntity<Map<String, Object>> manejarEdicionEstudiante(
+            EdicionEstudianteException ex
+    ) {
+        Map<String, Object> cuerpo = new LinkedHashMap<>();
+        cuerpo.put("status", HttpStatus.BAD_REQUEST.value());
+        cuerpo.put("message", ex.getMessage());
+        cuerpo.put("errores", ex.getErrores());
+        return ResponseEntity.badRequest().body(cuerpo);
+    }
+
     @ExceptionHandler(DuplicateResourceException.class)
     public ResponseEntity<Map<String, Object>> manejarDuplicateResourceException(
             DuplicateResourceException ex

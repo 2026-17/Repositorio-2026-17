@@ -10,6 +10,8 @@ import cr.acusab.una.sigac.data.entity.Usuario;
 import cr.acusab.una.sigac.data.repository.*;
 import cr.acusab.una.sigac.logic.exception.BusinessException;
 import cr.acusab.una.sigac.logic.exception.DuplicateResourceException;
+import cr.acusab.una.sigac.logic.service.DocumentoEstudianteService;
+import cr.acusab.una.sigac.logic.service.EncargadoService;
 import cr.acusab.una.sigac.logic.service.BecaService;
 import cr.acusab.una.sigac.logic.service.ContrasenaTemporalService;
 import cr.acusab.una.sigac.logic.service.CuentaUsuarioService;
@@ -86,7 +88,9 @@ class EstudianteServiceTest {
                 mock(BecaService.class),
                 inscripcionPlanService,
                 distritoRepository,
-                cuentaUsuarioService
+                cuentaUsuarioService,
+                mock(EncargadoService.class),
+                mock(DocumentoEstudianteService.class)
         );
 
         TiposIdentificacion cedula = new TiposIdentificacion();

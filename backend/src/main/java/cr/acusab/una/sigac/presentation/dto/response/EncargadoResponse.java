@@ -55,4 +55,10 @@ public class EncargadoResponse {
     private Instant actualizadoEn;
 
     private List<ContactoEmergenciaResponse> contactosEmergencia;
+
+    // true si viene de la carga inicial y falta confirmar el parentesco real.
+    private boolean parentescoPorConfirmar;
+
+    // Otros estudiantes que comparten este encargado.
+    private List<EstudianteRelacionadoResponse> otrosEstudiantes;
 }

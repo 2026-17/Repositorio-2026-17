@@ -43,6 +43,19 @@ public interface EstudianteEncargadoRepository
             @Param("idEncargado") Long idEncargado
     );
 
+    // Relaciones del encargado con estudiantes distintos al indicado.
+    @Query("""
+            SELECT relacion
+            FROM EstudiantesEncargado relacion
+            JOIN FETCH relacion.idEstudiante
+            WHERE relacion.id.idEncargado = :idEncargado
+              AND relacion.id.idEstudiante <> :idEstudiante
+            """)
+    List<EstudiantesEncargado> findDeOtrosEstudiantes(
+            @Param("idEncargado") Long idEncargado,
+            @Param("idEstudiante") Long idEstudiante
+    );
+
     @Query("""
             SELECT COUNT(relacion)
             FROM EstudiantesEncargado relacion

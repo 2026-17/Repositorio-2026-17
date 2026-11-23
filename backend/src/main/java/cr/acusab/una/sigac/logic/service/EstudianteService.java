@@ -4,8 +4,11 @@ import cr.acusab.una.sigac.data.entity.*;
 import cr.acusab.una.sigac.data.repository.*;
 import cr.acusab.una.sigac.logic.exception.BusinessException;
 import cr.acusab.una.sigac.logic.exception.DuplicateResourceException;
+import cr.acusab.una.sigac.logic.exception.EdicionEstudianteException;
+import cr.acusab.una.sigac.logic.exception.EdicionEstudianteException.ErrorEdicion;
 import cr.acusab.una.sigac.presentation.dto.request.BecaAsignarRequest;
 import cr.acusab.una.sigac.presentation.dto.request.EstudianteCreateRequest;
+import cr.acusab.una.sigac.presentation.dto.request.EstudianteEdicionCompletaRequest;
 import cr.acusab.una.sigac.presentation.dto.response.BecaResponse;
 import cr.acusab.una.sigac.presentation.dto.response.EstudianteBusquedaResponse;
 import cr.acusab.una.sigac.presentation.dto.response.EstudianteResponse;
@@ -13,25 +16,29 @@ import cr.acusab.una.sigac.presentation.dto.response.EstudianteListadoResponse;
 import cr.acusab.una.sigac.presentation.dto.response.UbicacionResponse;
 import cr.acusab.una.sigac.presentation.dto.request.EstudianteUpdateRequest;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.text.Normalizer;
 import java.nio.file.*;
 import java.security.MessageDigest;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.Period;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Supplier;
 
 @Service
 public class EstudianteService {
@@ -59,6 +66,8 @@ public class EstudianteService {
     private final InscripcionPlanEstudioService inscripcionPlanService;
     private final DistritoRepository distritoRepository;
     private final CuentaUsuarioService cuentaUsuarioService;
+    private final EncargadoService encargadoService;
+    private final DocumentoEstudianteService documentoEstudianteService;
 
     @Value("${sigac.storage.documents:./storage/documents}")
     private String storageDirectory;
@@ -80,8 +89,12 @@ public class EstudianteService {
                              BecaService becaService,
                              InscripcionPlanEstudioService inscripcionPlanService,
                              DistritoRepository distritoRepository,
-                             CuentaUsuarioService cuentaUsuarioService) {
+                             CuentaUsuarioService cuentaUsuarioService,
+                             EncargadoService encargadoService,
+                             DocumentoEstudianteService documentoEstudianteService) {
         this.cuentaUsuarioService = cuentaUsuarioService;
+        this.encargadoService = encargadoService;
+        this.documentoEstudianteService = documentoEstudianteService;
         this.estudianteRepository = estudianteRepository;
         this.encargadoRepository = encargadoRepository;
         this.estudianteEncargadoRepository = estudianteEncargadoRepository;
@@ -279,10 +292,10 @@ public class EstudianteService {
     public EstudianteResponse obtener(Long id) {
         Estudiante estudiante = estudianteRepository.findById(id)
                 .orElseThrow(() -> new BusinessException("El estudiante indicado no existe"));
-        Integer instrumentoId = estudianteInstrumentoRepository.findAll().stream()
-                .filter(x -> x.getEstudiante() != null && Objects.equals(x.getEstudiante().getId(), id)
-                        && x.getFechaFin() == null)
-                .map(x -> x.getInstrumento().getId()).findFirst().orElse(null);
+        // El instrumento del estudiante es el principal; los extras no se editan aquí.
+        Integer instrumentoId = estudianteInstrumentoRepository.findByIdEstudiante_IdAndFechaFinIsNull(id).stream()
+                .min(Comparator.comparing((EstudiantesInstrumento x) -> !Boolean.TRUE.equals(x.getEsPrincipal())))
+                .map(x -> x.getInstrumento().getId()).orElse(null);
         return respuesta(estudiante, instrumentoId, calcularEdad(estudiante.getFechaNacimiento()), null,
                 inscripcionPlanService.idsPlanesActivos(id));
     }
@@ -292,13 +305,7 @@ public class EstudianteService {
         Estudiante estudiante = estudianteRepository.findById(id)
                 .orElseThrow(() -> new BusinessException("El estudiante indicado no existe"));
         String identificacion = normalizar(request.numeroIdentificacion());
-        TiposIdentificacion tipo = tipoIdentificacionRepository.findByIdAndActivoTrue(request.idTipoIdentificacion())
-                .orElseThrow(() -> new BusinessException("El tipo de identificación indicado no existe o está inactivo"));
-        ReglasIdentificacion.validar(tipo, identificacion, "");
-        var existente = estudianteRepository.findByIdTipoIdentificacion_IdAndNumeroIdentificacion(request.idTipoIdentificacion(), identificacion);
-        if (existente.isPresent() && !Objects.equals(existente.get().getId(), id)) {
-            throw new DuplicateResourceException("Ya existe un estudiante con esa identificación");
-        }
+        TiposIdentificacion tipo = validarIdentificacionEstudiante(id, request.idTipoIdentificacion(), identificacion);
         validarGenero(request.genero());
         validarEdad(request.fechaNacimiento());
         int edad = calcularEdad(request.fechaNacimiento());
@@ -310,6 +317,7 @@ public class EstudianteService {
         String centro = obtenerCentro(request.centroEducativo(), edad);
         Instrumento instrumento = instrumentoRepository.findByIdAndActivoTrue(request.idInstrumento())
                 .orElseThrow(() -> new BusinessException("El instrumento indicado no existe o está inactivo"));
+        validarInstrumentoNoEsExtra(id, instrumento);
         Distrito distrito = obtenerDistrito(request.codigoDistrito());
 
         // La cuenta de usuario ingresa con la identificación y recupera la
@@ -321,13 +329,194 @@ public class EstudianteService {
         estudiante.setActualizadoEn(Instant.now());
         estudianteRepository.save(estudiante);
 
-        var vigentes = estudianteInstrumentoRepository.findAll().stream()
-                .filter(x -> x.getEstudiante() != null && Objects.equals(x.getEstudiante().getId(), id)
-                        && x.getFechaFin() == null).toList();
-        if (vigentes.isEmpty()) crearRelacionInstrumento(estudiante, instrumento, null);
-        else { vigentes.get(0).setInstrumento(instrumento); estudianteInstrumentoRepository.save(vigentes.get(0)); }
+        var principal = relacionPrincipal(id);
+        if (principal == null) crearRelacionInstrumento(estudiante, instrumento, null);
+        else { principal.setInstrumento(instrumento); estudianteInstrumentoRepository.save(principal); }
         List<Long> idsPlanes = inscripcionPlanService.sincronizar(id, request.idsPlanEstudio());
         return respuesta(estudiante, instrumento.getId(), edad, null, idsPlanes);
+    }
+
+    /*
+     * Guarda toda la pantalla "Editar estudiante". Primero revisa todo sin
+     * escribir, para informar todos los errores juntos. Cualquier excepción
+     * revierte la transacción: se guarda todo o no se guarda nada.
+     */
+    @Transactional
+    public EstudianteResponse actualizarCompleto(Long id, EstudianteEdicionCompletaRequest edicion,
+                                                 MultipartFile poliza, LocalDate polizaEmision,
+                                                 LocalDate polizaVencimiento) {
+        Estudiante estudiante = estudianteRepository.findById(id)
+                .orElseThrow(() -> new BusinessException("El estudiante indicado no existe"));
+        EstudianteUpdateRequest datos = edicion.estudiante();
+        String identificacion = normalizar(datos.numeroIdentificacion());
+        String correo = normalizarNullable(datos.correo());
+        Usuario cuenta = estudiante.getUsuario();
+        List<ErrorEdicion> errores = new ArrayList<>();
+
+        // --- Datos personales
+        TiposIdentificacion tipo = enSeccion(errores, EdicionEstudianteException.PERSONAL,
+                () -> validarIdentificacionEstudiante(id, datos.idTipoIdentificacion(), identificacion));
+        enSeccion(errores, EdicionEstudianteException.PERSONAL, () -> {
+            cuentaUsuarioService.validarCedulaDisponible(cuenta, identificacion);
+            return true;
+        });
+        enSeccion(errores, EdicionEstudianteException.PERSONAL, () -> {
+            validarGenero(datos.genero());
+            return true;
+        });
+        Integer edad = enSeccion(errores, EdicionEstudianteException.PERSONAL, () -> {
+            validarEdad(datos.fechaNacimiento());
+            return calcularEdad(datos.fechaNacimiento());
+        });
+
+        // --- Contacto y residencia
+        enSeccion(errores, EdicionEstudianteException.CONTACTO, () -> {
+            cuentaUsuarioService.validarCorreoDisponible(cuenta, correo);
+            return true;
+        });
+        Distrito distrito = enSeccion(errores, EdicionEstudianteException.CONTACTO,
+                () -> obtenerDistrito(datos.codigoDistrito()));
+
+        // --- Información académica
+        String centro = edad == null ? null : enSeccion(errores, EdicionEstudianteException.ACADEMICO,
+                () -> Objects.toString(obtenerCentro(datos.centroEducativo(), edad), ""));
+        enSeccion(errores, EdicionEstudianteException.ACADEMICO, () -> {
+            inscripcionPlanService.validarParaActualizacion(id, datos.idsPlanEstudio());
+            return true;
+        });
+
+        // --- Instrumento principal y su profesor
+        Instrumento instrumento = enSeccion(errores, EdicionEstudianteException.INSTRUMENTOS, () -> {
+            Instrumento elegido = instrumentoRepository.findByIdAndActivoTrue(datos.idInstrumento())
+                    .orElseThrow(() -> new BusinessException("El instrumento indicado no existe o está inactivo"));
+            validarInstrumentoNoEsExtra(id, elegido);
+            return elegido;
+        });
+        Profesor profesor = instrumento == null ? null : enSeccion(errores, EdicionEstudianteException.INSTRUMENTOS,
+                () -> obtenerProfesorParaInstrumento(edicion.idProfesor(), instrumento));
+
+        // --- Encargados: solo para menores; a un mayor no se le tocan
+        boolean menor = edad != null && edad < 18;
+        if (menor) {
+            errores.addAll(encargadoService.validarEdicion(id, datos.idTipoIdentificacion(), identificacion,
+                    edicion.encargados()));
+        }
+
+        // --- Póliza
+        boolean traePoliza = poliza != null && !poliza.isEmpty();
+        TiposDocumento tipoPoliza = !traePoliza ? null : enSeccion(errores, EdicionEstudianteException.POLIZA, () -> {
+            if (!Boolean.TRUE.equals(estudiante.getActivo())) {
+                throw new BusinessException("No se puede adjuntar la póliza de un estudiante inactivo.");
+            }
+            documentoEstudianteService.validarAdjunto(poliza, polizaEmision, polizaVencimiento);
+            return tipoDocumentoRepository.findByCodigoAndActivoTrue("POLIZA")
+                    .orElseThrow(() -> new BusinessException("No está configurado el tipo de documento POLIZA activo"));
+        });
+        if (!traePoliza && (polizaEmision != null || polizaVencimiento != null)) {
+            errores.add(new ErrorEdicion(EdicionEstudianteException.POLIZA,
+                    "Para registrar las fechas de la póliza, adjunte el PDF."));
+        }
+
+        if (!errores.isEmpty()) {
+            throw new EdicionEstudianteException(errores);
+        }
+
+        // --- Todo es válido: se guarda
+        try {
+            cuentaUsuarioService.sincronizarIdentidad(cuenta, identificacion, correo);
+            aplicarDatos(estudiante, tipo, identificacion, datos.nombres(), datos.primerApellido(),
+                    datos.segundoApellido(), datos.fechaNacimiento(), datos.genero(), distrito, datos.direccion(),
+                    datos.telefono(), datos.correo(), datos.nivelEscolar(), normalizarNullable(centro),
+                    datos.condicionesRelevantes());
+            estudiante.setFechaIngreso(edicion.fechaIngreso());
+            estudiante.setActualizadoEn(Instant.now());
+            estudianteRepository.save(estudiante);
+
+            EstudiantesInstrumento principal = relacionPrincipal(id);
+            if (principal == null) {
+                crearRelacionInstrumento(estudiante, instrumento, profesor);
+            } else {
+                principal.setInstrumento(instrumento);
+                principal.setProfesor(profesor);
+                estudianteInstrumentoRepository.save(principal);
+            }
+
+            List<Long> idsPlanes = inscripcionPlanService.sincronizar(id, datos.idsPlanEstudio());
+
+            if (menor) {
+                aplicarEnSeccion(EdicionEstudianteException.ENCARGADOS,
+                        () -> encargadoService.aplicarEdicion(estudiante, edicion.encargados()));
+            }
+            if (traePoliza) {
+                aplicarEnSeccion(EdicionEstudianteException.POLIZA,
+                        () -> documentoEstudianteService.adjuntarOReemplazar(
+                                id, tipoPoliza.getId(), poliza, polizaEmision, polizaVencimiento));
+            }
+
+            // Fuerza los INSERT/UPDATE aquí para reportar un choque de datos como error de la pantalla.
+            estudianteRepository.flush();
+            return respuesta(estudiante, instrumento.getId(), edad, null, idsPlanes);
+        } catch (DataIntegrityViolationException e) {
+            throw new EdicionEstudianteException(List.of(new ErrorEdicion(EdicionEstudianteException.PERSONAL,
+                    "No se guardó porque otro registro ya usa alguno de estos datos. Revise la identificación y el correo.")));
+        }
+    }
+
+    // Ejecuta una validación y, si falla, anota el error en su sección.
+    private <T> T enSeccion(List<ErrorEdicion> errores, String seccion, Supplier<T> validacion) {
+        try {
+            return validacion.get();
+        } catch (RuntimeException e) {
+            errores.add(new ErrorEdicion(seccion, mensajeDeNegocio(e)));
+            return null;
+        }
+    }
+
+    private void aplicarEnSeccion(String seccion, Runnable paso) {
+        try {
+            paso.run();
+        } catch (BusinessException | DuplicateResourceException | ResponseStatusException e) {
+            throw new EdicionEstudianteException(List.of(new ErrorEdicion(seccion, mensajeDeNegocio(e))));
+        }
+    }
+
+    // Solo los errores previstos se muestran; uno inesperado sigue su camino (500).
+    private String mensajeDeNegocio(RuntimeException e) {
+        if (e instanceof ResponseStatusException estado) return estado.getReason();
+        if (e instanceof BusinessException || e instanceof DuplicateResourceException
+                || e instanceof IllegalArgumentException) {
+            return e.getMessage();
+        }
+        throw e;
+    }
+
+    private TiposIdentificacion validarIdentificacionEstudiante(Long id, Integer idTipo, String identificacion) {
+        TiposIdentificacion tipo = tipoIdentificacionRepository.findByIdAndActivoTrue(idTipo)
+                .orElseThrow(() -> new BusinessException("El tipo de identificación indicado no existe o está inactivo"));
+        ReglasIdentificacion.validar(tipo, identificacion, "");
+        var existente = estudianteRepository.findByIdTipoIdentificacion_IdAndNumeroIdentificacion(idTipo, identificacion);
+        if (existente.isPresent() && !Objects.equals(existente.get().getId(), id)) {
+            throw new DuplicateResourceException("Ya existe un estudiante con esa identificación");
+        }
+        return tipo;
+    }
+
+    // La relación vigente marcada como principal; las extra nunca se modifican aquí.
+    private EstudiantesInstrumento relacionPrincipal(Long idEstudiante) {
+        return estudianteInstrumentoRepository.findByIdEstudiante_IdAndFechaFinIsNull(idEstudiante).stream()
+                .filter(x -> Boolean.TRUE.equals(x.getEsPrincipal()))
+                .min(Comparator.comparing(EstudiantesInstrumento::getId, Comparator.nullsLast(Comparator.naturalOrder())))
+                .orElse(null);
+    }
+
+    // Un mismo instrumento no puede quedar vigente dos veces.
+    private void validarInstrumentoNoEsExtra(Long idEstudiante, Instrumento instrumento) {
+        boolean yaEsExtra = estudianteInstrumentoRepository.findByIdEstudiante_IdAndFechaFinIsNull(idEstudiante).stream()
+                .anyMatch(x -> !Boolean.TRUE.equals(x.getEsPrincipal())
+                        && Objects.equals(x.getInstrumento().getId(), instrumento.getId()));
+        if (yaEsExtra) {
+            throw new BusinessException("El estudiante ya tiene " + instrumento.getNombre() + " como instrumento extra.");
+        }
     }
 
     private void aplicarDatos(Estudiante e, TiposIdentificacion tipo, String identificacion, String nombres,
@@ -440,16 +629,9 @@ public class EstudianteService {
         if (data.idTipoIdentificacion() != null && identificacion != null) {
             var existente = encargadoRepository.findByIdTipoIdentificacion_IdAndNumeroIdentificacion(data.idTipoIdentificacion(), identificacion);
             if (existente.isPresent()) {
-                // Se reutiliza el encargado ya registrado solo si es la misma
-                // persona; si el nombre no coincide, probablemente hay un error de digitación.
+                // Se reutiliza el encargado ya registrado solo si es la misma persona.
                 Encargado encargado = existente.get();
-                if (!mismoTexto(encargado.getNombres(), data.nombres())
-                        || !mismoTexto(encargado.getPrimerApellido(), data.primerApellido())) {
-                    String registrado = String.join(" ", normalizar(encargado.getNombres()),
-                            normalizar(encargado.getPrimerApellido()), normalizar(encargado.getSegundoApellido())).trim();
-                    throw new BusinessException("Ya existe un encargado con esa identificación registrado como "
-                            + registrado + ". Verifique los datos.");
-                }
+                EncargadoService.validarMismaPersona(encargado, data.nombres(), data.primerApellido());
                 return encargado;
             }
         }
@@ -502,17 +684,6 @@ public class EstudianteService {
                 throw new BusinessException("Los dos encargados no pueden tener la misma identificación.");
             }
         }
-    }
-
-    // Compara dos textos sin distinguir mayúsculas, tildes ni espacios repetidos.
-    private boolean mismoTexto(String a, String b) {
-        return sinTildes(normalizar(a)).equals(sinTildes(normalizar(b)));
-    }
-
-    private String sinTildes(String texto) {
-        return Normalizer.normalize(texto, Normalizer.Form.NFD)
-                .replaceAll("\\p{M}", "")
-                .toLowerCase(Locale.ROOT);
     }
 
     private void validarGenero(String genero) {

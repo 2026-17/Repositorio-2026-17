@@ -78,6 +78,12 @@ public class InscripcionPlanEstudioService {
         validar(idsSolicitados, Set.of());
     }
 
+    // Misma validación de sincronizar, pero sin guardar nada.
+    @Transactional(readOnly = true)
+    public void validarParaActualizacion(Long idEstudiante, List<Long> idsSolicitados) {
+        validar(idsSolicitados, new java.util.HashSet<>(idsPlanesActivos(idEstudiante)));
+    }
+
     /*
      * Deja al estudiante inscrito exactamente en los planes indicados:
      * inscribe los nuevos, reactiva los que estaban inactivos y desactiva

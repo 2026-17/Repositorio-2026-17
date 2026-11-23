@@ -17,6 +17,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -116,6 +118,7 @@ public class DocumentoEstudianteService {
             );
 
             archivoGuardado = true;
+            borrarArchivoSiLaTransaccionFalla(destination);
 
             String hash = sha256(destination);
 
@@ -178,6 +181,38 @@ public class DocumentoEstudianteService {
 
             throw e;
         }
+    }
+
+    /**
+     * Revisa el PDF y sus fechas sin guardar nada. La edición completa lo usa
+     * para reportar todos los errores antes de empezar a escribir.
+     */
+    public void validarAdjunto(
+            MultipartFile archivo,
+            LocalDate fechaEmision,
+            LocalDate fechaVencimiento
+    ) {
+        validarFechas(fechaEmision, fechaVencimiento);
+        validarPdf(archivo);
+    }
+
+    /*
+     * El archivo no forma parte de la transacción de la base de datos: si
+     * esta se revierte después de copiarlo (incluso al hacer commit), hay
+     * que borrarlo a mano para no dejar un PDF huérfano.
+     */
+    private void borrarArchivoSiLaTransaccionFalla(Path archivo) {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCompletion(int status) {
+                if (status != STATUS_COMMITTED) {
+                    eliminarArchivoSilenciosamente(archivo);
+                }
+            }
+        });
     }
 
     /**

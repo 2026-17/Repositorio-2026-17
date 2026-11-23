@@ -7,8 +7,7 @@ import Field from "../../components/ui/Field";
 import StatusBadge from "../../components/ui/StatusBadge";
 import { useDialog } from "../../components/dialog/useDialog";
 import { mostrarIdentificacion } from "../../utils/cedula";
-
-const MAX_PDF_SIZE = 50 * 1024 * 1024;
+import { errorArchivoPdf, errorFechasDocumento } from "../../utils/validacionDocumento";
 
 function getAuthHeaders() {
     const token = localStorage.getItem("token");
@@ -205,38 +204,17 @@ function DocumentosEstudiante({ estudiante, onClose }) {
                 "Seleccione el tipo de documento.";
         }
 
-        if (!archivo) {
-            nuevosErrores.archivo =
-                "Seleccione un archivo PDF.";
+        const errorArchivo = errorArchivoPdf(archivo);
 
-        } else {
-            const nombre =
-                archivo.name?.toLowerCase() || "";
-
-            const tipo =
-                archivo.type?.toLowerCase() || "";
-
-            if (!nombre.endsWith(".pdf")) {
-                nuevosErrores.archivo =
-                    "El archivo debe tener extensión PDF.";
-
-            } else if (tipo !== "application/pdf") {
-                nuevosErrores.archivo =
-                    "El archivo seleccionado debe ser un PDF.";
-
-            } else if (archivo.size > MAX_PDF_SIZE) {
-                nuevosErrores.archivo =
-                    "El archivo PDF no puede superar 50 MB.";
-            }
+        if (errorArchivo) {
+            nuevosErrores.archivo = errorArchivo;
         }
 
-        if (
-            fechaEmision &&
-            fechaVencimiento &&
-            fechaVencimiento < fechaEmision
-        ) {
-            nuevosErrores.fechaVencimiento =
-                "La fecha de vencimiento no puede ser anterior a la fecha de emisión.";
+        const errorFechas =
+            errorFechasDocumento(fechaEmision, fechaVencimiento);
+
+        if (errorFechas) {
+            nuevosErrores.fechaVencimiento = errorFechas;
         }
 
         return nuevosErrores;
