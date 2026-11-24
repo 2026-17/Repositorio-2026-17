@@ -7,11 +7,13 @@ import cr.acusab.una.sigac.presentation.dto.response.ProfesorResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
+@PreAuthorize("hasRole('DIRECTOR_ACADEMICO')")
 @RequestMapping("/profesores")
 public class ProfesorController {
 
@@ -37,6 +39,7 @@ public class ProfesorController {
     // HU-026 - Profesores activos con esa especialidad (para el selector de
     // profesor al asignar un instrumento a un estudiante).
     @GetMapping("/por-instrumento/{idInstrumento}")
+    @PreAuthorize("hasAnyRole('ADMINISTRATIVO', 'DIRECTOR_ACADEMICO')")
     public ResponseEntity<List<ProfesorResponse>> listarPorInstrumento(@PathVariable Integer idInstrumento) {
         return ResponseEntity.ok(profesorService.listarPorInstrumento(idInstrumento));
     }
