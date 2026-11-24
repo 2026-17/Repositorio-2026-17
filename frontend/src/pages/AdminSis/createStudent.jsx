@@ -13,6 +13,8 @@ import Alert from "../../components/ui/Alert";
 import Field from "../../components/ui/Field";
 import PageHead from "../../components/ui/PageHead";
 import Stepper from "../../components/ui/Stepper";
+import AvisoCorreoEnUso from "../../components/AvisoCorreoEnUso";
+import { useCorreoEnUso } from "../../hooks/useCorreoEnUso";
 import { listaErrores } from "../../components/ui/utilidades";
 import { campoDeConflicto, lanzarError, leerError, mensajeDeExcepcion } from "../../utils/api";
 import {
@@ -70,7 +72,6 @@ function erroresDelBackend(error) {
   });
   if (error.status === 409) {
     const campo = campoDeConflicto(error.message);
-    if (campo === "correo") porCampo.correo = error.message;
     if (campo === "identificacion") porCampo.numeroIdentificacion = error.message;
   }
   return porCampo;
@@ -242,6 +243,7 @@ export default function CreateStudent({ onCancel, onSuccess } = {}) {
     document.getElementById("est-step-title")?.focus();
   }, [paso]);
 
+  const correoEnUso = useCorreoEnUso();
   const tipoDe = (idTipo) => types.find((t) => String(t.id) === String(idTipo));
 
   const setField = (name, value) => {
@@ -577,9 +579,12 @@ export default function CreateStudent({ onCancel, onSuccess } = {}) {
         >
           <input id={`${P}fechaNacimiento`} className="sg-input" type="date" min={limitesNacimiento.min} max={limitesNacimiento.max} value={form.fechaNacimiento} onChange={(e) => setField("fechaNacimiento", e.target.value)} {...aria("fechaNacimiento", errors)} />
         </Field>
-        <Field id={`${P}correo`} errorKey="correo" label="Correo electrónico" error={errors.correo}>
-          <input id={`${P}correo`} className="sg-input" type="email" maxLength={254} autoComplete="email" value={form.correo} onChange={(e) => setField("correo", e.target.value)} placeholder="nombre@correo.com" {...aria("correo", errors)} />
-        </Field>
+        <div>
+          <Field id={`${P}correo`} errorKey="correo" label="Correo electrónico" error={errors.correo}>
+            <input id={`${P}correo`} className="sg-input" type="email" maxLength={254} autoComplete="email" value={form.correo} onChange={(e) => { setField("correo", e.target.value); correoEnUso.limpiar(); }} onBlur={(e) => correoEnUso.consultar(e.target.value)} placeholder="nombre@correo.com" {...aria("correo", errors)} />
+          </Field>
+          <AvisoCorreoEnUso cuentas={correoEnUso.cuentas} />
+        </div>
         <Field id={`${P}telefono`} errorKey="telefono" label="Teléfono" optional hint="8 dígitos, puede escribirlo con guion." error={errors.telefono}>
           <input id={`${P}telefono`} className="sg-input" type="tel" inputMode="tel" maxLength={9} autoComplete="tel" value={form.telefono} onChange={(e) => setField("telefono", e.target.value)} placeholder="8888-4321" {...aria("telefono", errors)} />
         </Field>

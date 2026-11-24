@@ -12,6 +12,8 @@ import CedulaInput from "../../components/ui/CedulaInput";
 import { useAvisoCambiosSinGuardar } from "../../hooks/useAvisoCambiosSinGuardar";
 import { ajustarIdentificacionAlTipo, esCedulaNacional, mostrarIdentificacion } from "../../utils/cedula";
 import UbicacionSelects from "../../components/UbicacionSelects";
+import AvisoCorreoEnUso from "../../components/AvisoCorreoEnUso";
+import { useCorreoEnUso } from "../../hooks/useCorreoEnUso";
 import { API_URL } from "../../config/api";
 import { lanzarError, leerError, mensajeDeExcepcion } from "../../utils/api";
 import { hoyISO, limitesFechaNacimiento } from "../../utils/validaciones";
@@ -85,6 +87,7 @@ function EditarEstudiante({ studentId, onCancel, onSuccess } = {}) {
     const [saving, setSaving] = useState(false);
     // Si ya se guardó algo, al salir hay que refrescar la lista de Estudiantes.
     const huboGuardado = useRef(false);
+    const correoEnUso = useCorreoEnUso(id);
 
     const cambios = form && formCargado ? contarCambios(form, formCargado, archivo) : 0;
     const { confirmarDescarte, permitirSalida } = useAvisoCambiosSinGuardar(cambios > 0);
@@ -437,9 +440,12 @@ function EditarEstudiante({ studentId, onCancel, onSuccess } = {}) {
                         <section className="panel" id="seccion-contacto" aria-labelledby="titulo-contacto">
                             <div className="panel-head"><h2 id="titulo-contacto">Contacto y residencia</h2></div>
                             <div className="panel-body form-grid">
-                                <Field id="edit-correo" errorKey="correo" label="Correo electrónico" hint="Si lo cambia, también cambia el correo de su cuenta, donde le llega la recuperación de contraseña." error={errores.correo}>
-                                    <input id="edit-correo" className="sg-input" type="email" maxLength={254} value={form.correo} onChange={e => setField("correo", e.target.value)} {...err("correo")} />
-                                </Field>
+                                <div>
+                                    <Field id="edit-correo" errorKey="correo" label="Correo electrónico" hint="Si lo cambia, también cambia el correo de su cuenta, donde le llega la recuperación de contraseña." error={errores.correo}>
+                                        <input id="edit-correo" className="sg-input" type="email" maxLength={254} value={form.correo} onChange={e => { setField("correo", e.target.value); correoEnUso.limpiar(); }} onBlur={e => correoEnUso.consultar(e.target.value)} {...err("correo")} />
+                                    </Field>
+                                    <AvisoCorreoEnUso cuentas={correoEnUso.cuentas} />
+                                </div>
                                 <Field id="edit-telefono" errorKey="telefono" label="Teléfono" optional hint="8 dígitos, puede escribirlo con guion." error={errores.telefono}>
                                     <input id="edit-telefono" className="sg-input" type="tel" inputMode="tel" maxLength={9} value={form.telefono} onChange={e => setField("telefono", e.target.value)} placeholder="8888-4321" {...err("telefono")} />
                                 </Field>

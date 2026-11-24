@@ -241,7 +241,7 @@ function RecuperarContrasena() {
                 <>
                     <h1 id="rec-title" tabIndex={-1}>Recuperar contraseña</h1>
                     <p className="lead">
-                        Le enviaremos un código de 6 dígitos al correo registrado en su cuenta para crear una contraseña nueva.
+                        Le enviaremos un código de 6 dígitos al correo registrado en la cuenta de esa cédula. Si varias cuentas comparten el correo, el mensaje indica de qué cuenta es el código.
                     </p>
 
                     <form onSubmit={handleSolicitar} className="auth-form" noValidate>

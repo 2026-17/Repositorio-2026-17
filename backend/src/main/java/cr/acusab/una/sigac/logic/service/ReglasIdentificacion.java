@@ -58,6 +58,15 @@ public final class ReglasIdentificacion {
         }
     }
 
+    /**
+     * Identificación para mostrar sin exponerla: solo los últimos 4 caracteres
+     * (por ejemplo "*****0878"). Si es tan corta que se vería completa, no muestra ninguno.
+     */
+    public static String enmascarar(String numero) {
+        String limpio = numero == null ? "" : numero.replaceAll("[\\s-]", "");
+        return limpio.length() <= 4 ? "*****" : "*****" + limpio.substring(limpio.length() - 4);
+    }
+
     private static String sinTildes(String texto) {
         return Normalizer.normalize(texto == null ? "" : texto, Normalizer.Form.NFD)
                 .replaceAll("\\p{M}", "")

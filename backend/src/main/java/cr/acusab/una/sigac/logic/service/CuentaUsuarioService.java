@@ -50,8 +50,8 @@ public class CuentaUsuarioService {
     }
 
     /**
-     * Copia la cédula y el correo nuevos a la cuenta. Antes revisa que
-     * ninguna OTRA cuenta los tenga. Un valor null no se modifica.
+     * Copia la cédula y el correo nuevos a la cuenta. La cédula no puede ser
+     * de OTRA cuenta; el correo sí se puede compartir. Un valor null no se modifica.
      */
     public void sincronizarIdentidad(Usuario usuario, String cedula, String correo) {
         if (usuario == null) return;
@@ -61,7 +61,6 @@ public class CuentaUsuarioService {
         if (!cambiaCedula && !cambiaCorreo) return;
 
         validarCedulaDisponible(usuario, cedula);
-        validarCorreoDisponible(usuario, correo);
         if (cambiaCedula) usuario.setCedula(cedula);
         if (cambiaCorreo) usuario.setCorreo(correo);
         usuario.setActualizadoEn(Instant.now());
@@ -75,16 +74,6 @@ public class CuentaUsuarioService {
                 .filter(otro -> !Objects.equals(otro.getId(), usuario.getId()))
                 .ifPresent(otro -> {
                     throw new DuplicateResourceException("La cédula ya está registrada en otra cuenta.");
-                });
-    }
-
-    // Revisa, sin cambiar nada, que ninguna OTRA cuenta tenga ese correo.
-    public void validarCorreoDisponible(Usuario usuario, String correo) {
-        if (usuario == null || correo == null || correo.equalsIgnoreCase(usuario.getCorreo())) return;
-        usuarioRepository.findByCorreo(correo)
-                .filter(otro -> !Objects.equals(otro.getId(), usuario.getId()))
-                .ifPresent(otro -> {
-                    throw new DuplicateResourceException("El correo ya está registrado en otra cuenta.");
                 });
     }
 }

@@ -45,10 +45,6 @@ public class UsuarioService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "La cédula ya está registrada");
         }
 
-        if (usuarioRepository.findByCorreo(request.getCorreo()).isPresent()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "El correo ya está registrado");
-        }
-
         Role rol = roleRepository.findById(request.getIdRol())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Rol no existe"));
 

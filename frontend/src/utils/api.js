@@ -58,15 +58,14 @@ export function erroresDeCampos(fields, equivalencias = {}) {
 
 /*
  * Decide a qué campo del formulario pertenece un error de duplicado (409)
- * según el texto del backend: "correo", "identificacion" o null si no
- * coincide con ninguno (en ese caso se muestra como error general).
+ * según el texto del backend: "identificacion" o null si no coincide (en ese
+ * caso se muestra como error general). El correo se puede compartir.
  */
 export function campoDeConflicto(mensaje) {
     const texto = (mensaje || "")
         .toLowerCase()
         .normalize("NFD")
         .replace(/[̀-ͯ]/g, "");
-    if (texto.includes("correo")) return "correo";
     if (texto.includes("identificacion") || texto.includes("cedula")) return "identificacion";
     return null;
 }

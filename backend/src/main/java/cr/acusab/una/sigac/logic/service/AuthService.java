@@ -126,7 +126,8 @@ public class AuthService {
         usuarioRepository.findByCedula(cedula.trim()).ifPresent(usuario -> {
             try {
                 String codigo = codigoVerificacionService.generar(usuario, Proposito.RECUPERACION);
-                emailService.enviarCodigoRecuperacion(usuario.getCorreo(), codigo,
+                emailService.enviarCodigoRecuperacion(usuario.getCorreo(), usuario.getNombre(),
+                        ReglasIdentificacion.enmascarar(usuario.getCedula()), codigo,
                         CodigoVerificacionService.MINUTOS_VIGENCIA);
             } catch (ResponseStatusException e) {
                 log.warn("No se envió el código de recuperación al usuario {}: {}", usuario.getId(), e.getReason());
@@ -149,7 +150,9 @@ public class AuthService {
     public void solicitarCodigoCambio(String cedula) {
         Usuario usuario = buscarPorCedula(cedula);
         String codigo = codigoVerificacionService.generar(usuario, Proposito.CAMBIO);
-        emailService.enviarCodigoCambio(usuario.getCorreo(), codigo, CodigoVerificacionService.MINUTOS_VIGENCIA);
+        emailService.enviarCodigoCambio(usuario.getCorreo(), usuario.getNombre(),
+                ReglasIdentificacion.enmascarar(usuario.getCedula()), codigo,
+                CodigoVerificacionService.MINUTOS_VIGENCIA);
     }
 
     /**

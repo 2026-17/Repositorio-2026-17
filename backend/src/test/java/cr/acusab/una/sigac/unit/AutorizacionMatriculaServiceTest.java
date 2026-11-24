@@ -439,7 +439,7 @@ class AutorizacionMatriculaServiceTest {
         );
 
         assertEquals(
-                "administrativo@sigac.test",
+                "Usuario Administrativo",
                 resultado.getRevisadoPor()
         );
 
