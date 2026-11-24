@@ -242,7 +242,7 @@ const router = createBrowserRouter(
                         {/* Administrativo - HU-026 Asignar instrumento al estudiante */}
                         <Route
                             path="/admin/administracion/estudiantes/instrumentos"
-                            element={<AsignarInstrumento rutaCatalogo="/registro/catalogos/instrumentos" />}
+                            element={<AsignarInstrumento rutaCatalogo="/registro/catalogos/instrumentos" conProfesor />}
                         />
 
                         {/* Administrativo - HU-015 Asignar beca y registrar pago */}
