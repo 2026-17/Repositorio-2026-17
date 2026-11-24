@@ -3,6 +3,7 @@ package cr.acusab.una.sigac.data.repository;
 import cr.acusab.una.sigac.data.entity.EstudiantesInstrumento;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -30,4 +31,12 @@ public interface EstudianteInstrumentoRepository extends JpaRepository<Estudiant
      */
     Optional<EstudiantesInstrumento> findByIdEstudiante_IdAndIdInstrumento_IdAndFechaFinIsNull(
             Long idEstudiante, Integer idInstrumento);
+
+    /*
+     * HU-026 - Registro del mismo estudiante e instrumento que empezó en esa
+     * fecha. La tabla solo admite uno (uq_estudiantes_instrumentos_periodo),
+     * así que si se finalizó hoy y se vuelve a asignar hoy, se reabre ese.
+     */
+    Optional<EstudiantesInstrumento> findByIdEstudiante_IdAndIdInstrumento_IdAndFechaInicio(
+            Long idEstudiante, Integer idInstrumento, LocalDate fechaInicio);
 }
