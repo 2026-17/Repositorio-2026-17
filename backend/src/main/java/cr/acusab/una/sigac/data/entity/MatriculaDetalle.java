@@ -51,6 +51,14 @@ public class MatriculaDetalle {
     @Column(name = "id_instrumento")
     private Integer idInstrumento;
 
+    /*
+     * Agrupaciones: orden en que el estudiante las eligió en el período
+     * (1, 2, 3...). Regla D4: la segunda se califica como coro cuando no
+     * lleva ninguna coral. NULL en grupos normales y espacios.
+     */
+    @Column(name = "orden_seleccion", columnDefinition = "smallint UNSIGNED")
+    private Short ordenSeleccion;
+
     @NotNull
     @ColumnDefault("0")
     @Column(name = "retirado", nullable = false)

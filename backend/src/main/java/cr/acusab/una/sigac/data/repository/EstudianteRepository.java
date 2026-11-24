@@ -26,6 +26,22 @@ public interface EstudianteRepository
 
 
     Optional<Estudiante> findByIdAndActivoTrue(Long id);
+
+    /*
+     * Código del tipo de estudiante (REGULAR o INCLUSION). Se lee con SQL
+     * directo porque la entidad Estudiante de esta rama todavía no mapea
+     * id_tipo_estudiante (está en f11/tipo-estudiante-inclusion). Necesita
+     * db/cambios/2026-11-17_tipo_estudiante_inclusion.sql en la base.
+     * Solo se usa con agrupaciones de "solo inclusión" (regla D6).
+     */
+    @Query(value = """
+            SELECT te.codigo
+            FROM estudiantes e
+                     INNER JOIN tipos_estudiante te
+                                ON te.id_tipo_estudiante = e.id_tipo_estudiante
+            WHERE e.id_estudiante = :idEstudiante
+            """, nativeQuery = true)
+    Optional<String> findCodigoTipoEstudiante(@Param("idEstudiante") Long idEstudiante);
     Optional<Estudiante> findByUsuario_Cedula(String cedula);
 
     // Busqueda por nombre, apellidos o numero de identificacion,

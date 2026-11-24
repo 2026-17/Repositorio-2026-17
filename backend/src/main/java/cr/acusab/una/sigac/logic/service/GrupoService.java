@@ -134,10 +134,11 @@ public class GrupoService {
     @Transactional(readOnly = true)
     public List<GrupoGestionResponse> listar(Long idPeriodo, Long idCurso) {
 
-        // Los espacios de instrumento tienen su propia pantalla.
+        // Los espacios de instrumento y las agrupaciones tienen su propia pantalla.
         List<Grupo> grupos = grupoRepository.findAllByOrderByIdPeriodoDescCodigoAsc()
                 .stream()
                 .filter(g -> !g.esEspacioInstrumento())
+                .filter(g -> !g.esAgrupacion())
                 .filter(g -> idPeriodo == null || idPeriodo.equals(g.getIdPeriodo()))
                 .filter(g -> idCurso == null || idCurso.equals(g.getIdCurso()))
                 .toList();
@@ -363,11 +364,16 @@ public class GrupoService {
         grupoRepository.delete(grupo);
     }
 
-    // Los espacios de instrumento se gestionan en su propia pantalla.
+    // Los espacios de instrumento y las agrupaciones se gestionan en su propia pantalla.
     private static void rechazarEspacio(Grupo grupo) {
         if (grupo.esEspacioInstrumento()) {
             throw new BusinessException(
                     "Ese grupo es un espacio de instrumento: modifíquelo o elimínelo desde «Espacios de instrumento»."
+            );
+        }
+        if (grupo.esAgrupacion()) {
+            throw new BusinessException(
+                    "Ese grupo es de una agrupación: modifíquelo desde «Agrupaciones»."
             );
         }
     }
@@ -381,6 +387,13 @@ public class GrupoService {
             throw new BusinessException(
                     "«" + curso.getNombre() + "» es un curso de instrumento: no se abre como grupo. "
                             + "Cree los espacios del profesor en «Espacios de instrumento»."
+            );
+        }
+        // Conjunto Instrumental y Coro: se cursan en las agrupaciones.
+        if (Boolean.TRUE.equals(curso.getEsCursoAgrupacion())) {
+            throw new BusinessException(
+                    "«" + curso.getNombre() + "» se cursa en las agrupaciones: no se abre como grupo. "
+                            + "Abra la agrupación en el período desde «Agrupaciones»."
             );
         }
     }

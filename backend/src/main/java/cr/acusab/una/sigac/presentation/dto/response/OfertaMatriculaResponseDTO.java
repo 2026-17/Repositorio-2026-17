@@ -92,6 +92,25 @@ public class OfertaMatriculaResponseDTO {
         private Integer idInstrumento;
         private String nombreInstrumento;
         private String nombreNivel;
+
+        /*
+         * Agrupación (Orquesta, Coro...). Al estudiante se le muestra solo
+         * el nombre: nombreCurso es el nombre de la agrupación y el nivel
+         * NO viene (idCurso, codigoCurso, nivel y nombreNivel quedan null).
+         * Tampoco viene si se le califica como coro (regla D4): el
+         * estudiante no lo ve.
+         */
+        private boolean agrupacion;
+        private Long idAgrupacion;
+        private String nombreAgrupacion;
+        private String tipoAgrupacion;
+        private List<String> profesores = new ArrayList<>();
+
+        /*
+         * Oferta de cursos: por qué el estudiante no puede elegir el grupo
+         * aunque tenga cupo (por ejemplo, la edad del curso, regla D7).
+         */
+        private String motivoNoDisponible;
     }
 
     /*

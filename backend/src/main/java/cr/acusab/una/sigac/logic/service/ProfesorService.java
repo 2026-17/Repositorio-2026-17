@@ -252,6 +252,11 @@ public class ProfesorService {
             throw new BusinessException("No se puede eliminar al profesor porque tiene espacios de instrumento. "
                     + "Elimine primero sus espacios o dé de baja al profesor.");
         }
+        // Una agrupación sin su responsable no se puede publicar.
+        if (grupoRepository.existsByIdProfesorAndTipoGrupo(id, Grupo.TIPO_AGRUPACION)) {
+            throw new BusinessException("No se puede eliminar al profesor porque es responsable de una agrupación. "
+                    + "Cambie el responsable en «Agrupaciones» o dé de baja al profesor.");
+        }
         profesorRepository.delete(profesor);
     }
 

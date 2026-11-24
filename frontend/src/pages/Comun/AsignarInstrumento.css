@@ -105,3 +105,8 @@
     .avance-tira { grid-template-columns: repeat(7, minmax(40px, 1fr)); }
     .avance-ingreso { margin: 0 var(--space-4) var(--space-4); padding: var(--space-4); }
 }
+
+/* Avance en agrupaciones (vista interna) */
+.avance-agrupaciones { display: grid; gap: var(--space-4); }
+.avance-agrupaciones__familias { display: grid; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
+.avance-agrupaciones__familias li { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3); font-size: 14px; }

@@ -13,7 +13,9 @@ import { consultarMiHorario } from "../../utils/matriculaApi";
 import "./miHorario.css";
 
 // Un espacio de instrumento se distingue de un grupo: es una lección individual.
+// Una agrupación se muestra solo con su nombre (el nivel es interno).
 function etiquetaLeccion(clase) {
+    if (clase.agrupacion) return "Agrupación";
     return clase.espacioInstrumento ? `Lección individual · ${clase.nombreInstrumento ?? "Instrumento"}` : null;
 }
 

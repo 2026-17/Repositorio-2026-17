@@ -167,6 +167,8 @@ public class ConsultaCursosService {
                 .findByIdPeriodoAndEstadoIn(idPeriodo, ESTADOS_GRUPO_OFERTADOS)
                 .stream()
                 .filter(grupo -> cursosActivos.containsKey(grupo.getIdCurso()))
+                // Conjunto Instrumental y Coro se ven en las agrupaciones, no como cursos.
+                .filter(grupo -> !Boolean.TRUE.equals(cursosActivos.get(grupo.getIdCurso()).getEsCursoAgrupacion()))
                 .toList();
 
         if (grupos.isEmpty()) {

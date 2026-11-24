@@ -23,6 +23,7 @@ import Cursos from "./pages/DirectorAcademico/Cursos";
 import Grupos from "./pages/DirectorAcademico/Grupos";
 import EspaciosInstrumento from "./pages/DirectorAcademico/EspaciosInstrumento";
 import AsignarProfesores from "./pages/DirectorAcademico/AsignarProfesores";
+import Agrupaciones from "./pages/DirectorAcademico/Agrupaciones";
 import AsignarInstrumento from "./pages/Comun/AsignarInstrumento.jsx";
 import PeriodosAcademicos from "./pages/DirectorAcademico/PeriodosAcademicos";
 import ProgramasAcademicos from "./pages/DirectorAcademico/ProgramasAcademicos";
@@ -175,6 +176,12 @@ const router = createBrowserRouter(
                         <Route
                             path="/director-academico/espacios-instrumento"
                             element={<EspaciosInstrumento />}
+                        />
+
+                        {/* Agrupaciones: catálogo y grupos por período (orquestas, bandas, coros) */}
+                        <Route
+                            path="/director-academico/agrupaciones"
+                            element={<Agrupaciones />}
                         />
 
                         {/* HU-014 - Asignar profesores a cursos y grupos */}

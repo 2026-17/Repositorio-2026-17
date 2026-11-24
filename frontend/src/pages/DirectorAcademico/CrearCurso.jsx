@@ -1,5 +1,7 @@
 import RequisitosCursoOpcionales from "./RequisitosCursoOpcionales";
 import CasillaCursoInstrumento from "./CasillaCursoInstrumento";
+import CamposEdadCurso from "./CamposEdadCurso";
+import { edadParaEnviar, erroresEdadCurso } from "./quienesPueden";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { API_URL } from "../../config/api";
@@ -23,6 +25,9 @@ const FORM_VACIO = {
     idPrograma: "",
     nivel: "",
     esCursoInstrumento: false,
+    // D7: opcionales (vacío = sin límite).
+    edadMinima: "",
+    edadMaxima: "",
 };
 
 /*
@@ -203,6 +208,8 @@ function CrearCurso({ onCancel, onSuccess, idProgramaInicial }) {
             siguientesErrores.nivel = "El nivel académico no puede ser mayor que 999.";
         }
 
+        Object.assign(siguientesErrores, erroresEdadCurso(form));
+
         return siguientesErrores;
     }
 
@@ -227,6 +234,8 @@ function CrearCurso({ onCancel, onSuccess, idProgramaInicial }) {
             idPrograma: Number(form.idPrograma),
             nivel: Number(form.nivel),
             esCursoInstrumento: form.esCursoInstrumento,
+            edadMinima: edadParaEnviar(form.edadMinima),
+            edadMaxima: edadParaEnviar(form.edadMaxima),
             requisitos: form.requisitos,
         };
 
@@ -364,6 +373,7 @@ function CrearCurso({ onCancel, onSuccess, idProgramaInicial }) {
                         <Field id="nivel" label="Nivel académico" error={errores.nivel}>
                             <input id="nivel" name="nivel" type="number" className="sg-input" min="1" max="999" step="1" inputMode="numeric" value={form.nivel} onChange={handleChange} placeholder="Ej. 1" {...aria("nivel")} />
                         </Field>
+                        <CamposEdadCurso form={form} errores={errores} onChange={handleChange} aria={aria} disabled={guardando} />
                         <CasillaCursoInstrumento
                             checked={form.esCursoInstrumento}
                             onChange={(valor) => setForm((prev) => ({ ...prev, esCursoInstrumento: valor }))}

@@ -20,9 +20,14 @@ import java.util.List;
  * "cualquier instrumento del profesor" cuando el estudiante tiene dos
  * lecciones con ese profesor; si tiene una sola, se deduce. Se puede
  * usar uno, el otro o ambos (sin repetir espacios).
+ * idsAgrupacion: grupos de agrupación elegidos (opcionales, varios), EN EL
+ * ORDEN EN QUE SE MARCARON: el servidor lo guarda en orden_seleccion. El
+ * nivel tampoco se envía. Qué agrupación se califica como coro (D4) lo
+ * decide el servidor: no se puede elegir.
  *
- * Que venga al menos un grupo o espacio lo valida el servicio (puede haber
- * matrícula solo con lecciones de instrumento).
+ * Que venga al menos un grupo, espacio o agrupación lo valida el servicio
+ * (puede haber matrícula solo con lecciones de instrumento o solo con
+ * agrupaciones).
  */
 @Getter
 @Setter
@@ -33,6 +38,8 @@ public class ConfirmarSeleccionMatriculaRequestDTO {
     private List<Long> idsEspacio = new ArrayList<>();
 
     private List<EspacioElegido> espacios = new ArrayList<>();
+
+    private List<Long> idsAgrupacion = new ArrayList<>();
 
     @Getter
     @Setter

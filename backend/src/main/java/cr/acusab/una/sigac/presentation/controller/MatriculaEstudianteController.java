@@ -4,6 +4,7 @@ import cr.acusab.una.sigac.logic.exception.BusinessException;
 import cr.acusab.una.sigac.logic.exception.MatriculaInvalidaException;
 import cr.acusab.una.sigac.logic.service.MatriculaEstudianteService;
 import cr.acusab.una.sigac.presentation.dto.request.ConfirmarSeleccionMatriculaRequestDTO;
+import cr.acusab.una.sigac.presentation.dto.response.AgrupacionesDisponiblesResponseDTO;
 import cr.acusab.una.sigac.presentation.dto.response.HorarioEstudianteResponseDTO;
 import cr.acusab.una.sigac.presentation.dto.response.MatriculaConfirmadaResponseDTO;
 import cr.acusab.una.sigac.presentation.dto.response.OfertaMatriculaResponseDTO;
@@ -45,6 +46,20 @@ public class MatriculaEstudianteController {
         return ResponseEntity.ok(
                 matriculaEstudianteService
                         .consultarMiOferta()
+        );
+    }
+
+    /*
+     * Agrupaciones del período vigente que el estudiante puede elegir
+     * (orquestas, bandas, coros...), con el motivo si alguna está
+     * bloqueada. No incluye el nivel: es interno.
+     */
+    @GetMapping("/agrupaciones")
+    public ResponseEntity<AgrupacionesDisponiblesResponseDTO> consultarMisAgrupaciones() {
+
+        return ResponseEntity.ok(
+                matriculaEstudianteService
+                        .consultarMisAgrupaciones()
         );
     }
 

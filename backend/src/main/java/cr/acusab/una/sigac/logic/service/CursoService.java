@@ -255,6 +255,12 @@ public class CursoService {
 
         curso.setHorasTotales(request.getHorasTotales());
         curso.setEsCursoInstrumento(Boolean.TRUE.equals(request.getEsCursoInstrumento()));
+        // Conjunto Instrumental (CI-) y Coro (CORO-) se cursan en agrupaciones.
+        curso.setEsCursoAgrupacion(FamiliaAgrupacion.esCodigoDeAgrupacion(codigo));
+        // D7: edades opcionales.
+        validarEdades(request.getEdadMinima(), request.getEdadMaxima());
+        curso.setEdadMinima(request.getEdadMinima());
+        curso.setEdadMaxima(request.getEdadMaxima());
         curso.setActivo(true);
 
         // Importante para la bitácora.
@@ -512,6 +518,13 @@ public class CursoService {
             }
 
             curso.setEsCursoInstrumento(request.getEsCursoInstrumento());
+        }
+
+        // D7: edades opcionales (solo si la solicitud las trae).
+        if (request.isEdadesEnviadas()) {
+            validarEdades(request.getEdadMinima(), request.getEdadMaxima());
+            curso.setEdadMinima(request.getEdadMinima());
+            curso.setEdadMaxima(request.getEdadMaxima());
         }
 
         curso.setIdUsuarioUltimaModificacion(
@@ -1086,6 +1099,17 @@ public class CursoService {
                 Boolean.TRUE.equals(curso.getEsCursoInstrumento())
         );
 
+        dto.setEdadMinima(curso.getEdadMinima());
+        dto.setEdadMaxima(curso.getEdadMaxima());
+
         return dto;
+    }
+
+    // D7: la edad máxima no puede ser menor que la mínima.
+    private static void validarEdades(Integer edadMinima, Integer edadMaxima) {
+        String error = ReglasEdad.errorDeLimites(edadMinima, edadMaxima);
+        if (error != null) {
+            throw new IllegalArgumentException(error);
+        }
     }
 }
