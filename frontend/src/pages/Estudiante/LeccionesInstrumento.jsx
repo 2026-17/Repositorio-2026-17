@@ -18,7 +18,9 @@ import { formatearHorarios } from "../../utils/matricula";
  * - lecciones: datos.leccionesInstrumento del backend.
  * - elegidos: { [idInstrumento]: idGrupo } (lo que el estudiante marcó).
  * - efectivos: { [idInstrumento]: idGrupo } (lo que sigue siendo válido).
- * - motivos: { [idGrupo]: texto } por qué un espacio no se puede elegir.
+ * - motivos: { ["idInstrumento:idGrupo"]: texto } por qué un espacio no se
+ *   puede elegir en esa lección (un espacio de "cualquier instrumento del
+ *   profesor" puede salir en dos lecciones).
  * - onElegir(idInstrumento, idGrupo).
  */
 function textoEspacio(espacio) {
@@ -99,8 +101,9 @@ export default function LeccionesInstrumento({ lecciones, efectivos, motivos, on
                                     <legend className="leccion-legend">Espacios libres de {leccion.profesor}</legend>
                                     <div className="choice-list espacios-grid">
                                         {leccion.espaciosLibres.map((espacio) => {
-                                            const motivo = motivos[espacio.idGrupo];
+                                            const motivo = motivos[`${leccion.idInstrumento}:${espacio.idGrupo}`];
                                             const marcado = elegido === espacio.idGrupo;
+                                            const idMotivo = `motivo-${leccion.idInstrumento}-${espacio.idGrupo}`;
                                             return (
                                                 <label
                                                     key={espacio.idGrupo}
@@ -113,13 +116,13 @@ export default function LeccionesInstrumento({ lecciones, efectivos, motivos, on
                                                         checked={marcado}
                                                         disabled={Boolean(motivo)}
                                                         onChange={() => onElegir(leccion.idInstrumento, espacio.idGrupo)}
-                                                        aria-describedby={motivo ? `motivo-${espacio.idGrupo}` : undefined}
+                                                        aria-describedby={motivo ? idMotivo : undefined}
                                                     />
                                                     <span className="choice-main">
                                                         <b className="tnum">{textoEspacio(espacio)}</b>
                                                         <span>{aulaEspacio(espacio)}</span>
                                                         {motivo && (
-                                                            <span className="espacio-motivo" id={`motivo-${espacio.idGrupo}`}>
+                                                            <span className="espacio-motivo" id={idMotivo}>
                                                                 <TriangleAlert size={16} strokeWidth={1.75} aria-hidden="true" />
                                                                 {motivo}
                                                             </span>

@@ -5,6 +5,16 @@
 --  Las tablas están ordenadas para que cada una se cree DESPUÉS de las
 --  tablas a las que hace referencia (primero catálogos, después las
 --  tablas principales y al final las que dependen de varias).
+--
+--  Base nueva: después de este archivo, ejecute EN ORDEN los cambios de
+--  backend/src/main/resources/db/cambios/ que este archivo todavía no
+--  incluye. Los espacios de instrumento NO están aquí (grupos.tipo_grupo,
+--  grupos.id_instrumento, matriculas_detalles.id_curso e id_instrumento):
+--    1. migracion_correquisitos_mutuos.sql (en la raíz del repositorio)
+--    2. 2026-11-17_tipo_estudiante_inclusion.sql
+--    3. 2026-11-19_espacios_instrumento.sql
+--    4. 2026-11-24_espacios_varios_instrumentos.sql
+--  (contactos_emergencia y el correo compartido ya están en este archivo.)
 -- =====================================================================
 
 -- ¡OJO! Descomentar esta línea BORRA la base completa con todos sus datos.

@@ -6,6 +6,13 @@ import java.time.LocalTime;
  * Espacios de instrumento - Un espacio de la agenda de un profesor.
  * Libre: ocupado = false y sin estudiante ni nivel.
  * Ocupado: estudiante que lo tomó y nivel que cursa en él.
+ *
+ * Espacio de "cualquier instrumento del profesor": idInstrumento = null,
+ * variosInstrumentos = true y nombreInstrumento con los instrumentos del
+ * profesor unidos con " o " ("Violín o Viola").
+ *
+ * idInstrumentoEstudiante / nombreInstrumentoEstudiante: el instrumento
+ * que cursa el estudiante que lo ocupa (null si está libre).
  */
 public record EspacioInstrumentoResponse(
         Long idGrupo,
@@ -25,6 +32,9 @@ public record EspacioInstrumentoResponse(
         Long idEstudiante,
         String nombreEstudiante,
         Long idCursoNivel,
-        String nombreNivel
+        String nombreNivel,
+        boolean variosInstrumentos,
+        Integer idInstrumentoEstudiante,
+        String nombreInstrumentoEstudiante
 ) {
 }
