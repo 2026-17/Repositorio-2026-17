@@ -15,6 +15,7 @@ import { mostrarIdentificacion } from "../../utils/cedula";
 import { limpiarIdentificacion } from "../../utils/validaciones";
 import { ROLES } from "../../constants/roles";
 import AvanceInstrumentos from "./AvanceInstrumentos";
+import AvanceAgrupaciones from "./AvanceAgrupaciones";
 
 const initialForm = { idInstrumento: "", idProfesor: "", observaciones: "", esPrincipal: false };
 
@@ -343,6 +344,8 @@ export default function AsignarInstrumento({
                         version={versionInstrumentos}
                         puedeRegistrarNivel={esDirector}
                     />
+
+                    <AvanceAgrupaciones idEstudiante={idEstudiante} version={versionInstrumentos} />
 
                     <section className="panel">
                         <div className="panel-head"><h2>Asignar instrumento</h2></div>

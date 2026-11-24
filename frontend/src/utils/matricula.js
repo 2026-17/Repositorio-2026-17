@@ -115,6 +115,11 @@ export function tieneBloqueoEstatico({
         return "Sin cupos disponibles.";
     }
 
+    // Motivo que da el servidor (por ejemplo, la edad del curso: regla D7).
+    if (grupo.motivoNoDisponible) {
+        return grupo.motivoNoDisponible;
+    }
+
     const requisitos = requisitosPorCurso[grupo.idCurso] ?? [];
     const prerrequisitoFaltante = requisitos.find(
         (req) => req.tipo === "REQUISITO" && !estaAprobado(aprobados, req.idCursoRequerido, req.notaMinima)

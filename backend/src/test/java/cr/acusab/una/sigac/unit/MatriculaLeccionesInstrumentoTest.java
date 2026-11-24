@@ -3,6 +3,8 @@ package cr.acusab.una.sigac.unit;
 import cr.acusab.una.sigac.data.entity.*;
 import cr.acusab.una.sigac.data.repository.*;
 import cr.acusab.una.sigac.logic.exception.MatriculaInvalidaException;
+import cr.acusab.una.sigac.logic.service.AgrupacionService;
+import cr.acusab.una.sigac.logic.service.AvanceAgrupacionService;
 import cr.acusab.una.sigac.logic.service.AvanceInstrumentoService;
 import cr.acusab.una.sigac.logic.service.MatriculaEstudianteService;
 import cr.acusab.una.sigac.presentation.dto.request.ConfirmarSeleccionMatriculaRequestDTO;
@@ -85,7 +87,8 @@ class MatriculaLeccionesInstrumentoTest {
                 mock(ProfesorRepository.class), requisitosRepository, matriculaRepository, detalleRepository,
                 estadoMatriculaRepository, mock(JdbcTemplate.class),
                 new AvanceInstrumentoService(detalleRepository, reconocidoRepository, mallaRepository, cursoRepository),
-                estudianteInstrumentoRepository, instrumentoRepository
+                estudianteInstrumentoRepository, instrumentoRepository,
+                mock(AvanceAgrupacionService.class), mock(AgrupacionService.class)
         );
 
         // Sesión del estudiante.

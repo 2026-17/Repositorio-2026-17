@@ -76,6 +76,8 @@ public class AsignacionProfesorService {
                 ).stream()
                 // Los espacios de instrumento ya nacen con su profesor (no tienen curso).
                 .filter(grupo -> !grupo.esEspacioInstrumento())
+                // Las agrupaciones tienen varios profesores: se asignan en «Agrupaciones».
+                .filter(grupo -> !grupo.esAgrupacion())
                 .map(this::mapear)
                 .toList();
     }
@@ -136,6 +138,11 @@ public class AsignacionProfesorService {
             throw new BusinessException(
                     "Ese grupo es un espacio de instrumento: su profesor no se cambia aquí. "
                             + "Gestiónelo desde «Espacios de instrumento»."
+            );
+        }
+        if (grupo.esAgrupacion()) {
+            throw new BusinessException(
+                    "Ese grupo es de una agrupación: sus profesores se asignan desde «Agrupaciones»."
             );
         }
     }

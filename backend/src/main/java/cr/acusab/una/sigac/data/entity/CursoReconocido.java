@@ -51,6 +51,15 @@ public class CursoReconocido {
     @Column(name = "id_instrumento")
     private Integer idInstrumento;
 
+    /*
+     * Agrupación en que se aprobó (Orquesta IV). NULL = solo el nivel de la
+     * familia (Conjunto Instrumental o Coro), sin agrupación: es el punto de
+     * partida en una agrupación nueva (AvanceAgrupacionService, regla D2).
+     * La columna id_agrupacion_clave la calcula MySQL; no se mapea.
+     */
+    @Column(name = "id_agrupacion")
+    private Long idAgrupacion;
+
     @NotNull
     @Size(max = 20)
     @Column(name = "condicion", nullable = false, length = 20)

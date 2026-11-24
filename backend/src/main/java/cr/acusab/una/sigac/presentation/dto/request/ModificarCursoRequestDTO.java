@@ -54,6 +54,43 @@ public class ModificarCursoRequestDTO {
     // Se cursa en espacios de instrumento. Omitido = se conserva el valor actual.
     private Boolean esCursoInstrumento;
 
+    /*
+     * D7: edades opcionales (null = sin límite). Si la solicitud no trae
+     * ninguno de los dos campos, se conservan los valores actuales
+     * (edadesEnviadas queda en false).
+     */
+    @jakarta.validation.constraints.Min(value = 0, message = "La edad mínima no es válida.")
+    @Max(value = 120, message = "La edad mínima no es válida.")
+    private Integer edadMinima;
+
+    @jakarta.validation.constraints.Min(value = 0, message = "La edad máxima no es válida.")
+    @Max(value = 120, message = "La edad máxima no es válida.")
+    private Integer edadMaxima;
+
+    private boolean edadesEnviadas;
+
+    public Integer getEdadMinima() {
+        return edadMinima;
+    }
+
+    public void setEdadMinima(Integer edadMinima) {
+        this.edadMinima = edadMinima;
+        this.edadesEnviadas = true;
+    }
+
+    public Integer getEdadMaxima() {
+        return edadMaxima;
+    }
+
+    public void setEdadMaxima(Integer edadMaxima) {
+        this.edadMaxima = edadMaxima;
+        this.edadesEnviadas = true;
+    }
+
+    public boolean isEdadesEnviadas() {
+        return edadesEnviadas;
+    }
+
     public Boolean getEsCursoInstrumento() {
         return esCursoInstrumento;
     }

@@ -81,9 +81,15 @@ public interface GrupoRepository extends JpaRepository<Grupo, Long> {
      * se traslapen con el periodo del grupo destino. No limita la validacion
      * al mismo id de periodo, porque dos periodos pueden coincidir en fechas.
      */
+    /*
+     * Agrupaciones: también cuentan los grupos donde el profesor está en
+     * grupos_profesores sin ser el responsable.
+     */
     @Query("""
             SELECT g FROM Grupo g, PeriodoAcademico periodoGrupo, PeriodoAcademico periodoDestino
-            WHERE g.idProfesor = :idProfesor
+            WHERE (g.idProfesor = :idProfesor
+                   OR EXISTS (SELECT 1 FROM GrupoProfesor gp
+                              WHERE gp.idGrupo = g.id AND gp.idProfesor = :idProfesor))
               AND g.idPeriodo = periodoGrupo.id
               AND periodoDestino.id = :idPeriodo
               AND COALESCE(g.fechaInicio, periodoGrupo.fechaInicio) <= :fechaFinDestino
@@ -137,4 +143,19 @@ public interface GrupoRepository extends JpaRepository<Grupo, Long> {
             @Param("idInstrumento") Integer idInstrumento,
             @Param("idProfesor") Long idProfesor
     );
+
+    /*
+     * Agrupaciones - Grupos de agrupación de un período (o de todos, si
+     * idPeriodo es nulo). Usa idx_grupos_periodo_agrupacion.
+     */
+    @Query("""
+            SELECT g FROM Grupo g
+            WHERE g.tipoGrupo = 'AGRUPACION'
+              AND (:idPeriodo IS NULL OR g.idPeriodo = :idPeriodo)
+            ORDER BY g.idPeriodo DESC, g.codigo
+            """)
+    List<Grupo> findGruposAgrupacion(@Param("idPeriodo") Long idPeriodo);
+
+    // Una agrupación con grupos no se elimina ni cambia de tipo.
+    boolean existsByIdAgrupacion(Long idAgrupacion);
 }

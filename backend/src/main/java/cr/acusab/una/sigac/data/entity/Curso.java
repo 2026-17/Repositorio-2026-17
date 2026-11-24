@@ -66,6 +66,16 @@ public class Curso {
     @Column(name = "es_curso_instrumento", nullable = false)
     private Boolean esCursoInstrumento = false;
 
+    /*
+     * Conjunto Instrumental (CI-%) y Coro (CORO-%): se cursan en las
+     * agrupaciones (el nivel lo calcula el sistema). No se ofrecen como
+     * cursos normales ni se abren grupos de tipo CURSO para ellos.
+     */
+    @NotNull
+    @ColumnDefault("0")
+    @Column(name = "es_curso_agrupacion", nullable = false)
+    private Boolean esCursoAgrupacion = false;
+
     @Column(name = "id_usuario_ultima_modificacion")
     private Long idUsuarioUltimaModificacion;
 

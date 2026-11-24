@@ -1,5 +1,6 @@
 package cr.acusab.una.sigac.logic.service;
 
+import cr.acusab.una.sigac.data.entity.Agrupacion;
 import cr.acusab.una.sigac.data.entity.AutorizacionesMatricula;
 import cr.acusab.una.sigac.data.entity.Curso;
 import cr.acusab.una.sigac.data.entity.EstadoMatricula;
@@ -35,6 +36,7 @@ import cr.acusab.una.sigac.data.repository.RequisitosCursoRepository;
 import cr.acusab.una.sigac.logic.exception.BusinessException;
 import cr.acusab.una.sigac.logic.exception.MatriculaInvalidaException;
 import cr.acusab.una.sigac.presentation.dto.request.ConfirmarSeleccionMatriculaRequestDTO;
+import cr.acusab.una.sigac.presentation.dto.response.AgrupacionesDisponiblesResponseDTO;
 import cr.acusab.una.sigac.presentation.dto.response.HorarioEstudianteResponseDTO;
 import cr.acusab.una.sigac.presentation.dto.response.MatriculaConfirmadaResponseDTO;
 import cr.acusab.una.sigac.presentation.dto.response.OfertaMatriculaResponseDTO;
@@ -146,7 +148,17 @@ public class MatriculaEstudianteService {
      * eligió). NO se lee del grupo: un espacio de "cualquier instrumento
      * del profesor" no tiene instrumento. En un grupo normal es null.
      */
-    private record Seleccion(Grupo grupo, Long idCurso, Integer idInstrumento) {
+    /*
+     * En una agrupación, idCurso es el nivel calculado (Conjunto
+     * Instrumental o Coro), agrupacion es la del catálogo y orden es el
+     * orden en que el estudiante la eligió (regla D4). El nivel es interno:
+     * al estudiante solo se le muestra el nombre de la agrupación.
+     */
+    private record Seleccion(Grupo grupo, Long idCurso, Integer idInstrumento, Agrupacion agrupacion, Short orden) {
+
+        Seleccion(Grupo grupo, Long idCurso, Integer idInstrumento) {
+            this(grupo, idCurso, idInstrumento, null, null);
+        }
 
         static Seleccion deGrupo(Grupo grupo) {
             return new Seleccion(grupo, grupo.getIdCurso(), null);
@@ -156,8 +168,30 @@ public class MatriculaEstudianteService {
             return grupo.esEspacioInstrumento();
         }
 
-        // Un mismo nivel de instrumento puede llevarse en dos instrumentos.
+        boolean esAgrupacion() {
+            return grupo.esAgrupacion();
+        }
+
+        String nombreAgrupacion() {
+            return agrupacion != null ? agrupacion.getNombre() : grupo.getCodigo();
+        }
+
+        boolean esInstrumental() {
+            return esAgrupacion() && agrupacion != null && agrupacion.esInstrumental();
+        }
+
+        boolean esCoral() {
+            return esAgrupacion() && agrupacion != null && agrupacion.esCoral();
+        }
+
+        /*
+         * Un mismo nivel de instrumento puede llevarse en dos instrumentos, y
+         * un mismo nivel de Conjunto Instrumental en dos agrupaciones.
+         */
         String clave() {
+            if (esAgrupacion()) {
+                return "AGR|" + grupo.getIdAgrupacion();
+            }
             return esEspacio() ? idCurso + "|" + idInstrumento : String.valueOf(idCurso);
         }
     }
@@ -211,6 +245,8 @@ public class MatriculaEstudianteService {
     private final AvanceInstrumentoService avanceInstrumentoService;
     private final EstudianteInstrumentoRepository estudianteInstrumentoRepository;
     private final InstrumentoRepository instrumentoRepository;
+    private final AvanceAgrupacionService avanceAgrupacionService;
+    private final AgrupacionService agrupacionService;
 
     public MatriculaEstudianteService(
             EstudianteRepository estudianteRepository,
@@ -230,7 +266,9 @@ public class MatriculaEstudianteService {
             JdbcTemplate jdbcTemplate,
             AvanceInstrumentoService avanceInstrumentoService,
             EstudianteInstrumentoRepository estudianteInstrumentoRepository,
-            InstrumentoRepository instrumentoRepository
+            InstrumentoRepository instrumentoRepository,
+            AvanceAgrupacionService avanceAgrupacionService,
+            AgrupacionService agrupacionService
     ) {
         this.estudianteRepository = estudianteRepository;
         this.periodoAcademicoRepository = periodoAcademicoRepository;
@@ -250,6 +288,8 @@ public class MatriculaEstudianteService {
         this.avanceInstrumentoService = avanceInstrumentoService;
         this.estudianteInstrumentoRepository = estudianteInstrumentoRepository;
         this.instrumentoRepository = instrumentoRepository;
+        this.avanceAgrupacionService = avanceAgrupacionService;
+        this.agrupacionService = agrupacionService;
     }
 
     /*
@@ -308,19 +348,35 @@ public class MatriculaEstudianteService {
 
         Map<Long, MallaCurricular> mallaPorCurso = mallaPorCurso(idsPlan);
 
-        // Los cursos de instrumento no se ofrecen como grupos normales.
+        // Los cursos de instrumento y los de agrupación (CI, Coro) no se
+        // ofrecen como grupos normales.
         Set<Long> cursosInstrumento = cursosDeInstrumento(mallaPorCurso.keySet());
 
         List<Grupo> gruposOfertados = grupoRepository
                 .findByIdPeriodoAndEstadoIn(periodo.getId(), ESTADOS_GRUPO_OFERTADOS)
                 .stream()
                 .filter(grupo -> !grupo.esEspacioInstrumento())
+                // Las agrupaciones tienen su propio paso (consultarMisAgrupaciones).
+                .filter(grupo -> !grupo.esAgrupacion())
                 .filter(grupo -> mallaPorCurso.containsKey(grupo.getIdCurso()))
                 .filter(grupo -> !cursosInstrumento.contains(grupo.getIdCurso()))
                 .toList();
 
         List<OfertaMatriculaResponseDTO.GrupoDTO> oferta = new ArrayList<>(
                 mapearSelecciones(gruposOfertados.stream().map(Seleccion::deGrupo).toList(), mallaPorCurso, planes));
+
+        // D7: los grupos cuyo curso tiene una edad que no es la del estudiante.
+        Integer edad = ReglasEdad.edadAl(estudiante.getFechaNacimiento(), periodo.getFechaInicio());
+        Map<Long, Curso> cursosOferta = cursoRepository.findAllById(
+                        gruposOfertados.stream().map(Grupo::getIdCurso).distinct().toList())
+                .stream()
+                .collect(Collectors.toMap(Curso::getId, Function.identity(), (a, b) -> a));
+        oferta.forEach(grupo -> {
+            Curso curso = cursosOferta.get(grupo.getIdCurso());
+            if (curso != null) {
+                grupo.setMotivoNoDisponible(ReglasEdad.motivoBloqueo(curso.getEdadMinima(), curso.getEdadMaxima(), edad));
+            }
+        });
 
         oferta.sort(Comparator
                 .comparing(OfertaMatriculaResponseDTO.GrupoDTO::getNivel,
@@ -349,12 +405,131 @@ public class MatriculaEstudianteService {
 
         respuesta.setRequisitosPorCurso(mapearRequisitos(idsPlan, idsCursoOferta));
 
-        avanceInstrumentoService.cursosAprobados(estudiante.getId()).forEach((idCurso, aprobado) -> {
+        aprobadosDelPlan(estudiante.getId()).forEach((idCurso, aprobado) -> {
             OfertaMatriculaResponseDTO.CursoAprobadoDTO dto = new OfertaMatriculaResponseDTO.CursoAprobadoDTO();
             dto.setIdCurso(idCurso);
             dto.setNota(aprobado.nota());
             respuesta.getCursosAprobados().add(dto);
         });
+
+        return respuesta;
+    }
+
+    /*
+     * ============================================================
+     * Agrupaciones disponibles (paso "Agrupaciones" de la matrícula)
+     * ============================================================
+     *
+     * Grupos de agrupación PUBLICADOS del período vigente, con su horario,
+     * profesores, cupos y, si no se pueden elegir, el motivo. El nivel que
+     * le correspondería NO se devuelve: es interno.
+     */
+    @Transactional(readOnly = true)
+    public AgrupacionesDisponiblesResponseDTO consultarMisAgrupaciones() {
+
+        Estudiante estudiante = obtenerEstudianteAutenticado();
+        AgrupacionesDisponiblesResponseDTO respuesta = new AgrupacionesDisponiblesResponseDTO();
+
+        if (!Boolean.TRUE.equals(estudiante.getActivo())) {
+            respuesta.setMotivoNoHabilitado("Solo un estudiante en estado «Activo» puede matricular cursos.");
+            return respuesta;
+        }
+
+        Optional<PeriodoAcademico> periodoVigente = buscarPeriodoVigente();
+        if (periodoVigente.isEmpty()) {
+            respuesta.setMotivoNoHabilitado("No hay un período académico en etapa de matrícula actualmente.");
+            return respuesta;
+        }
+
+        PeriodoAcademico periodo = periodoVigente.get();
+        respuesta.setPeriodo(mapearPeriodo(periodo));
+
+        Optional<AutorizacionesMatricula> autorizacion =
+                autorizacionRepository.findByIdEstudiante_IdAndIdPeriodo_Id(estudiante.getId(), periodo.getId());
+        String motivoAutorizacion = motivoSinAutorizacion(autorizacion);
+        if (motivoAutorizacion != null) {
+            respuesta.setMotivoNoHabilitado(motivoAutorizacion);
+            return respuesta;
+        }
+
+        respuesta.setHabilitado(true);
+
+        List<Seleccion> yaMatriculadas = seleccionesYaMatriculadas(autorizacion.orElseThrow())
+                .stream()
+                .filter(Seleccion::esAgrupacion)
+                .toList();
+
+        Set<Long> gruposMatriculados = yaMatriculadas.stream().map(s -> s.grupo().getId()).collect(Collectors.toSet());
+
+        // Publicados del período y los que ya tiene matriculados (aunque cambiaran de estado).
+        Map<Long, Grupo> grupos = new LinkedHashMap<>();
+        grupoRepository.findGruposAgrupacion(periodo.getId()).stream()
+                .filter(g -> ReglasAgrupaciones.ESTADO_GRUPO_OFERTADO.equals(g.getEstado())
+                        || gruposMatriculados.contains(g.getId()))
+                .forEach(g -> grupos.put(g.getId(), g));
+        yaMatriculadas.forEach(s -> grupos.putIfAbsent(s.grupo().getId(), s.grupo()));
+
+        if (grupos.isEmpty()) {
+            return respuesta;
+        }
+
+        Map<Long, Agrupacion> agrupaciones = agrupacionService.agrupacionesPorId(
+                grupos.values().stream().map(Grupo::getIdAgrupacion).toList());
+
+        DatosAgrupaciones datos = new DatosAgrupaciones(estudiante, periodo, agrupaciones.keySet());
+        Map<Long, List<String>> profesores = agrupacionService.nombresProfesores(grupos.values());
+        Map<Long, List<HorarioGrupo>> horarios = horariosPorGrupo(grupos.keySet());
+        Map<Long, Long> ocupados = contarCuposOcupados(grupos.keySet());
+
+        Set<Long> agrupacionesMatriculadas = yaMatriculadas.stream()
+                .map(s -> s.grupo().getIdAgrupacion())
+                .collect(Collectors.toSet());
+
+
+        for (Grupo grupo : grupos.values()) {
+
+            Agrupacion agrupacion = agrupaciones.get(grupo.getIdAgrupacion());
+            boolean matriculada = gruposMatriculados.contains(grupo.getId());
+
+            if (agrupacion == null || (!matriculada && !Boolean.TRUE.equals(agrupacion.getActiva()))) {
+                continue;
+            }
+
+            AgrupacionesDisponiblesResponseDTO.AgrupacionDTO dto = new AgrupacionesDisponiblesResponseDTO.AgrupacionDTO();
+            dto.setIdGrupo(grupo.getId());
+            dto.setCodigo(grupo.getCodigo());
+            dto.setIdAgrupacion(agrupacion.getId());
+            dto.setNombre(agrupacion.getNombre());
+            dto.setTipo(agrupacion.getTipo());
+            dto.setDescripcion(agrupacion.getDescripcion());
+            dto.setAula(grupo.getAula());
+            dto.setProfesores(profesores.getOrDefault(grupo.getId(), List.of()));
+            dto.setHorarios(mapearHorarios(horarios.getOrDefault(grupo.getId(), List.of())));
+
+            long ocupadosGrupo = ocupados.getOrDefault(grupo.getId(), 0L);
+            dto.setCupoMaximo(grupo.getCupoMaximo());
+            dto.setCupoDisponible((int) Math.max(0, grupo.getCupoMaximo() - ocupadosGrupo));
+            dto.setMatriculada(matriculada);
+
+            if (!matriculada) {
+                String motivo = agrupacionesMatriculadas.contains(agrupacion.getId())
+                        ? "Ya está matriculado en esta agrupación en este período."
+                        : motivoBloqueoAgrupacion(agrupacion, datos);
+                if (motivo == null && ocupadosGrupo >= grupo.getCupoMaximo()) {
+                    motivo = "No tiene cupos libres.";
+                }
+                dto.setBloqueada(motivo != null);
+                dto.setMotivoBloqueo(motivo);
+            }
+
+            respuesta.getAgrupaciones().add(dto);
+        }
+
+        respuesta.getAgrupaciones().sort(Comparator
+                .comparing(AgrupacionesDisponiblesResponseDTO.AgrupacionDTO::getTipo,
+                        Comparator.comparing(tipo -> !Agrupacion.TIPO_INSTRUMENTAL.equals(tipo)))
+                .thenComparing(AgrupacionesDisponiblesResponseDTO.AgrupacionDTO::getNombre)
+                .thenComparing(AgrupacionesDisponiblesResponseDTO.AgrupacionDTO::getCodigo));
 
         return respuesta;
     }
@@ -507,12 +682,17 @@ public class MatriculaEstudianteService {
             }
         }
 
-        if (idsGrupo.isEmpty() && idsEspacio.isEmpty()) {
+        // En el orden en que el estudiante las marcó (regla D4).
+        List<Long> idsAgrupacion = request == null || request.getIdsAgrupacion() == null
+                ? List.of() : request.getIdsAgrupacion();
+
+        if (idsGrupo.isEmpty() && idsEspacio.isEmpty() && idsAgrupacion.isEmpty()) {
             throw new BusinessException("Debe seleccionar al menos un curso para matricular.");
         }
 
         List<Long> todos = new ArrayList<>(idsGrupo);
         todos.addAll(idsEspacio);
+        todos.addAll(idsAgrupacion);
 
         if (todos.stream().anyMatch(Objects::isNull) || todos.stream().distinct().count() != todos.size()) {
             throw new BusinessException("La selección contiene grupos repetidos o no válidos.");
@@ -591,10 +771,19 @@ public class MatriculaEstudianteService {
                         + " es un espacio de instrumento: elíjalo en la sección de lecciones de instrumento.");
                 continue;
             }
+            if (grupo.esAgrupacion()) {
+                errores.add("El grupo " + grupo.getCodigo()
+                        + " es una agrupación: elíjala en el paso de agrupaciones.");
+                continue;
+            }
             seleccionadas.add(Seleccion.deGrupo(grupo));
         }
 
         seleccionadas.addAll(asignarNiveles(idsEspacio, instrumentoPedido, gruposPorId, lecciones, errores));
+
+        // Agrupaciones: el nivel de cada una lo calcula el sistema (D1 a D7).
+        seleccionadas.addAll(asignarNivelesAgrupacion(
+                estudiante, periodo, idsAgrupacion, gruposPorId, yaMatriculados, errores));
 
         validarLeccionesCompletas(lecciones, seleccionadas, errores);
 
@@ -610,9 +799,18 @@ public class MatriculaEstudianteService {
 
         try {
 
+            // El plan es el del primer curso elegido que esté en una malla
+            // (una agrupación puede no estarlo).
+            Long idPlanMatricula = seleccionadas.stream()
+                    .map(s -> mallaPorCurso.get(s.idCurso()))
+                    .filter(Objects::nonNull)
+                    .map(MallaCurricular::getIdPlanEstudio)
+                    .findFirst()
+                    .orElse(idsPlan.get(0));
+
             matricula = matriculaExistente != null
                     ? matriculaExistente
-                    : crearMatricula(autorizacion, mallaPorCurso.get(seleccionadas.get(0).idCurso()).getIdPlanEstudio());
+                    : crearMatricula(autorizacion, idPlanMatricula);
 
             /*
              * Los correquisitos ya se validaron arriba con la selección
@@ -630,9 +828,15 @@ public class MatriculaEstudianteService {
                     detalle.setMatricula(matricula);
                     detalle.setIdGrupo(seleccion.grupo().getId());
 
-                    // En un espacio, el nivel y el instrumento que se cursan.
-                    detalle.setIdCurso(seleccion.esEspacio() ? seleccion.idCurso() : null);
+                    // En un espacio o una agrupación, el nivel que se cursa.
+                    detalle.setIdCurso(seleccion.esEspacio() || seleccion.esAgrupacion()
+                            ? seleccion.idCurso() : null);
+
+                    // En un espacio, el instrumento que se cursa.
                     detalle.setIdInstrumento(seleccion.esEspacio() ? seleccion.idInstrumento() : null);
+
+                    // En una agrupación, el orden en que se eligió (D4).
+                    detalle.setOrdenSeleccion(seleccion.esAgrupacion() ? seleccion.orden() : null);
 
                     matriculaDetalleRepository.save(detalle);
                 }
@@ -787,7 +991,7 @@ public class MatriculaEstudianteService {
             Long idEstudiante, List<Long> idsPlan, Curso nivel, Integer idInstrumento) {
 
         Map<Long, AvanceInstrumentoService.CursoAprobado> aprobados =
-                avanceInstrumentoService.cursosAprobadosParaInstrumento(idEstudiante, idInstrumento);
+                aprobadosParaInstrumento(idEstudiante, idInstrumento);
 
         Set<String> faltantes = new LinkedHashSet<>();
 
@@ -1059,6 +1263,265 @@ public class MatriculaEstudianteService {
 
     /*
      * ============================================================
+     * Agrupaciones
+     * ============================================================
+     */
+
+    /*
+     * Lo que hace falta para decidir si el estudiante puede llevar cada
+     * agrupación: su historial (avance por agrupación), sus instrumentos
+     * vigentes, los instrumentos permitidos de cada agrupación, su edad al
+     * inicio del período (D7) y si es de inclusión (D6, se consulta solo si
+     * hace falta).
+     */
+    private final class DatosAgrupaciones {
+
+        private final AvanceAgrupacionService.Historial historial;
+        private final Set<Integer> instrumentosEstudiante;
+        private final Map<Long, List<Instrumento>> permitidos;
+        private final Integer edad;
+        private final Long idEstudiante;
+        private Boolean inclusion;
+
+        DatosAgrupaciones(Estudiante estudiante, PeriodoAcademico periodo, Collection<Long> idsAgrupacion) {
+            this.idEstudiante = estudiante.getId();
+            this.historial = avanceAgrupacionService.cargarHistorial(estudiante.getId());
+            this.instrumentosEstudiante = estudianteInstrumentoRepository
+                    .findByIdEstudiante_IdAndFechaFinIsNull(estudiante.getId())
+                    .stream()
+                    .map(e -> e.getInstrumento().getId())
+                    .collect(Collectors.toSet());
+            this.permitidos = agrupacionService.instrumentosPermitidos(idsAgrupacion);
+            this.edad = ReglasEdad.edadAl(estudiante.getFechaNacimiento(), periodo.getFechaInicio());
+        }
+
+        AvanceAgrupacionService.Historial historial() {
+            return historial;
+        }
+
+        boolean esInclusion() {
+            if (inclusion == null) {
+                inclusion = estudianteRepository.findCodigoTipoEstudiante(idEstudiante)
+                        .map(ReglasAgrupaciones.TIPO_ESTUDIANTE_INCLUSION::equalsIgnoreCase)
+                        .orElse(false);
+            }
+            return inclusion;
+        }
+    }
+
+    /*
+     * Por qué el estudiante no puede elegir la agrupación (null = puede).
+     * El cupo se revisa aparte. Nunca menciona el nivel.
+     */
+    private String motivoBloqueoAgrupacion(Agrupacion agrupacion, DatosAgrupaciones datos) {
+
+        // D6: solo inclusión.
+        if (Boolean.TRUE.equals(agrupacion.getSoloInclusion()) && !datos.esInclusion()) {
+            return "Es solo para estudiantes de inclusión.";
+        }
+
+        // D7: edad al inicio del período.
+        String edad = ReglasEdad.motivoBloqueo(agrupacion.getEdadMinima(), agrupacion.getEdadMaxima(), datos.edad);
+        if (edad != null) {
+            return edad;
+        }
+
+        List<Instrumento> permitidos = datos.permitidos.getOrDefault(agrupacion.getId(), List.of());
+
+        if (!permitidos.isEmpty()
+                && permitidos.stream().noneMatch(i -> datos.instrumentosEstudiante.contains(i.getId()))) {
+            return "Es solo para estudiantes de " + unirConO(permitidos.stream().map(Instrumento::getNombre).toList()) + ".";
+        }
+
+        AvanceAgrupacionService.SiguienteNivel nivel = avanceAgrupacionService
+                .siguienteNivel(datos.historial(), agrupacion, FamiliaAgrupacion.de(agrupacion));
+
+        if (nivel.completado() && ReglasAgrupaciones.BLOQUEAR_AGRUPACION_COMPLETADA) {
+            return "Ya completó esta agrupación.";
+        }
+
+        if (!nivel.disponible()) {
+            return "Esta agrupación no está disponible en este momento. Comuníquese con la dirección académica.";
+        }
+
+        return null;
+    }
+
+    /*
+     * Cada grupo de agrupación elegido: publicado, de una agrupación activa,
+     * sin repetir la agrupación en el período, permitido para el estudiante
+     * (D6, D7 e instrumentos) y sin haberla completado (D3). Llegan en el
+     * orden en que se marcaron: ese orden se guarda en orden_seleccion,
+     * después de las que ya tenía matriculadas. Devuelve la selección con el
+     * nivel calculado (D1 y D2) y aplica la regla del coro (D4).
+     */
+    private List<Seleccion> asignarNivelesAgrupacion(
+            Estudiante estudiante,
+            PeriodoAcademico periodo,
+            List<Long> idsAgrupacion,
+            Map<Long, Grupo> gruposPorId,
+            List<Seleccion> yaMatriculados,
+            Set<String> errores
+    ) {
+
+        if (idsAgrupacion.isEmpty()) {
+            return List.of();
+        }
+
+        List<Seleccion> yaAgrupaciones = ordenarPorSeleccion(
+                yaMatriculados.stream().filter(Seleccion::esAgrupacion).toList());
+
+        List<Grupo> grupos = new ArrayList<>();
+        for (Long id : idsAgrupacion) {
+            Grupo grupo = gruposPorId.get(id);
+            if (!grupo.esAgrupacion()) {
+                errores.add("El grupo " + grupo.getCodigo() + " no es una agrupación.");
+                continue;
+            }
+            grupos.add(grupo);
+        }
+
+        Map<Long, Agrupacion> agrupaciones = agrupacionService.agrupacionesPorId(
+                grupos.stream().map(Grupo::getIdAgrupacion).toList());
+
+        DatosAgrupaciones datos = new DatosAgrupaciones(estudiante, periodo, agrupaciones.keySet());
+
+        Set<Long> yaEnPeriodo = yaAgrupaciones.stream().map(s -> s.grupo().getIdAgrupacion()).collect(Collectors.toSet());
+        Set<Long> vistas = new HashSet<>();
+        List<Seleccion> resultado = new ArrayList<>();
+
+        // Las nuevas siguen la numeración de las que ya tenía.
+        int orden = yaAgrupaciones.stream()
+                .map(Seleccion::orden)
+                .filter(Objects::nonNull)
+                .mapToInt(Short::intValue)
+                .max()
+                .orElse(yaAgrupaciones.size());
+
+        for (Grupo grupo : grupos) {
+
+            Agrupacion agrupacion = agrupaciones.get(grupo.getIdAgrupacion());
+            String nombre = agrupacion != null ? "«" + agrupacion.getNombre() + "»" : "La agrupación " + grupo.getCodigo();
+
+            if (agrupacion == null || !Boolean.TRUE.equals(agrupacion.getActiva())) {
+                errores.add(nombre + " no está disponible para matrícula.");
+                continue;
+            }
+            if (!ReglasAgrupaciones.ESTADO_GRUPO_OFERTADO.equals(grupo.getEstado())) {
+                errores.add(nombre + " no está publicada para la matrícula.");
+                continue;
+            }
+            if (yaEnPeriodo.contains(agrupacion.getId())) {
+                errores.add("Ya está matriculado en " + nombre + " durante este período.");
+                continue;
+            }
+            if (!vistas.add(agrupacion.getId())) {
+                errores.add("Eligió " + nombre + " más de una vez. Cada agrupación se matricula una sola vez por período.");
+                continue;
+            }
+
+            String bloqueo = motivoBloqueoAgrupacion(agrupacion, datos);
+            if (bloqueo != null) {
+                errores.add(nombre + ": " + Character.toLowerCase(bloqueo.charAt(0)) + bloqueo.substring(1));
+                continue;
+            }
+
+            AvanceAgrupacionService.SiguienteNivel nivel = avanceAgrupacionService
+                    .siguienteNivel(datos.historial(), agrupacion, FamiliaAgrupacion.de(agrupacion));
+
+            orden++;
+            resultado.add(new Seleccion(grupo, nivel.curso().getId(), null, agrupacion, (short) orden));
+        }
+
+        aplicarReglaCoro(resultado, yaAgrupaciones, datos.historial());
+
+        return resultado;
+    }
+
+    /*
+     * D4 (automática; el estudiante no elige ni la ve): si en el período
+     * lleva DOS o más agrupaciones y NINGUNA es coral, la SEGUNDA que eligió
+     * (orden_seleccion) se le califica como coro: su detalle guarda el
+     * siguiente nivel de Coro en ESA agrupación (D1 a D3). Con una sola
+     * agrupación no aplica.
+     *
+     * Casos de borde:
+     * - Si la segunda ya estaba matriculada de antes, no se cambia.
+     * - Si la segunda ya completó Coro en esa agrupación, pasa a la tercera
+     *   (y así), siempre entre las que se matriculan ahora.
+     */
+    private void aplicarReglaCoro(
+            List<Seleccion> nuevas,
+            List<Seleccion> yaMatriculadas,
+            AvanceAgrupacionService.Historial historial
+    ) {
+
+        int total = yaMatriculadas.size() + nuevas.size();
+
+        boolean aplica = ReglasAgrupaciones.CALIFICAR_INSTRUMENTAL_COMO_CORO
+                && total >= ReglasAgrupaciones.AGRUPACIONES_PARA_CORO
+                && nuevas.stream().noneMatch(Seleccion::esCoral)
+                && yaMatriculadas.stream().noneMatch(Seleccion::esCoral)
+                && !yaLlevaCoro(yaMatriculadas, historial);
+
+        if (!aplica) {
+            return;
+        }
+
+        // Posición 1 = la segunda elegida en el período.
+        for (int posicion = ReglasAgrupaciones.AGRUPACIONES_PARA_CORO - 1; posicion < total; posicion++) {
+            int indice = posicion - yaMatriculadas.size();
+            if (indice < 0) {
+                continue;
+            }
+            Seleccion seleccion = nuevas.get(indice);
+            AvanceAgrupacionService.SiguienteNivel coro =
+                    avanceAgrupacionService.siguienteNivel(historial, seleccion.agrupacion(), FamiliaAgrupacion.CORO);
+            if (coro.disponible()) {
+                nuevas.set(indice, new Seleccion(seleccion.grupo(), coro.curso().getId(), null, seleccion.agrupacion(), seleccion.orden()));
+                return;
+            }
+        }
+    }
+
+    // Ya tiene una coral en el período o una instrumental calificada como coro.
+    private boolean yaLlevaCoro(List<Seleccion> agrupacionesMatriculadas, AvanceAgrupacionService.Historial historial) {
+        return agrupacionesMatriculadas.stream().anyMatch(s -> s.esCoral()
+                || (s.esInstrumental() && historial.familiaDe(s.idCurso()) == FamiliaAgrupacion.CORO));
+    }
+
+    // Por orden de selección (las viejas sin orden, al final y por id de grupo).
+    private static List<Seleccion> ordenarPorSeleccion(List<Seleccion> agrupaciones) {
+        return agrupaciones.stream()
+                .sorted(Comparator
+                        .comparing(Seleccion::orden, Comparator.nullsLast(Comparator.naturalOrder()))
+                        .thenComparing(s -> s.grupo().getId()))
+                .toList();
+    }
+
+    private List<OfertaMatriculaResponseDTO.HorarioDTO> mapearHorarios(List<HorarioGrupo> horarios) {
+        List<OfertaMatriculaResponseDTO.HorarioDTO> resultado = new ArrayList<>();
+        for (HorarioGrupo horario : horarios) {
+            OfertaMatriculaResponseDTO.HorarioDTO h = new OfertaMatriculaResponseDTO.HorarioDTO();
+            h.setDiaSemana(horario.getDiaSemana());
+            h.setHoraInicio(horario.getHoraInicio().format(FORMATO_HORA));
+            h.setHoraFin(horario.getHoraFin().format(FORMATO_HORA));
+            h.setAula(horario.getAula());
+            resultado.add(h);
+        }
+        return resultado;
+    }
+
+    // ["Violín", "Viola", "Violonchelo"] -> "Violín, Viola o Violonchelo"
+    private static String unirConO(List<String> nombres) {
+        if (nombres.size() <= 1) {
+            return String.join("", nombres);
+        }
+        return String.join(", ", nombres.subList(0, nombres.size() - 1)) + " o " + nombres.get(nombres.size() - 1);
+    }
+
+    /*
+     * ============================================================
      * Validaciones de la selección
      * ============================================================
      *
@@ -1125,21 +1588,43 @@ public class MatriculaEstudianteService {
                         + " es un curso de instrumento: se matricula eligiendo un espacio de su profesor.");
             }
 
+            if (!seleccion.esEspacio() && !seleccion.esAgrupacion() && curso != null) {
+
+                // Conjunto Instrumental y Coro solo se cursan en agrupaciones.
+                if (Boolean.TRUE.equals(curso.getEsCursoAgrupacion())) {
+                    errores.add(nombreCurso(curso)
+                            + " se cursa en una agrupación: elíjala en el paso de agrupaciones.");
+                }
+
+                // D7: edad del estudiante al inicio del período.
+                String edad = ReglasEdad.motivoBloqueo(curso.getEdadMinima(), curso.getEdadMaxima(),
+                        ReglasEdad.edadAl(estudiante.getFechaNacimiento(), periodo.getFechaInicio()));
+                if (edad != null) {
+                    errores.add(nombreCurso(curso) + ": " + Character.toLowerCase(edad.charAt(0)) + edad.substring(1));
+                }
+            }
+
             /*
              * Seguridad: solo se pueden matricular cursos de los planes
-             * en los que el estudiante está inscrito.
+             * en los que el estudiante está inscrito. En una agrupación el
+             * nivel lo calcula el sistema y puede no estar en la malla; que
+             * no se repita la agrupación se revisa en asignarNivelesAgrupacion
+             * (con un mensaje que no muestra el nivel).
              */
-            if (!mallaPorCurso.containsKey(seleccion.idCurso())) {
-                errores.add("El curso " + etiqueta
-                        + " no pertenece a ningún plan de estudio en el que usted está inscrito.");
-            }
+            if (!seleccion.esAgrupacion()) {
 
-            if (!clavesVistas.add(seleccion.clave())) {
-                errores.add("Seleccionó más de un grupo del curso " + nombreCurso(curso) + ".");
-            }
+                if (!mallaPorCurso.containsKey(seleccion.idCurso())) {
+                    errores.add("El curso " + etiqueta
+                            + " no pertenece a ningún plan de estudio en el que usted está inscrito.");
+                }
 
-            if (clavesMatriculadas.contains(seleccion.clave())) {
-                errores.add("Ya está matriculado en el curso " + nombreCurso(curso) + " durante este período.");
+                if (!clavesVistas.add(seleccion.clave())) {
+                    errores.add("Seleccionó más de un grupo del curso " + nombreCurso(curso) + ".");
+                }
+
+                if (clavesMatriculadas.contains(seleccion.clave())) {
+                    errores.add("Ya está matriculado en el curso " + nombreCurso(curso) + " durante este período.");
+                }
             }
 
             if (ocupados.getOrDefault(grupo.getId(), 0L) >= grupo.getCupoMaximo()) {
@@ -1183,6 +1668,15 @@ public class MatriculaEstudianteService {
 
         for (Seleccion seleccion : seleccionados) {
 
+            /*
+             * Agrupación: no se aplica la validación general de requisitos
+             * del curso. El nivel ya viene de D1 a D3 (lo aprobado en ESA
+             * agrupación o el historial sin agrupación).
+             */
+            if (seleccion.esAgrupacion()) {
+                continue;
+            }
+
             for (RequisitosCurso requisito : requisitos) {
 
                 Long idCurso = requisito.getIdCurso().getId();
@@ -1194,10 +1688,10 @@ public class MatriculaEstudianteService {
                 Map<Long, AvanceInstrumentoService.CursoAprobado> aprobados;
                 if (seleccion.esEspacio()) {
                     aprobados = aprobadosPorInstrumento.computeIfAbsent(seleccion.idInstrumento(),
-                            id -> avanceInstrumentoService.cursosAprobadosParaInstrumento(estudiante.getId(), id));
+                            id -> aprobadosParaInstrumento(estudiante.getId(), id));
                 } else {
                     if (aprobadosGenerales == null) {
-                        aprobadosGenerales = avanceInstrumentoService.cursosAprobados(estudiante.getId());
+                        aprobadosGenerales = aprobadosDelPlan(estudiante.getId());
                     }
                     aprobados = aprobadosGenerales;
                 }
@@ -1480,9 +1974,29 @@ public class MatriculaEstudianteService {
         }
         return cursoRepository.findAllById(idsCurso)
                 .stream()
-                .filter(c -> Boolean.TRUE.equals(c.getEsCursoInstrumento()))
+                .filter(c -> Boolean.TRUE.equals(c.getEsCursoInstrumento())
+                        || Boolean.TRUE.equals(c.getEsCursoAgrupacion()))
                 .map(Curso::getId)
                 .collect(Collectors.toSet());
+    }
+
+    /*
+     * Cursos aprobados para el plan: los de AvanceInstrumentoService más los
+     * de las familias de agrupación (Conjunto Instrumental y Coro) según D5:
+     * cuenta la agrupación más adelantada, sin sumar dos agrupaciones.
+     */
+    private Map<Long, AvanceInstrumentoService.CursoAprobado> aprobadosDelPlan(Long idEstudiante) {
+        Map<Long, AvanceInstrumentoService.CursoAprobado> resultado =
+                new HashMap<>(avanceInstrumentoService.cursosAprobados(idEstudiante));
+        avanceAgrupacionService.cursosAprobadosDelPlan(idEstudiante).forEach(resultado::putIfAbsent);
+        return resultado;
+    }
+
+    private Map<Long, AvanceInstrumentoService.CursoAprobado> aprobadosParaInstrumento(Long idEstudiante, Integer idInstrumento) {
+        Map<Long, AvanceInstrumentoService.CursoAprobado> resultado =
+                new HashMap<>(avanceInstrumentoService.cursosAprobadosParaInstrumento(idEstudiante, idInstrumento));
+        avanceAgrupacionService.cursosAprobadosDelPlan(idEstudiante).forEach(resultado::putIfAbsent);
+        return resultado;
     }
 
     /*
@@ -1510,6 +2024,14 @@ public class MatriculaEstudianteService {
                 .stream()
                 .collect(Collectors.toMap(Grupo::getId, Function.identity(), (a, b) -> a));
 
+        // Solo se consultan las agrupaciones si hay grupos de agrupación.
+        List<Long> idsAgrupacion = grupos.values().stream()
+                .filter(Grupo::esAgrupacion)
+                .map(Grupo::getIdAgrupacion)
+                .toList();
+        Map<Long, Agrupacion> agrupaciones = idsAgrupacion.isEmpty()
+                ? Map.of() : agrupacionService.agrupacionesPorId(idsAgrupacion);
+
         List<Seleccion> resultado = new ArrayList<>();
 
         for (MatriculaDetalle detalle : detalles) {
@@ -1520,7 +2042,9 @@ public class MatriculaEstudianteService {
                         : detalle.getIdInstrumento() != null ? detalle.getIdInstrumento() : grupo.getIdInstrumento();
                 resultado.add(new Seleccion(grupo,
                         detalle.getIdCurso() != null ? detalle.getIdCurso() : grupo.getIdCurso(),
-                        idInstrumento));
+                        idInstrumento,
+                        grupo.esAgrupacion() ? agrupaciones.get(grupo.getIdAgrupacion()) : null,
+                        detalle.getOrdenSeleccion()));
             }
         }
 
@@ -1634,6 +2158,14 @@ public class MatriculaEstudianteService {
 
         Map<Long, Long> ocupados = contarCuposOcupados(idsGrupo);
 
+        // Agrupaciones: varios profesores por grupo.
+        List<Grupo> gruposAgrupacion = selecciones.stream()
+                .filter(Seleccion::esAgrupacion)
+                .map(Seleccion::grupo)
+                .toList();
+        Map<Long, List<String>> profesoresAgrupacion = gruposAgrupacion.isEmpty()
+                ? Map.of() : agrupacionService.nombresProfesores(gruposAgrupacion);
+
         List<OfertaMatriculaResponseDTO.GrupoDTO> resultado = new ArrayList<>();
 
         for (Seleccion seleccion : selecciones) {
@@ -1667,7 +2199,25 @@ public class MatriculaEstudianteService {
                         .collect(Collectors.joining(" · ")));
             }
 
-            MallaCurricular malla = seleccion.idCurso() == null ? null : mallaPorCurso.get(seleccion.idCurso());
+            /*
+             * Agrupación: al estudiante solo se le muestra el nombre
+             * ("Orquesta"). El nivel es interno y no viaja en la respuesta.
+             */
+            if (seleccion.esAgrupacion()) {
+                Agrupacion agrupacion = seleccion.agrupacion();
+                dto.setAgrupacion(true);
+                dto.setIdAgrupacion(grupo.getIdAgrupacion());
+                dto.setNombreAgrupacion(seleccion.nombreAgrupacion());
+                dto.setTipoAgrupacion(agrupacion != null ? agrupacion.getTipo() : null);
+                dto.setIdCurso(null);
+                dto.setCodigoCurso(null);
+                dto.setNombreCurso(seleccion.nombreAgrupacion());
+                dto.setNombreNivel(null);
+                dto.setProfesores(profesoresAgrupacion.getOrDefault(grupo.getId(), List.of()));
+            }
+
+            MallaCurricular malla = seleccion.esAgrupacion() || seleccion.idCurso() == null
+                    ? null : mallaPorCurso.get(seleccion.idCurso());
 
             if (malla != null) {
 
@@ -1684,7 +2234,9 @@ public class MatriculaEstudianteService {
             // Los grupos creados en HU-028 aún no tienen profesor asignado.
             Profesor profesor = grupo.getIdProfesor() == null ? null : profesores.get(grupo.getIdProfesor());
 
-            if (profesor != null) {
+            if (!dto.getProfesores().isEmpty()) {
+                dto.setProfesor(String.join(", ", dto.getProfesores()));
+            } else if (profesor != null) {
                 dto.setProfesor(nombreCompleto(
                         profesor.getNombres(), profesor.getPrimerApellido(), profesor.getSegundoApellido()));
             }
@@ -1803,7 +2355,11 @@ public class MatriculaEstudianteService {
     }
 
     // Grupo normal: «Solfeo I» (SOL-I-A). Espacio: «Instrumento VI» de Piano (ESP-PIA-3-1).
+    // Agrupación: «Orquesta» (AGR-ORQ-1), sin el nivel.
     private String etiqueta(Seleccion seleccion, Curso curso, Map<Integer, String> instrumentos) {
+        if (seleccion.esAgrupacion()) {
+            return "«" + seleccion.nombreAgrupacion() + "» (" + seleccion.grupo().getCodigo() + ")";
+        }
         String instrumento = seleccion.esEspacio() ? instrumentos.get(seleccion.idInstrumento()) : null;
         return nombreCurso(curso)
                 + (instrumento != null ? " de " + instrumento : "")

@@ -16,6 +16,11 @@ import java.time.LocalDate;
  * - ESPACIO_INSTRUMENTO: lección individual semanal de un profesor en un
  *   instrumento (id_curso NULL, cupo 1). El nivel (Instrumento I..XIV)
  *   lo trae el estudiante y queda en matriculas_detalles.id_curso.
+ * - AGRUPACION: grupo de una agrupación (Orquesta, Coro...) en un período
+ *   (id_agrupacion obligatorio, id_curso e id_instrumento NULL). Tiene
+ *   varios profesores en grupos_profesores; id_profesor es el responsable.
+ *   El nivel de cada estudiante (Conjunto Instrumental o Coro) lo calcula
+ *   el sistema y queda en matriculas_detalles.id_curso.
  */
 @Getter
 @Setter
@@ -25,6 +30,7 @@ public class Grupo {
 
     public static final String TIPO_CURSO = "CURSO";
     public static final String TIPO_ESPACIO_INSTRUMENTO = "ESPACIO_INSTRUMENTO";
+    public static final String TIPO_AGRUPACION = "AGRUPACION";
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -48,6 +54,10 @@ public class Grupo {
     // Solo en los espacios de instrumento.
     @Column(name = "id_instrumento")
     private Integer idInstrumento;
+
+    // Solo en los grupos de agrupación.
+    @Column(name = "id_agrupacion")
+    private Long idAgrupacion;
 
     @Column(name = "id_profesor")
     private Long idProfesor;
@@ -97,6 +107,10 @@ public class Grupo {
 
     public boolean esEspacioInstrumento() {
         return TIPO_ESPACIO_INSTRUMENTO.equals(tipoGrupo);
+    }
+
+    public boolean esAgrupacion() {
+        return TIPO_AGRUPACION.equals(tipoGrupo);
     }
 }
 

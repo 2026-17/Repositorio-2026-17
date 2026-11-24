@@ -301,6 +301,47 @@ CREATE TABLE instrumentos (
       CONSTRAINT uq_instrumentos_nombre UNIQUE (nombre)
 );
 
+-- Agrupaciones (Orquesta, Banda, Coro de niños...): grupos con horario fijo
+-- donde tocan juntos estudiantes de distintos niveles.
+-- INSTRUMENTAL cuenta para Conjunto Instrumental I-XII; CORAL, para Coro I-XIV.
+-- Las reglas de grupos para el tipo AGRUPACION y cursos_reconocidos.id_agrupacion
+-- están en db/cambios/2026-11-24_agrupaciones.sql.
+CREATE TABLE agrupaciones (
+      id_agrupacion                  INT UNSIGNED NOT NULL AUTO_INCREMENT,
+      codigo                         VARCHAR(20)  NOT NULL,
+      nombre                         VARCHAR(100) NOT NULL,
+      tipo                           VARCHAR(20)  NOT NULL,
+      descripcion                    VARCHAR(500),
+      activa                         BOOLEAN      NOT NULL DEFAULT TRUE,
+      -- Quiénes pueden matricularla (2026-11-24_agrupaciones_ajustes.sql).
+      -- Edades en años cumplidos a la fecha de inicio del período.
+      solo_inclusion                 BOOLEAN      NOT NULL DEFAULT FALSE,
+      edad_minima                    TINYINT UNSIGNED,
+      edad_maxima                    TINYINT UNSIGNED,
+      creado_en                      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      actualizado_en                 DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      id_usuario_ultima_modificacion INT UNSIGNED,
+      PRIMARY KEY (id_agrupacion),
+      CONSTRAINT uq_agrupaciones_codigo UNIQUE (codigo),
+      CONSTRAINT uq_agrupaciones_nombre UNIQUE (nombre),
+      CONSTRAINT fk_agrupaciones_usuario_modifica FOREIGN KEY (id_usuario_ultima_modificacion)
+          REFERENCES usuarios (id_usuario) ON DELETE SET NULL,
+      CONSTRAINT ck_agrupaciones_tipo CHECK (tipo IN ('INSTRUMENTAL', 'CORAL')),
+      CONSTRAINT ck_agrupaciones_edades CHECK (edad_minima IS NULL OR edad_maxima IS NULL OR edad_maxima >= edad_minima)
+);
+
+-- Instrumentos permitidos en una agrupación (sin filas = cualquier instrumento)
+CREATE TABLE agrupaciones_instrumentos (
+      id_agrupacion  INT UNSIGNED      NOT NULL,
+      id_instrumento SMALLINT UNSIGNED NOT NULL,
+      PRIMARY KEY (id_agrupacion, id_instrumento),
+      INDEX idx_agrupaciones_instrumentos_instrumento (id_instrumento),
+      CONSTRAINT fk_agrupaciones_instrumentos_agrupaciones FOREIGN KEY (id_agrupacion)
+          REFERENCES agrupaciones (id_agrupacion) ON DELETE CASCADE,
+      CONSTRAINT fk_agrupaciones_instrumentos_instrumentos FOREIGN KEY (id_instrumento)
+          REFERENCES instrumentos (id_instrumento)
+);
+
 
 -- =====================================================================
 --  3. ESTRUCTURA ACADÉMICA (programas, planes, cursos, periodos)
@@ -361,6 +402,8 @@ CREATE TABLE cursos (
     actualizado_en                 DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     edad_minima                    TINYINT UNSIGNED,
     edad_maxima                    TINYINT UNSIGNED,
+    -- Conjunto Instrumental (CI-%) y Coro (CORO-%): se cursan en agrupaciones
+    es_curso_agrupacion            BOOLEAN      NOT NULL DEFAULT FALSE,
     PRIMARY KEY (id_curso),
     CONSTRAINT uq_cursos_codigo UNIQUE (codigo),
     INDEX idx_cursos_nombre (nombre),
@@ -845,6 +888,8 @@ CREATE TABLE grupos (
     id_periodo     INT UNSIGNED      NOT NULL,
     id_curso       INT UNSIGNED      NOT NULL,
     id_profesor    INT UNSIGNED,
+    -- Solo en los grupos de agrupación (id_profesor = profesor responsable)
+    id_agrupacion  INT UNSIGNED,
     id_usuario_ultima_modificacion INT UNSIGNED,
     codigo         VARCHAR(40)       NOT NULL,
     cupo_maximo    SMALLINT UNSIGNED NOT NULL,
@@ -859,7 +904,9 @@ CREATE TABLE grupos (
     CONSTRAINT uq_grupos_periodo_codigo UNIQUE (id_periodo, codigo),
     INDEX idx_grupos_curso_periodo    (id_curso, id_periodo),
     INDEX idx_grupos_profesor_periodo (id_profesor, id_periodo),
+    INDEX idx_grupos_periodo_agrupacion (id_periodo, id_agrupacion),
     CONSTRAINT fk_grupos_periodos   FOREIGN KEY (id_periodo)  REFERENCES periodos_academicos (id_periodo),
+    CONSTRAINT fk_grupos_agrupaciones FOREIGN KEY (id_agrupacion) REFERENCES agrupaciones (id_agrupacion),
     CONSTRAINT fk_grupos_cursos     FOREIGN KEY (id_curso)    REFERENCES cursos (id_curso),
     CONSTRAINT fk_grupos_profesores FOREIGN KEY (id_profesor) REFERENCES profesores (id_profesor) ON DELETE SET NULL,
     CONSTRAINT fk_grupos_usuario_modifica FOREIGN KEY (id_usuario_ultima_modificacion) REFERENCES usuarios (id_usuario) ON DELETE SET NULL,
@@ -867,6 +914,21 @@ CREATE TABLE grupos (
     CONSTRAINT ck_grupos_estado    CHECK (estado IN ('PLANIFICADO', 'PUBLICADO', 'EN_CURSO', 'CERRADO', 'CANCELADO')),
     CONSTRAINT ck_grupos_fechas    CHECK (fecha_inicio IS NULL OR fecha_fin IS NULL OR fecha_fin >= fecha_inicio),
     CONSTRAINT ck_grupos_modalidad CHECK (modalidad IN ('PRESENCIAL', 'VIRTUAL', 'HIBRIDA'))
+);
+
+-- Profesores de un grupo de agrupación. Un solo responsable por grupo (lo
+-- valida el backend) y grupos.id_profesor es igual al responsable.
+CREATE TABLE grupos_profesores (
+    id_grupo       INT UNSIGNED NOT NULL,
+    id_profesor    INT UNSIGNED NOT NULL,
+    es_responsable BOOLEAN      NOT NULL DEFAULT FALSE,
+    creado_en      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id_grupo, id_profesor),
+    INDEX idx_grupos_profesores_profesor (id_profesor),
+    CONSTRAINT fk_grupos_profesores_grupos FOREIGN KEY (id_grupo)
+        REFERENCES grupos (id_grupo) ON DELETE CASCADE,
+    CONSTRAINT fk_grupos_profesores_profesores FOREIGN KEY (id_profesor)
+        REFERENCES profesores (id_profesor) ON DELETE CASCADE
 );
 
 -- Horario semanal de cada grupo (1 = lunes ... 7 = domingo)
@@ -889,6 +951,8 @@ CREATE TABLE matriculas_detalles (
      id_detalle_matricula INT UNSIGNED NOT NULL AUTO_INCREMENT,
      id_matricula         INT UNSIGNED NOT NULL,
      id_grupo             INT UNSIGNED NOT NULL,
+     -- Agrupaciones: orden en que el estudiante las eligió (regla D4)
+     orden_seleccion      SMALLINT UNSIGNED,
      retirado             BOOLEAN      NOT NULL DEFAULT FALSE,
      fecha_retiro         DATE,
      motivo_retiro        VARCHAR(500),

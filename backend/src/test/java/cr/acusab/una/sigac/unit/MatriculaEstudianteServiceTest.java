@@ -33,6 +33,8 @@ import cr.acusab.una.sigac.data.repository.RequisitosCursoRepository;
 import cr.acusab.una.sigac.data.repository.CursoReconocidoRepository;
 import cr.acusab.una.sigac.data.repository.EstudianteInstrumentoRepository;
 import cr.acusab.una.sigac.data.repository.InstrumentoRepository;
+import cr.acusab.una.sigac.logic.service.AgrupacionService;
+import cr.acusab.una.sigac.logic.service.AvanceAgrupacionService;
 import cr.acusab.una.sigac.logic.service.AvanceInstrumentoService;
 
 import cr.acusab.una.sigac.logic.exception.BusinessException;
@@ -155,7 +157,10 @@ class MatriculaEstudianteServiceTest {
                 ),
                 // Sin instrumentos vigentes: estas pruebas no tienen lecciones.
                 mock(EstudianteInstrumentoRepository.class),
-                mock(InstrumentoRepository.class)
+                mock(InstrumentoRepository.class),
+                // Sin agrupaciones: estas pruebas no las usan.
+                mock(AvanceAgrupacionService.class),
+                mock(AgrupacionService.class)
         );
 
         Authentication authentication = mock(Authentication.class);

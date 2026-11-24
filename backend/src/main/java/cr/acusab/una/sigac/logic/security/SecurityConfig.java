@@ -270,6 +270,49 @@ public class SecurityConfig {
 
                         /*
                          * =====================================================
+                         * Agrupaciones (Orquesta, Banda, Coro...)
+                         * Consultar: ADMINISTRATIVO y DIRECTOR_ACADEMICO
+                         * Crear y modificar: DIRECTOR_ACADEMICO
+                         * Estudiantes de un grupo: también PROFESOR (solo
+                         * los suyos; lo revisa AgrupacionService)
+                         * Mis grupos: PROFESOR
+                         * Las reglas específicas van antes que las generales.
+                         * =====================================================
+                         */
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/agrupaciones/grupos/mios"
+                        )
+                        .hasRole("PROFESOR")
+
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/agrupaciones/grupos/*/estudiantes"
+                        )
+                        .hasAnyRole("ADMINISTRATIVO", "DIRECTOR_ACADEMICO", "PROFESOR")
+
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/agrupaciones",
+                                "/agrupaciones/**"
+                        )
+                        .hasAnyRole("ADMINISTRATIVO", "DIRECTOR_ACADEMICO")
+
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/agrupaciones",
+                                "/agrupaciones/**"
+                        )
+                        .hasRole("DIRECTOR_ACADEMICO")
+
+                        .requestMatchers(
+                                HttpMethod.PUT,
+                                "/agrupaciones/**"
+                        )
+                        .hasRole("DIRECTOR_ACADEMICO")
+
+                        /*
+                         * =====================================================
                          * Avance por instrumento y nivel de ingreso
                          * Consultar: ADMINISTRATIVO y DIRECTOR_ACADEMICO
                          * Registrar el nivel de ingreso: DIRECTOR_ACADEMICO

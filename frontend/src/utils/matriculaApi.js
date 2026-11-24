@@ -49,18 +49,30 @@ export async function consultarMiHorario(token, idPeriodo) {
     return leerRespuesta(response, "No fue posible consultar su horario.");
 }
 
+// Agrupaciones publicadas del período vigente (orquestas, bandas, coros...),
+// con el motivo si alguna está bloqueada. Nunca trae el nivel.
+export async function consultarMisAgrupaciones(token) {
+    const response = await fetch(`${API_URL}/matriculas-estudiante/agrupaciones`, {
+        headers: { Authorization: `Bearer ${token}` },
+    });
+
+    return leerRespuesta(response, "No fue posible consultar las agrupaciones.");
+}
+
 // espacios: un espacio de instrumento por instrumento vigente, como
 // [{ idEspacio, idInstrumento }] (idInstrumento = la lección para la que se
 // eligió; hace falta en los espacios de "cualquier instrumento del
 // profesor"). El nivel lo calcula el servidor.
-export async function confirmarMatricula(token, idsGrupo, espacios = []) {
+// idsAgrupacion: grupos de agrupación elegidos, EN EL ORDEN en que se
+// marcaron. Qué agrupación se califica como coro lo decide el servidor.
+export async function confirmarMatricula(token, idsGrupo, espacios = [], idsAgrupacion = []) {
     const response = await fetch(`${API_URL}/matriculas-estudiante/confirmar`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ idsGrupo, espacios }),
+        body: JSON.stringify({ idsGrupo, espacios, idsAgrupacion }),
     });
 
     return leerRespuesta(response, "No fue posible registrar la matrícula.");

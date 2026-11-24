@@ -18,6 +18,9 @@ public interface ProfesorRepository extends JpaRepository<Profesor, Long> {
 
     List<Profesor> findByActivo(Boolean activo);
 
+    // Profesor de la sesión (el JWT guarda la cédula del usuario).
+    Optional<Profesor> findByIdUsuario_Cedula(String cedula);
+
     /*
      * HU-014: serializa asignaciones concurrentes al mismo profesor para
      * reducir el riesgo de aceptar dos asignaciones incompatibles al mismo tiempo.

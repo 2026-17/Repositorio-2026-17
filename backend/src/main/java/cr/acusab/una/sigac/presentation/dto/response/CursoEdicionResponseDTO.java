@@ -27,6 +27,26 @@ public class CursoEdicionResponseDTO {
     // Se cursa en espacios de instrumento (Instrumento I a XIV).
     private Boolean esCursoInstrumento;
 
+    // D7: edades opcionales (null = sin límite).
+    private Integer edadMinima;
+    private Integer edadMaxima;
+
+    public Integer getEdadMinima() {
+        return edadMinima;
+    }
+
+    public void setEdadMinima(Integer edadMinima) {
+        this.edadMinima = edadMinima;
+    }
+
+    public Integer getEdadMaxima() {
+        return edadMaxima;
+    }
+
+    public void setEdadMaxima(Integer edadMaxima) {
+        this.edadMaxima = edadMaxima;
+    }
+
     public Boolean getEsCursoInstrumento() {
         return esCursoInstrumento;
     }

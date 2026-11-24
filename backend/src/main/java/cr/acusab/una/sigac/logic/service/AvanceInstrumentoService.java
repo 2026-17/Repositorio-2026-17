@@ -244,7 +244,11 @@ public class AvanceInstrumentoService {
         return resultado;
     }
 
-    // Cursos que no son de instrumento: calificaciones de SIGAC y reconocidos sin instrumento.
+    /*
+     * Cursos que no son de instrumento: calificaciones de SIGAC y reconocidos
+     * sin instrumento. Lo aprobado EN una agrupación no entra aquí: se cuenta
+     * por agrupación (D5, AvanceAgrupacionService.cursosAprobadosDelPlan).
+     */
     private Map<Long, CursoAprobado> aprobadosGenerales(Long idEstudiante) {
 
         Map<Long, CursoAprobado> resultado = new HashMap<>();
@@ -255,7 +259,7 @@ public class AvanceInstrumentoService {
 
         cursoReconocidoRepository.findByIdEstudiante(idEstudiante)
                 .stream()
-                .filter(r -> r.getIdInstrumento() == null)
+                .filter(r -> r.getIdInstrumento() == null && r.getIdAgrupacion() == null)
                 .forEach(r -> agregarMejor(resultado, r.getIdCurso(), new CursoAprobado(null, true)));
 
         return resultado;

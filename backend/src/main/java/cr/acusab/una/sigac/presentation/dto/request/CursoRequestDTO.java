@@ -55,6 +55,31 @@ public class CursoRequestDTO {
      */
     private Boolean esCursoInstrumento;
 
+    // D7: años cumplidos al inicio del período (opcionales; null = sin límite).
+    @jakarta.validation.constraints.Min(value = 0, message = "La edad mínima no es válida.")
+    @Max(value = 120, message = "La edad mínima no es válida.")
+    private Integer edadMinima;
+
+    @jakarta.validation.constraints.Min(value = 0, message = "La edad máxima no es válida.")
+    @Max(value = 120, message = "La edad máxima no es válida.")
+    private Integer edadMaxima;
+
+    public Integer getEdadMinima() {
+        return edadMinima;
+    }
+
+    public void setEdadMinima(Integer edadMinima) {
+        this.edadMinima = edadMinima;
+    }
+
+    public Integer getEdadMaxima() {
+        return edadMaxima;
+    }
+
+    public void setEdadMaxima(Integer edadMaxima) {
+        this.edadMaxima = edadMaxima;
+    }
+
     public Boolean getEsCursoInstrumento() {
         return esCursoInstrumento;
     }

@@ -1,0 +1,63 @@
+/* =========================================
+   Agrupaciones: lista del período, catálogo y «Crear agrupación»
+   (mockup 9). Reutiliza .espacios-layout, .espacios-resumen,
+   .espacios-nota y .espacios-migas de espacios.css; aquí solo lo propio.
+   ========================================= */
+
+.agrupaciones-cabecera { flex-wrap: wrap; gap: var(--space-4); align-items: flex-end; }
+.agrupaciones-filtro { min-width: 220px; }
+
+.agrupaciones-prof { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.agrupaciones-prof + .agrupaciones-prof { margin-top: 4px; }
+
+.agrupaciones-acciones-fila { white-space: nowrap; }
+.agrupaciones-acciones-fila > * + * { margin-left: var(--space-1); }
+.agrupaciones-detalle td { background: var(--surface-sunken); }
+
+.agrupaciones-estudiantes { display: grid; gap: var(--space-2); margin: 0; padding: 0; list-style: none; font-size: 14px; }
+.agrupaciones-estudiantes li { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3); }
+.agrupaciones-estudiantes li span:not(.sg-badge) { color: var(--ink-muted); }
+
+/* Catálogo */
+.agrupaciones-formulario { display: grid; gap: var(--space-4); border-bottom: 1px solid var(--border); }
+.agrupaciones-formulario h3 { margin: 0; font: 600 16px/24px var(--font-sans); }
+
+.agrupaciones-instrumentos { display: grid; gap: var(--space-2); }
+.agrupaciones-instrumentos__lista { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.agrupaciones-instrumento { padding: var(--space-2) var(--space-3); }
+.agrupaciones-activa { justify-self: start; padding: var(--space-3) var(--space-4); }
+
+/* Crear agrupación */
+.agrupaciones-crear .bloque { margin-top: var(--space-4); }
+
+.agrupaciones-profesores { margin: 0; padding: 0 var(--space-5); list-style: none; }
+.agrupaciones-profesores li {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    padding: var(--space-3) 0;
+    border-bottom: 1px solid var(--border);
+}
+.agrupaciones-profesores li b { flex: 1; }
+.agrupaciones-responsable { display: inline-flex; align-items: center; gap: var(--space-2); font-size: 14px; cursor: pointer; }
+.agrupaciones-responsable input { width: 18px; height: 18px; accent-color: var(--primary-fill); }
+.agrupaciones-responsable svg { color: var(--warning); }
+
+.agrupaciones-agregar { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: flex-end; }
+.agrupaciones-agregar .sg-field { flex: 1 1 240px; }
+
+.agrupaciones-bloques { display: grid; gap: var(--space-3); }
+.agrupaciones-bloque { display: grid; gap: var(--space-1); }
+.agrupaciones-bloque__campos { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: flex-end; }
+.agrupaciones-bloque__campos .sg-field { flex: 1 1 140px; }
+.agrupaciones-bloque.has-error .sg-input { border-color: var(--danger); }
+
+.agrupaciones-choques { margin: 0 0 var(--space-2); padding-left: var(--space-5); }
+
+.agrupaciones-acciones { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-3); }
+
+/* ¿Quiénes pueden matricularla? */
+.quienes-pueden { display: grid; gap: var(--space-2); }
+.quienes-pueden__edades { display: flex; flex-wrap: wrap; gap: var(--space-3); }
+.quienes-pueden__edades .sg-field { flex: 1 1 160px; max-width: 220px; }
+.quienes-pueden__inclusion { justify-self: start; padding: var(--space-3) var(--space-4); }

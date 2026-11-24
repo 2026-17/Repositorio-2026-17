@@ -8,6 +8,7 @@ import {
     GraduationCap,
     Library,
     Music,
+    Music2,
     UserPlus,
     Users,
     UserRoundCog,
@@ -87,6 +88,12 @@ export const MENU_POR_ROL = {
                     label: "Espacios de instrumento",
                     icon: CalendarClock,
                     descripcion: "Cree con el botón \"Crear espacios\" las lecciones individuales semanales de cada profesor (cupo 1, sin nivel) y vea en su agenda cuáles ya tomó un estudiante y con qué nivel.",
+                },
+                {
+                    to: "/director-academico/agrupaciones",
+                    label: "Agrupaciones",
+                    icon: Music2,
+                    descripcion: "Mantenga el catálogo de orquestas, bandas y coros, y ábralas en cada período con «Crear agrupación»: horario, cupo y profesores. El sistema calcula el nivel de cada estudiante.",
                 },
                 {
                     to: "/director-academico/asignar-profesores",
@@ -194,7 +201,7 @@ export const MENU_POR_ROL = {
                     to: "/estudiante/matricula",
                     label: "Matrícula",
                     icon: ClipboardList,
-                    descripcion: "Seleccione los cursos autorizados del período vigente y confirme su matrícula.",
+                    descripcion: "Elija su lección de instrumento, sus cursos y sus agrupaciones del período vigente, y confirme su matrícula.",
                 },
                 {
                     to: "/estudiante/notificaciones",

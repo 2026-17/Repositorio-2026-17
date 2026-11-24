@@ -10,6 +10,9 @@ public interface CursoReconocidoRepository extends JpaRepository<CursoReconocido
     // Todo el avance reconocido de un estudiante (cursos normales y de instrumento).
     List<CursoReconocido> findByIdEstudiante(Long idEstudiante);
 
+    // Avance reconocido en una agrupación (Orquesta IV de la carga inicial).
+    List<CursoReconocido> findByIdEstudianteAndIdAgrupacion(Long idEstudiante, Long idAgrupacion);
+
     // Avance reconocido en un instrumento.
     List<CursoReconocido> findByIdEstudianteAndIdInstrumento(Long idEstudiante, Integer idInstrumento);
 

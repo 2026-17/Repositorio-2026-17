@@ -471,9 +471,7 @@ public class EspacioInstrumentoService {
         ).map(conflicto -> {
             Grupo otro = conflicto.grupo();
             HorarioGrupo h = conflicto.horario();
-            String que = otro == null
-                    ? "otro grupo"
-                    : (otro.esEspacioInstrumento() ? "el espacio " : "el grupo ") + otro.getCodigo();
+            String que = AgrupacionService.descripcionGrupo(otro);
             return "Choca con " + que + " del " + FormatoHorario.bloque(h.getDiaSemana(), h.getHoraInicio(), h.getHoraFin())
                     + " de este mismo profesor. Cambie la hora o quite este espacio.";
         });
