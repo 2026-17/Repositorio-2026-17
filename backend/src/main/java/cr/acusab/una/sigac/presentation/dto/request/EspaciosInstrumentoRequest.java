@@ -24,7 +24,10 @@ public class EspaciosInstrumentoRequest {
     @Positive(message = "El período académico seleccionado no es válido.")
     private Long idPeriodo;
 
-    @NotNull(message = "El instrumento es obligatorio.")
+    /*
+     * Opcional. Si viene vacío, los espacios son de "cualquier instrumento
+     * del profesor": el profesor debe dar al menos dos instrumentos activos.
+     */
     @Positive(message = "El instrumento seleccionado no es válido.")
     private Integer idInstrumento;
 

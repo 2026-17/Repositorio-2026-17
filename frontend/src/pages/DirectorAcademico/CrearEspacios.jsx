@@ -71,6 +71,10 @@ export default function CrearEspacios({ periodos, instrumentos, valoresIniciales
     const [profesores, setProfesores] = useState([]);
     const [existentes, setExistentes] = useState([]);
 
+    // Instrumentos que da el profesor elegido, y si los espacios son de cualquiera de ellos.
+    const [suyos, setSuyos] = useState({ idProfesor: "", lista: [] });
+    const [deCualquiera, setDeCualquiera] = useState(false);
+
     const [generador, setGenerador] = useState({ dia: "1", desde: "", hasta: "", duracion: String(DURACION_POR_DEFECTO) });
     const [filas, setFilas] = useState([]);
     const [erroresServidor, setErroresServidor] = useState({});
@@ -98,10 +102,31 @@ export default function CrearEspacios({ periodos, instrumentos, valoresIniciales
         return () => { activo = false; };
     }, [idPeriodo, idProfesor]);
 
+    useEffect(() => {
+        if (!idProfesor) return undefined;
+        let activo = true;
+        solicitar(`/espacios-instrumento/profesores/${idProfesor}/instrumentos`, {}, "No fue posible cargar los instrumentos del profesor.")
+            .then((lista) => { if (activo) setSuyos({ idProfesor: String(idProfesor), lista: Array.isArray(lista) ? lista : [] }); })
+            .catch(() => { if (activo) setSuyos({ idProfesor: String(idProfesor), lista: [] }); });
+        return () => { activo = false; };
+    }, [idProfesor]);
+
     const instrumento = instrumentos.find((i) => String(i.id) === String(idInstrumento));
     const profesor = profesores.find((p) => String(p.id) === String(idProfesor));
     const periodo = periodos.find((p) => String(p.id) === String(idPeriodo));
     const conProfesor = Boolean(idPeriodo && idProfesor);
+
+    // "Cualquiera de sus instrumentos" solo si el profesor da dos o más.
+    const instrumentosProfesor = suyos.idProfesor === String(idProfesor) ? suyos.lista : [];
+    const puedeVarios = instrumentosProfesor.length >= 2;
+    const variosNombres = instrumentosProfesor.map((i) => i.nombre).join(" o ");
+    const esDeCualquiera = deCualquiera && puedeVarios;
+    const nombreInstrumentoEspacios = esDeCualquiera ? variosNombres : instrumento?.nombre;
+
+    function cambiarProfesor(valor) {
+        setIdProfesor(valor);
+        setDeCualquiera(false);
+    }
 
     const errores = useMemo(() => {
         const locales = erroresLocales(filas, conProfesor ? existentes : []);
@@ -169,7 +194,8 @@ export default function CrearEspacios({ periodos, instrumentos, valoresIniciales
         try {
             const creados = await crearEspacios({
                 idPeriodo: Number(idPeriodo),
-                idInstrumento: Number(idInstrumento),
+                // Sin instrumento = cualquiera de los del profesor.
+                idInstrumento: esDeCualquiera ? null : Number(idInstrumento),
                 idProfesor: Number(idProfesor),
                 aula: aula.trim() || null,
                 bloques: filas.map((f) => ({
@@ -180,7 +206,7 @@ export default function CrearEspacios({ periodos, instrumentos, valoresIniciales
                 })),
             });
 
-            await dialog.exito(`Se crearon ${creados.length} ${creados.length === 1 ? "espacio" : "espacios"} de ${instrumento?.nombre} para ${profesor ? nombreProfesor(profesor) : "el profesor"}.`);
+            await dialog.exito(`Se crearon ${creados.length} ${creados.length === 1 ? "espacio" : "espacios"} de ${nombreInstrumentoEspacios} para ${profesor ? nombreProfesor(profesor) : "el profesor"}.`);
             onSuccess({ idPeriodo, idInstrumento, idProfesor });
         } catch (e) {
             // Errores por fila: [{ indice, mensaje }]. No se creó ninguno.
@@ -237,7 +263,7 @@ export default function CrearEspacios({ periodos, instrumentos, valoresIniciales
                                     id="esp-instrumento"
                                     className="sg-input sg-select"
                                     value={idInstrumento}
-                                    onChange={(e) => { setIdInstrumento(e.target.value); setIdProfesor(""); setProfesores([]); }}
+                                    onChange={(e) => { setIdInstrumento(e.target.value); cambiarProfesor(""); setProfesores([]); }}
                                     disabled={guardando}
                                 >
                                     <option value="">Seleccione un instrumento</option>
@@ -250,7 +276,7 @@ export default function CrearEspacios({ periodos, instrumentos, valoresIniciales
                                 select
                                 hint={instrumento ? `Solo aparecen profesores activos con ${instrumento.nombre} como especialidad.` : "Elija primero el instrumento."}
                             >
-                                <select id="esp-profesor" className="sg-input sg-select" value={idProfesor} onChange={(e) => setIdProfesor(e.target.value)} disabled={guardando || !idInstrumento} aria-describedby="esp-profesor-hint">
+                                <select id="esp-profesor" className="sg-input sg-select" value={idProfesor} onChange={(e) => cambiarProfesor(e.target.value)} disabled={guardando || !idInstrumento} aria-describedby="esp-profesor-hint">
                                     <option value="">{idInstrumento && profesores.length === 0 ? "Ningún profesor con esa especialidad" : "Seleccione un profesor"}</option>
                                     {profesores.map((p) => <option key={p.id} value={p.id}>{nombreProfesor(p)}</option>)}
                                 </select>
@@ -258,6 +284,27 @@ export default function CrearEspacios({ periodos, instrumentos, valoresIniciales
                             <Field id="esp-aula" label="Aula" optional hint="Se usa en los espacios que no indiquen otra.">
                                 <input id="esp-aula" className="sg-input" maxLength={80} value={aula} onChange={(e) => setAula(e.target.value)} disabled={guardando} aria-describedby="esp-aula-hint" placeholder="Ej. Aula 3" />
                             </Field>
+                            {puedeVarios && instrumento && (
+                                <fieldset className="fieldset span-2" id="esp-alcance">
+                                    <legend>¿Para qué instrumento son los espacios?</legend>
+                                    <div className="choice-list">
+                                        <label className={`choice${!esDeCualquiera ? " is-checked" : ""}`}>
+                                            <input type="radio" name="esp-alcance" checked={!esDeCualquiera} onChange={() => setDeCualquiera(false)} disabled={guardando} />
+                                            <span className="choice-main">
+                                                <b>Solo {instrumento.nombre}</b>
+                                                <span>Solo los pueden tomar estudiantes de {instrumento.nombre} con este profesor.</span>
+                                            </span>
+                                        </label>
+                                        <label className={`choice${esDeCualquiera ? " is-checked" : ""}`}>
+                                            <input type="radio" name="esp-alcance" checked={esDeCualquiera} onChange={() => setDeCualquiera(true)} disabled={guardando} />
+                                            <span className="choice-main">
+                                                <b>Cualquiera de sus instrumentos ({variosNombres})</b>
+                                                <span>Cada hora la puede tomar un estudiante de cualquiera de ellos que tenga a este profesor.</span>
+                                            </span>
+                                        </label>
+                                    </div>
+                                </fieldset>
+                            )}
                         </div>
                         <p className="espacios-cupo">
                             <Lock size={18} strokeWidth={1.75} aria-hidden="true" />
@@ -381,7 +428,7 @@ export default function CrearEspacios({ periodos, instrumentos, valoresIniciales
                     <div className="panel-body">
                         <dl className="espacios-dl">
                             <dt>Profesor</dt><dd><b>{profesor ? nombreProfesor(profesor) : "—"}</b></dd>
-                            <dt>Instrumento</dt><dd>{instrumento ? <StatusBadge tone="primary" icon={null}>{instrumento.nombre}</StatusBadge> : "—"}</dd>
+                            <dt>Instrumento</dt><dd>{nombreInstrumentoEspacios ? <StatusBadge tone="primary" icon={null}>{nombreInstrumentoEspacios}</StatusBadge> : "—"}</dd>
                             <dt>Período</dt><dd>{periodo?.nombre ?? "—"}</dd>
                             <dt>Espacios</dt>
                             <dd className="tnum">
@@ -393,7 +440,7 @@ export default function CrearEspacios({ periodos, instrumentos, valoresIniciales
                         <p className="muted espacios-nota">
                             <Info size={16} strokeWidth={1.75} aria-hidden="true" />
                             Los espacios se publican para la matrícula. Cada estudiante con este profesor asignado en
-                            {instrumento ? ` ${instrumento.nombre}` : " ese instrumento"} verá solo los espacios libres.
+                            {nombreInstrumentoEspacios ? ` ${nombreInstrumentoEspacios}` : " ese instrumento"} verá solo los espacios libres.
                         </p>
                         <div className="espacios-acciones">
                             <button

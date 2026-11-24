@@ -80,13 +80,15 @@ public interface MatriculaDetalleRepository
 
     /*
      * Niveles de instrumento aprobados en SIGAC, por instrumento: el
-     * detalle es de un espacio de instrumento (g.id_instrumento) y el
-     * nivel es md.id_curso.
+     * detalle es de un espacio de instrumento y el nivel es md.id_curso.
+     * El instrumento es el del detalle (md.id_instrumento); si no lo tiene,
+     * el del espacio. En un espacio de "cualquier instrumento del profesor"
+     * el grupo no tiene instrumento.
      *
      * Devuelve filas [idCurso, idInstrumento, notaMaxima, idPeriodo].
      */
     @Query(value = """
-            SELECT md.id_curso, g.id_instrumento, MAX(c.nota_final), MAX(g.id_periodo)
+            SELECT md.id_curso, COALESCE(md.id_instrumento, g.id_instrumento), MAX(c.nota_final), MAX(g.id_periodo)
             FROM calificaciones c
                      INNER JOIN estados_academicos ea
                                 ON ea.id_estado_academico = c.id_estado_academico
@@ -102,7 +104,7 @@ public interface MatriculaDetalleRepository
               AND ea.codigo = 'APROBADO'
               AND g.tipo_grupo = 'ESPACIO_INSTRUMENTO'
               AND md.id_curso IS NOT NULL
-            GROUP BY md.id_curso, g.id_instrumento
+            GROUP BY md.id_curso, COALESCE(md.id_instrumento, g.id_instrumento)
             """, nativeQuery = true)
     List<Object[]> findNivelesInstrumentoAprobados(
             @Param("idEstudiante") Long idEstudiante
@@ -112,10 +114,12 @@ public interface MatriculaDetalleRepository
      * Espacios de instrumento - Quién ocupa cada espacio: detalles no
      * retirados de matrículas con el estado indicado (REGISTRADA).
      *
-     * Devuelve filas [idGrupo, idCurso (nivel), idEstudiante].
+     * Devuelve filas [idGrupo, idCurso (nivel), idEstudiante,
+     * idInstrumento (el que cursa en el espacio; puede ser nulo en
+     * matrículas anteriores al cambio 2026-11-24)].
      */
     @Query("""
-            SELECT d.idGrupo, d.idCurso, d.matricula.autorizacion.idEstudiante.id
+            SELECT d.idGrupo, d.idCurso, d.matricula.autorizacion.idEstudiante.id, d.idInstrumento
             FROM MatriculaDetalle d
             WHERE d.idGrupo IN :idsGrupo
               AND d.retirado = false

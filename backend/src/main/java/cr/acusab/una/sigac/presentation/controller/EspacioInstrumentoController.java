@@ -5,6 +5,7 @@ import cr.acusab.una.sigac.logic.service.EspacioInstrumentoService;
 import cr.acusab.una.sigac.presentation.dto.request.EspaciosInstrumentoRequest;
 import cr.acusab.una.sigac.presentation.dto.request.HorarioGrupoRequestDTO;
 import cr.acusab.una.sigac.presentation.dto.response.EspacioInstrumentoResponse;
+import cr.acusab.una.sigac.presentation.dto.response.InstrumentoProfesorResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -49,6 +50,13 @@ public class EspacioInstrumentoController {
             @RequestParam(required = false) Integer idInstrumento,
             @RequestParam(required = false) Long idProfesor) {
         return ResponseEntity.ok(espacioInstrumentoService.listar(idPeriodo, idInstrumento, idProfesor));
+    }
+
+    // Instrumentos activos que da un profesor (para ofrecer "Cualquiera de sus instrumentos").
+    @GetMapping("/profesores/{idProfesor}/instrumentos")
+    @PreAuthorize("hasAnyRole('ADMINISTRATIVO', 'DIRECTOR_ACADEMICO')")
+    public ResponseEntity<List<InstrumentoProfesorResponse>> instrumentosDelProfesor(@PathVariable Long idProfesor) {
+        return ResponseEntity.ok(espacioInstrumentoService.instrumentosDelProfesor(idProfesor));
     }
 
     // Modificar el día, las horas o el aula de un espacio libre.

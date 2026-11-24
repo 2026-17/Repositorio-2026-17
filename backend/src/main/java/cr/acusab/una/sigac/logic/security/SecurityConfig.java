@@ -245,7 +245,8 @@ public class SecurityConfig {
                          */
                         .requestMatchers(
                                 HttpMethod.GET,
-                                "/espacios-instrumento"
+                                "/espacios-instrumento",
+                                "/espacios-instrumento/profesores/*/instrumentos"
                         )
                         .hasAnyRole("ADMINISTRATIVO", "DIRECTOR_ACADEMICO")
 

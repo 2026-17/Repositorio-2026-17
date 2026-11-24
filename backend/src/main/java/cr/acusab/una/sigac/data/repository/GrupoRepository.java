@@ -118,13 +118,18 @@ public interface GrupoRepository extends JpaRepository<Grupo, Long> {
      * Espacios de instrumento - Agenda: espacios de un período, filtrados
      * opcionalmente por instrumento y profesor (un filtro nulo no filtra).
      * Usa idx_grupos_espacios (id_periodo, id_profesor, id_instrumento).
+     *
+     * Al filtrar por instrumento también vienen los espacios de "cualquier
+     * instrumento del profesor" (id_instrumento NULL). Quien llama debe
+     * quedarse solo con los de profesores que dan ese instrumento
+     * (EspecialidadProfesor.da), porque eso depende de su especialidad.
      */
     @Query("""
             SELECT g FROM Grupo g
             WHERE g.tipoGrupo = 'ESPACIO_INSTRUMENTO'
               AND (:idPeriodo IS NULL OR g.idPeriodo = :idPeriodo)
               AND (:idProfesor IS NULL OR g.idProfesor = :idProfesor)
-              AND (:idInstrumento IS NULL OR g.idInstrumento = :idInstrumento)
+              AND (:idInstrumento IS NULL OR g.idInstrumento = :idInstrumento OR g.idInstrumento IS NULL)
             ORDER BY g.idProfesor, g.id
             """)
     List<Grupo> findEspacios(

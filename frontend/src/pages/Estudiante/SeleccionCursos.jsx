@@ -141,6 +141,11 @@ function SeleccionCursos() {
      * no choque con un curso elegido o ya matriculado, ni con la lección
      * (válida) de otro instrumento. Los demás espacios muestran el motivo
      * por el que no se pueden elegir.
+     *
+     * Un espacio de "cualquier instrumento del profesor" puede aparecer en
+     * dos lecciones (por ejemplo Violín y Viola con la misma profesora):
+     * vale para una sola. Por eso los motivos van por lección:
+     * { "idInstrumento:idGrupo": texto }.
      */
     const { espaciosEfectivos, motivosEspacio } = useMemo(() => {
         const fijos = [...gruposSeleccionados, ...(datos?.matriculados ?? [])];
@@ -149,7 +154,8 @@ function SeleccionCursos() {
 
         lecciones.forEach((leccion) => {
             const espacio = (leccion.espaciosLibres ?? []).find((e) => e.idGrupo === espacios[leccion.idInstrumento]);
-            if (espacio && !espacioChocaCon(espacio, [...fijos, ...elegidosValidos])) {
+            const yaUsado = espacio && elegidosValidos.some((e) => e.idGrupo === espacio.idGrupo);
+            if (espacio && !yaUsado && !espacioChocaCon(espacio, [...fijos, ...elegidosValidos])) {
                 efectivos[leccion.idInstrumento] = espacio.idGrupo;
                 elegidosValidos.push(espacio);
             }
@@ -159,18 +165,25 @@ function SeleccionCursos() {
         lecciones.forEach((leccion) => {
             const otrasLecciones = elegidosValidos.filter((e) => e.idInstrumento !== leccion.idInstrumento);
             (leccion.espaciosLibres ?? []).forEach((espacio) => {
+                const clave = `${leccion.idInstrumento}:${espacio.idGrupo}`;
+                const enOtra = otrasLecciones.find((e) => e.idGrupo === espacio.idGrupo);
+                if (enOtra) {
+                    motivos[clave] = `Ya lo eligió para su lección de ${enOtra.nombreInstrumento}.`;
+                    return;
+                }
                 const choque = espacioChocaCon(espacio, [...fijos, ...otrasLecciones]);
-                if (choque) motivos[espacio.idGrupo] = motivoChoque(choque);
+                if (choque) motivos[clave] = motivoChoque(choque);
             });
         });
 
         return { espaciosEfectivos: efectivos, motivosEspacio: motivos };
     }, [lecciones, espacios, gruposSeleccionados, datos]);
 
+    // Un espacio por lección, con el instrumento de esa lección.
     const espaciosElegidos = useMemo(
         () => lecciones
-            .flatMap((l) => l.espaciosLibres ?? [])
-            .filter((e) => Object.values(espaciosEfectivos).includes(e.idGrupo)),
+            .map((l) => (l.espaciosLibres ?? []).find((e) => e.idGrupo === espaciosEfectivos[l.idInstrumento]))
+            .filter(Boolean),
         [lecciones, espaciosEfectivos]
     );
 
@@ -229,7 +242,8 @@ function SeleccionCursos() {
         setEnviando(true);
 
         try {
-            const resultado = await confirmarMatricula(token, seleccionados, espaciosElegidos.map((e) => e.idGrupo));
+            const resultado = await confirmarMatricula(token, seleccionados,
+                espaciosElegidos.map((e) => ({ idEspacio: e.idGrupo, idInstrumento: e.idInstrumento })));
             setConfirmacion(resultado);
             setSeleccionados([]);
             setEspacios({});

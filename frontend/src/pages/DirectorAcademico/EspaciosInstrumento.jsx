@@ -257,13 +257,18 @@ export default function EspaciosInstrumento() {
                                                     <div key={e.idGrupo} className="espacio-tarjeta is-ocupado">
                                                         <span className="espacio-tarjeta__hora tnum">{rangoHoras12(e.horaInicio, e.horaFin)}</span>
                                                         <b>{e.nombreEstudiante}</b>
-                                                        <span className="espacio-tarjeta__nivel">{e.nombreNivel}</span>
+                                                        <span className="espacio-tarjeta__nivel">
+                                                            {[e.nombreNivel, e.variosInstrumentos ? e.nombreInstrumentoEstudiante : null].filter(Boolean).join(" · ")}
+                                                        </span>
                                                     </div>
                                                 ) : (
                                                     <div key={e.idGrupo} className="espacio-tarjeta is-libre">
                                                         <span className="espacio-tarjeta__hora tnum">{rangoHoras12(e.horaInicio, e.horaFin)}</span>
                                                         <b className="espacio-tarjeta__libre"><Clock size={16} strokeWidth={1.75} aria-hidden="true" />Libre</b>
-                                                        <span className="muted">Cualquier nivel{e.aula ? ` · ${e.aula}` : ""}</span>
+                                                        <span className="muted">
+                                                            {e.variosInstrumentos && e.nombreInstrumento ? `${e.nombreInstrumento} · cualquier nivel` : "Cualquier nivel"}
+                                                            {e.aula ? ` · ${e.aula}` : ""}
+                                                        </span>
                                                         <div className="espacio-tarjeta__acciones">
                                                             <button
                                                                 type="button"

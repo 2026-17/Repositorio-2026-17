@@ -22,6 +22,7 @@ import cr.acusab.una.sigac.logic.exception.EspaciosInvalidosException;
 import cr.acusab.una.sigac.presentation.dto.request.EspaciosInstrumentoRequest;
 import cr.acusab.una.sigac.presentation.dto.request.HorarioGrupoRequestDTO;
 import cr.acusab.una.sigac.presentation.dto.response.EspacioInstrumentoResponse;
+import cr.acusab.una.sigac.presentation.dto.response.InstrumentoProfesorResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -129,8 +130,13 @@ public class EspacioInstrumentoService {
         }
 
         PeriodoAcademico periodo = obtenerPeriodoAbierto(request.getIdPeriodo());
-        Instrumento instrumento = obtenerInstrumento(request.getIdInstrumento());
-        Profesor profesor = obtenerProfesorConEspecialidad(request.getIdProfesor(), instrumento);
+
+        // Sin instrumento = "cualquier instrumento del profesor".
+        Instrumento instrumento = request.getIdInstrumento() == null ? null
+                : obtenerInstrumento(request.getIdInstrumento());
+        Profesor profesor = instrumento != null
+                ? obtenerProfesorConEspecialidad(request.getIdProfesor(), instrumento)
+                : obtenerProfesorConVariosInstrumentos(request.getIdProfesor());
         String aulaPorDefecto = textoOpcional(request.getAula());
 
         // 1. Revisar cada bloque y juntar todos los errores.
@@ -201,7 +207,7 @@ public class EspacioInstrumentoService {
             espacio.setTipoGrupo(Grupo.TIPO_ESPACIO_INSTRUMENTO);
             espacio.setIdPeriodo(periodo.getId());
             espacio.setIdCurso(null);
-            espacio.setIdInstrumento(instrumento.getId());
+            espacio.setIdInstrumento(instrumento != null ? instrumento.getId() : null);
             espacio.setIdProfesor(profesor.getId());
             espacio.setIdUsuarioUltimaModificacion(idUsuario);
             espacio.setCodigo(codigo);
@@ -232,9 +238,42 @@ public class EspacioInstrumentoService {
      * Agenda del profesor
      * ================================================================= */
 
+    /*
+     * Al filtrar por instrumento, un espacio de "cualquier instrumento del
+     * profesor" aparece solo si su profesor da ese instrumento.
+     */
     @Transactional(readOnly = true)
     public List<EspacioInstrumentoResponse> listar(Long idPeriodo, Integer idInstrumento, Long idProfesor) {
-        return mapear(grupoRepository.findEspacios(idPeriodo, idInstrumento, idProfesor));
+        List<Grupo> espacios = grupoRepository.findEspacios(idPeriodo, idInstrumento, idProfesor);
+
+        if (idInstrumento != null && espacios.stream().anyMatch(g -> g.getIdInstrumento() == null)) {
+            Instrumento instrumento = instrumentoRepository.findById(idInstrumento).orElse(null);
+            Map<Long, Profesor> profesores = porId(
+                    profesorRepository.findAllById(espacios.stream().map(Grupo::getIdProfesor)
+                            .filter(Objects::nonNull).distinct().toList()),
+                    Profesor::getId);
+            espacios = espacios.stream()
+                    .filter(g -> g.getIdInstrumento() != null
+                            || EspecialidadProfesor.da(profesores.get(g.getIdProfesor()), instrumento))
+                    .toList();
+        }
+
+        return mapear(espacios);
+    }
+
+    /*
+     * Instrumentos activos que da un profesor según su especialidad. La
+     * pantalla "Crear espacios" ofrece "Cualquiera de sus instrumentos"
+     * cuando son dos o más.
+     */
+    @Transactional(readOnly = true)
+    public List<InstrumentoProfesorResponse> instrumentosDelProfesor(Long idProfesor) {
+        Profesor profesor = profesorRepository.findById(idProfesor)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "El profesor indicado no existe."));
+        return EspecialidadProfesor.instrumentosDe(profesor, instrumentoRepository.findByActivoTrue())
+                .stream()
+                .map(i -> new InstrumentoProfesorResponse(i.getId(), i.getNombre()))
+                .toList();
     }
 
     /* =================================================================
@@ -361,6 +400,33 @@ public class EspacioInstrumentoService {
         return profesor;
     }
 
+    /*
+     * Espacio de "cualquier instrumento del profesor": el profesor debe
+     * estar activo y dar al menos dos instrumentos activos (especialidad
+     * separada por comas, nombre exacto).
+     */
+    private Profesor obtenerProfesorConVariosInstrumentos(Long idProfesor) {
+        Profesor profesor = profesorRepository.findById(idProfesor)
+                .orElseThrow(() -> new BusinessException("El profesor seleccionado no existe."));
+
+        if (!Boolean.TRUE.equals(profesor.getActivo())) {
+            throw new BusinessException("El profesor seleccionado no está activo.");
+        }
+
+        List<Instrumento> suyos = EspecialidadProfesor.instrumentosDe(profesor, instrumentoRepository.findByActivoTrue());
+        if (suyos.size() < 2) {
+            throw new BusinessException(
+                    "Para crear espacios de cualquiera de sus instrumentos, el profesor debe dar al menos dos "
+                            + "instrumentos activos. "
+                            + (suyos.isEmpty()
+                            ? "Su especialidad no tiene ningún instrumento activo."
+                            : "Su especialidad solo tiene " + suyos.get(0).getNombre() + ".")
+                            + " Elija el instrumento."
+            );
+        }
+        return profesor;
+    }
+
     static boolean tieneEspecialidad(Profesor profesor, Instrumento instrumento) {
         String especialidad = profesor.getEspecialidad();
         return especialidad != null
@@ -425,9 +491,13 @@ public class EspacioInstrumentoService {
 
     /*
      * Código automático: ESP-<3 letras del instrumento>-<idProfesor>-<n>,
-     * por ejemplo ESP-PIA-12-1.
+     * por ejemplo ESP-PIA-12-1. Sin instrumento (cualquiera de los del
+     * profesor): ESP-VAR-<idProfesor>-<n>.
      */
     static String prefijoCodigo(Instrumento instrumento, Profesor profesor) {
+        if (instrumento == null) {
+            return "ESP-VAR-" + profesor.getId() + "-";
+        }
         String base = instrumento.getCodigo() != null && !instrumento.getCodigo().isBlank()
                 ? instrumento.getCodigo()
                 : instrumento.getNombre();
@@ -463,20 +533,34 @@ public class EspacioInstrumentoService {
                 periodoRepository.findAllById(espacios.stream().map(Grupo::getIdPeriodo).distinct().toList()),
                 PeriodoAcademico::getId);
 
-        Map<Integer, Instrumento> instrumentos = new HashMap<>();
-        instrumentoRepository.findAllById(espacios.stream().map(Grupo::getIdInstrumento)
-                        .filter(Objects::nonNull).distinct().toList())
-                .forEach(i -> instrumentos.put(i.getId(), i));
-
         Map<Long, Profesor> profesores = porId(
                 profesorRepository.findAllById(espacios.stream().map(Grupo::getIdProfesor)
                         .filter(Objects::nonNull).distinct().toList()),
                 Profesor::getId);
 
-        // Ocupación: [idGrupo, idCurso (nivel), idEstudiante]
+        // Ocupación: [idGrupo, idCurso (nivel), idEstudiante, idInstrumento que cursa]
         Map<Long, Object[]> ocupantes = new HashMap<>();
         matriculaDetalleRepository.findOcupantesDeGrupos(ids, ESTADO_MATRICULA_REGISTRADA)
                 .forEach(fila -> ocupantes.putIfAbsent(((Number) fila[0]).longValue(), fila));
+
+        Map<Integer, Instrumento> instrumentos = new HashMap<>();
+        instrumentoRepository.findAllById(Stream.concat(
+                                espacios.stream().map(Grupo::getIdInstrumento),
+                                ocupantes.values().stream().map(EspacioInstrumentoService::instrumentoOcupante))
+                        .filter(Objects::nonNull).distinct().toList())
+                .forEach(i -> instrumentos.put(i.getId(), i));
+
+        // Espacios de cualquier instrumento: los nombres de los del profesor ("Violín o Viola").
+        Map<Long, String> instrumentosDelProfesor = new HashMap<>();
+        if (espacios.stream().anyMatch(g -> g.getIdInstrumento() == null)) {
+            List<Instrumento> activos = instrumentoRepository.findByActivoTrue();
+            espacios.stream()
+                    .filter(g -> g.getIdInstrumento() == null && g.getIdProfesor() != null)
+                    .map(Grupo::getIdProfesor)
+                    .distinct()
+                    .forEach(id -> instrumentosDelProfesor.put(id,
+                            EspecialidadProfesor.unirNombres(EspecialidadProfesor.instrumentosDe(profesores.get(id), activos))));
+        }
 
         Map<Long, Estudiante> estudiantes = ocupantes.isEmpty() ? Map.of() : porId(
                 estudianteRepository.findAllById(ocupantes.values().stream()
@@ -502,13 +586,25 @@ public class EspacioInstrumentoService {
                     Long idNivel = ocupante == null || ocupante[1] == null ? null : ((Number) ocupante[1]).longValue();
                     Curso nivel = idNivel == null ? null : niveles.get(idNivel);
 
+                    // Lo que cursa quien lo ocupa: el del detalle o, si no lo tiene, el del espacio.
+                    Integer delDetalle = ocupante == null ? null : instrumentoOcupante(ocupante);
+                    Integer idInstrumentoEstudiante = ocupante == null ? null
+                            : delDetalle != null ? delDetalle : g.getIdInstrumento();
+                    Instrumento instrumentoEstudiante = idInstrumentoEstudiante == null ? null
+                            : instrumentos.get(idInstrumentoEstudiante);
+
+                    boolean varios = g.getIdInstrumento() == null;
+                    String nombreInstrumento = varios
+                            ? instrumentosDelProfesor.get(g.getIdProfesor())
+                            : instrumento != null ? instrumento.getNombre() : null;
+
                     return new EspacioInstrumentoResponse(
                             g.getId(),
                             g.getCodigo(),
                             g.getIdPeriodo(),
                             periodo != null ? periodo.getNombre() : null,
                             g.getIdInstrumento(),
-                            instrumento != null ? instrumento.getNombre() : null,
+                            nombreInstrumento,
                             g.getIdProfesor(),
                             profesor != null ? nombreCompleto(profesor.getNombres(), profesor.getPrimerApellido(), profesor.getSegundoApellido()) : null,
                             h != null ? h.getDiaSemana() : null,
@@ -520,13 +616,21 @@ public class EspacioInstrumentoService {
                             estudiante != null ? estudiante.getId() : null,
                             estudiante != null ? nombreCompleto(estudiante.getNombres(), estudiante.getPrimerApellido(), estudiante.getSegundoApellido()) : null,
                             idNivel,
-                            nivel != null ? nivel.getNombre() : null
+                            nivel != null ? nivel.getNombre() : null,
+                            varios,
+                            idInstrumentoEstudiante,
+                            instrumentoEstudiante != null ? instrumentoEstudiante.getNombre() : null
                     );
                 })
                 .sorted(Comparator
                         .comparing(EspacioInstrumentoResponse::diaSemana, Comparator.nullsLast(Comparator.naturalOrder()))
                         .thenComparing(EspacioInstrumentoResponse::horaInicio, Comparator.nullsLast(Comparator.naturalOrder())))
                 .toList();
+    }
+
+    // Cuarta columna de findOcupantesDeGrupos (puede no venir o ser nula).
+    private static Integer instrumentoOcupante(Object[] fila) {
+        return fila.length > 3 && fila[3] != null ? ((Number) fila[3]).intValue() : null;
     }
 
     private static <K, T> Map<K, T> porId(List<T> lista, Function<T, K> id) {

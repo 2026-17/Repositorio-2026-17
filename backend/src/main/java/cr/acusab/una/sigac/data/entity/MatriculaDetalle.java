@@ -42,6 +42,15 @@ public class MatriculaDetalle {
     @Column(name = "id_curso")
     private Long idCurso;
 
+    /*
+     * Instrumento que el estudiante cursa cuando el grupo es un espacio de
+     * instrumento. Se guarda siempre en los espacios; es indispensable en
+     * los de "cualquier instrumento del profesor" (grupos.id_instrumento
+     * NULL). En un grupo normal queda NULL.
+     */
+    @Column(name = "id_instrumento")
+    private Integer idInstrumento;
+
     @NotNull
     @ColumnDefault("0")
     @Column(name = "retirado", nullable = false)

@@ -140,24 +140,25 @@ public class MatriculaEstudianteService {
      * Un grupo elegido o matriculado y el curso que se cursa en él. En un
      * grupo normal es el curso del grupo; en un espacio de instrumento es
      * el nivel del estudiante (matriculas_detalles.id_curso).
+     *
+     * idInstrumento: en un espacio, el instrumento que el estudiante
+     * cursa (matriculas_detalles.id_instrumento, o el de la lección que
+     * eligió). NO se lee del grupo: un espacio de "cualquier instrumento
+     * del profesor" no tiene instrumento. En un grupo normal es null.
      */
-    private record Seleccion(Grupo grupo, Long idCurso) {
+    private record Seleccion(Grupo grupo, Long idCurso, Integer idInstrumento) {
 
         static Seleccion deGrupo(Grupo grupo) {
-            return new Seleccion(grupo, grupo.getIdCurso());
+            return new Seleccion(grupo, grupo.getIdCurso(), null);
         }
 
         boolean esEspacio() {
             return grupo.esEspacioInstrumento();
         }
 
-        Integer idInstrumento() {
-            return grupo.getIdInstrumento();
-        }
-
         // Un mismo nivel de instrumento puede llevarse en dos instrumentos.
         String clave() {
-            return esEspacio() ? idCurso + "|" + grupo.getIdInstrumento() : String.valueOf(idCurso);
+            return esEspacio() ? idCurso + "|" + idInstrumento : String.valueOf(idCurso);
         }
     }
 
@@ -483,8 +484,28 @@ public class MatriculaEstudianteService {
 
         List<Long> idsGrupo = request == null || request.getIdsGrupo() == null
                 ? List.of() : request.getIdsGrupo();
-        List<Long> idsEspacio = request == null || request.getIdsEspacio() == null
-                ? List.of() : request.getIdsEspacio();
+
+        /*
+         * Espacios: idsEspacio (el instrumento se deduce) y espacios
+         * ({idEspacio, idInstrumento}: la lección para la que se eligió,
+         * necesaria en un espacio de varios instrumentos si el estudiante
+         * tiene dos lecciones con ese profesor).
+         */
+        List<Long> idsEspacio = new ArrayList<>(request == null || request.getIdsEspacio() == null
+                ? List.of() : request.getIdsEspacio());
+        Map<Long, Integer> instrumentoPedido = new HashMap<>();
+        if (request != null && request.getEspacios() != null) {
+            for (ConfirmarSeleccionMatriculaRequestDTO.EspacioElegido elegido : request.getEspacios()) {
+                if (elegido == null) {
+                    idsEspacio.add(null);
+                    continue;
+                }
+                idsEspacio.add(elegido.getIdEspacio());
+                if (elegido.getIdEspacio() != null && elegido.getIdInstrumento() != null) {
+                    instrumentoPedido.put(elegido.getIdEspacio(), elegido.getIdInstrumento());
+                }
+            }
+        }
 
         if (idsGrupo.isEmpty() && idsEspacio.isEmpty()) {
             throw new BusinessException("Debe seleccionar al menos un curso para matricular.");
@@ -573,7 +594,7 @@ public class MatriculaEstudianteService {
             seleccionadas.add(Seleccion.deGrupo(grupo));
         }
 
-        seleccionadas.addAll(asignarNiveles(idsEspacio, gruposPorId, lecciones, errores));
+        seleccionadas.addAll(asignarNiveles(idsEspacio, instrumentoPedido, gruposPorId, lecciones, errores));
 
         validarLeccionesCompletas(lecciones, seleccionadas, errores);
 
@@ -609,8 +630,9 @@ public class MatriculaEstudianteService {
                     detalle.setMatricula(matricula);
                     detalle.setIdGrupo(seleccion.grupo().getId());
 
-                    // En un espacio, el nivel que se cursa.
+                    // En un espacio, el nivel y el instrumento que se cursan.
                     detalle.setIdCurso(seleccion.esEspacio() ? seleccion.idCurso() : null);
+                    detalle.setIdInstrumento(seleccion.esEspacio() ? seleccion.idInstrumento() : null);
 
                     matriculaDetalleRepository.save(detalle);
                 }
@@ -786,10 +808,18 @@ public class MatriculaEstudianteService {
     /*
      * Cada espacio elegido debe ser de un instrumento vigente del
      * estudiante y de su profesor asignado en ese instrumento, uno por
-     * instrumento. Devuelve la selección con el nivel calculado.
+     * instrumento. Devuelve la selección con el nivel calculado y el
+     * instrumento que se cursa.
+     *
+     * instrumentoPedido: idEspacio -> instrumento de la lección para la que
+     * se eligió (puede faltar).
      */
     private List<Seleccion> asignarNiveles(
-            List<Long> idsEspacio, Map<Long, Grupo> gruposPorId, List<Leccion> lecciones, Set<String> errores) {
+            List<Long> idsEspacio,
+            Map<Long, Integer> instrumentoPedido,
+            Map<Long, Grupo> gruposPorId,
+            List<Leccion> lecciones,
+            Set<String> errores) {
 
         List<Seleccion> resultado = new ArrayList<>();
         Set<Integer> instrumentosElegidos = new HashSet<>();
@@ -803,14 +833,13 @@ public class MatriculaEstudianteService {
                 continue;
             }
 
-            Leccion leccion = lecciones.stream()
-                    .filter(l -> Objects.equals(l.idInstrumento(), espacio.getIdInstrumento()))
-                    .findFirst()
-                    .orElse(null);
+            Integer pedido = instrumentoPedido.get(idEspacio);
+
+            Leccion leccion = espacio.getIdInstrumento() != null
+                    ? leccionDeEspacioFijo(espacio, pedido, lecciones, errores)
+                    : leccionDeEspacioVarios(espacio, pedido, lecciones, errores);
 
             if (leccion == null) {
-                errores.add("El espacio " + espacio.getCodigo()
-                        + " es de un instrumento que usted no tiene asignado.");
                 continue;
             }
 
@@ -822,7 +851,7 @@ public class MatriculaEstudianteService {
                 continue;
             }
 
-            if (leccion.matriculada() != null || !instrumentosElegidos.add(espacio.getIdInstrumento())) {
+            if (leccion.matriculada() != null || !instrumentosElegidos.add(leccion.idInstrumento())) {
                 errores.add("Solo puede tener un espacio de " + instrumento + " por período.");
                 continue;
             }
@@ -832,10 +861,77 @@ public class MatriculaEstudianteService {
                 continue;
             }
 
-            resultado.add(new Seleccion(espacio, leccion.nivel().getId()));
+            resultado.add(new Seleccion(espacio, leccion.nivel().getId(), leccion.idInstrumento()));
         }
 
         return resultado;
+    }
+
+    // Espacio de un solo instrumento: la lección es la de ese instrumento.
+    private Leccion leccionDeEspacioFijo(Grupo espacio, Integer pedido, List<Leccion> lecciones, Set<String> errores) {
+
+        if (pedido != null && !pedido.equals(espacio.getIdInstrumento())) {
+            errores.add("El espacio " + espacio.getCodigo() + " no es del instrumento indicado.");
+            return null;
+        }
+
+        Leccion leccion = lecciones.stream()
+                .filter(l -> Objects.equals(l.idInstrumento(), espacio.getIdInstrumento()))
+                .findFirst()
+                .orElse(null);
+
+        if (leccion == null) {
+            errores.add("El espacio " + espacio.getCodigo()
+                    + " es de un instrumento que usted no tiene asignado.");
+        }
+        return leccion;
+    }
+
+    /*
+     * Espacio de "cualquier instrumento del profesor": sirve a las lecciones
+     * con ese profesor en un instrumento que él da. Si viene la lección
+     * (pedido) se usa esa; si no, se deduce cuando es una sola.
+     */
+    private Leccion leccionDeEspacioVarios(Grupo espacio, Integer pedido, List<Leccion> lecciones, Set<String> errores) {
+
+        if (pedido != null) {
+            Leccion leccion = lecciones.stream()
+                    .filter(l -> Objects.equals(l.idInstrumento(), pedido))
+                    .findFirst()
+                    .orElse(null);
+
+            if (leccion == null) {
+                errores.add("El espacio " + espacio.getCodigo()
+                        + " se eligió para un instrumento que usted no tiene asignado.");
+                return null;
+            }
+            if (leccion.profesor() != null && Objects.equals(leccion.profesor().getId(), espacio.getIdProfesor())
+                    && !EspecialidadProfesor.da(leccion.profesor(), leccion.asignacion().getInstrumento())) {
+                errores.add("El espacio " + espacio.getCodigo() + " no incluye " + leccion.nombreInstrumento() + ".");
+                return null;
+            }
+            // Si el profesor no es el asignado, lo informa asignarNiveles.
+            return leccion;
+        }
+
+        List<Leccion> candidatas = lecciones.stream()
+                .filter(l -> l.profesor() != null && Objects.equals(l.profesor().getId(), espacio.getIdProfesor()))
+                .filter(l -> EspecialidadProfesor.da(l.profesor(), l.asignacion().getInstrumento()))
+                .toList();
+
+        if (candidatas.size() == 1) {
+            return candidatas.get(0);
+        }
+
+        if (candidatas.isEmpty()) {
+            errores.add("El espacio " + espacio.getCodigo()
+                    + " no es de su profesor asignado en ninguno de sus instrumentos.");
+        } else {
+            errores.add("Indique para cuál lección es el espacio " + espacio.getCodigo() + " ("
+                    + candidatas.stream().map(Leccion::nombreInstrumento).collect(Collectors.joining(" o "))
+                    + ").");
+        }
+        return null;
     }
 
     // Por cada instrumento con nivel pendiente debe venir un espacio.
@@ -918,10 +1014,20 @@ public class MatriculaEstudianteService {
             return dto;
         }
 
-        // Espacios libres de su profesor en ese instrumento.
+        /*
+         * Espacios libres de su profesor en ese instrumento, más los de
+         * "cualquier instrumento del profesor" si el profesor da este
+         * instrumento. Cada uno se muestra con el instrumento de la lección.
+         */
+        boolean daElInstrumento = EspecialidadProfesor.da(profesor, leccion.asignacion().getInstrumento());
+
         List<Grupo> espacios = grupoRepository
                 .findEspacios(periodo.getId(), leccion.idInstrumento(), profesor.getId())
                 .stream()
+                .filter(g -> Objects.equals(g.getIdProfesor(), profesor.getId()))
+                .filter(g -> g.getIdInstrumento() != null
+                        ? g.getIdInstrumento().equals(leccion.idInstrumento())
+                        : daElInstrumento)
                 .filter(g -> ESTADOS_GRUPO_OFERTADOS.contains(g.getEstado()))
                 .toList();
 
@@ -929,7 +1035,7 @@ public class MatriculaEstudianteService {
 
         List<Seleccion> libres = espacios.stream()
                 .filter(g -> ocupados.getOrDefault(g.getId(), 0L) < g.getCupoMaximo())
-                .map(g -> new Seleccion(g, leccion.nivel().getId()))
+                .map(g -> new Seleccion(g, leccion.nivel().getId(), leccion.idInstrumento()))
                 .toList();
 
         List<OfertaMatriculaResponseDTO.GrupoDTO> libresDto =
@@ -1409,8 +1515,12 @@ public class MatriculaEstudianteService {
         for (MatriculaDetalle detalle : detalles) {
             Grupo grupo = grupos.get(detalle.getIdGrupo());
             if (grupo != null) {
+                // En un espacio, el instrumento es el del detalle (si falta, el del espacio).
+                Integer idInstrumento = !grupo.esEspacioInstrumento() ? null
+                        : detalle.getIdInstrumento() != null ? detalle.getIdInstrumento() : grupo.getIdInstrumento();
                 resultado.add(new Seleccion(grupo,
-                        detalle.getIdCurso() != null ? detalle.getIdCurso() : grupo.getIdCurso()));
+                        detalle.getIdCurso() != null ? detalle.getIdCurso() : grupo.getIdCurso(),
+                        idInstrumento));
             }
         }
 

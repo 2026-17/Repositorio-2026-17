@@ -15,8 +15,13 @@ import java.util.List;
  * idsGrupo: grupos normales elegidos.
  * idsEspacio: un espacio de instrumento por cada instrumento vigente. El
  * nivel no se envía: lo calcula el servidor.
+ * espacios: igual que idsEspacio, pero indicando la lección (instrumento)
+ * para la que se eligió cada espacio. Es necesario en un espacio de
+ * "cualquier instrumento del profesor" cuando el estudiante tiene dos
+ * lecciones con ese profesor; si tiene una sola, se deduce. Se puede
+ * usar uno, el otro o ambos (sin repetir espacios).
  *
- * Que venga al menos uno de los dos lo valida el servicio (puede haber
+ * Que venga al menos un grupo o espacio lo valida el servicio (puede haber
  * matrícula solo con lecciones de instrumento).
  */
 @Getter
@@ -26,4 +31,16 @@ public class ConfirmarSeleccionMatriculaRequestDTO {
     private List<Long> idsGrupo = new ArrayList<>();
 
     private List<Long> idsEspacio = new ArrayList<>();
+
+    private List<EspacioElegido> espacios = new ArrayList<>();
+
+    @Getter
+    @Setter
+    public static class EspacioElegido {
+
+        private Long idEspacio;
+
+        // Instrumento de la lección para la que se eligió el espacio.
+        private Integer idInstrumento;
+    }
 }
