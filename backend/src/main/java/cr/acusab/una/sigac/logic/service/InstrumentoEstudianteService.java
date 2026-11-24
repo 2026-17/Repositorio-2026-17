@@ -105,8 +105,20 @@ public class InstrumentoEstudianteService {
         }
 
         // 5. Registrar la nueva asignación con su fecha de inicio.
-        EstudiantesInstrumento asignacion = crearAsignacion(
-                estudiante, instrumento, profesor, request.getObservaciones());
+        // La tabla no admite dos registros del mismo instrumento con la misma
+        // fecha de inicio: si se finalizó hoy y se vuelve a asignar hoy, se
+        // reabre ese registro en lugar de crear otro (antes daba error 500).
+        EstudiantesInstrumento asignacion = estudianteInstrumentoRepository
+                .findByIdEstudiante_IdAndIdInstrumento_IdAndFechaInicio(
+                        idEstudiante, instrumento.getId(), LocalDate.now())
+                .map(delMismoDia -> {
+                    delMismoDia.setFechaFin(null);
+                    delMismoDia.setProfesor(profesor);
+                    delMismoDia.setObservaciones(request.getObservaciones());
+                    return delMismoDia;
+                })
+                .orElseGet(() -> crearAsignacion(
+                        estudiante, instrumento, profesor, request.getObservaciones()));
         asignacion.setEsPrincipal(delPlan);
 
         return mapearAResponse(estudianteInstrumentoRepository.save(asignacion));

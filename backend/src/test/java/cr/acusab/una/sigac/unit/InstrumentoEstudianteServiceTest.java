@@ -160,6 +160,46 @@ class InstrumentoEstudianteServiceTest {
     }
 
     @Test
+    void asignar_debeReabrirElRegistroSiSeFinalizoYSeReasignaElMismoDia() {
+        Estudiante est = estudiante(1L);
+        Instrumento piano = instrumento(5, "PIA", "Piano");
+        when(estudianteRepository.findById(1L)).thenReturn(Optional.of(est));
+        when(instrumentoRepository.findByIdAndActivoTrue(5)).thenReturn(Optional.of(piano));
+        when(estudianteInstrumentoRepository
+                .findByIdEstudiante_IdAndIdInstrumento_IdAndFechaFinIsNull(1L, 5))
+                .thenReturn(Optional.empty());
+
+        // Se asignó y se finalizó hoy mismo.
+        EstudiantesInstrumento delMismoDia = new EstudiantesInstrumento();
+        delMismoDia.setId(10L);
+        delMismoDia.setEstudiante(est);
+        delMismoDia.setInstrumento(piano);
+        delMismoDia.setFechaInicio(LocalDate.now());
+        delMismoDia.setFechaFin(LocalDate.now());
+        delMismoDia.setObservaciones("anterior");
+        when(estudianteInstrumentoRepository
+                .findByIdEstudiante_IdAndIdInstrumento_IdAndFechaInicio(1L, 5, LocalDate.now()))
+                .thenReturn(Optional.of(delMismoDia));
+        when(estudianteInstrumentoRepository.save(any(EstudiantesInstrumento.class)))
+                .thenAnswer(inv -> inv.getArgument(0));
+
+        InstrumentoEstudianteRequest request = new InstrumentoEstudianteRequest();
+        request.setIdInstrumento(5);
+        request.setObservaciones("nueva");
+
+        InstrumentoEstudianteResponse response = service.asignar(1L, request);
+
+        // Se reabre el mismo registro (no se crea otro que choque con la
+        // restricción única estudiante + instrumento + fecha de inicio).
+        assertEquals(10L, response.idEstudianteInstrumento());
+        assertTrue(response.vigente());
+        assertNull(response.fechaFin());
+        assertEquals("nueva", response.observaciones());
+        assertTrue(response.esPrincipal());
+        verify(estudianteInstrumentoRepository, times(1)).save(delMismoDia);
+    }
+
+    @Test
     void deshabilitar_debeRegistrarFechaFinConLaFechaDeHoyYConservarElRegistro() {
         when(estudianteRepository.findById(1L)).thenReturn(Optional.of(estudiante(1L)));
 
