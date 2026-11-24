@@ -10,6 +10,7 @@ import cr.acusab.una.sigac.presentation.dto.request.BecaAsignarRequest;
 import cr.acusab.una.sigac.presentation.dto.request.EstudianteCreateRequest;
 import cr.acusab.una.sigac.presentation.dto.request.EstudianteEdicionCompletaRequest;
 import cr.acusab.una.sigac.presentation.dto.response.BecaResponse;
+import cr.acusab.una.sigac.presentation.dto.response.CuentaCorreoResponse;
 import cr.acusab.una.sigac.presentation.dto.response.EstudianteBusquedaResponse;
 import cr.acusab.una.sigac.presentation.dto.response.EstudianteResponse;
 import cr.acusab.una.sigac.presentation.dto.response.EstudianteListadoResponse;
@@ -199,8 +200,6 @@ public class EstudianteService {
         String correo = normalizarNullable(request.correo());
         if (correo == null) {
             correo = identificacion + "@estudiante.sigac.local";
-        } else if (usuarioRepository.findByCorreo(correo).isPresent()) {
-            throw new DuplicateResourceException("El correo ya está registrado");
         }
 
         Role rol = roleRepository.findByCodigoIgnoreCase("ESTUDIANTE")
@@ -226,6 +225,32 @@ public class EstudianteService {
         usuario.setActualizadoEn(ahora);
 
         return usuarioRepository.save(usuario);
+    }
+
+    /*
+     * Cuentas que ya usan un correo, para avisar en los formularios. Es solo
+     * informativo: compartir el correo está permitido. excluirIdEstudiante
+     * deja fuera la cuenta del estudiante que se está editando.
+     */
+    @Transactional(readOnly = true)
+    public List<CuentaCorreoResponse> cuentasConCorreo(String correo, Long excluirIdEstudiante) {
+        String buscado = normalizarNullable(correo);
+        if (buscado == null) {
+            return List.of();
+        }
+        Long idCuentaPropia = excluirIdEstudiante == null ? null
+                : estudianteRepository.findById(excluirIdEstudiante)
+                        .map(Estudiante::getUsuario)
+                        .map(Usuario::getId)
+                        .orElse(null);
+        return usuarioRepository.findAllByCorreoIgnoreCase(buscado).stream()
+                .filter(cuenta -> !Objects.equals(cuenta.getId(), idCuentaPropia))
+                .sorted(Comparator.comparing(Usuario::getNombre, String.CASE_INSENSITIVE_ORDER))
+                .map(cuenta -> new CuentaCorreoResponse(
+                        cuenta.getNombre(),
+                        ReglasIdentificacion.enmascarar(cuenta.getCedula()),
+                        cuenta.getIdRol().getNombre()))
+                .toList();
     }
 
     private static final int LIMITE_RESULTADOS_BUSQUEDA = 20;
@@ -370,10 +395,6 @@ public class EstudianteService {
         });
 
         // --- Contacto y residencia
-        enSeccion(errores, EdicionEstudianteException.CONTACTO, () -> {
-            cuentaUsuarioService.validarCorreoDisponible(cuenta, correo);
-            return true;
-        });
         Distrito distrito = enSeccion(errores, EdicionEstudianteException.CONTACTO,
                 () -> obtenerDistrito(datos.codigoDistrito()));
 
@@ -458,7 +479,7 @@ public class EstudianteService {
             return respuesta(estudiante, instrumento.getId(), edad, null, idsPlanes);
         } catch (DataIntegrityViolationException e) {
             throw new EdicionEstudianteException(List.of(new ErrorEdicion(EdicionEstudianteException.PERSONAL,
-                    "No se guardó porque otro registro ya usa alguno de estos datos. Revise la identificación y el correo.")));
+                    "No se guardó porque otro registro ya usa alguno de estos datos. Revise la identificación.")));
         }
     }
 

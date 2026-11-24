@@ -60,7 +60,7 @@ CREATE TABLE usuarios (
   creado_en                  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   actualizado_en             DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (id_usuario),
-  CONSTRAINT uq_usuarios_correo UNIQUE (correo),
+  INDEX idx_usuarios_correo (correo),
   CONSTRAINT uq_usuarios_cedula UNIQUE (cedula),
   CONSTRAINT fk_usuarios_roles   FOREIGN KEY (id_rol)            REFERENCES roles (id_rol),
   CONSTRAINT fk_usuarios_estados FOREIGN KEY (id_estado_usuario) REFERENCES estados_usuarios (id_estado_usuario)

@@ -326,7 +326,6 @@ function Profesores() {
                 const porCampo = { ...error.fields };
                 if (error.status === 409) {
                     const campo = campoDeConflicto(error.message);
-                    if (campo === "correo") porCampo.correo = error.message;
                     if (campo === "identificacion") porCampo.numeroIdentificacion = error.message;
                 }
                 if (Object.keys(porCampo).length > 0) {

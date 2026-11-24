@@ -218,10 +218,9 @@ export default function RegistrarProfesor({ onCancel, onSuccess }) {
       if (!response.ok) {
         const error = await leerError(response, "No fue posible registrar el profesor.");
         const porCampo = erroresDeCampos(error.fields, { "usuario.cedula": "numeroIdentificacion", "usuario.nombre": "nombres" });
-        // Dato repetido: se lleva al usuario al campo que corresponde (correo o identificación)
+        // Dato repetido: se lleva al usuario al campo de identificación
         if (error.status === 409) {
           const campo = campoDeConflicto(error.message);
-          if (campo === "correo") porCampo.correo = error.message;
           if (campo === "identificacion") porCampo.numeroIdentificacion = error.message;
         }
         if (Object.keys(porCampo).length > 0) {

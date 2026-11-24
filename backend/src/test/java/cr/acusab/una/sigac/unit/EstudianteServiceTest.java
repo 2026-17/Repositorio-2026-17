@@ -153,22 +153,24 @@ class EstudianteServiceTest {
     }
 
     @Test
-    void actualizar_rechazaCorreoQueYaUsaOtraCuenta() {
+    void actualizar_permiteCorreoQueYaUsaOtraCuenta() {
         Usuario cuenta = new Usuario();
         cuenta.setId(30L);
         cuenta.setCedula(CEDULA_ESTUDIANTE);
         cuenta.setCorreo("viejo@correo.com");
         prepararEdicion(cuenta);
+        when(estudianteEncargadoRepository.countByIdEstudiante(5L)).thenReturn(1L);
 
         Usuario otra = new Usuario();
         otra.setId(99L);
-        when(usuarioRepository.findByCorreo("ocupado@correo.com")).thenReturn(Optional.of(otra));
+        otra.setCorreo("compartido@correo.com");
+        when(usuarioRepository.findAllByCorreoIgnoreCase("compartido@correo.com")).thenReturn(List.of(otra));
 
-        DuplicateResourceException ex = assertThrows(DuplicateResourceException.class,
-                () -> service.actualizar(5L, edicion(CEDULA_ESTUDIANTE, "ocupado@correo.com")));
+        service.actualizar(5L, edicion(CEDULA_ESTUDIANTE, "compartido@correo.com"));
 
-        assertEquals("El correo ya está registrado en otra cuenta.", ex.getMessage());
-        verify(estudianteRepository, never()).save(any());
+        assertEquals("compartido@correo.com", cuenta.getCorreo());
+        verify(usuarioRepository).save(cuenta);
+        verify(estudianteRepository).save(any());
     }
 
     @Test
@@ -237,7 +239,6 @@ class EstudianteServiceTest {
         when(distritoRepository.findById(10101)).thenReturn(Optional.of(distrito));
 
         when(usuarioRepository.findByCedula(any())).thenReturn(Optional.empty());
-        when(usuarioRepository.findByCorreo(any())).thenReturn(Optional.empty());
         when(estudianteInstrumentoRepository.findAll()).thenReturn(List.of());
         when(inscripcionPlanService.sincronizar(anyLong(), any())).thenReturn(List.of(1L));
     }

@@ -1067,10 +1067,13 @@ public class AutorizacionMatriculaService {
 
         if (autorizacion.getIdUsuarioRevisa() != null) {
 
+            // Por nombre: un correo puede ser compartido por varias cuentas.
+            String nombreRevisor = autorizacion.getIdUsuarioRevisa().getNombre();
+
             response.setRevisadoPor(
-                    autorizacion
-                            .getIdUsuarioRevisa()
-                            .getCorreo()
+                    notBlank(nombreRevisor)
+                            ? nombreRevisor
+                            : autorizacion.getIdUsuarioRevisa().getCorreo()
             );
         }
 

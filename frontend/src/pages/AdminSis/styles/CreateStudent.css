@@ -69,3 +69,6 @@
     .edicion-indice ol { grid-template-columns: minmax(0, 1fr); }
     .edicion-contacto .form-grid { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* Aviso informativo bajo el correo cuando otras cuentas ya lo usan */
+.aviso-correo { margin-top: var(--space-2); }

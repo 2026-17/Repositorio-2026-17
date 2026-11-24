@@ -7,6 +7,7 @@ import cr.acusab.una.sigac.logic.service.EstudianteService;
 import cr.acusab.una.sigac.presentation.dto.request.EstudianteCreateRequest;
 import cr.acusab.una.sigac.presentation.dto.request.EstudianteEdicionCompletaRequest;
 import cr.acusab.una.sigac.presentation.dto.request.EstudianteUpdateRequest;
+import cr.acusab.una.sigac.presentation.dto.response.CuentaCorreoResponse;
 import cr.acusab.una.sigac.presentation.dto.response.DocumentoEstudianteResponse;
 import cr.acusab.una.sigac.presentation.dto.response.EstudianteBusquedaResponse;
 import cr.acusab.una.sigac.presentation.dto.response.EstudianteEdicionResponse;
@@ -72,6 +73,17 @@ public class EstudianteController {
     ) {
         return ResponseEntity.ok(
                 estudianteService.listado(texto, activo)
+        );
+    }
+
+    // Solo informativo: varias cuentas pueden compartir un correo.
+    @GetMapping("/correo-en-uso")
+    public ResponseEntity<List<CuentaCorreoResponse>> correoEnUso(
+            @RequestParam String correo,
+            @RequestParam(required = false) Long excluirId
+    ) {
+        return ResponseEntity.ok(
+                estudianteService.cuentasConCorreo(correo, excluirId)
         );
     }
 

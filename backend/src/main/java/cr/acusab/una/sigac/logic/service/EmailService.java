@@ -15,6 +15,7 @@ import org.springframework.web.util.HtmlUtils;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Envía correos transaccionales con la API HTTP de Brevo (no SMTP: Railway
@@ -65,9 +66,10 @@ public class EmailService {
         this.remitenteNombre = remitenteNombre;
     }
 
-    public void enviarCodigoRecuperacion(String destinatario, String codigo, int minutosValidez) {
-        enviarCodigo(destinatario, codigo, minutosValidez,
-                "Código para recuperar su contraseña",
+    public void enviarCodigoRecuperacion(String destinatario, String nombre, String cedulaEnmascarada,
+                                         String codigo, int minutosValidez) {
+        enviarCodigo(destinatario, nombre, cedulaEnmascarada, codigo, minutosValidez,
+                conPrimerNombre("Código para recuperar su contraseña", nombre),
                 "Recuperación de contraseña",
                 "Recibimos una solicitud para recuperar la contraseña de su cuenta en SIGAC.",
                 "Escriba este código en SIGAC, en la pantalla <strong>«Revise su correo»</strong> de "
@@ -77,9 +79,10 @@ public class EmailService {
                 "Si usted no hizo esta solicitud, puede ignorar este correo: su contraseña no cambiará.");
     }
 
-    public void enviarCodigoCambio(String destinatario, String codigo, int minutosValidez) {
-        enviarCodigo(destinatario, codigo, minutosValidez,
-                "Código para cambiar su contraseña",
+    public void enviarCodigoCambio(String destinatario, String nombre, String cedulaEnmascarada,
+                                   String codigo, int minutosValidez) {
+        enviarCodigo(destinatario, nombre, cedulaEnmascarada, codigo, minutosValidez,
+                conPrimerNombre("Código para cambiar su contraseña", nombre),
                 "Cambio de contraseña",
                 "Recibimos una solicitud para cambiar la contraseña de su cuenta en SIGAC.",
                 "Escriba este código en SIGAC, en la pantalla de <strong>cambio de contraseña</strong> "
@@ -104,6 +107,7 @@ public class EmailService {
         String contenido = """
                 <h1 style="margin:0 0 16px; font-size:22px; color:#662483;">Bienvenido(a) a SIGAC</h1>
                 <p style="margin:0 0 24px; font-size:15px; line-height:1.6;">Hola, %s. Se creó su cuenta en el Sistema de Gestión Académica de ACUSAB. Para ingresar use estos datos:</p>
+                %s
                 <table role="presentation" width="100%%" cellpadding="0" cellspacing="0" style="margin:0 0 24px; background-color:#faf7fc; border:1px solid #e9dcf2; border-radius:10px;">
                   <tr>
                     <td style="padding:16px 20px 8px; font-size:13px; color:#5a5a63;">Cédula</td>
@@ -118,7 +122,9 @@ public class EmailService {
                 %s
                 %s
                 """.formatted(
-                HtmlUtils.htmlEscape(nombre), HtmlUtils.htmlEscape(cedula), HtmlUtils.htmlEscape(contrasena),
+                HtmlUtils.htmlEscape(nombre),
+                lineaCuenta("Esta contraseña", nombre, ReglasIdentificacion.enmascarar(cedula)),
+                HtmlUtils.htmlEscape(cedula), HtmlUtils.htmlEscape(contrasena),
                 enlaceSigac("/login", "Ingrese a SIGAC con el botón de abajo. En la pantalla <strong>Iniciar sesión</strong> "
                         + "escriba su cédula y la contraseña temporal."),
                 avisoSeguridad("No comparta esta contraseña con nadie. Si no esperaba este correo, "
@@ -127,7 +133,8 @@ public class EmailService {
         enviar(destinatario, "Su cuenta en SIGAC", contenido);
     }
 
-    private void enviarCodigo(String destinatario, String codigo, int minutosValidez,
+    private void enviarCodigo(String destinatario, String nombre, String cedulaEnmascarada,
+                              String codigo, int minutosValidez,
                               String asunto, String titulo, String introduccion,
                               String instruccion, String ruta, String avisoSeguridad) {
         if (apiKey.isBlank()) {
@@ -138,7 +145,8 @@ public class EmailService {
 
         String contenido = """
                 <h1 style="margin:0 0 16px; font-size:22px; color:#662483;">%s</h1>
-                <p style="margin:0 0 24px; font-size:15px; line-height:1.6;">%s</p>
+                <p style="margin:0 0 16px; font-size:15px; line-height:1.6;">%s</p>
+                %s
                 <p style="margin:0 0 8px; font-size:13px; color:#5a5a63; text-align:center; text-transform:uppercase; letter-spacing:1px;">Su código de verificación</p>
                 <table role="presentation" align="center" cellpadding="0" cellspacing="0" style="margin:0 auto 12px;">
                   <tr>
@@ -148,11 +156,27 @@ public class EmailService {
                 <p style="margin:0 0 24px; font-size:13px; color:#5a5a63; text-align:center;">Vence en <strong>%d minutos</strong> y solo puede usarse una vez.</p>
                 %s
                 %s
-                """.formatted(titulo, introduccion, codigo, minutosValidez,
+                """.formatted(titulo, introduccion,
+                lineaCuenta("Este código", nombre, cedulaEnmascarada),
+                codigo, minutosValidez,
                 enlaceSigac(ruta, instruccion),
                 avisoSeguridad("<strong>¿No fue usted?</strong> " + avisoSeguridad));
 
         enviar(destinatario, asunto, contenido);
+    }
+
+    // Varias cuentas pueden compartir un correo: el mensaje dice de cuál es.
+    private static String lineaCuenta(String sujeto, String nombre, String cedulaEnmascarada) {
+        String cedula = HtmlUtils.htmlEscape(Objects.toString(cedulaEnmascarada, ""));
+        String cuenta = nombre == null || nombre.isBlank()
+                ? "la cuenta con cédula " + cedula
+                : "la cuenta de <strong>" + HtmlUtils.htmlEscape(nombre.trim()) + "</strong> (cédula " + cedula + ")";
+        return "<p style=\"margin:0 0 24px; font-size:15px; line-height:1.6;\">" + sujeto + " es para " + cuenta + "</p>";
+    }
+
+    private static String conPrimerNombre(String asunto, String nombre) {
+        if (nombre == null || nombre.isBlank()) return asunto;
+        return asunto + " · " + nombre.trim().split("\\s+")[0];
     }
 
     // Indica dónde realizar la acción en SIGAC y da el botón (y el enlace en texto) para entrar
