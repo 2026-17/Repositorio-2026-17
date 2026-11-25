@@ -3,7 +3,7 @@ import { CircleCheck, CircleX, Music, TriangleAlert, Users } from "lucide-react"
 import Alert from "../../components/ui/Alert";
 import EmptyState from "../../components/ui/EmptyState";
 import StatusBadge from "../../components/ui/StatusBadge";
-import { formatearHorarios } from "../../utils/matricula";
+import { TEXTO_GRUPO_LLENO, formatearHorarios } from "../../utils/matricula";
 
 /*
  * Matrícula - Paso "Agrupaciones" (mockup 8 · Estudiante: elegir agrupaciones).
@@ -25,7 +25,7 @@ const SECCIONES = [
 ];
 
 function textoCupos(a) {
-    if (a.cupoDisponible <= 0) return <StatusBadge tone="neutral">Sin cupos</StatusBadge>;
+    if (a.cupoDisponible <= 0) return <StatusBadge tone="neutral">{TEXTO_GRUPO_LLENO}</StatusBadge>;
     if (a.cupoDisponible <= 3) {
         return <StatusBadge tone="warning">{a.cupoDisponible === 1 ? "Queda 1 cupo" : `Quedan ${a.cupoDisponible} cupos`}</StatusBadge>;
     }

@@ -15,6 +15,7 @@ import {
 } from "../../utils/consultaCursosApi";
 import {
     TEXTO_COORDINAR_EN_DIRECCION,
+    TEXTO_GRUPO_LLENO,
     TEXTO_SIN_CUPO,
     estaSinCuposDisponibles,
     formatearHorarios,
@@ -273,7 +274,7 @@ function ConsultaCursos() {
                                             {curso.sinCupo ? (
                                                 <StatusBadge tone="info">{TEXTO_SIN_CUPO}</StatusBadge>
                                             ) : sinCupos ? (
-                                                <StatusBadge tone="danger">Sin cupos</StatusBadge>
+                                                <StatusBadge tone="danger">{TEXTO_GRUPO_LLENO}</StatusBadge>
                                             ) : (
                                                 <StatusBadge tone="success">
                                                     {curso.cupoDisponible} de {curso.cupoMaximo}

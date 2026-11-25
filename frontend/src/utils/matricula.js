@@ -34,14 +34,16 @@ export function textoCoordinacion(grupo) {
  * servidor manda cupoMaximo y cupoDisponible en null. Ojo: en JavaScript
  * null <= 0 es true, por eso se revisa sinCupo antes de comparar.
  */
-export const TEXTO_SIN_CUPO = "Sin cupo";
+// «Cupo abierto» (sin límite) no debe confundirse con «Grupo lleno».
+export const TEXTO_SIN_CUPO = "Cupo abierto";
+export const TEXTO_GRUPO_LLENO = "Grupo lleno";
 
 export function estaSinCuposDisponibles(grupo) {
     if (grupo.sinCupo) return false;
     return grupo.cupoDisponible != null && grupo.cupoDisponible <= 0;
 }
 
-// "3/10" o "Sin cupo" (para la columna Cupos).
+// "3/10" o "Cupo abierto" (para la columna Cupos).
 export function textoCupos(grupo) {
     if (grupo.sinCupo) return TEXTO_SIN_CUPO;
     return `${grupo.cupoDisponible}/${grupo.cupoMaximo}`;
@@ -160,7 +162,7 @@ export function tieneBloqueoEstatico({
 
     // Un grupo sin cupo (curso a coordinar) nunca se llena.
     if (estaSinCuposDisponibles(grupo)) {
-        return "Sin cupos disponibles.";
+        return "El grupo está lleno.";
     }
 
     // Motivo que da el servidor (por ejemplo, la edad del curso: regla D7).
