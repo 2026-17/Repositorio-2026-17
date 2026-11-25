@@ -27,6 +27,19 @@ public class CursoEdicionResponseDTO {
     // Se cursa en espacios de instrumento (Instrumento I a XIV).
     private Boolean esCursoInstrumento;
 
+    // Horario y profesor a coordinar en Dirección.
+    private Boolean aCoordinar;
+
+    @com.fasterxml.jackson.annotation.JsonProperty("aCoordinar")
+    public Boolean getACoordinar() {
+        return aCoordinar;
+    }
+
+    @com.fasterxml.jackson.annotation.JsonProperty("aCoordinar")
+    public void setACoordinar(Boolean aCoordinar) {
+        this.aCoordinar = aCoordinar;
+    }
+
     // D7: edades opcionales (null = sin límite).
     private Integer edadMinima;
     private Integer edadMaxima;

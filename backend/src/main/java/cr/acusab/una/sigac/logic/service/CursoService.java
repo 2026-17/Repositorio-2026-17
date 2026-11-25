@@ -160,6 +160,7 @@ public class CursoService {
         dto.setCategoria(curso.getDescripcion());
         dto.setHorasTotales(curso.getHorasTotales());
         dto.setEsCursoInstrumento(Boolean.TRUE.equals(curso.getEsCursoInstrumento()));
+        dto.setACoordinar(curso.esACoordinar());
 
         if (grupo != null) {
 
@@ -255,6 +256,8 @@ public class CursoService {
 
         curso.setHorasTotales(request.getHorasTotales());
         curso.setEsCursoInstrumento(Boolean.TRUE.equals(request.getEsCursoInstrumento()));
+        // Horario y profesor a coordinar en Dirección (omitido = false).
+        curso.setACoordinar(Boolean.TRUE.equals(request.getACoordinar()));
         // Conjunto Instrumental (CI-) y Coro (CORO-) se cursan en agrupaciones.
         curso.setEsCursoAgrupacion(FamiliaAgrupacion.esCodigoDeAgrupacion(codigo));
         // D7: edades opcionales.
@@ -518,6 +521,11 @@ public class CursoService {
             }
 
             curso.setEsCursoInstrumento(request.getEsCursoInstrumento());
+        }
+
+        // Horario y profesor a coordinar en Dirección (omitido = se conserva).
+        if (request.getACoordinar() != null) {
+            curso.setACoordinar(request.getACoordinar());
         }
 
         // D7: edades opcionales (solo si la solicitud las trae).
@@ -1030,6 +1038,8 @@ public class CursoService {
                 Boolean.TRUE.equals(curso.getEsCursoInstrumento())
         );
 
+        dto.setACoordinar(curso.esACoordinar());
+
         dto.setIdMalla(
                 malla.getId()
         );
@@ -1098,6 +1108,8 @@ public class CursoService {
         dto.setEsCursoInstrumento(
                 Boolean.TRUE.equals(curso.getEsCursoInstrumento())
         );
+
+        dto.setACoordinar(curso.esACoordinar());
 
         dto.setEdadMinima(curso.getEdadMinima());
         dto.setEdadMaxima(curso.getEdadMaxima());

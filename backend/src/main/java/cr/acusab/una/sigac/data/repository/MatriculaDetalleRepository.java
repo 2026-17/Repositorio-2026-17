@@ -163,6 +163,24 @@ public interface MatriculaDetalleRepository
     );
 
     /*
+     * Cursos a coordinar en Dirección - Detalles no retirados de matrículas
+     * con el estado indicado (REGISTRADA), con el estudiante ya cargado.
+     */
+    @Query("""
+            SELECT d FROM MatriculaDetalle d
+              JOIN FETCH d.matricula m
+              JOIN FETCH m.autorizacion a
+              JOIN FETCH a.idEstudiante
+            WHERE d.idGrupo IN :idsGrupo
+              AND d.retirado = false
+              AND m.estado.codigo = :codigoEstado
+            """)
+    List<MatriculaDetalle> findDetallesActivosDeGrupos(
+            @Param("idsGrupo") Collection<Long> idsGrupo,
+            @Param("codigoEstado") String codigoEstado
+    );
+
+    /*
      * Gestión de grupos - Cantidad de detalles de matrícula de cada grupo
      * (incluye retirados y matrículas de cualquier estado). Un grupo con
      * historial de matrícula no se puede eliminar ni cambiar de curso o

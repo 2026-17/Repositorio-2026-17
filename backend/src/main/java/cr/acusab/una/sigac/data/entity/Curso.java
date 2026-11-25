@@ -76,6 +76,21 @@ public class Curso {
     @Column(name = "es_curso_agrupacion", nullable = false)
     private Boolean esCursoAgrupacion = false;
 
+    /*
+     * Curso "a coordinar en Dirección" (Música de Cámara I a VI): sus
+     * grupos pueden publicarse sin horario y sin profesor. La Dirección
+     * Académica le asigna el profesor a cada estudiante en su matrícula
+     * (matriculas_detalles.id_profesor_asignado).
+     */
+    @NotNull
+    @ColumnDefault("0")
+    @Column(name = "a_coordinar", nullable = false)
+    private Boolean aCoordinar = false;
+
+    public boolean esACoordinar() {
+        return Boolean.TRUE.equals(aCoordinar);
+    }
+
     @Column(name = "id_usuario_ultima_modificacion")
     private Long idUsuarioUltimaModificacion;
 

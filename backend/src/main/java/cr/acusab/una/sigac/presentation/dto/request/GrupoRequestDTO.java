@@ -3,7 +3,6 @@ package cr.acusab.una.sigac.presentation.dto.request;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
@@ -55,9 +54,11 @@ public class GrupoRequestDTO {
     @NotBlank(message = "El estado del grupo es obligatorio.")
     private String estado;
 
-    // --- Horario semanal ---
-
-    @NotEmpty(message = "Agregue al menos un horario para el grupo.")
+    /*
+     * --- Horario semanal ---
+     * Obligatorio (al menos uno) salvo en los cursos a coordinar en
+     * Dirección: lo revisa GrupoService según el curso.
+     */
     private List<@Valid @NotNull HorarioGrupoRequestDTO> horarios = new ArrayList<>();
 
     // --- Getters y setters ---
@@ -142,7 +143,11 @@ public class GrupoRequestDTO {
         this.estado = estado;
     }
 
+    // Nunca null: "horarios": null equivale a una lista vacía.
     public List<HorarioGrupoRequestDTO> getHorarios() {
+        if (horarios == null) {
+            horarios = new ArrayList<>();
+        }
         return horarios;
     }
 

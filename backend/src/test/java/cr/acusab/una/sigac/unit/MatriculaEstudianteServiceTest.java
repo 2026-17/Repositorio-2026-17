@@ -760,6 +760,91 @@ class MatriculaEstudianteServiceTest {
      * ============================================================
      */
 
+    /*
+     * ============================================================
+     * Cursos a coordinar en Dirección (Música de Cámara)
+     * ============================================================
+     */
+
+    // Curso 103 = Música de Cámara III (a coordinar), en la malla del plan.
+    private void conMusicaDeCamara() {
+        Curso camara = curso(103L, "Música de Cámara III");
+        camara.setACoordinar(true);
+        when(mallaRepository.findByIdPlanEstudioInAndActivoTrue(anyCollection()))
+                .thenReturn(List.of(malla(101L, 1), malla(102L, 2), malla(103L, 2)));
+        when(cursoRepository.findAllById(anyCollection()))
+                .thenAnswer(inv -> List.of(curso(101L, "Guitarra I"), curso(102L, "Guitarra II"), camara));
+    }
+
+    @Test
+    void confirmar_cursoACoordinarSinHorarioNiProfesor_seMatriculaJuntoAUnCursoConHorario() {
+
+        conMusicaDeCamara();
+        grupos.add(grupo(1L, 101L, 10));
+        grupos.add(grupo(3L, 103L, 40));
+        horarios.add(horario(1L, 1, "08:00", "10:00"));
+
+        MatriculaConfirmadaResponseDTO respuesta = service.confirmar(solicitud(1L, 3L));
+
+        assertEquals(2, respuesta.getCursos().size());
+        OfertaMatriculaResponseDTO.GrupoDTO camara = respuesta.getCursos().stream()
+                .filter(c -> c.getIdGrupo().equals(3L)).findFirst().orElseThrow();
+        assertTrue(camara.isACoordinar());
+        assertNull(camara.getProfesorAsignado());
+        assertTrue(camara.getHorarios().isEmpty());
+
+        // Al confirmar, el profesor asignado y las notas quedan vacíos.
+        verify(detalleRepository).save(argThat((MatriculaDetalle d) -> d.getIdGrupo().equals(3L)
+                && d.getIdProfesorAsignado() == null && d.getNotasCoordinacion() == null));
+    }
+
+    @Test
+    void confirmar_cursoACoordinar_respetaPrerrequisitosYCupo() {
+
+        conMusicaDeCamara();
+        grupos.add(grupo(3L, 103L, 1));
+        requisitos.add(requisito("PRERREQUISITO", 103L, 101L, null));
+        ocupados.add(new Object[]{3L, 1L});
+
+        MatriculaInvalidaException ex =
+                assertThrows(MatriculaInvalidaException.class, () -> service.confirmar(solicitud(3L)));
+
+        assertTrue(ex.getErrores().stream().anyMatch(e -> e.contains("Prerrequisito incumplido")));
+        assertTrue(ex.getErrores().stream().anyMatch(e -> e.contains("no tiene cupos")));
+    }
+
+    @Test
+    void consultarMiHorario_cursoACoordinar_muestraElProfesorAsignadoPorDireccion() {
+
+        conMusicaDeCamara();
+        grupos.add(grupo(1L, 101L, 10));
+        grupos.add(grupo(3L, 103L, 40));
+        horarios.add(horario(1L, 1, "08:00", "10:00"));
+        matricularGrupos(autorizacion, 700L, 1L, 3L);
+        detalleRepository.findByMatricula_IdAndRetiradoFalse(700L).stream()
+                .filter(d -> d.getIdGrupo().equals(3L))
+                .forEach(d -> d.setIdProfesorAsignado(9L));
+        when(autorizacionRepository.findByIdEstudiante_Id(ID_ESTUDIANTE)).thenReturn(List.of(autorizacion));
+
+        cr.acusab.una.sigac.data.entity.Profesor laura = new cr.acusab.una.sigac.data.entity.Profesor();
+        laura.setId(9L);
+        laura.setNombres("Laura");
+        laura.setPrimerApellido("Mora");
+        when(profesorRepository.findAllById(anyCollection())).thenReturn(List.of(laura));
+
+        HorarioEstudianteResponseDTO horario = service.consultarMiHorario(null);
+
+        OfertaMatriculaResponseDTO.GrupoDTO camara = horario.getClases().stream()
+                .filter(c -> c.getIdGrupo().equals(3L)).findFirst().orElseThrow();
+        assertTrue(camara.isACoordinar());
+        assertEquals("Laura Mora", camara.getProfesorAsignado());
+
+        OfertaMatriculaResponseDTO.GrupoDTO guitarra = horario.getClases().stream()
+                .filter(c -> c.getIdGrupo().equals(1L)).findFirst().orElseThrow();
+        assertFalse(guitarra.isACoordinar());
+        assertNull(guitarra.getProfesorAsignado());
+    }
+
     private ConfirmarSeleccionMatriculaRequestDTO solicitud(Long... idsGrupo) {
 
         ConfirmarSeleccionMatriculaRequestDTO request = new ConfirmarSeleccionMatriculaRequestDTO();

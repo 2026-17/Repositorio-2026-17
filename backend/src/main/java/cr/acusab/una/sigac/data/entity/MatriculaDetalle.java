@@ -59,6 +59,19 @@ public class MatriculaDetalle {
     @Column(name = "orden_seleccion", columnDefinition = "smallint UNSIGNED")
     private Short ordenSeleccion;
 
+    /*
+     * Cursos a coordinar en Dirección: profesor que la Dirección Académica
+     * le asigna a ESTE estudiante (NULL = sin asignar) y cómo cumplirá el
+     * curso (en qué agrupación, a quién acompaña, con quiénes, horario).
+     * En los demás grupos quedan NULL.
+     */
+    @Column(name = "id_profesor_asignado", columnDefinition = "int UNSIGNED")
+    private Long idProfesorAsignado;
+
+    @Size(max = 500)
+    @Column(name = "notas_coordinacion", length = 500)
+    private String notasCoordinacion;
+
     @NotNull
     @ColumnDefault("0")
     @Column(name = "retirado", nullable = false)

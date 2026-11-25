@@ -283,6 +283,144 @@ class GrupoServiceTest {
         );
     }
 
+    /* =================================================================
+     * Cursos a coordinar en Dirección
+     * ================================================================= */
+
+    private Curso cursoACoordinar() {
+        Curso camara = new Curso();
+        camara.setId(3L);
+        camara.setNombre("Música de Cámara III");
+        camara.setActivo(true);
+        camara.setACoordinar(true);
+        when(cursoRepository.findById(3L)).thenReturn(Optional.of(camara));
+        when(cursoRepository.findAllById(anyCollection())).thenReturn(List.of(camara));
+        return camara;
+    }
+
+    private GrupoRequestDTO requestSinHorario(String estado) {
+        GrupoRequestDTO request = request(LocalTime.of(8, 0), LocalTime.of(9, 0));
+        request.setHorarios(List.of());
+        request.setEstado(estado);
+        return request;
+    }
+
+    @Test
+    void crear_cursoNormalSinHorario_daElErrorDeSiempre() {
+        BusinessException error = assertThrows(BusinessException.class,
+                () -> service.crear(requestSinHorario("PLANIFICADO")));
+
+        assertEquals("Agregue al menos un horario para el grupo.", error.getMessage());
+        verify(grupoRepository, never()).save(any(Grupo.class));
+    }
+
+    @Test
+    void crear_cursoNormalPublicadoSinProfesor_daError() {
+        GrupoRequestDTO request = request(LocalTime.of(8, 0), LocalTime.of(9, 0));
+        request.setEstado("PUBLICADO");
+
+        BusinessException error = assertThrows(BusinessException.class, () -> service.crear(request));
+
+        assertTrue(error.getMessage().contains("profesor activo"));
+        verify(grupoRepository, never()).save(any(Grupo.class));
+    }
+
+    @Test
+    void crear_horariosNull_enCursoNormal_daElErrorDeSiempre() {
+        GrupoRequestDTO request = requestSinHorario("PLANIFICADO");
+        request.setHorarios(null);
+
+        BusinessException error = assertThrows(BusinessException.class, () -> service.crear(request));
+
+        assertEquals("Agregue al menos un horario para el grupo.", error.getMessage());
+    }
+
+    @Test
+    void crear_cursoACoordinar_sinHorarioNiProfesor_seCreaPublicado() {
+        cursoACoordinar();
+        autenticar();
+        when(grupoRepository.save(any(Grupo.class))).thenAnswer(inv -> {
+            Grupo g = inv.getArgument(0);
+            g.setId(50L);
+            return g;
+        });
+
+        var respuesta = service.crear(requestSinHorario("PUBLICADO"));
+
+        assertEquals("PUBLICADO", respuesta.getEstado());
+        assertNull(respuesta.getIdProfesor());
+        assertTrue(respuesta.getHorarios().isEmpty());
+        verify(grupoRepository).save(argThat(g -> g.getIdProfesor() == null && "PUBLICADO".equals(g.getEstado())));
+        // Sin horario ni profesor no se buscan choques.
+        verify(grupoRepository, never()).findGruposProfesorEnPeriodo(any(), any(), any(), any());
+    }
+
+    @Test
+    void crear_cursoACoordinar_conProfesorYSinHorario_noDaFalsoChoque() {
+        cursoACoordinar();
+        autenticar();
+        Profesor profesor = new Profesor();
+        profesor.setId(9L);
+        profesor.setActivo(true);
+        when(profesorRepository.findByIdParaAsignacion(9L)).thenReturn(Optional.of(profesor));
+        when(grupoRepository.save(any(Grupo.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        GrupoRequestDTO request = requestSinHorario("PUBLICADO");
+        request.setIdProfesor(9L);
+
+        var respuesta = service.crear(request);
+
+        assertEquals(9L, respuesta.getIdProfesor());
+        verify(grupoRepository, never()).findGruposProfesorEnPeriodo(any(), any(), any(), any());
+    }
+
+    @Test
+    void crear_cursoACoordinar_conHorario_sigueValidandoLasHoras() {
+        cursoACoordinar();
+
+        BusinessException error = assertThrows(BusinessException.class,
+                () -> service.crear(request(LocalTime.of(5, 0), LocalTime.of(6, 0))));
+
+        assertTrue(error.getMessage().contains("7:00 a. m."));
+    }
+
+    @Test
+    void actualizar_cursoACoordinar_publicaSinHorarioNiProfesor() {
+        cursoACoordinar();
+        Grupo grupo = grupoExistente();
+        autenticar();
+        when(grupoRepository.save(any(Grupo.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        var respuesta = service.actualizar(20L, requestSinHorario("PUBLICADO"));
+
+        assertEquals("PUBLICADO", grupo.getEstado());
+        assertNull(grupo.getIdProfesor());
+        assertTrue(respuesta.isACoordinar());
+        verify(horarioRepository).eliminarPorGrupo(20L);
+        verify(horarioRepository).saveAll(argThat(lista -> lista instanceof List<?> l && l.isEmpty()));
+    }
+
+    @Test
+    void actualizar_cursoNormal_publicadoSinProfesor_daError() {
+        grupoExistente();
+        GrupoRequestDTO request = request(LocalTime.of(9, 0), LocalTime.of(10, 0));
+        request.setEstado("PUBLICADO");
+
+        BusinessException error = assertThrows(BusinessException.class, () -> service.actualizar(20L, request));
+
+        assertTrue(error.getMessage().contains("profesor activo"));
+    }
+
+    @Test
+    void actualizar_cursoNormal_sinHorario_daElErrorDeSiempre() {
+        grupoExistente();
+
+        BusinessException error = assertThrows(BusinessException.class,
+                () -> service.actualizar(20L, requestSinHorario("PLANIFICADO")));
+
+        assertEquals("Agregue al menos un horario para el grupo.", error.getMessage());
+    }
+
     @org.junit.jupiter.api.AfterEach
     void limpiarSeguridad() {
         org.springframework.security.core.context.SecurityContextHolder.clearContext();

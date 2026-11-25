@@ -54,4 +54,20 @@ public class GrupoGestionResponse {
     private boolean editable;
     private boolean eliminable;
     private boolean tieneMatriculas;
+
+    /*
+     * Curso a coordinar en Dirección: el grupo puede no tener horario ni
+     * profesor (el profesor se asigna por estudiante).
+     */
+    private boolean aCoordinar;
+
+    @com.fasterxml.jackson.annotation.JsonProperty("aCoordinar")
+    public boolean isACoordinar() {
+        return aCoordinar;
+    }
+
+    @com.fasterxml.jackson.annotation.JsonProperty("aCoordinar")
+    public void setACoordinar(boolean aCoordinar) {
+        this.aCoordinar = aCoordinar;
+    }
 }

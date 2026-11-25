@@ -54,6 +54,19 @@ public class ModificarCursoRequestDTO {
     // Se cursa en espacios de instrumento. Omitido = se conserva el valor actual.
     private Boolean esCursoInstrumento;
 
+    // Horario y profesor a coordinar en Dirección. Omitido = se conserva el valor actual.
+    private Boolean aCoordinar;
+
+    @com.fasterxml.jackson.annotation.JsonProperty("aCoordinar")
+    public Boolean getACoordinar() {
+        return aCoordinar;
+    }
+
+    @com.fasterxml.jackson.annotation.JsonProperty("aCoordinar")
+    public void setACoordinar(Boolean aCoordinar) {
+        this.aCoordinar = aCoordinar;
+    }
+
     /*
      * D7: edades opcionales (null = sin límite). Si la solicitud no trae
      * ninguno de los dos campos, se conservan los valores actuales
