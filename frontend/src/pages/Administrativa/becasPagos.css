@@ -128,8 +128,31 @@
     overflow-wrap: anywhere;
 }
 
+/* ---------- Becas ---------- */
+.beca-formulario {
+    padding: var(--space-4);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md, 8px);
+    background: var(--surface-sunken);
+}
+
+.beca-formulario__titulo {
+    margin: 0;
+    font: 600 16px/24px var(--font-sans);
+}
+
+.beca-formulario__acciones {
+    justify-content: flex-end;
+}
+
+.becas-tabla__motivo {
+    max-width: 280px;
+    overflow-wrap: anywhere;
+}
+
 @media (max-width: 640px) {
-    .pago-acciones .sg-btn {
+    .pago-acciones .sg-btn,
+    .beca-formulario__acciones .sg-btn {
         width: 100%;
     }
 }

@@ -23,8 +23,10 @@ public class BecaResponse {
     private String codigoTipoBeca;
     private String nombreTipoBeca;
 
+    // null en una beca permanente (por ejemplo, la de inclusión): aplica a todos los períodos.
     private Long idPeriodo;
     private String codigoPeriodo;
+    private String nombrePeriodo;
 
     private BigDecimal porcentaje;
 

@@ -8,6 +8,9 @@ import {
     X,
     Eye,
     Trash2,
+    GraduationCap,
+    Pencil,
+    Plus,
 } from "lucide-react";
 import { API_URL } from "../../config/api";
 import "../AdminSis/styles/admin_Sis.css";
@@ -49,6 +52,382 @@ function formatoColones(valor) {
 
 function claveMes(m) {
     return `${m.anio}-${m.mes}`;
+}
+
+/* =====================================================================
+ * Becas del estudiante: listar, asignar, modificar y eliminar
+ * ===================================================================== */
+
+// Mismos porcentajes que al registrar el estudiante (createStudent.jsx).
+const PORCENTAJES_BECA = [25, 50, 75, 100];
+const MAX_MOTIVO_BECA = 1000;
+const TEXTO_PERMANENTE = "Permanente";
+
+function formularioBecaVacio() {
+    return {
+        idBeca: null,
+        permanente: false,
+        idTipoBeca: "",
+        idPeriodo: "",
+        porcentaje: "",
+        fechaInicio: todayISO(),
+        fechaFin: "",
+        motivo: "",
+    };
+}
+
+function formularioBecaDesde(beca) {
+    return {
+        idBeca: beca.idBeca,
+        permanente: beca.idPeriodo == null,
+        idTipoBeca: beca.idTipoBeca ? String(beca.idTipoBeca) : "",
+        idPeriodo: beca.idPeriodo ? String(beca.idPeriodo) : "",
+        porcentaje: beca.porcentaje != null ? String(Number(beca.porcentaje)) : "",
+        fechaInicio: beca.fechaInicio || "",
+        fechaFin: beca.fechaFin || "",
+        motivo: beca.motivo || "",
+    };
+}
+
+function SeccionBecas({ estudiante, periodos, authHeaders, dialog, onCambio }) {
+    const [becas, setBecas] = useState({ idEstudiante: null, lista: [] });
+    const [tiposBeca, setTiposBeca] = useState([]);
+    const [formulario, setFormulario] = useState(null);
+    const [errores, setErrores] = useState({});
+    const [intento, setIntento] = useState(0);
+    const [guardando, setGuardando] = useState(false);
+    const [eliminando, setEliminando] = useState(null);
+    const [recarga, setRecarga] = useState(0);
+
+    const cargando = becas.idEstudiante !== estudiante.id;
+    const editando = formulario?.idBeca != null;
+
+    // Catálogo de tipos de beca, una sola vez.
+    useEffect(() => {
+        fetch(`${API_URL}/becas/tipos-becas`, { headers: authHeaders })
+            .then((r) => (r.ok ? r.json() : lanzarError(r, "No se pudieron cargar los tipos de beca.")))
+            .then(setTiposBeca)
+            .catch((e) => dialog.error(mensajeDeExcepcion(e, "No se pudieron cargar los tipos de beca.")));
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    // Becas del estudiante (y al asignar, modificar o eliminar).
+    useEffect(() => {
+        let activo = true;
+        fetch(`${API_URL}/becas/estudiante/${estudiante.id}`, { headers: authHeaders })
+            .then((r) => (r.ok ? r.json() : lanzarError(r, "No se pudieron cargar las becas del estudiante.")))
+            .then((lista) => { if (activo) setBecas({ idEstudiante: estudiante.id, lista: lista ?? [] }); })
+            .catch((e) => {
+                if (!activo) return;
+                setBecas({ idEstudiante: estudiante.id, lista: [] });
+                dialog.error(mensajeDeExcepcion(e, "No se pudieron cargar las becas del estudiante."));
+            });
+        return () => { activo = false; };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [estudiante.id, recarga]);
+
+    function nombrePeriodo(beca) {
+        if (beca.idPeriodo == null) return TEXTO_PERMANENTE;
+        return beca.nombrePeriodo
+            || periodos.find((p) => p.id === beca.idPeriodo)?.nombre
+            || beca.codigoPeriodo
+            || "—";
+    }
+
+    function abrirFormulario(beca = null) {
+        setErrores({});
+        setFormulario(beca ? formularioBecaDesde(beca) : formularioBecaVacio());
+    }
+
+    function cambiar(campo, valor) {
+        setFormulario((f) => ({ ...f, [campo]: valor }));
+        setErrores((e) => ({ ...e, [campo]: "" }));
+    }
+
+    function validar() {
+        const e = {};
+        if (!formulario.idTipoBeca) e.idTipoBeca = "Seleccione el tipo de beca.";
+        if (!formulario.permanente && !formulario.idPeriodo) e.idPeriodo = "Seleccione el período académico de la beca.";
+        if (!formulario.porcentaje) e.porcentaje = "Seleccione el porcentaje de la beca.";
+        if (formulario.motivo.length > MAX_MOTIVO_BECA) e.motivo = `El motivo no puede superar los ${MAX_MOTIVO_BECA} caracteres.`;
+        if (editando && formulario.fechaFin && formulario.fechaInicio && formulario.fechaFin < formulario.fechaInicio) {
+            e.fechaFin = "La fecha de fin no puede ser anterior a la fecha de inicio de la beca.";
+        }
+        return e;
+    }
+
+    async function guardar(evento) {
+        evento.preventDefault();
+        const e = validar();
+        setErrores(e);
+        if (Object.keys(e).length > 0) {
+            setIntento((n) => n + 1);
+            return;
+        }
+
+        const comun = {
+            idTipoBeca: Number(formulario.idTipoBeca),
+            idPeriodo: formulario.permanente ? null : Number(formulario.idPeriodo),
+            porcentaje: Number(formulario.porcentaje),
+            motivo: formulario.motivo.trim() || null,
+        };
+        const payload = editando
+            ? { ...comun, fechaFin: formulario.fechaFin || null }
+            : { ...comun, idEstudiante: estudiante.id, fechaInicio: formulario.fechaInicio || null };
+
+        setGuardando(true);
+        try {
+            const response = await fetch(`${API_URL}/becas${editando ? `/${formulario.idBeca}` : ""}`, {
+                method: editando ? "PUT" : "POST",
+                headers: { ...authHeaders, "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+            });
+            if (response.status === 401) throw new Error("La sesión ha expirado. Inicie sesión nuevamente.");
+            if (response.status === 403) throw new Error("No tiene permisos para gestionar becas.");
+            if (!response.ok) await lanzarError(response, editando ? "No fue posible modificar la beca." : "No fue posible asignar la beca.");
+
+            setFormulario(null);
+            setRecarga((n) => n + 1);
+            onCambio();
+            dialog.exito(editando ? "La beca se modificó correctamente." : "La beca se asignó correctamente.");
+        } catch (error) {
+            dialog.error(mensajeDeExcepcion(error, editando ? "No fue posible modificar la beca." : "No fue posible asignar la beca."));
+        } finally {
+            setGuardando(false);
+        }
+    }
+
+    async function eliminar(beca) {
+        const acepta = await dialog.confirmar("¿Eliminar esta beca? Esta acción no se puede deshacer.", {
+            titulo: "Eliminar beca",
+            textoAceptar: "Sí, eliminar",
+            peligro: true,
+        });
+        if (!acepta) return;
+
+        setEliminando(beca.idBeca);
+        try {
+            const response = await fetch(`${API_URL}/becas/${beca.idBeca}`, { method: "DELETE", headers: authHeaders });
+            if (response.status === 401) throw new Error("La sesión ha expirado. Inicie sesión nuevamente.");
+            if (response.status === 403) throw new Error("No tiene permisos para eliminar becas.");
+            if (!response.ok) await lanzarError(response, "No fue posible eliminar la beca.");
+
+            if (formulario?.idBeca === beca.idBeca) setFormulario(null);
+            setRecarga((n) => n + 1);
+            onCambio();
+            dialog.exito("La beca se eliminó correctamente.");
+        } catch (error) {
+            dialog.error(mensajeDeExcepcion(error, "No fue posible eliminar la beca."));
+        } finally {
+            setEliminando(null);
+        }
+    }
+
+    const resumen = listaErrores(errores, "beca-");
+    const ocupado = guardando || eliminando !== null;
+
+    return (
+        <section className="panel">
+            <div className="panel-head">
+                <div>
+                    <h2><GraduationCap size={18} strokeWidth={1.75} className="inline-icon" aria-hidden="true" /> Becas</h2>
+                    <p className="panel-head-sub">El descuento de la beca se aplica a las mensualidades del período.</p>
+                </div>
+                {!formulario && (
+                    <button type="button" className="sg-btn sg-btn--primary sg-btn--sm" onClick={() => abrirFormulario()} disabled={ocupado}>
+                        <Plus size={16} strokeWidth={1.75} aria-hidden="true" /> Asignar beca
+                    </button>
+                )}
+            </div>
+
+            <div className="panel-body stack">
+                {formulario && (
+                    <form onSubmit={guardar} noValidate className="stack beca-formulario">
+                        <h3 className="beca-formulario__titulo">{editando ? "Modificar beca" : "Asignar beca"}</h3>
+
+                        {resumen.length > 0 && (
+                            <Alert
+                                key={intento}
+                                tone="danger"
+                                autoFocus
+                                title={resumen.length === 1 ? "Revise 1 dato antes de guardar la beca" : `Revise ${resumen.length} datos antes de guardar la beca`}
+                                errors={resumen}
+                            />
+                        )}
+
+                        <div className="form-grid">
+                            <Field id="beca-idTipoBeca" errorKey="idTipoBeca" label="Tipo de beca" error={errores.idTipoBeca} select>
+                                <select
+                                    id="beca-idTipoBeca"
+                                    className="sg-input sg-select"
+                                    value={formulario.idTipoBeca}
+                                    onChange={(e) => cambiar("idTipoBeca", e.target.value)}
+                                    aria-invalid={errores.idTipoBeca ? "true" : undefined}
+                                >
+                                    <option value="">Seleccione un tipo</option>
+                                    {tiposBeca.map((t) => <option key={t.id} value={t.id}>{t.nombre}</option>)}
+                                </select>
+                            </Field>
+
+                            <Field
+                                id="beca-idPeriodo"
+                                errorKey="idPeriodo"
+                                label="Período académico"
+                                error={errores.idPeriodo}
+                                hint={formulario.permanente ? "Una beca permanente aplica a todos los períodos y no se puede cambiar de período." : undefined}
+                                select
+                            >
+                                {formulario.permanente ? (
+                                    <select id="beca-idPeriodo" className="sg-input sg-select" value="" disabled>
+                                        <option value="">Permanente (todos los períodos)</option>
+                                    </select>
+                                ) : (
+                                    <select
+                                        id="beca-idPeriodo"
+                                        className="sg-input sg-select"
+                                        value={formulario.idPeriodo}
+                                        onChange={(e) => cambiar("idPeriodo", e.target.value)}
+                                        aria-invalid={errores.idPeriodo ? "true" : undefined}
+                                    >
+                                        <option value="">Seleccione un período</option>
+                                        {periodos.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+                                    </select>
+                                )}
+                            </Field>
+
+                            <Field id="beca-porcentaje" errorKey="porcentaje" label="Porcentaje" error={errores.porcentaje} select>
+                                <select
+                                    id="beca-porcentaje"
+                                    className="sg-input sg-select"
+                                    value={formulario.porcentaje}
+                                    onChange={(e) => cambiar("porcentaje", e.target.value)}
+                                    aria-invalid={errores.porcentaje ? "true" : undefined}
+                                >
+                                    <option value="">Seleccione</option>
+                                    {PORCENTAJES_BECA.map((p) => <option key={p} value={p}>{p}%</option>)}
+                                </select>
+                            </Field>
+
+                            {editando ? (
+                                <Field id="beca-fechaFin" errorKey="fechaFin" label="Fecha de fin (opcional)" error={errores.fechaFin}>
+                                    <input
+                                        id="beca-fechaFin"
+                                        className="sg-input"
+                                        type="date"
+                                        min={formulario.fechaInicio || undefined}
+                                        value={formulario.fechaFin}
+                                        onChange={(e) => cambiar("fechaFin", e.target.value)}
+                                        aria-invalid={errores.fechaFin ? "true" : undefined}
+                                    />
+                                </Field>
+                            ) : (
+                                <Field id="beca-fechaInicio" errorKey="fechaInicio" label="Fecha de inicio (opcional)" hint="Si la deja vacía, se usa la fecha de hoy.">
+                                    <input
+                                        id="beca-fechaInicio"
+                                        className="sg-input"
+                                        type="date"
+                                        value={formulario.fechaInicio}
+                                        onChange={(e) => cambiar("fechaInicio", e.target.value)}
+                                    />
+                                </Field>
+                            )}
+
+                            <Field
+                                id="beca-motivo"
+                                errorKey="motivo"
+                                label="Motivo (opcional)"
+                                hint={`${formulario.motivo.length}/${MAX_MOTIVO_BECA}`}
+                                error={errores.motivo}
+                                className="span-all"
+                            >
+                                <textarea
+                                    id="beca-motivo"
+                                    className="sg-input"
+                                    rows={2}
+                                    maxLength={MAX_MOTIVO_BECA}
+                                    value={formulario.motivo}
+                                    onChange={(e) => cambiar("motivo", e.target.value)}
+                                    aria-invalid={errores.motivo ? "true" : undefined}
+                                />
+                            </Field>
+                        </div>
+
+                        <div className="inline-actions beca-formulario__acciones">
+                            <button type="button" className="sg-btn sg-btn--secondary" onClick={() => setFormulario(null)} disabled={guardando}>
+                                Cancelar
+                            </button>
+                            <button type="submit" className={`sg-btn sg-btn--primary${guardando ? " is-loading" : ""}`} disabled={guardando} aria-busy={guardando || undefined}>
+                                {guardando ? <span className="sg-spinner" aria-hidden="true" /> : <CheckCircle2 size={18} strokeWidth={1.75} aria-hidden="true" />}
+                                {guardando ? "Guardando…" : editando ? "Guardar cambios" : "Asignar beca"}
+                            </button>
+                        </div>
+                    </form>
+                )}
+
+                {cargando ? (
+                    <p className="muted">Cargando becas...</p>
+                ) : becas.lista.length === 0 ? (
+                    <EmptyState compact icon={GraduationCap} title="Sin becas" description="Este estudiante no tiene becas asignadas." />
+                ) : (
+                    <div className="table-wrap">
+                        <table className="dtable dtable--cards becas-tabla">
+                            <caption className="sr-only">Becas de {estudiante.nombres}</caption>
+                            <thead>
+                                <tr>
+                                    <th scope="col">Tipo</th>
+                                    <th scope="col">Período</th>
+                                    <th scope="col" className="num">Porcentaje</th>
+                                    <th scope="col">Desde</th>
+                                    <th scope="col">Hasta</th>
+                                    <th scope="col">Motivo</th>
+                                    <th scope="col">Estado</th>
+                                    <th scope="col" className="actions"><span className="sr-only">Acciones</span></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {becas.lista.map((b) => (
+                                    <tr key={b.idBeca}>
+                                        <td className="c-main"><b>{b.nombreTipoBeca}</b></td>
+                                        <td data-label="Período">{nombrePeriodo(b)}</td>
+                                        <td className="num tnum" data-label="Porcentaje">{Number(b.porcentaje)}%</td>
+                                        <td className="tnum" data-label="Desde">{b.fechaInicio || "—"}</td>
+                                        <td className="tnum" data-label="Hasta">{b.fechaFin || "—"}</td>
+                                        <td data-label="Motivo" className="becas-tabla__motivo">{b.motivo || <span className="muted">—</span>}</td>
+                                        <td data-label="Estado">
+                                            <StatusBadge tone={b.activa ? "success" : "neutral"}>{b.activa ? "Activa" : "Inactiva"}</StatusBadge>
+                                        </td>
+                                        <td className="actions">
+                                            <div className="row-actions">
+                                                <button
+                                                    type="button"
+                                                    className="sg-btn sg-btn--ghost sg-btn--sm"
+                                                    onClick={() => abrirFormulario(b)}
+                                                    disabled={ocupado}
+                                                    aria-label={`Modificar la beca ${b.nombreTipoBeca} (${nombrePeriodo(b)})`}
+                                                >
+                                                    <Pencil size={16} strokeWidth={1.75} aria-hidden="true" /> Modificar
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className="sg-btn sg-btn--ghost sg-btn--sm btn-peligro"
+                                                    onClick={() => eliminar(b)}
+                                                    disabled={ocupado}
+                                                    aria-label={`Eliminar la beca ${b.nombreTipoBeca} (${nombrePeriodo(b)})`}
+                                                >
+                                                    <Trash2 size={16} strokeWidth={1.75} aria-hidden="true" />
+                                                    {eliminando === b.idBeca ? "Eliminando…" : "Eliminar"}
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+            </div>
+        </section>
+    );
 }
 
 function Estudiantes() {
@@ -355,7 +734,7 @@ function Estudiantes() {
 
     return (
         <div className="becas-pagos">
-            <PageHead title="Becas y pagos" sub="Busque un estudiante para registrar sus pagos." />
+            <PageHead title="Becas y pagos" sub="Busque un estudiante para gestionar sus becas y registrar sus pagos." />
 
             {/* ---------- Buscador ---------- */}
             <section className="panel">
@@ -425,6 +804,16 @@ function Estudiantes() {
                             </div>
                         </div>
                     </section>
+
+                    {/* ---------- Becas ---------- */}
+                    <SeccionBecas
+                        estudiante={estudiante}
+                        periodos={periodos}
+                        authHeaders={authHeaders}
+                        dialog={dialog}
+                        // El monto con descuento del período cambia con la beca.
+                        onCambio={() => { if (idPeriodo) consultarEstadoPeriodo(); }}
+                    />
 
                     {/* ---------- Pagos ---------- */}
                     <section className="panel">
