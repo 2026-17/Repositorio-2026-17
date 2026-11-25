@@ -244,6 +244,126 @@ class DocumentoEstudianteServiceTest {
                 ));
     }
 
+    /*
+     * ============================================================
+     * Póliza: PDF o imagen (JPG, PNG o WEBP)
+     * ============================================================
+     */
+
+    private static final byte[] BYTES_JPG = {
+            (byte) 0xFF, (byte) 0xD8, (byte) 0xFF, (byte) 0xE0, 0x00, 0x10, 'J', 'F', 'I', 'F', 0x00, 0x01, 0x01
+    };
+
+    private static final byte[] BYTES_PNG = {
+            (byte) 0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D
+    };
+
+    private TiposDocumento tipoPoliza() {
+        TiposDocumento tipo = new TiposDocumento();
+        tipo.setId(20);
+        tipo.setCodigo("POLIZA");
+        tipo.setNombre("Póliza estudiantil");
+        tipo.setActivo(true);
+        return tipo;
+    }
+
+    private void prepararAdjunto(TiposDocumento tipo) {
+        when(estudianteRepository.findByIdAndActivoTrue(1L)).thenReturn(Optional.of(estudianteActivo()));
+        when(tipoDocumentoRepository.findById(tipo.getId())).thenReturn(Optional.of(tipo));
+        when(documentoEstudianteRepository
+                .findFirstByIdEstudiante_IdAndIdTipoDocumento_IdAndEsActualTrueOrderByCargadoEnDesc(1L, tipo.getId()))
+                .thenReturn(Optional.empty());
+        when(documentoEstudianteRepository.save(any(DocumentosEstudiante.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+    }
+
+    @Test
+    void polizaJpgValida_seGuardaComoImagenJpg() throws IOException {
+        TiposDocumento poliza = tipoPoliza();
+        prepararAdjunto(poliza);
+        configurarUsuarioAutenticado();
+
+        MockMultipartFile archivo = new MockMultipartFile("archivo", "poliza.jpg", "image/jpeg", BYTES_JPG);
+
+        DocumentoEstudianteResponse respuesta =
+                documentoEstudianteService.adjuntarOReemplazar(1L, 20, archivo, null, null);
+
+        assertEquals("image/jpeg", respuesta.tipoMime());
+        verify(documentoEstudianteRepository).save(argThat(documento ->
+                "image/jpeg".equals(documento.getTipoMime())
+                        && documento.getNombreAlmacenado().endsWith(".jpg")));
+
+        try (var archivos = Files.list(tempDir.resolve("1"))) {
+            assertTrue(archivos.allMatch(p -> p.getFileName().toString().endsWith(".jpg")));
+        }
+    }
+
+    @Test
+    void polizaPdf_sigueValidandoseConPdfBox() throws IOException {
+        TiposDocumento poliza = tipoPoliza();
+        prepararAdjunto(poliza);
+        configurarUsuarioAutenticado();
+
+        DocumentoEstudianteResponse respuesta =
+                documentoEstudianteService.adjuntarOReemplazar(1L, 20, pdfValido("poliza.pdf"), null, null);
+
+        assertEquals("application/pdf", respuesta.tipoMime());
+
+        // Un "PDF" que PDFBox no puede abrir se sigue rechazando.
+        MockMultipartFile danado = new MockMultipartFile(
+                "archivo", "poliza.pdf", "application/pdf", "%PDF-1.4 roto".getBytes());
+        BusinessException error = assertThrows(BusinessException.class,
+                () -> documentoEstudianteService.adjuntarOReemplazar(1L, 20, danado, null, null));
+        assertTrue(error.getMessage().contains("PDF"));
+    }
+
+    @Test
+    void polizaJpgQueNoEsImagen_seRechaza() {
+        prepararAdjunto(tipoPoliza());
+
+        MockMultipartFile falso = new MockMultipartFile(
+                "archivo", "poliza.jpg", "image/jpeg", "esto no es una imagen".getBytes());
+
+        BusinessException error = assertThrows(BusinessException.class,
+                () -> documentoEstudianteService.adjuntarOReemplazar(1L, 20, falso, null, null));
+
+        assertEquals("La póliza debe ser un PDF o una imagen (JPG, PNG o WEBP).", error.getMessage());
+        verify(documentoEstudianteRepository, never()).save(any());
+    }
+
+    @Test
+    void polizaDeOtroTipo_seRechaza() {
+        prepararAdjunto(tipoPoliza());
+
+        MockMultipartFile texto = new MockMultipartFile("archivo", "poliza.txt", "text/plain", "hola".getBytes());
+
+        BusinessException error = assertThrows(BusinessException.class,
+                () -> documentoEstudianteService.adjuntarOReemplazar(1L, 20, texto, null, null));
+
+        assertEquals("La póliza debe ser un PDF o una imagen (JPG, PNG o WEBP).", error.getMessage());
+    }
+
+    @Test
+    void otroTipoDeDocumentoConImagenValida_sigueRechazado() {
+        prepararAdjunto(tipoDocumentoActivo());
+
+        MockMultipartFile imagen = new MockMultipartFile("archivo", "certificado.png", "image/png", BYTES_PNG);
+
+        BusinessException error = assertThrows(BusinessException.class,
+                () -> documentoEstudianteService.adjuntarOReemplazar(1L, 10, imagen, null, null));
+
+        assertTrue(error.getMessage().toLowerCase().contains("pdf"));
+        verify(documentoEstudianteRepository, never()).save(any());
+    }
+
+    @Test
+    void validarAdjuntoPoliza_aceptaImagenYValidarAdjuntoNo() {
+        MockMultipartFile imagen = new MockMultipartFile("archivo", "poliza.png", "image/png", BYTES_PNG);
+
+        assertDoesNotThrow(() -> documentoEstudianteService.validarAdjuntoPoliza(imagen, null, null));
+        assertThrows(BusinessException.class, () -> documentoEstudianteService.validarAdjunto(imagen, null, null));
+    }
+
     @Test
     void rechazarArchivoQueNoSeaPdf() {
 

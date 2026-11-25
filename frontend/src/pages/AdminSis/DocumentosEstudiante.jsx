@@ -7,7 +7,14 @@ import Field from "../../components/ui/Field";
 import StatusBadge from "../../components/ui/StatusBadge";
 import { useDialog } from "../../components/dialog/useDialog";
 import { mostrarIdentificacion } from "../../utils/cedula";
-import { errorArchivoPdf, errorFechasDocumento } from "../../utils/validacionDocumento";
+import {
+    ACCEPT_POLIZA,
+    AYUDA_FORMATO_POLIZA,
+    CODIGO_POLIZA,
+    errorArchivoPdf,
+    errorArchivoPoliza,
+    errorFechasDocumento,
+} from "../../utils/validacionDocumento";
 
 function getAuthHeaders() {
     const token = localStorage.getItem("token");
@@ -156,6 +163,10 @@ function DocumentosEstudiante({ estudiante, onClose }) {
         ) || null
             : null;
 
+    // La póliza acepta PDF o imagen; los demás tipos, solo PDF.
+    const esPolizaElegida =
+        tiposDocumento.find((tipo) => String(tipo.id) === String(idTipoDocumento))?.codigo === CODIGO_POLIZA;
+
     function limpiarError(campo) {
         setErrores((actuales) => ({
             ...actuales,
@@ -204,7 +215,7 @@ function DocumentosEstudiante({ estudiante, onClose }) {
                 "Seleccione el tipo de documento.";
         }
 
-        const errorArchivo = errorArchivoPdf(archivo);
+        const errorArchivo = esPolizaElegida ? errorArchivoPoliza(archivo) : errorArchivoPdf(archivo);
 
         if (errorArchivo) {
             nuevosErrores.archivo = errorArchivo;
@@ -252,7 +263,7 @@ function DocumentosEstudiante({ estudiante, onClose }) {
         if (documentoActualMismoTipo) {
             const confirmado =
                 await dialog.confirmar(
-                    `Ya existe un documento vigente de tipo "${documentoActualMismoTipo.nombreTipoDocumento}". El nuevo PDF lo reemplazará como documento actual, pero el anterior se conservará en el historial.`,
+                    `Ya existe un documento vigente de tipo "${documentoActualMismoTipo.nombreTipoDocumento}". El nuevo archivo lo reemplazará como documento actual, pero el anterior se conservará en el historial.`,
                     {
                         textoAceptar:
                             "Reemplazar documento",
@@ -529,8 +540,10 @@ function DocumentosEstudiante({ estudiante, onClose }) {
 
                                 <Field
                                     id="archivoDocumentoEstudiante"
-                                    label="Archivo PDF"
-                                    hint="Solo PDF. Tamaño máximo: 50 MB."
+                                    label={esPolizaElegida ? "Archivo" : "Archivo PDF"}
+                                    hint={esPolizaElegida
+                                        ? `${AYUDA_FORMATO_POLIZA}. Tamaño máximo: 50 MB.`
+                                        : "Solo PDF. Tamaño máximo: 50 MB."}
                                     error={errores.archivo}
                                     errorKey="archivo"
                                 >
@@ -538,7 +551,7 @@ function DocumentosEstudiante({ estudiante, onClose }) {
                                         id="archivoDocumentoEstudiante"
                                         className="sg-input"
                                         type="file"
-                                        accept="application/pdf,.pdf"
+                                        accept={esPolizaElegida ? ACCEPT_POLIZA : "application/pdf,.pdf"}
                                         onChange={cambiarArchivo}
                                         aria-invalid={
                                             Boolean(

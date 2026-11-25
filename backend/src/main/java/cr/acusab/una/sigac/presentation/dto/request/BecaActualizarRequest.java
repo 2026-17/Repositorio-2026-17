@@ -13,7 +13,10 @@ public class BecaActualizarRequest {
     @Positive(message = "El tipo de beca seleccionado no es válido.")
     private Integer idTipoBeca;
 
-    @NotNull(message = "El período académico es obligatorio.")
+    /*
+     * Obligatorio si la beca tiene período (lo revisa BecaService). En una
+     * beca permanente (sin período, como la de inclusión) se ignora.
+     */
     @Positive(message = "El período académico seleccionado no es válido.")
     private Long idPeriodo;
 

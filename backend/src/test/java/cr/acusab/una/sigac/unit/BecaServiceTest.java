@@ -319,6 +319,66 @@ class BecaServiceTest {
     }
 
     @Test
+    void actualizarBecaPermanenteSinPeriodo_seConservaSinPeriodo() {
+
+        // Beca de inclusión: sin período, aplica a todos.
+        Beca beca = becaExistente();
+        beca.setIdPeriodo(null);
+        when(becaRepository.findById(500L)).thenReturn(Optional.of(beca));
+        when(tiposBecaRepository.findByIdAndActivoTrue(3)).thenReturn(Optional.of(tipoBecaActivo()));
+        when(becaRepository.save(any(Beca.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        BecaActualizarRequest request = new BecaActualizarRequest();
+        request.setIdTipoBeca(3);
+        request.setPorcentaje(BigDecimal.valueOf(75));
+        request.setMotivo("Inclusión");
+
+        BecaResponse respuesta = becaService.actualizar(500L, request);
+
+        assertNull(beca.getIdPeriodo());
+        assertNull(respuesta.getIdPeriodo());
+        assertNull(respuesta.getNombrePeriodo());
+        assertEquals(BigDecimal.valueOf(75), respuesta.getPorcentaje());
+        verify(periodoAcademicoRepository, never()).findById(any());
+        verify(becaRepository, never()).existsByIdEstudiante_IdAndIdPeriodo_IdAndActivaTrue(any(), any());
+    }
+
+    @Test
+    void actualizarBecaConPeriodoSinMandarPeriodo_daElErrorDeSiempre() {
+
+        Beca beca = becaExistente();
+        when(becaRepository.findById(500L)).thenReturn(Optional.of(beca));
+        when(tiposBecaRepository.findByIdAndActivoTrue(3)).thenReturn(Optional.of(tipoBecaActivo()));
+
+        BecaActualizarRequest request = new BecaActualizarRequest();
+        request.setIdTipoBeca(3);
+        request.setPorcentaje(BigDecimal.valueOf(50));
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> becaService.actualizar(500L, request)
+        );
+
+        assertEquals("El período académico es obligatorio.", exception.getMessage());
+        verify(becaRepository, never()).save(any(Beca.class));
+    }
+
+    @Test
+    void listarPorEstudiante_conBecaPermanente_noFalla() {
+
+        Beca permanente = becaExistente();
+        permanente.setIdPeriodo(null);
+        when(estudianteRepository.existsById(1L)).thenReturn(true);
+        when(becaRepository.findByIdEstudiante_IdOrderByFechaInicioDesc(1L)).thenReturn(List.of(permanente));
+
+        List<BecaResponse> becas = becaService.listarPorEstudiante(1L);
+
+        assertEquals(1, becas.size());
+        assertNull(becas.get(0).getIdPeriodo());
+        assertNull(becas.get(0).getNombrePeriodo());
+    }
+
+    @Test
     void noDebeActualizarBecaInexistente() {
 
         when(becaRepository.findById(999L)).thenReturn(Optional.empty());

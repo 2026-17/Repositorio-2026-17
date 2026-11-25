@@ -135,13 +135,27 @@ public class BecaService {
         TiposBeca tipoBeca = tiposBecaRepository.findByIdAndActivoTrue(request.getIdTipoBeca())
                 .orElseThrow(() -> new BusinessException("El tipo de beca indicado no existe o está inactivo."));
 
-        PeriodoAcademico periodo = periodoAcademicoRepository.findById(request.getIdPeriodo())
-                .orElseThrow(() -> new BusinessException("El período académico indicado no existe."));
+        /*
+         * Una beca permanente (sin período, como la de inclusión) aplica a
+         * todos los períodos: se conserva así y el período de la solicitud
+         * no se usa. Una beca con período sigue exigiéndolo.
+         */
+        boolean permanente = beca.getIdPeriodo() == null;
+
+        PeriodoAcademico periodo = null;
+
+        if (!permanente) {
+            if (request.getIdPeriodo() == null) {
+                throw new BusinessException("El período académico es obligatorio.");
+            }
+            periodo = periodoAcademicoRepository.findById(request.getIdPeriodo())
+                    .orElseThrow(() -> new BusinessException("El período académico indicado no existe."));
+        }
 
         BigDecimal porcentaje = validarPorcentaje(request.getPorcentaje());
 
-        boolean cambiaPeriodo = beca.getIdPeriodo() == null
-                || !Objects.equals(beca.getIdPeriodo().getId(), periodo.getId());
+        boolean cambiaPeriodo = !permanente
+                && !Objects.equals(beca.getIdPeriodo().getId(), periodo.getId());
 
         if (cambiaPeriodo && becaRepository.existsByIdEstudiante_IdAndIdPeriodo_IdAndActivaTrue(
                 beca.getIdEstudiante().getId(), periodo.getId())) {
@@ -155,7 +169,9 @@ public class BecaService {
         }
 
         beca.setIdTipoBeca(tipoBeca);
-        beca.setIdPeriodo(periodo);
+        if (!permanente) {
+            beca.setIdPeriodo(periodo);
+        }
         beca.setPorcentaje(porcentaje);
         beca.setFechaFin(request.getFechaFin());
         beca.setMotivo(normalizarNullable(request.getMotivo()));
@@ -252,6 +268,7 @@ public class BecaService {
         if (beca.getIdPeriodo() != null) {
             response.setIdPeriodo(beca.getIdPeriodo().getId());
             response.setCodigoPeriodo(beca.getIdPeriodo().getCodigo());
+            response.setNombrePeriodo(beca.getIdPeriodo().getNombre());
         }
 
         response.setPorcentaje(beca.getPorcentaje());
