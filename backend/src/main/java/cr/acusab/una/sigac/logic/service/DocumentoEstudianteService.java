@@ -9,6 +9,7 @@ import cr.acusab.una.sigac.data.repository.EstudianteRepository;
 import cr.acusab.una.sigac.data.repository.TipoDocumentoRepository;
 import cr.acusab.una.sigac.data.repository.UsuarioRepository;
 import cr.acusab.una.sigac.logic.exception.BusinessException;
+import cr.acusab.una.sigac.logic.util.ValidadorArchivo;
 import cr.acusab.una.sigac.presentation.dto.response.DocumentoEstudianteResponse;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
@@ -33,12 +34,15 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
-import java.util.UUID;
 
 @Service
 public class DocumentoEstudianteService {
 
     private static final long MAX_PDF_SIZE = 50L * 1024L * 1024L;
+
+    // La póliza también acepta imágenes; los demás documentos, solo PDF.
+    private static final String CODIGO_POLIZA = "POLIZA";
+    private static final String MENSAJE_POLIZA_TIPO = "La póliza debe ser un PDF o una imagen (JPG, PNG o WEBP).";
 
     private final DocumentoEstudianteRepository documentoEstudianteRepository;
     private final EstudianteRepository estudianteRepository;
@@ -87,7 +91,10 @@ public class DocumentoEstudianteService {
                         new BusinessException("El tipo de documento indicado no existe o está inactivo."));
 
         validarFechas(fechaEmision, fechaVencimiento);
-        validarPdf(archivo);
+
+        // La póliza puede ser PDF o imagen; los demás documentos, solo PDF.
+        boolean esPoliza = esPoliza(tipoDocumento);
+        String tipoMime = esPoliza ? validarPoliza(archivo) : validarPdfYDevolverTipo(archivo);
 
         Usuario usuarioCarga = obtenerUsuarioAutenticado();
 
@@ -96,7 +103,8 @@ public class DocumentoEstudianteService {
                 .normalize()
                 .resolve(String.valueOf(estudiante.getId()));
 
-        String storedName = UUID.randomUUID() + ".pdf";
+        // Nombre aleatorio con la extensión del tipo real (.pdf, .jpg, .png, .webp).
+        String storedName = ValidadorArchivo.nombreAlmacenado(tipoMime);
 
         Path destination = studentDir
                 .resolve(storedName)
@@ -144,7 +152,7 @@ public class DocumentoEstudianteService {
             documento.setNombreOriginal(nombreOriginalSeguro(archivo));
             documento.setNombreAlmacenado(storedName);
             documento.setUbicacionArchivo(destination.toString());
-            documento.setTipoMime("application/pdf");
+            documento.setTipoMime(tipoMime);
             documento.setTamanoBytes(archivo.getSize());
             documento.setSha256(hash);
             documento.setFechaEmision(fechaEmision);
@@ -194,6 +202,73 @@ public class DocumentoEstudianteService {
     ) {
         validarFechas(fechaEmision, fechaVencimiento);
         validarPdf(archivo);
+    }
+
+    /**
+     * Igual que validarAdjunto, pero para la póliza: acepta PDF o imagen
+     * (JPG, PNG o WEBP). La usa la edición completa del estudiante.
+     */
+    public void validarAdjuntoPoliza(
+            MultipartFile archivo,
+            LocalDate fechaEmision,
+            LocalDate fechaVencimiento
+    ) {
+        validarFechas(fechaEmision, fechaVencimiento);
+        validarPoliza(archivo);
+    }
+
+    private static boolean esPoliza(TiposDocumento tipoDocumento) {
+        return tipoDocumento != null && CODIGO_POLIZA.equalsIgnoreCase(tipoDocumento.getCodigo());
+    }
+
+    private String validarPdfYDevolverTipo(MultipartFile archivo) {
+        validarPdf(archivo);
+        return ValidadorArchivo.PDF;
+    }
+
+    /*
+     * Póliza: PDF o imagen (JPG, PNG o WEBP), hasta 50 MB.
+     * - PDF: la misma validación de siempre (PDFBox debe poder abrirlo).
+     * - Imagen: sus primeros bytes deben ser los de ese formato.
+     * Devuelve el tipo MIME real con que se guarda.
+     */
+    private String validarPoliza(MultipartFile archivo) {
+
+        if (archivo == null || archivo.isEmpty()) {
+            throw new BusinessException("Debe adjuntar la póliza.");
+        }
+
+        if (archivo.getSize() > MAX_PDF_SIZE) {
+            throw new BusinessException("La póliza no puede superar 50 MB.");
+        }
+
+        String tipoMime = ValidadorArchivo.tipoMime(archivo);
+
+        if (!ValidadorArchivo.esPdfOImagen(tipoMime)) {
+            throw new BusinessException(MENSAJE_POLIZA_TIPO);
+        }
+
+        if (ValidadorArchivo.PDF.equals(tipoMime)) {
+            validarPdf(archivo);
+            return tipoMime;
+        }
+
+        if (Objects.toString(archivo.getOriginalFilename(), "").trim().length() > 255) {
+            throw new BusinessException("El nombre del archivo no puede superar 255 caracteres.");
+        }
+
+        boolean coincide;
+        try {
+            coincide = ValidadorArchivo.contenidoCoincide(archivo, tipoMime);
+        } catch (IOException e) {
+            throw new BusinessException("No fue posible leer la póliza.");
+        }
+
+        if (!coincide) {
+            throw new BusinessException(MENSAJE_POLIZA_TIPO);
+        }
+
+        return tipoMime;
     }
 
     /*

@@ -5,7 +5,7 @@
  */
 import { UBICACION_VACIA, ubicacionDesdeRespuesta } from "../../components/ubicacion";
 import { esCedulaNacional, formatearCedula } from "../../utils/cedula";
-import { errorArchivoPdf, errorFechasDocumento } from "../../utils/validacionDocumento";
+import { errorArchivoPoliza, errorFechasDocumento } from "../../utils/validacionDocumento";
 import {
     MENSAJE_NOMBRE,
     MENSAJE_TELEFONO,
@@ -282,11 +282,12 @@ export function validarFormulario(form, archivo, contexto) {
     if (edad !== null && edad < 18) validarEncargados(form, contexto, errores);
 
     if (archivo) {
-        const errorArchivo = errorArchivoPdf(archivo);
+        // La póliza puede ser PDF o imagen (JPG, PNG o WEBP).
+        const errorArchivo = errorArchivoPoliza(archivo);
         if (errorArchivo) errores.polizaArchivo = errorArchivo;
         if (!contexto.activo) errores.polizaArchivo = "No se puede adjuntar la póliza de un estudiante inactivo.";
     } else if (form.polizaFechaEmision || form.polizaFechaVencimiento) {
-        errores.polizaArchivo = "Para registrar las fechas de la póliza, adjunte el PDF.";
+        errores.polizaArchivo = "Para registrar las fechas de la póliza, adjunte el archivo.";
     }
     const errorFechas = errorFechasDocumento(form.polizaFechaEmision, form.polizaFechaVencimiento);
     if (errorFechas) errores.polizaFechaVencimiento = errorFechas;

@@ -16,6 +16,7 @@ import Stepper from "../../components/ui/Stepper";
 import AvisoCorreoEnUso from "../../components/AvisoCorreoEnUso";
 import { useCorreoEnUso } from "../../hooks/useCorreoEnUso";
 import { listaErrores } from "../../components/ui/utilidades";
+import { ACCEPT_POLIZA, AYUDA_FORMATO_POLIZA, errorArchivoPoliza } from "../../utils/validacionDocumento";
 import { campoDeConflicto, lanzarError, leerError, mensajeDeExcepcion } from "../../utils/api";
 import {
   MENSAJE_NOMBRE,
@@ -347,12 +348,13 @@ export default function CreateStudent({ onCancel, onSuccess } = {}) {
     if (form.telefono.trim() && !esTelefonoValido(form.telefono)) nextErrors.telefono = MENSAJE_TELEFONO;
     if (form.condicionesRelevantes.length > 2000) nextErrors.condicionesRelevantes = "Las condiciones relevantes no pueden superar 2000 caracteres.";
 
+    // La póliza puede ser PDF o imagen (JPG, PNG o WEBP).
     if (!policy) {
-      nextErrors.policy = "Debe adjuntar la póliza en PDF.";
+      nextErrors.policy = "Debe adjuntar la póliza.";
     } else if (policy.size > MAX_PDF) {
       nextErrors.policy = "La póliza no puede superar 50 MB.";
-    } else if (policy.type !== "application/pdf" && !policy.name.toLowerCase().endsWith(".pdf")) {
-      nextErrors.policy = "La póliza debe ser un archivo PDF.";
+    } else if (errorArchivoPoliza(policy)) {
+      nextErrors.policy = errorArchivoPoliza(policy);
     }
 
     if (menor && (form.encargados.length < 1 || form.encargados.length > 2)) nextErrors.guardians = "Un menor debe tener uno o dos encargados.";
@@ -809,14 +811,14 @@ export default function CreateStudent({ onCancel, onSuccess } = {}) {
       <p className="form-section-sub">Adjunte la póliza y verifique los datos con el estudiante o su encargado antes de confirmar.</p>
 
       <div className="review">
-        <Field id={`${P}policy`} errorKey="policy" label="Póliza del estudiante" hint="PDF obligatorio · tamaño máximo 50 MB." error={errors.policy}>
+        <Field id={`${P}policy`} errorKey="policy" label="Póliza del estudiante" hint={`Obligatoria · ${AYUDA_FORMATO_POLIZA} · tamaño máximo 50 MB.`} error={errors.policy}>
           <label className={`file-drop${policy ? " has-file" : ""}`}>
             <FileUp size={20} strokeWidth={1.75} aria-hidden="true" />
-            <span>{policy ? `${policy.name} — ${(policy.size / 1024 / 1024).toFixed(2)} MB` : "Seleccionar archivo PDF"}</span>
+            <span>{policy ? `${policy.name} — ${(policy.size / 1024 / 1024).toFixed(2)} MB` : `Seleccionar archivo (${AYUDA_FORMATO_POLIZA})`}</span>
             <input
               id={`${P}policy`}
               type="file"
-              accept="application/pdf,.pdf"
+              accept={ACCEPT_POLIZA}
               onChange={(e) => { setPolicy(e.target.files?.[0] || null); setErrors((err) => ({ ...err, policy: "" })); }}
               {...aria("policy", errors)}
             />

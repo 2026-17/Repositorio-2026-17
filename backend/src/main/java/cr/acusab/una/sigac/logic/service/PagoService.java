@@ -17,6 +17,7 @@ import cr.acusab.una.sigac.data.repository.PeriodoAcademicoRepository;
 import cr.acusab.una.sigac.data.repository.TipoDocumentoRepository;
 import cr.acusab.una.sigac.data.repository.UsuarioRepository;
 import cr.acusab.una.sigac.logic.exception.BusinessException;
+import cr.acusab.una.sigac.logic.util.ValidadorArchivo;
 import cr.acusab.una.sigac.presentation.dto.request.RegistrarPagoRequest;
 import cr.acusab.una.sigac.presentation.dto.request.RegistrarPagosRequest;
 import cr.acusab.una.sigac.presentation.dto.response.EstadoMesPagoResponse;
@@ -45,9 +46,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
-import java.util.Objects;
 import java.util.Set;
-import java.util.UUID;
 
 /*
  * HU (Registrar pago) - Administracion Academica registra directamente
@@ -60,9 +59,7 @@ import java.util.UUID;
 public class PagoService {
 
     private static final long MAX_TAMANO_COMPROBANTE = 15L * 1024L * 1024L;
-    private static final Set<String> TIPOS_MIME_PERMITIDOS = Set.of(
-            "application/pdf", "image/jpeg", "image/png", "image/webp"
-    );
+    // Tipos permitidos (PDF, JPG, PNG y WEBP) y firmas: ver ValidadorArchivo.
     private static final String CODIGO_TIPO_DOCUMENTO_COMPROBANTE = "COMPROBANTE_MENSUALIDAD";
     private static final String CODIGO_TIPO_DOCUMENTO_MATRICULA = "COMPROBANTE_MATRICULA";
     private static final String ESTADO_AUTORIZACION_PENDIENTE = "PENDIENTE";
@@ -592,42 +589,23 @@ public class PagoService {
         if (archivo.getSize() > MAX_TAMANO_COMPROBANTE) {
             throw new BusinessException("El comprobante no puede superar 15 MB.");
         }
-        String tipo = Objects.toString(archivo.getContentType(), "").toLowerCase(Locale.ROOT);
-        if (!TIPOS_MIME_PERMITIDOS.contains(tipo)) {
+        String tipo = ValidadorArchivo.tipoMime(archivo);
+        if (!ValidadorArchivo.esPdfOImagen(tipo)) {
             throw new BusinessException("El comprobante debe ser un PDF o una imagen (JPG, PNG o WEBP).");
         }
 
         // El tipo que declara el navegador se puede falsear: se revisan los
         // primeros bytes del archivo para confirmar que su contenido coincide.
-        byte[] inicio;
-        try (InputStream input = archivo.getInputStream()) {
-            inicio = input.readNBytes(12);
+        boolean coincide;
+        try {
+            coincide = ValidadorArchivo.contenidoCoincide(archivo, tipo);
         } catch (IOException e) {
             throw new BusinessException("No fue posible leer el comprobante.");
         }
-        if (!contenidoCoincide(tipo, inicio)) {
+        if (!coincide) {
             throw new BusinessException(
                     "El contenido del comprobante no corresponde a un PDF o una imagen JPG, PNG o WEBP válida.");
         }
-    }
-
-    // Firmas de archivo: PDF "%PDF-", JPG FF D8 FF, PNG 89 50 4E 47, WEBP "RIFF....WEBP"
-    private boolean contenidoCoincide(String tipoMime, byte[] b) {
-        return switch (tipoMime) {
-            case "application/pdf" -> empiezaCon(b, 0, '%', 'P', 'D', 'F', '-');
-            case "image/jpeg" -> empiezaCon(b, 0, 0xFF, 0xD8, 0xFF);
-            case "image/png" -> empiezaCon(b, 0, 0x89, 0x50, 0x4E, 0x47);
-            case "image/webp" -> empiezaCon(b, 0, 'R', 'I', 'F', 'F') && empiezaCon(b, 8, 'W', 'E', 'B', 'P');
-            default -> false;
-        };
-    }
-
-    private boolean empiezaCon(byte[] datos, int desde, int... firma) {
-        if (datos.length < desde + firma.length) return false;
-        for (int i = 0; i < firma.length; i++) {
-            if ((datos[desde + i] & 0xFF) != firma[i]) return false;
-        }
-        return true;
     }
 
     /*
@@ -666,8 +644,7 @@ public class PagoService {
         Path studentDir = Paths.get(storageDirectory).toAbsolutePath().normalize()
                 .resolve(String.valueOf(estudiante.getId()));
 
-        String extension = extensionSegunTipoMime(archivo.getContentType());
-        String storedName = UUID.randomUUID() + extension;
+        String storedName = ValidadorArchivo.nombreAlmacenado(ValidadorArchivo.tipoMime(archivo));
         Path destination = studentDir.resolve(storedName).normalize();
 
         if (!destination.startsWith(studentDir)) {
@@ -700,17 +677,6 @@ public class PagoService {
             }
             throw new BusinessException("No fue posible almacenar el comprobante.");
         }
-    }
-
-    private String extensionSegunTipoMime(String tipoMime) {
-        if (tipoMime == null) return "";
-        return switch (tipoMime.toLowerCase(Locale.ROOT)) {
-            case "application/pdf" -> ".pdf";
-            case "image/jpeg" -> ".jpg";
-            case "image/png" -> ".png";
-            case "image/webp" -> ".webp";
-            default -> "";
-        };
     }
 
     private String sha256(Path path) throws IOException {

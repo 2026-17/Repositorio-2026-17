@@ -18,6 +18,7 @@ import { API_URL } from "../../config/api";
 import { lanzarError, leerError, mensajeDeExcepcion } from "../../utils/api";
 import { hoyISO, limitesFechaNacimiento } from "../../utils/validaciones";
 import EncargadoEdicion from "./EncargadoEdicion";
+import { ACCEPT_POLIZA, AYUDA_FORMATO_POLIZA } from "../../utils/validacionDocumento";
 import {
     MAX_CONTACTOS,
     MAX_ENCARGADOS,
@@ -49,7 +50,7 @@ const encabezados = () => {
 };
 
 function estadoPoliza(poliza, archivo) {
-    if (archivo) return { tono: "info", texto: "PDF listo para subir" };
+    if (archivo) return { tono: "info", texto: "Archivo listo para subir" };
     if (!poliza) return { tono: "warning", texto: "Sin póliza registrada" };
     if (poliza.vencida) return { tono: "danger", texto: `Vencida el ${fechaCorta(poliza.fechaVencimiento)}` };
     if (poliza.fechaVencimiento) return { tono: "success", texto: `Vigente hasta ${fechaCorta(poliza.fechaVencimiento)}` };
@@ -605,8 +606,8 @@ function EditarEstudiante({ studentId, onCancel, onSuccess } = {}) {
                             </div>
                             <div className="panel-body form-grid">
                                 {detalle.poliza && <p className="muted span-all">Archivo actual: {detalle.poliza.nombreArchivo}</p>}
-                                <Field id="edit-polizaArchivo" errorKey="polizaArchivo" label="Archivo PDF" optional className="span-all" hint={detalle.activo ? "Solo PDF. Tamaño máximo: 50 MB. Se sube al apretar Guardar cambios." : "Un estudiante inactivo no puede recibir documentos."} error={errores.polizaArchivo}>
-                                    <input key={claveArchivo} id="edit-polizaArchivo" className="sg-input" type="file" accept="application/pdf,.pdf" onChange={elegirArchivo} disabled={!detalle.activo} {...err("polizaArchivo")} />
+                                <Field id="edit-polizaArchivo" errorKey="polizaArchivo" label="Archivo de la póliza" optional className="span-all" hint={detalle.activo ? `${AYUDA_FORMATO_POLIZA}. Tamaño máximo: 50 MB. Se sube al apretar Guardar cambios.` : "Un estudiante inactivo no puede recibir documentos."} error={errores.polizaArchivo}>
+                                    <input key={claveArchivo} id="edit-polizaArchivo" className="sg-input" type="file" accept={ACCEPT_POLIZA} onChange={elegirArchivo} disabled={!detalle.activo} {...err("polizaArchivo")} />
                                 </Field>
                                 <Field id="edit-polizaFechaEmision" errorKey="polizaFechaEmision" label="Fecha de emisión" optional error={errores.polizaFechaEmision}>
                                     <input id="edit-polizaFechaEmision" className="sg-input" type="date" value={form.polizaFechaEmision} onChange={e => { setField("polizaFechaEmision", e.target.value); limpiarError("polizaFechaVencimiento", "polizaArchivo"); }} disabled={!detalle.activo} {...err("polizaFechaEmision")} />

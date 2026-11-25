@@ -319,6 +319,30 @@ class PagoServiceTest {
     }
 
     @Test
+    void noDebeRegistrarComprobanteJpgQueNoEsImagen() {
+
+        when(estudianteRepository.findById(1L)).thenReturn(Optional.of(estudianteActivo()));
+        when(periodoAcademicoRepository.findById(2L)).thenReturn(Optional.of(periodo()));
+        when(becaRepository.findByIdEstudiante_IdAndIdPeriodo_IdAndActivaTrue(1L, 2L))
+                .thenReturn(Optional.empty());
+
+        RegistrarPagoRequest request = requestValido();
+        MultipartFile falso = new MockMultipartFile(
+                "comprobante", "comprobante.jpg", "image/jpeg", "%PDF-1.4 no es una imagen".getBytes());
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> pagoService.registrar(request, falso)
+        );
+
+        // El mismo mensaje de siempre: la validación se movió a ValidadorArchivo sin cambiar.
+        assertEquals(
+                "El contenido del comprobante no corresponde a un PDF o una imagen JPG, PNG o WEBP válida.",
+                exception.getMessage()
+        );
+    }
+
+    @Test
     void noDebeRegistrarConTipoDeArchivoNoPermitido() {
 
         when(estudianteRepository.findById(1L)).thenReturn(Optional.of(estudianteActivo()));
