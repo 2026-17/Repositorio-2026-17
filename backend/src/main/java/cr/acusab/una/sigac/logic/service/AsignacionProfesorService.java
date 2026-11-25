@@ -124,7 +124,11 @@ public class AsignacionProfesorService {
 
         Long idUsuario = obtenerIdUsuarioAutenticado();
         grupo.setIdProfesor(null);
-        if ("PUBLICADO".equals(grupo.getEstado())) {
+        // Un curso a coordinar en Dirección puede seguir publicado sin profesor.
+        boolean aCoordinar = cursoRepository.findById(grupo.getIdCurso())
+                .map(Curso::esACoordinar)
+                .orElse(false);
+        if ("PUBLICADO".equals(grupo.getEstado()) && !aCoordinar) {
             grupo.setEstado("PLANIFICADO");
         }
         grupo.setIdUsuarioUltimaModificacion(idUsuario);
@@ -169,7 +173,8 @@ public class AsignacionProfesorService {
                 profesor == null ? null : profesor.getId(),
                 profesor == null ? null : nombreProfesor(profesor),
                 Boolean.TRUE.equals(curso.getActivo()),
-                horarios
+                horarios,
+                curso.esACoordinar()
         );
     }
 

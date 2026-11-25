@@ -55,6 +55,22 @@ public class CursoRequestDTO {
      */
     private Boolean esCursoInstrumento;
 
+    /*
+     * Horario y profesor a coordinar en Dirección (Música de Cámara):
+     * sus grupos pueden publicarse sin horario ni profesor. Omitido = false.
+     */
+    private Boolean aCoordinar;
+
+    @com.fasterxml.jackson.annotation.JsonProperty("aCoordinar")
+    public Boolean getACoordinar() {
+        return aCoordinar;
+    }
+
+    @com.fasterxml.jackson.annotation.JsonProperty("aCoordinar")
+    public void setACoordinar(Boolean aCoordinar) {
+        this.aCoordinar = aCoordinar;
+    }
+
     // D7: años cumplidos al inicio del período (opcionales; null = sin límite).
     @jakarta.validation.constraints.Min(value = 0, message = "La edad mínima no es válida.")
     @Max(value = 120, message = "La edad mínima no es válida.")

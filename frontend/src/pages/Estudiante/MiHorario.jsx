@@ -8,7 +8,7 @@ import Field from "../../components/ui/Field";
 import PageHead from "../../components/ui/PageHead";
 import StatusBadge from "../../components/ui/StatusBadge";
 import { hora12, rangoHoras12 } from "../../utils/horas";
-import { formatearHorarios } from "../../utils/matricula";
+import { textoCoordinacion, textoHorarioGrupo, textoProfesorGrupo } from "../../utils/matricula";
 import { consultarMiHorario } from "../../utils/matriculaApi";
 import "./miHorario.css";
 
@@ -131,7 +131,9 @@ function MiHorario() {
         }))
     ), [clases]);
 
-    const sinHorario = clases.filter((clase) => !clase.horarios || clase.horarios.length === 0);
+    // Cursos a coordinar en Dirección (Música de Cámara): van en su propio aviso.
+    const aCoordinar = clases.filter((clase) => clase.aCoordinar);
+    const sinHorario = clases.filter((clase) => !clase.aCoordinar && (!clase.horarios || clase.horarios.length === 0));
 
     const dias = DIAS.filter((d) => d.numero <= 5 || bloques.some((b) => b.dia === d.numero));
 
@@ -209,6 +211,18 @@ function MiHorario() {
 
         return (
             <>
+                {aCoordinar.length > 0 && (
+                    <Alert tone="info" title="Cursos a coordinar" className="mi-horario__aviso">
+                        <ul className="mi-horario__coordinar">
+                            {aCoordinar.map((c) => (
+                                <li key={c.idGrupo}>
+                                    <b>{c.nombreCurso}</b>: {textoCoordinacion(c)}
+                                </li>
+                            ))}
+                        </ul>
+                    </Alert>
+                )}
+
                 {sinHorario.length > 0 && (
                     <Alert tone="info" title="Cursos sin horario definido" className="mi-horario__aviso">
                         {sinHorario.map((c) => c.nombreCurso).join(", ")}
@@ -325,7 +339,7 @@ function MiHorario() {
                                                     )}
                                                     <span>
                                                         <User size={14} strokeWidth={1.75} aria-hidden="true" />
-                                                        {b.clase.profesor ?? "Profesor por definir"}
+                                                        {textoProfesorGrupo(b.clase, "Profesor por definir")}
                                                     </span>
                                                 </li>
                                             ))}
@@ -374,9 +388,9 @@ function MiHorario() {
                                                 ? <StatusBadge tone="primary" icon={null}>{etiquetaLeccion(clase)}</StatusBadge>
                                                 : clase.codigo}
                                         </td>
-                                        <td data-label="Horario">{formatearHorarios(clase.horarios)}</td>
+                                        <td data-label="Horario">{textoHorarioGrupo(clase)}</td>
                                         <td data-label="Aula">{clase.aula || "—"}</td>
-                                        <td data-label="Profesor">{clase.profesor ?? "Por definir"}</td>
+                                        <td data-label="Profesor">{textoProfesorGrupo(clase)}</td>
                                         <td data-label="Modalidad">{clase.modalidad ? clase.modalidad.charAt(0) + clase.modalidad.slice(1).toLowerCase() : "—"}</td>
                                     </tr>
                                 ))}

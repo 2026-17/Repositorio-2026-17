@@ -158,4 +158,17 @@ public interface GrupoRepository extends JpaRepository<Grupo, Long> {
 
     // Una agrupación con grupos no se elimina ni cambia de tipo.
     boolean existsByIdAgrupacion(Long idAgrupacion);
+
+    /*
+     * Cursos a coordinar en Dirección - Grupos normales (tipo CURSO) de un
+     * período cuyo curso tiene a_coordinar = TRUE.
+     */
+    @Query("""
+            SELECT g FROM Grupo g
+            WHERE g.tipoGrupo = 'CURSO'
+              AND g.idPeriodo = :idPeriodo
+              AND g.idCurso IN (SELECT c.id FROM Curso c WHERE c.aCoordinar = true)
+            ORDER BY g.codigo
+            """)
+    List<Grupo> findGruposACoordinar(@Param("idPeriodo") Long idPeriodo);
 }

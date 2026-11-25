@@ -19,6 +19,13 @@ public class CursoResponseDTO {
     public Boolean getEsCursoInstrumento() { return esCursoInstrumento; }
     public void setEsCursoInstrumento(Boolean value) { this.esCursoInstrumento = value; }
 
+    // Horario y profesor a coordinar en Dirección.
+    private Boolean aCoordinar;
+    @com.fasterxml.jackson.annotation.JsonProperty("aCoordinar")
+    public Boolean getACoordinar() { return aCoordinar; }
+    @com.fasterxml.jackson.annotation.JsonProperty("aCoordinar")
+    public void setACoordinar(Boolean value) { this.aCoordinar = value; }
+
     // getters y setters
     public Long getIdCurso() { return idCurso; }
     public void setIdCurso(Long idCurso) { this.idCurso = idCurso; }

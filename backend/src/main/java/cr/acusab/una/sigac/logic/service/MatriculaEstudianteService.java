@@ -154,7 +154,17 @@ public class MatriculaEstudianteService {
      * orden en que el estudiante la eligió (regla D4). El nivel es interno:
      * al estudiante solo se le muestra el nombre de la agrupación.
      */
-    private record Seleccion(Grupo grupo, Long idCurso, Integer idInstrumento, Agrupacion agrupacion, Short orden) {
+    /*
+     * idProfesorAsignado: en un curso a coordinar en Dirección, el profesor
+     * que la Dirección le asignó al estudiante en su matrícula (solo en lo
+     * ya matriculado; null = sin asignar).
+     */
+    private record Seleccion(Grupo grupo, Long idCurso, Integer idInstrumento, Agrupacion agrupacion, Short orden,
+                             Long idProfesorAsignado) {
+
+        Seleccion(Grupo grupo, Long idCurso, Integer idInstrumento, Agrupacion agrupacion, Short orden) {
+            this(grupo, idCurso, idInstrumento, agrupacion, orden, null);
+        }
 
         Seleccion(Grupo grupo, Long idCurso, Integer idInstrumento) {
             this(grupo, idCurso, idInstrumento, null, null);
@@ -2044,7 +2054,8 @@ public class MatriculaEstudianteService {
                         detalle.getIdCurso() != null ? detalle.getIdCurso() : grupo.getIdCurso(),
                         idInstrumento,
                         grupo.esAgrupacion() ? agrupaciones.get(grupo.getIdAgrupacion()) : null,
-                        detalle.getOrdenSeleccion()));
+                        detalle.getOrdenSeleccion(),
+                        detalle.getIdProfesorAsignado()));
             }
         }
 
@@ -2132,8 +2143,9 @@ public class MatriculaEstudianteService {
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
 
+        // Profesores de los grupos y los asignados por Dirección (cursos a coordinar).
         Set<Long> idsProfesor = selecciones.stream()
-                .map(s -> s.grupo().getIdProfesor())
+                .flatMap(s -> Stream.of(s.grupo().getIdProfesor(), s.idProfesorAsignado()))
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
 
@@ -2239,6 +2251,21 @@ public class MatriculaEstudianteService {
             } else if (profesor != null) {
                 dto.setProfesor(nombreCompleto(
                         profesor.getNombres(), profesor.getPrimerApellido(), profesor.getSegundoApellido()));
+            }
+
+            /*
+             * Curso a coordinar en Dirección: puede no tener horario ni
+             * profesor. profesorAsignado es el que la Dirección le asignó a
+             * ESTE estudiante (solo si ya está matriculado).
+             */
+            if (!seleccion.esEspacio() && !seleccion.esAgrupacion() && curso != null && curso.esACoordinar()) {
+                dto.setACoordinar(true);
+                Profesor asignado = seleccion.idProfesorAsignado() == null
+                        ? null : profesores.get(seleccion.idProfesorAsignado());
+                if (asignado != null) {
+                    dto.setProfesorAsignado(nombreCompleto(
+                            asignado.getNombres(), asignado.getPrimerApellido(), asignado.getSegundoApellido()));
+                }
             }
 
             int cupoMaximo = grupo.getCupoMaximo();

@@ -14,6 +14,35 @@ export function formatearHorarios(horarios) {
         .join(", ");
 }
 
+/*
+ * Cursos a coordinar en Dirección (Música de Cámara): no tienen horario ni
+ * profesor fijos. La Dirección le asigna el profesor a cada estudiante
+ * (profesorAsignado, solo cuando ya está matriculado).
+ */
+export const TEXTO_COORDINAR_EN_DIRECCION = "Coordinar en Dirección";
+export const TEXTO_HORARIO_A_CONVENIR = "Horario a convenir con el profesor";
+
+// "Coordinar en Dirección" o "Profesor: Laura Mora · Horario a convenir con el profesor".
+export function textoCoordinacion(grupo) {
+    return grupo.profesorAsignado
+        ? `Profesor: ${grupo.profesorAsignado} · ${TEXTO_HORARIO_A_CONVENIR}`
+        : TEXTO_COORDINAR_EN_DIRECCION;
+}
+
+// Columna Horario: en un curso a coordinar, lo que corresponde en su lugar.
+export function textoHorarioGrupo(grupo) {
+    if (grupo.aCoordinar) {
+        return grupo.profesorAsignado ? TEXTO_HORARIO_A_CONVENIR : TEXTO_COORDINAR_EN_DIRECCION;
+    }
+    return formatearHorarios(grupo.horarios);
+}
+
+// Columna Profesor: en un curso a coordinar, el asignado por Dirección.
+export function textoProfesorGrupo(grupo, porDefecto = "Por definir") {
+    if (grupo.aCoordinar) return grupo.profesorAsignado ?? TEXTO_COORDINAR_EN_DIRECCION;
+    return grupo.profesor ?? porDefecto;
+}
+
 // Un espacio de instrumento choca con un grupo (o con otro espacio).
 export function espacioChocaCon(espacio, grupos) {
     return grupos.find((g) => g.idGrupo !== espacio.idGrupo && gruposConflictoHorario(espacio, g)) ?? null;

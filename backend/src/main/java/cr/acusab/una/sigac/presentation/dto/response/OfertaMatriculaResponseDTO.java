@@ -111,6 +111,25 @@ public class OfertaMatriculaResponseDTO {
          * aunque tenga cupo (por ejemplo, la edad del curso, regla D7).
          */
         private String motivoNoDisponible;
+
+        /*
+         * Curso a coordinar en Dirección (Música de Cámara): puede venir
+         * sin horario ni profesor. profesorAsignado es el nombre del
+         * profesor que la Dirección le asignó al estudiante en su
+         * matrícula (null = todavía sin asignar o aún no matriculado).
+         */
+        private boolean aCoordinar;
+        private String profesorAsignado;
+
+        @com.fasterxml.jackson.annotation.JsonProperty("aCoordinar")
+        public boolean isACoordinar() {
+            return aCoordinar;
+        }
+
+        @com.fasterxml.jackson.annotation.JsonProperty("aCoordinar")
+        public void setACoordinar(boolean aCoordinar) {
+            this.aCoordinar = aCoordinar;
+        }
     }
 
     /*

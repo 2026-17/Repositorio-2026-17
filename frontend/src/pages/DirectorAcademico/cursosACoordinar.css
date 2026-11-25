@@ -1,0 +1,16 @@
+/* =========================================
+   Cursos a coordinar en Dirección (Música de Cámara).
+   Reutiliza .espacios, .agrupaciones-cabecera y .agrupaciones-filtro;
+   aquí solo lo propio de la tabla por estudiante.
+   ========================================= */
+
+.coordinar-grupo + .coordinar-grupo { margin-top: var(--space-5); }
+
+.coordinar-tabla td { vertical-align: top; }
+.coordinar-tabla .coordinar-profesor { min-width: 200px; }
+.coordinar-tabla .coordinar-notas { min-width: 260px; width: 40%; }
+.coordinar-notas textarea { width: 100%; min-height: 64px; resize: vertical; }
+.coordinar-contador { display: block; margin-top: 4px; font-size: 12px; color: var(--ink-muted); text-align: right; }
+
+.coordinar-acciones { white-space: nowrap; }
+.coordinar-guardado { display: block; margin-top: 4px; font-size: 13px; color: var(--success); }

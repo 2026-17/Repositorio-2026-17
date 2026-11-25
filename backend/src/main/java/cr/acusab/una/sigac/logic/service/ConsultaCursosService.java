@@ -231,6 +231,7 @@ public class ConsultaCursosService {
             dto.setCodigoCurso(curso.getCodigo());
             dto.setNombreCurso(curso.getNombre());
             dto.setNivel(nivelPorCurso.get(curso.getId()));
+            dto.setACoordinar(curso.esACoordinar());
 
             dto.setIdGrupo(grupo.getId());
             dto.setCodigoGrupo(grupo.getCodigo());

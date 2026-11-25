@@ -13,7 +13,7 @@ import {
     consultarPeriodos,
     consultarProgramas,
 } from "../../utils/consultaCursosApi";
-import { formatearHorarios } from "../../utils/matricula";
+import { TEXTO_COORDINAR_EN_DIRECCION, formatearHorarios } from "../../utils/matricula";
 import "./consultaCursos.css";
 
 // HU-10 - Consultar cursos disponibles de un período académico.
@@ -22,8 +22,15 @@ import "./consultaCursos.css";
 
 const TAMANO_PAGINA = 10;
 
+// Un curso a coordinar en Dirección no tiene profesor fijo: se asigna a cada estudiante.
 function textoProfesor(curso) {
+    if (curso.aCoordinar) return TEXTO_COORDINAR_EN_DIRECCION;
     return curso.profesor ?? "Por definir";
+}
+
+function textoHorario(curso) {
+    if (curso.aCoordinar && (!curso.horarios || curso.horarios.length === 0)) return TEXTO_COORDINAR_EN_DIRECCION;
+    return formatearHorarios(curso.horarios);
 }
 
 // Antes de solicitar matrícula interesa el período que está en matrícula;
@@ -254,7 +261,7 @@ function ConsultaCursos() {
                                         </td>
                                         <td className="num" data-label="Nivel">{curso.nivel ?? "—"}</td>
                                         <td data-label="Grupo">{curso.codigoGrupo}</td>
-                                        <td data-label="Horario">{formatearHorarios(curso.horarios)}</td>
+                                        <td data-label="Horario">{textoHorario(curso)}</td>
                                         <td data-label="Profesor">{textoProfesor(curso)}</td>
                                         <td>
                                             {sinCupos ? (

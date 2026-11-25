@@ -32,6 +32,15 @@ public class CursoListadoResponseDTO {
     public Boolean getEsCursoInstrumento() { return esCursoInstrumento; }
     public void setEsCursoInstrumento(Boolean esCursoInstrumento) { this.esCursoInstrumento = esCursoInstrumento; }
 
+    // Horario y profesor a coordinar en Dirección: distintivo «A coordinar».
+    private Boolean aCoordinar;
+
+    @com.fasterxml.jackson.annotation.JsonProperty("aCoordinar")
+    public Boolean getACoordinar() { return aCoordinar; }
+
+    @com.fasterxml.jackson.annotation.JsonProperty("aCoordinar")
+    public void setACoordinar(Boolean aCoordinar) { this.aCoordinar = aCoordinar; }
+
     public Long getIdCurso() { return idCurso; }
     public void setIdCurso(Long idCurso) { this.idCurso = idCurso; }
 

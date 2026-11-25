@@ -16,7 +16,9 @@ public record AsignacionProfesorResponse(
         Long idProfesor,
         String nombreProfesor,
         boolean cursoActivo,
-        List<HorarioResponse> horarios
+        List<HorarioResponse> horarios,
+        // Curso a coordinar en Dirección: el profesor se asigna por estudiante.
+        boolean aCoordinar
 ) {
     public record HorarioResponse(
             Long idHorario,

@@ -33,6 +33,13 @@ export const DIAS = [
 
 const DIA_CORTO = Object.fromEntries(DIAS.map((d) => [d.value, d.corto]));
 
+/*
+ * Cursos a coordinar en Dirección (Música de Cámara): sus grupos pueden no
+ * tener horario ni profesor; el profesor se asigna por estudiante.
+ */
+export const TEXTO_HORARIO_A_COORDINAR = "A coordinar en Dirección";
+export const TEXTO_PROFESOR_POR_ESTUDIANTE = "Se asigna por estudiante";
+
 // "09:00:00" → "09:00"
 export function aHoraCorta(hora) {
     return String(hora || "").slice(0, 5);

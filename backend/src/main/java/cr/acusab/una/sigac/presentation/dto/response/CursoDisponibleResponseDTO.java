@@ -33,6 +33,19 @@ public class CursoDisponibleResponseDTO {
 
     private List<HorarioDTO> horarios = new ArrayList<>();
 
+    // Curso a coordinar en Dirección: sin horario ni profesor fijos.
+    private boolean aCoordinar;
+
+    @com.fasterxml.jackson.annotation.JsonProperty("aCoordinar")
+    public boolean isACoordinar() {
+        return aCoordinar;
+    }
+
+    @com.fasterxml.jackson.annotation.JsonProperty("aCoordinar")
+    public void setACoordinar(boolean aCoordinar) {
+        this.aCoordinar = aCoordinar;
+    }
+
     @Getter
     @Setter
     public static class HorarioDTO {

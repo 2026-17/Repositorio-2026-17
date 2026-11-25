@@ -55,6 +55,11 @@ function formDesdeGrupo(g) {
     };
 }
 
+// Fila de horario sin ningún dato (en un curso a coordinar se ignora).
+function horarioVacio(h) {
+    return !h.diaSemana && !h.horaInicio && !h.horaFin && !h.aula.trim();
+}
+
 function horariosDesdeGrupo(g) {
     const lista = (g.horarios || []).map((h) => ({
         diaSemana: String(h.diaSemana),
@@ -200,6 +205,14 @@ function FormularioGrupo({ grupo = null, idCursoInicial = null, onCancel, onSucc
 
     const sugerenciaActual = sugerencia && sugerencia.clave === `${form.idCurso}-${form.idPeriodo}` ? sugerencia.codigo : null;
 
+    /*
+     * Curso a coordinar en Dirección (Música de Cámara): el grupo puede
+     * publicarse sin horario y sin profesor. Para los demás cursos, todo
+     * sigue igual.
+     */
+    const cursoElegido = cursos.find((c) => String(c.idCurso) === form.idCurso);
+    const aCoordinar = Boolean(cursoElegido?.aCoordinar ?? (editando && form.idCurso === String(grupo.idCurso) && grupo.aCoordinar));
+
     function limpiarError(campo) {
         setErrores((prev) => {
             if (!prev[campo]) return prev;
@@ -254,7 +267,7 @@ function FormularioGrupo({ grupo = null, idCursoInicial = null, onCancel, onSucc
         else if (cupo > 500) e.cupoMaximo = "El cupo máximo no puede ser mayor que 500.";
         else if (editando && cupo < grupo.inscritos) e.cupoMaximo = `El cupo no puede ser menor que los ${grupo.inscritos} estudiantes inscritos.`;
 
-        if (["PUBLICADO", "EN_CURSO"].includes(form.estado) && !form.idProfesor) {
+        if (["PUBLICADO", "EN_CURSO"].includes(form.estado) && !form.idProfesor && !aCoordinar) {
             e.idProfesor = "Un grupo publicado o en curso necesita un profesor asignado.";
         }
 
@@ -272,9 +285,11 @@ function FormularioGrupo({ grupo = null, idCursoInicial = null, onCancel, onSucc
             }
         }
 
-        if (horarios.length === 0) e.horarios = "Agregue al menos un horario para el grupo.";
+        if (horarios.length === 0 && !aCoordinar) e.horarios = "Agregue al menos un horario para el grupo.";
 
         horarios.forEach((h, i) => {
+            // En un curso a coordinar, una fila sin datos no cuenta.
+            if (aCoordinar && horarioVacio(h)) return;
             const n = i + 1;
             if (!h.diaSemana) e[`horario-${i}-diaSemana`] = `Horario ${n}: seleccione el día.`;
 
@@ -336,7 +351,7 @@ function FormularioGrupo({ grupo = null, idCursoInicial = null, onCancel, onSucc
             fechaInicio: form.fechaInicio || null,
             fechaFin: form.fechaFin || null,
             estado: form.estado,
-            horarios: horarios.map((h) => ({
+            horarios: horarios.filter((h) => !(aCoordinar && horarioVacio(h))).map((h) => ({
                 diaSemana: Number(h.diaSemana),
                 horaInicio: h.horaInicio,
                 horaFin: h.horaFin,
@@ -413,6 +428,12 @@ function FormularioGrupo({ grupo = null, idCursoInicial = null, onCancel, onSucc
                     />
                 )}
 
+                {aCoordinar && (
+                    <Alert tone="info" className="form-alert" title="Curso a coordinar en Dirección">
+                        Este curso se coordina en Dirección: puede publicar el grupo sin horario y sin profesor.
+                    </Alert>
+                )}
+
                 {editando && grupo.inscritos > 0 && (
                     <Alert tone="info" className="form-alert" title={`${grupo.inscritos} ${grupo.inscritos === 1 ? "estudiante inscrito" : "estudiantes inscritos"}`}>
                         Los cambios de horario, aula o profesor les afectan. El cupo no puede quedar por debajo de los inscritos.
@@ -476,7 +497,7 @@ function FormularioGrupo({ grupo = null, idCursoInicial = null, onCancel, onSucc
                         <Field id="cupoMaximo" label="Cupo máximo" hint={editando && grupo.inscritos > 0 ? `Mínimo ${grupo.inscritos} (inscritos).` : undefined} error={errores.cupoMaximo}>
                             <input id="cupoMaximo" name="cupoMaximo" type="number" min={editando ? Math.max(1, grupo.inscritos) : 1} max="500" step="1" className="sg-input" value={form.cupoMaximo} onChange={handleChange} placeholder="Ej. 15" {...aria("cupoMaximo")} />
                         </Field>
-                        <Field id="idProfesor" label="Profesor" optional error={errores.idProfesor} select>
+                        <Field id="idProfesor" label="Profesor" optional error={errores.idProfesor} select hint={aCoordinar ? "Se asigna por estudiante en «Cursos a coordinar»." : undefined}>
                             <select id="idProfesor" name="idProfesor" className="sg-input sg-select" value={form.idProfesor} onChange={handleChange} disabled={cargandoCatalogos} {...aria("idProfesor")}>
                                 <option value="">Sin asignar</option>
                                 {editando && grupo.idProfesor && !cargandoCatalogos && !profesores.some((p) => p.id === grupo.idProfesor) && (
@@ -513,7 +534,11 @@ function FormularioGrupo({ grupo = null, idCursoInicial = null, onCancel, onSucc
                     <div className="panel-head">
                         <div>
                             <h2>Horario semanal</h2>
-                            <p className="panel-head-sub">Días y horas en que se reúne el grupo, entre las 7:00 a. m. y las 10:00 p. m.</p>
+                            <p className="panel-head-sub">
+                                {aCoordinar
+                                    ? "Opcional en este curso: déjelo vacío si el horario se acuerda con cada estudiante."
+                                    : "Días y horas en que se reúne el grupo, entre las 7:00 a. m. y las 10:00 p. m."}
+                            </p>
                         </div>
                     </div>
                     <div className="panel-body">

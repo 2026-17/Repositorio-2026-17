@@ -21,6 +21,7 @@ import Estudiantes from "./pages/AdminSis/Estudiantes";
 
 import Cursos from "./pages/DirectorAcademico/Cursos";
 import Grupos from "./pages/DirectorAcademico/Grupos";
+import CursosACoordinar from "./pages/DirectorAcademico/CursosACoordinar";
 import EspaciosInstrumento from "./pages/DirectorAcademico/EspaciosInstrumento";
 import AsignarProfesores from "./pages/DirectorAcademico/AsignarProfesores";
 import Agrupaciones from "./pages/DirectorAcademico/Agrupaciones";
@@ -170,6 +171,12 @@ const router = createBrowserRouter(
                         <Route
                             path="/director-academico/grupos/crear"
                             element={<Navigate to="/director-academico/grupos" replace state={{ nuevoGrupo: true }} />}
+                        />
+
+                        {/* Cursos a coordinar en Dirección: profesor y notas por estudiante (Música de Cámara) */}
+                        <Route
+                            path="/director-academico/cursos-a-coordinar"
+                            element={<CursosACoordinar />}
                         />
 
                         {/* Espacios de instrumento: agenda del profesor y crear espacios */}

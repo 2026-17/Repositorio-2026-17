@@ -374,7 +374,17 @@ function Cursos() {
                                                     <Music2 size={16} strokeWidth={1.75} />
                                                 </span>
                                                 <div>
-                                                    <b>{curso.nombre}</b>
+                                                    <b>
+                                                        {curso.nombre}
+                                                        {curso.aCoordinar && (
+                                                            <>
+                                                                {" "}
+                                                                <span className="sg-badge sg-badge--info" title="Horario y profesor a coordinar en Dirección">
+                                                                    A coordinar
+                                                                </span>
+                                                            </>
+                                                        )}
+                                                    </b>
                                                     <span>{curso.codigo}</span>
                                                 </div>
                                             </div>

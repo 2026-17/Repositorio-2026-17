@@ -241,6 +241,10 @@ public class GrupoService {
             rechazarCursoInstrumento(curso);
         }
 
+        // 2.1 Horario obligatorio, salvo en los cursos a coordinar en Dirección.
+        List<HorarioGrupoRequestDTO> horariosPedidos = request.getHorarios();
+        exigirHorarioSiCorresponde(curso, horariosPedidos);
+
         // 3. Período: si cambia, no puede estar cerrado ni cancelado.
         PeriodoAcademico periodo = periodoAcademicoRepository
                 .findById(request.getIdPeriodo())
@@ -274,7 +278,8 @@ public class GrupoService {
             throw new BusinessException("El estado indicado no es válido.");
         }
 
-        if (ESTADOS_QUE_REQUIEREN_PROFESOR.contains(estado) && profesor == null) {
+        // En un curso a coordinar, el profesor se asigna por estudiante.
+        if (ESTADOS_QUE_REQUIEREN_PROFESOR.contains(estado) && profesor == null && !curso.esACoordinar()) {
             throw new BusinessException(
                     "Un grupo publicado o en curso debe tener un profesor activo asignado."
             );
@@ -300,10 +305,11 @@ public class GrupoService {
             );
         }
 
-        validarHorarios(request.getHorarios());
+        validarHorarios(horariosPedidos);
 
-        if (profesor != null) {
-            validarDisponibilidadProfesor(profesor, periodo, fechaInicio, fechaFin, idGrupo, request.getHorarios());
+        // Sin horario (solo en un curso a coordinar) no hay choques que revisar.
+        if (profesor != null && !horariosPedidos.isEmpty()) {
+            validarDisponibilidadProfesor(profesor, periodo, fechaInicio, fechaFin, idGrupo, horariosPedidos);
         }
 
         // 8. Guardar el grupo.
@@ -324,7 +330,7 @@ public class GrupoService {
 
         // 9. Reemplazar el horario semanal.
         horarioGrupoRepository.eliminarPorGrupo(idGrupo);
-        horarioGrupoRepository.saveAll(crearHorarios(guardado.getId(), request.getHorarios(), aula));
+        horarioGrupoRepository.saveAll(crearHorarios(guardado.getId(), horariosPedidos, aula));
 
         return mapearAGestion(List.of(guardado)).get(0);
     }
@@ -395,6 +401,17 @@ public class GrupoService {
                     "«" + curso.getNombre() + "» se cursa en las agrupaciones: no se abre como grupo. "
                             + "Abra la agrupación en el período desde «Agrupaciones»."
             );
+        }
+    }
+
+    /*
+     * Todos los cursos exigen al menos un horario, menos los cursos a
+     * coordinar en Dirección (Música de Cámara): sus grupos pueden no
+     * tenerlo. El mensaje es el mismo que daba la validación del DTO.
+     */
+    private static void exigirHorarioSiCorresponde(Curso curso, List<HorarioGrupoRequestDTO> horarios) {
+        if (!curso.esACoordinar() && horarios.isEmpty()) {
+            throw new BusinessException("Agregue al menos un horario para el grupo.");
         }
     }
 
@@ -478,7 +495,8 @@ public class GrupoService {
                     horarios.getOrDefault(g.getId(), List.of()),
                     !ESTADOS_GRUPO_FINALES.contains(g.getEstado()),
                     !tieneMatriculas && !tieneClases,
-                    tieneMatriculas
+                    tieneMatriculas,
+                    curso != null && curso.esACoordinar()
             );
         }).toList();
     }
@@ -572,6 +590,10 @@ public class GrupoService {
         // 1.1 Los cursos de instrumento van en espacios, no en grupos.
         rechazarCursoInstrumento(curso);
 
+        // 1.2 Horario obligatorio, salvo en los cursos a coordinar en Dirección.
+        List<HorarioGrupoRequestDTO> horariosPedidos = request.getHorarios();
+        exigirHorarioSiCorresponde(curso, horariosPedidos);
+
         // 2. El período debe existir y no estar cerrado ni cancelado.
         PeriodoAcademico periodo = periodoAcademicoRepository
                 .findById(request.getIdPeriodo())
@@ -616,7 +638,8 @@ public class GrupoService {
             );
         }
 
-        if ("PUBLICADO".equals(estado) && profesor == null) {
+        // En un curso a coordinar, el profesor se asigna por estudiante.
+        if ("PUBLICADO".equals(estado) && profesor == null && !curso.esACoordinar()) {
             throw new BusinessException(
                     "Un grupo solo puede publicarse cuando tiene un profesor activo asignado."
             );
@@ -634,11 +657,12 @@ public class GrupoService {
         }
 
         // 7. El horario no puede tener bloques inválidos ni traslapes.
-        validarHorarios(request.getHorarios());
+        validarHorarios(horariosPedidos);
 
-        if (profesor != null) {
+        // Sin horario (solo en un curso a coordinar) no hay choques que revisar.
+        if (profesor != null && !horariosPedidos.isEmpty()) {
             List<ValidacionHorarioProfesorService.BloqueHorario> horariosPropuestos =
-                    request.getHorarios().stream()
+                    horariosPedidos.stream()
                             .map(horario -> new ValidacionHorarioProfesorService.BloqueHorario(
                                     horario.getDiaSemana(),
                                     horario.getHoraInicio(),
@@ -687,7 +711,7 @@ public class GrupoService {
 
         // 9. Guardar el horario semanal. Un bloque sin aula propia
         // usa el aula del grupo.
-        List<HorarioGrupo> horarios = request.getHorarios()
+        List<HorarioGrupo> horarios = horariosPedidos
                 .stream()
                 .map(h -> {
                     HorarioGrupo horario = new HorarioGrupo();

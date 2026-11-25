@@ -313,6 +313,19 @@ public class SecurityConfig {
 
                         /*
                          * =====================================================
+                         * Cursos a coordinar en Dirección (Música de Cámara)
+                         * Consultar y asignar profesor por estudiante:
+                         * DIRECTOR_ACADEMICO
+                         * =====================================================
+                         */
+                        .requestMatchers(
+                                "/cursos-a-coordinar",
+                                "/cursos-a-coordinar/**"
+                        )
+                        .hasRole("DIRECTOR_ACADEMICO")
+
+                        /*
+                         * =====================================================
                          * Avance por instrumento y nivel de ingreso
                          * Consultar: ADMINISTRATIVO y DIRECTOR_ACADEMICO
                          * Registrar el nivel de ingreso: DIRECTOR_ACADEMICO

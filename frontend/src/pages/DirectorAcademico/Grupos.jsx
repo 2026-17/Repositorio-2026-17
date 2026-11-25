@@ -15,17 +15,27 @@ import { paginar } from "../../components/ui/utilidades";
 import { ATAJO_BUSCADOR, useAtajoBuscador } from "../../hooks/useAtajoBuscador";
 import { useDialog } from "../../components/dialog/useDialog";
 import { leerError, mensajeDeExcepcion } from "../../utils/api";
-import { ETIQUETA_ESTADO_GRUPO, ETIQUETA_MODALIDAD, TONO_ESTADO_GRUPO, aHoraCorta, resumenHorario } from "./gruposComun";
+import {
+    ETIQUETA_ESTADO_GRUPO,
+    ETIQUETA_MODALIDAD,
+    TEXTO_HORARIO_A_COORDINAR,
+    TEXTO_PROFESOR_POR_ESTUDIANTE,
+    TONO_ESTADO_GRUPO,
+    aHoraCorta,
+    resumenHorario,
+} from "./gruposComun";
 
 const TAMANO_PAGINA = 10;
 
 const VIGENTES = ["PLANIFICADO", "PUBLICADO", "EN_CURSO"];
 const esVigente = (g) => VIGENTES.includes(g.estado);
 const estaLleno = (g) => g.cupoMaximo > 0 && g.inscritos >= g.cupoMaximo;
+// Un curso a coordinar no necesita profesor en el grupo: se asigna por estudiante.
+const faltaProfesor = (g) => !g.idProfesor && !g.aCoordinar;
 
 const FILTROS = [
     { valor: "vigentes", etiqueta: "Vigentes", aplica: esVigente },
-    { valor: "sinProfesor", etiqueta: "Sin profesor", aplica: (g) => esVigente(g) && !g.idProfesor },
+    { valor: "sinProfesor", etiqueta: "Sin profesor", aplica: (g) => esVigente(g) && faltaProfesor(g) },
     { valor: "llenos", etiqueta: "Llenos", aplica: (g) => esVigente(g) && estaLleno(g) },
     { valor: "finalizados", etiqueta: "Cerrados y cancelados", aplica: (g) => !esVigente(g) },
     { valor: "todos", etiqueta: "Todos", aplica: () => true },
@@ -150,7 +160,7 @@ function Grupos() {
             vigentes: vigentes.length,
             inscritos: vigentes.reduce((t, g) => t + g.inscritos, 0),
             cupos: vigentes.reduce((t, g) => t + g.cupoMaximo, 0),
-            sinProfesor: vigentes.filter((g) => !g.idProfesor).length,
+            sinProfesor: vigentes.filter(faltaProfesor).length,
             llenos: vigentes.filter(estaLleno).length,
         };
     }, [delPeriodo]);
@@ -392,13 +402,17 @@ function Grupos() {
                                             <td data-label="Profesor">
                                                 {g.nombreProfesor ? (
                                                     <span className="grupos-profesor"><CircleUserRound size={16} strokeWidth={1.75} aria-hidden="true" /> {g.nombreProfesor}</span>
+                                                ) : g.aCoordinar ? (
+                                                    <StatusBadge tone="info">{TEXTO_PROFESOR_POR_ESTUDIANTE}</StatusBadge>
                                                 ) : (
                                                     <StatusBadge tone="warning">Sin asignar</StatusBadge>
                                                 )}
                                             </td>
                                             <td data-label="Horario">
                                                 <ul className="grupos-horario">
-                                                    {horario.length > 0 ? horario.map((h) => <li key={h} className="tnum">{h}</li>) : <li className="muted">Sin horario</li>}
+                                                    {horario.length > 0
+                                                        ? horario.map((h) => <li key={h} className="tnum">{h}</li>)
+                                                        : <li className="muted">{g.aCoordinar ? TEXTO_HORARIO_A_COORDINAR : "Sin horario"}</li>}
                                                 </ul>
                                             </td>
                                             <td data-label="Cupo">
