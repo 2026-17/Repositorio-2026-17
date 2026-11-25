@@ -34,8 +34,8 @@ export function textoCoordinacion(grupo) {
  * servidor manda cupoMaximo y cupoDisponible en null. Ojo: en JavaScript
  * null <= 0 es true, por eso se revisa sinCupo antes de comparar.
  */
-// «Cupo abierto» (sin límite) no debe confundirse con «Grupo lleno».
-export const TEXTO_SIN_CUPO = "Cupo abierto";
+// «No requiere cupo» (sin límite) no debe confundirse con «Grupo lleno».
+export const TEXTO_SIN_CUPO = "No requiere cupo";
 export const TEXTO_GRUPO_LLENO = "Grupo lleno";
 
 export function estaSinCuposDisponibles(grupo) {
@@ -43,7 +43,7 @@ export function estaSinCuposDisponibles(grupo) {
     return grupo.cupoDisponible != null && grupo.cupoDisponible <= 0;
 }
 
-// "3/10" o "Cupo abierto" (para la columna Cupos).
+// "3/10" o "No requiere cupo" (para la columna Cupos).
 export function textoCupos(grupo) {
     if (grupo.sinCupo) return TEXTO_SIN_CUPO;
     return `${grupo.cupoDisponible}/${grupo.cupoMaximo}`;

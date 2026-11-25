@@ -44,8 +44,8 @@ export const TEXTO_PROFESOR_POR_ESTUDIANTE = "Se asigna por estudiante";
  * Esos grupos tampoco tienen cupo (sinCupo = true, cupoMaximo en null):
  * nunca se llenan y no se muestra el valor guardado en la base de datos.
  */
-export const TEXTO_SIN_CUPO = "Cupo abierto";
-export const TEXTO_CUPO_FORMULARIO = "Cupo abierto: no tiene límite de estudiantes, se matricula según convenga.";
+export const TEXTO_SIN_CUPO = "No requiere cupo";
+export const TEXTO_CUPO_FORMULARIO = "No requiere cupo: no tiene límite de estudiantes, se matricula según convenga.";
 
 // "7 matriculados" (o "1 matriculado").
 export function textoMatriculados(cantidad) {
