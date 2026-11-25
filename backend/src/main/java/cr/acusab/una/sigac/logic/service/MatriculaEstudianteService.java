@@ -526,7 +526,7 @@ public class MatriculaEstudianteService {
                         ? "Ya está matriculado en esta agrupación en este período."
                         : motivoBloqueoAgrupacion(agrupacion, datos);
                 if (motivo == null && ocupadosGrupo >= grupo.getCupoMaximo()) {
-                    motivo = "No tiene cupos libres.";
+                    motivo = "El grupo está lleno.";
                 }
                 dto.setBloqueada(motivo != null);
                 dto.setMotivoBloqueo(motivo);
@@ -1641,7 +1641,7 @@ public class MatriculaEstudianteService {
             if (CupoGrupo.estaLleno(grupo, curso, ocupados.getOrDefault(grupo.getId(), 0L))) {
                 errores.add(seleccion.esEspacio()
                         ? "El espacio " + etiqueta + " ya lo tomó otro estudiante. Elija otro espacio."
-                        : "El grupo " + etiqueta + " no tiene cupos disponibles.");
+                        : "El grupo " + etiqueta + " está lleno.");
             }
         }
 

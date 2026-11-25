@@ -12,6 +12,7 @@ import {
     espacioChocaCon,
     formatearHorarios,
     mapaAprobados,
+    TEXTO_GRUPO_LLENO,
     TEXTO_SIN_CUPO,
     textoCoordinacion,
     textoCupos,
@@ -400,7 +401,7 @@ function SeleccionCursos() {
     function insigniaCupos(grupo) {
         // Curso a coordinar: no tiene cupo y nunca se llena.
         if (grupo.sinCupo) return <StatusBadge tone="info" icon={null}>{TEXTO_SIN_CUPO}</StatusBadge>;
-        if (grupo.cupoDisponible <= 0) return <StatusBadge tone="neutral">Sin cupos</StatusBadge>;
+        if (grupo.cupoDisponible <= 0) return <StatusBadge tone="neutral">{TEXTO_GRUPO_LLENO}</StatusBadge>;
         if (grupo.cupoDisponible <= 2) {
             return <StatusBadge tone="warning">{grupo.cupoDisponible === 1 ? "Queda 1 cupo" : `Quedan ${grupo.cupoDisponible} cupos`}</StatusBadge>;
         }
@@ -575,7 +576,7 @@ function SeleccionCursos() {
                                         <div>
                                             <h2>2. Cursos de su plan</h2>
                                             <p className="panel-head-sub">
-                                                Los grupos sin cupo o con requisitos pendientes aparecen deshabilitados.
+                                                Los grupos llenos o con requisitos pendientes aparecen deshabilitados.
                                                 Si un curso choca con su lección de instrumento, el sistema se lo indica antes de confirmar.
                                             </p>
                                         </div>

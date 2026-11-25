@@ -10,6 +10,7 @@ import Field from "../../components/ui/Field";
 import PageHead from "../../components/ui/PageHead";
 import Pagination from "../../components/ui/Pagination";
 import { paginar } from "../../components/ui/utilidades";
+import { TEXTO_SIN_CUPO } from "./gruposComun";
 import { ATAJO_BUSCADOR, useAtajoBuscador } from "../../hooks/useAtajoBuscador";
 
 import { useDialog } from "../../components/dialog/useDialog";
@@ -391,7 +392,7 @@ function Cursos() {
                                         </td>
                                         <td data-label="Categoría">{curso.categoria ? <span className="inst">{curso.categoria}</span> : "—"}</td>
                                         <td data-label="Docente">{curso.docente || "—"}</td>
-                                        <td className="num" data-label="Cupo máximo">{curso.sinCupo ? "Sin cupo" : (curso.cupoMaximo ?? "—")}</td>
+                                        <td className="num" data-label="Cupo máximo">{curso.sinCupo ? TEXTO_SIN_CUPO : (curso.cupoMaximo ?? "—")}</td>
                                         <td className="actions">
                                             <div className="row-actions">
                                                 <button

@@ -488,7 +488,7 @@ class MatriculaEstudianteServiceTest {
         MatriculaInvalidaException ex =
                 assertThrows(MatriculaInvalidaException.class, () -> service.confirmar(solicitud(1L)));
 
-        assertTrue(ex.getErrores().stream().anyMatch(e -> e.contains("no tiene cupos disponibles")));
+        assertTrue(ex.getErrores().stream().anyMatch(e -> e.contains("está lleno")));
         verify(detalleRepository, never()).save(any());
     }
 
@@ -811,7 +811,7 @@ class MatriculaEstudianteServiceTest {
                 assertThrows(MatriculaInvalidaException.class, () -> service.confirmar(solicitud(3L)));
 
         assertTrue(ex.getErrores().stream().anyMatch(e -> e.contains("Prerrequisito incumplido")));
-        assertTrue(ex.getErrores().stream().noneMatch(e -> e.contains("cupos")));
+        assertTrue(ex.getErrores().stream().noneMatch(e -> e.contains("lleno")));
     }
 
     @Test
@@ -862,7 +862,7 @@ class MatriculaEstudianteServiceTest {
         MatriculaInvalidaException ex =
                 assertThrows(MatriculaInvalidaException.class, () -> service.confirmar(solicitud(1L)));
 
-        assertTrue(ex.getErrores().stream().anyMatch(e -> e.contains("no tiene cupos disponibles")));
+        assertTrue(ex.getErrores().stream().anyMatch(e -> e.contains("está lleno")));
     }
 
     @Test

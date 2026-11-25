@@ -25,7 +25,7 @@ public class AgrupacionesDisponiblesResponseDTO {
 
     /*
      * bloqueada + motivoBloqueo: "Es solo para estudiantes de Violín o
-     * Viola", "No tiene cupos libres" o "Ya completó esta agrupación".
+     * Viola", "El grupo está lleno" o "Ya completó esta agrupación".
      * matriculada: ya la tiene en este período.
      */
     @Getter

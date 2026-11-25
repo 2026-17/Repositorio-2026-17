@@ -306,7 +306,7 @@ class MatriculaAgrupacionesTest {
         MatriculaInvalidaException ex = assertThrows(MatriculaInvalidaException.class,
                 () -> confirmar(3002L, 3004L));
 
-        assertTrue(ex.getErrores().stream().anyMatch(e -> e.contains("«Comercial»") && e.contains("no tiene cupos")));
+        assertTrue(ex.getErrores().stream().anyMatch(e -> e.contains("«Comercial»") && e.contains("está lleno")));
     }
 
     @Test
