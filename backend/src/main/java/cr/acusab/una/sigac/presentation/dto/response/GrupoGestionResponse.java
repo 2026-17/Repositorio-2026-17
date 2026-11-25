@@ -70,4 +70,10 @@ public class GrupoGestionResponse {
     public void setACoordinar(boolean aCoordinar) {
         this.aCoordinar = aCoordinar;
     }
+
+    /*
+     * Grupo sin cupo (curso a coordinar): nunca se llena. cupoMaximo viene en
+     * null en ese caso; inscritos sigue contando los matriculados.
+     */
+    private Boolean sinCupo;
 }

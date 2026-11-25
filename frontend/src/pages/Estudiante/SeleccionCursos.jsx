@@ -12,7 +12,9 @@ import {
     espacioChocaCon,
     formatearHorarios,
     mapaAprobados,
+    TEXTO_SIN_CUPO,
     textoCoordinacion,
+    textoCupos,
     textoHorarioGrupo,
     textoProfesorGrupo,
     tieneBloqueoEstatico,
@@ -396,6 +398,8 @@ function SeleccionCursos() {
     const habilitado = Boolean(datos?.habilitado);
 
     function insigniaCupos(grupo) {
+        // Curso a coordinar: no tiene cupo y nunca se llena.
+        if (grupo.sinCupo) return <StatusBadge tone="info" icon={null}>{TEXTO_SIN_CUPO}</StatusBadge>;
         if (grupo.cupoDisponible <= 0) return <StatusBadge tone="neutral">Sin cupos</StatusBadge>;
         if (grupo.cupoDisponible <= 2) {
             return <StatusBadge tone="warning">{grupo.cupoDisponible === 1 ? "Queda 1 cupo" : `Quedan ${grupo.cupoDisponible} cupos`}</StatusBadge>;
@@ -491,7 +495,7 @@ function SeleccionCursos() {
                                                 <td className="c-main"><b>{curso.nombreCurso}</b><span className="sub">{subtituloClase(curso)}</span></td>
                                                 <td data-label="Horario">{textoHorarioGrupo(curso)}</td>
                                                 <td data-label="Profesor">{textoProfesor(curso)}</td>
-                                                <td className="num" data-label="Cupos">{curso.cupoDisponible}/{curso.cupoMaximo}</td>
+                                                <td className="num" data-label="Cupos">{textoCupos(curso)}</td>
                                             </tr>
                                         ))}
                                     </tbody>

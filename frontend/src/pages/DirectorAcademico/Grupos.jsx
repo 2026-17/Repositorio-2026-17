@@ -20,7 +20,9 @@ import {
     ETIQUETA_MODALIDAD,
     TEXTO_HORARIO_A_COORDINAR,
     TEXTO_PROFESOR_POR_ESTUDIANTE,
+    TEXTO_SIN_CUPO,
     TONO_ESTADO_GRUPO,
+    textoMatriculados,
     aHoraCorta,
     resumenHorario,
 } from "./gruposComun";
@@ -29,7 +31,8 @@ const TAMANO_PAGINA = 10;
 
 const VIGENTES = ["PLANIFICADO", "PUBLICADO", "EN_CURSO"];
 const esVigente = (g) => VIGENTES.includes(g.estado);
-const estaLleno = (g) => g.cupoMaximo > 0 && g.inscritos >= g.cupoMaximo;
+// Un grupo sin cupo (curso a coordinar) nunca se llena.
+const estaLleno = (g) => !g.sinCupo && g.cupoMaximo > 0 && g.inscritos >= g.cupoMaximo;
 // Un curso a coordinar no necesita profesor en el grupo: se asigna por estudiante.
 const faltaProfesor = (g) => !g.idProfesor && !g.aCoordinar;
 
@@ -158,8 +161,9 @@ function Grupos() {
         const vigentes = delPeriodo.filter(esVigente);
         return {
             vigentes: vigentes.length,
-            inscritos: vigentes.reduce((t, g) => t + g.inscritos, 0),
-            cupos: vigentes.reduce((t, g) => t + g.cupoMaximo, 0),
+            // Los grupos sin cupo no entran en «Cupos ocupados» (no tienen cupo que ocupar).
+            inscritos: vigentes.filter((g) => !g.sinCupo).reduce((t, g) => t + g.inscritos, 0),
+            cupos: vigentes.filter((g) => !g.sinCupo).reduce((t, g) => t + (g.cupoMaximo || 0), 0),
             sinProfesor: vigentes.filter(faltaProfesor).length,
             llenos: vigentes.filter(estaLleno).length,
         };
@@ -416,12 +420,20 @@ function Grupos() {
                                                 </ul>
                                             </td>
                                             <td data-label="Cupo">
-                                                <div className="grupos-cupo">
-                                                    <span className="tnum"><b>{g.inscritos}</b> / {g.cupoMaximo}</span>
-                                                    <span className={`grupos-cupo__barra${estaLleno(g) ? " is-lleno" : ""}`} role="img" aria-label={`${ocupacion}% ocupado`}>
-                                                        <i style={{ width: `${ocupacion}%` }} />
-                                                    </span>
-                                                </div>
+                                                {g.sinCupo ? (
+                                                    // Curso a coordinar: sin cupo, solo se cuentan los matriculados.
+                                                    <div className="grupos-cupo">
+                                                        <span className="tnum">{textoMatriculados(g.inscritos)}</span>
+                                                        <StatusBadge tone="info" icon={null}>{TEXTO_SIN_CUPO}</StatusBadge>
+                                                    </div>
+                                                ) : (
+                                                    <div className="grupos-cupo">
+                                                        <span className="tnum"><b>{g.inscritos}</b> / {g.cupoMaximo}</span>
+                                                        <span className={`grupos-cupo__barra${estaLleno(g) ? " is-lleno" : ""}`} role="img" aria-label={`${ocupacion}% ocupado`}>
+                                                            <i style={{ width: `${ocupacion}%` }} />
+                                                        </span>
+                                                    </div>
+                                                )}
                                             </td>
                                             <td>
                                                 <StatusBadge tone={TONO_ESTADO_GRUPO[g.estado] || "neutral"}>

@@ -13,7 +13,12 @@ import {
     consultarPeriodos,
     consultarProgramas,
 } from "../../utils/consultaCursosApi";
-import { TEXTO_COORDINAR_EN_DIRECCION, formatearHorarios } from "../../utils/matricula";
+import {
+    TEXTO_COORDINAR_EN_DIRECCION,
+    TEXTO_SIN_CUPO,
+    estaSinCuposDisponibles,
+    formatearHorarios,
+} from "../../utils/matricula";
 import "./consultaCursos.css";
 
 // HU-10 - Consultar cursos disponibles de un período académico.
@@ -247,7 +252,8 @@ function ConsultaCursos() {
                         </thead>
                         <tbody>
                             {filasPagina.map((curso) => {
-                                const sinCupos = curso.cupoDisponible <= 0;
+                                // Un curso a coordinar no tiene cupo: nunca se llena.
+                                const sinCupos = estaSinCuposDisponibles(curso);
 
                                 return (
                                     <tr key={curso.idGrupo}>
@@ -264,7 +270,9 @@ function ConsultaCursos() {
                                         <td data-label="Horario">{textoHorario(curso)}</td>
                                         <td data-label="Profesor">{textoProfesor(curso)}</td>
                                         <td>
-                                            {sinCupos ? (
+                                            {curso.sinCupo ? (
+                                                <StatusBadge tone="info">{TEXTO_SIN_CUPO}</StatusBadge>
+                                            ) : sinCupos ? (
                                                 <StatusBadge tone="danger">Sin cupos</StatusBadge>
                                             ) : (
                                                 <StatusBadge tone="success">

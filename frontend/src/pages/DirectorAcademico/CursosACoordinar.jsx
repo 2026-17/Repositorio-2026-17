@@ -8,7 +8,7 @@ import StatusBadge from "../../components/ui/StatusBadge";
 import { useDialog } from "../../components/dialog/useDialog";
 import { mensajeDeExcepcion } from "../../utils/api";
 import { nombreProfesor, solicitar } from "./espaciosApi";
-import { ETIQUETA_ESTADO_GRUPO, TONO_ESTADO_GRUPO } from "./gruposComun";
+import { ETIQUETA_ESTADO_GRUPO, TEXTO_SIN_CUPO, TONO_ESTADO_GRUPO, textoMatriculados } from "./gruposComun";
 import { guardarCoordinacion, listarCursosACoordinar, listarProfesoresActivosGrupo } from "./cursosACoordinarApi";
 import "./espacios.css";
 import "./agrupaciones.css";
@@ -182,7 +182,8 @@ export default function CursosACoordinar() {
                     ) : listaGrupos.map((g) => (
                         <section key={g.idGrupo} className="coordinar-grupo" aria-labelledby={`t-grupo-${g.idGrupo}`}>
                             <h3 id={`t-grupo-${g.idGrupo}`} className="form-section-title">
-                                {g.nombreCurso} · {g.codigo} · {g.matriculados} de {g.cupoMaximo}{" "}
+                                {g.nombreCurso} · {g.codigo} ·{" "}
+                                {g.sinCupo ? `${textoMatriculados(g.matriculados)} · ${TEXTO_SIN_CUPO}` : `${g.matriculados} de ${g.cupoMaximo}`}{" "}
                                 <StatusBadge tone={TONO_ESTADO_GRUPO[g.estado] ?? "neutral"}>
                                     {ETIQUETA_ESTADO_GRUPO[g.estado] ?? g.estado}
                                 </StatusBadge>

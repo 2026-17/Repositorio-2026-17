@@ -14,9 +14,11 @@ public record CursoACoordinarResponse(
         String codigoCurso,
         String nombreCurso,
         String estado,
-        int cupoMaximo,
+        // null: estos grupos no tienen cupo (sinCupo = true); matriculados sí se cuenta.
+        Integer cupoMaximo,
         int matriculados,
-        List<Estudiante> estudiantes
+        List<Estudiante> estudiantes,
+        Boolean sinCupo
 ) {
 
     public record Estudiante(

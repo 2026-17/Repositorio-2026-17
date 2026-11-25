@@ -38,3 +38,9 @@
         grid-column: 1 / -1;
     }
 }
+
+/* Curso a coordinar en Dirección: el grupo no tiene cupo (texto fijo en lugar del campo). */
+.grupo-sin-cupo {
+    margin: 0;
+    padding: var(--space-2) 0;
+}

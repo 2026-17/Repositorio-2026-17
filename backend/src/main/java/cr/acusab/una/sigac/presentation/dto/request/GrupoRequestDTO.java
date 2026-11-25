@@ -32,7 +32,10 @@ public class GrupoRequestDTO {
     @Size(max = 40, message = "El código del grupo no puede superar los 40 caracteres.")
     private String codigo;
 
-    @NotNull(message = "El cupo máximo es obligatorio.")
+    /*
+     * Obligatorio salvo en los cursos a coordinar en Dirección, que no tienen
+     * cupo (lo revisa GrupoService según el curso).
+     */
     @Positive(message = "El cupo máximo debe ser mayor que cero.")
     @Max(value = 500, message = "El cupo máximo no puede ser mayor que 500.")
     private Short cupoMaximo;

@@ -245,6 +245,9 @@ public class GrupoService {
         List<HorarioGrupoRequestDTO> horariosPedidos = request.getHorarios();
         exigirHorarioSiCorresponde(curso, horariosPedidos);
 
+        // 2.2 Cupo obligatorio, salvo en los cursos a coordinar (no tienen cupo).
+        short cupoMaximo = cupoSegunCurso(curso, request.getCupoMaximo());
+
         // 3. Período: si cambia, no puede estar cerrado ni cancelado.
         PeriodoAcademico periodo = periodoAcademicoRepository
                 .findById(request.getIdPeriodo())
@@ -285,15 +288,17 @@ public class GrupoService {
             );
         }
 
-        // 6. El cupo no puede quedar por debajo de los inscritos.
-        long inscritos = contar(
-                matriculaDetalleRepository.contarCuposOcupados(List.of(idGrupo), ESTADO_MATRICULA_REGISTRADA)
-        ).getOrDefault(idGrupo, 0L);
+        // 6. El cupo no puede quedar por debajo de los inscritos (un grupo sin cupo no se llena).
+        if (!curso.esACoordinar()) {
+            long inscritos = contar(
+                    matriculaDetalleRepository.contarCuposOcupados(List.of(idGrupo), ESTADO_MATRICULA_REGISTRADA)
+            ).getOrDefault(idGrupo, 0L);
 
-        if (request.getCupoMaximo() < inscritos) {
-            throw new BusinessException(
-                    "El cupo no puede ser menor que los " + inscritos + " estudiantes inscritos en el grupo."
-            );
+            if (cupoMaximo < inscritos) {
+                throw new BusinessException(
+                        "El cupo no puede ser menor que los " + inscritos + " estudiantes inscritos en el grupo."
+                );
+            }
         }
 
         // 7. Fechas, código único en el período y horario.
@@ -318,7 +323,7 @@ public class GrupoService {
         grupo.setIdPeriodo(periodo.getId());
         grupo.setIdProfesor(profesor != null ? profesor.getId() : null);
         grupo.setCodigo(codigo);
-        grupo.setCupoMaximo(request.getCupoMaximo());
+        grupo.setCupoMaximo(cupoMaximo);
         grupo.setModalidad(modalidad);
         grupo.setAula(aula);
         grupo.setFechaInicio(fechaInicio);
@@ -415,6 +420,21 @@ public class GrupoService {
         }
     }
 
+    /*
+     * Cupo que se guarda: en un curso a coordinar en Dirección se ignora el
+     * que venga y se guarda CUPO_SIN_LIMITE (nunca se usa para contar). En
+     * los demás cursos es obligatorio, con el mismo mensaje que daba el DTO.
+     */
+    private static short cupoSegunCurso(Curso curso, Short cupoPedido) {
+        if (curso.esACoordinar()) {
+            return CupoGrupo.CUPO_SIN_LIMITE;
+        }
+        if (cupoPedido == null) {
+            throw new BusinessException("El cupo máximo es obligatorio.");
+        }
+        return cupoPedido;
+    }
+
     private Grupo buscarGrupoOLanzarError(Long idGrupo) {
         return grupoRepository
                 .findById(idGrupo)
@@ -472,6 +492,9 @@ public class GrupoService {
             boolean tieneClases = sesiones.getOrDefault(g.getId(), 0L) > 0
                     || avances.getOrDefault(g.getId(), 0L) > 0;
 
+            // Curso a coordinar: sin cupo (no se manda el 999 guardado).
+            boolean sinCupo = CupoGrupo.esSinCupo(g, curso);
+
             return new GrupoGestionResponse(
                     g.getId(),
                     g.getCodigo(),
@@ -485,7 +508,7 @@ public class GrupoService {
                     periodo != null ? periodo.getFechaFin() : null,
                     g.getIdProfesor(),
                     nombreCompleto(profesor),
-                    g.getCupoMaximo(),
+                    sinCupo ? null : g.getCupoMaximo(),
                     inscritos.getOrDefault(g.getId(), 0L),
                     g.getModalidad(),
                     g.getAula(),
@@ -496,7 +519,8 @@ public class GrupoService {
                     !ESTADOS_GRUPO_FINALES.contains(g.getEstado()),
                     !tieneMatriculas && !tieneClases,
                     tieneMatriculas,
-                    curso != null && curso.esACoordinar()
+                    curso != null && curso.esACoordinar(),
+                    sinCupo
             );
         }).toList();
     }
@@ -593,6 +617,9 @@ public class GrupoService {
         // 1.2 Horario obligatorio, salvo en los cursos a coordinar en Dirección.
         List<HorarioGrupoRequestDTO> horariosPedidos = request.getHorarios();
         exigirHorarioSiCorresponde(curso, horariosPedidos);
+
+        // 1.3 Cupo obligatorio, salvo en los cursos a coordinar (no tienen cupo).
+        short cupoMaximo = cupoSegunCurso(curso, request.getCupoMaximo());
 
         // 2. El período debe existir y no estar cerrado ni cancelado.
         PeriodoAcademico periodo = periodoAcademicoRepository
@@ -698,7 +725,7 @@ public class GrupoService {
         grupo.setIdPeriodo(periodo.getId());
         grupo.setIdProfesor(profesor != null ? profesor.getId() : null);
         grupo.setCodigo(codigo);
-        grupo.setCupoMaximo(request.getCupoMaximo());
+        grupo.setCupoMaximo(cupoMaximo);
         grupo.setModalidad(modalidad);
         grupo.setAula(aula);
         grupo.setFechaInicio(fechaInicio);
@@ -881,13 +908,14 @@ public class GrupoService {
                 periodo.getNombre(),
                 grupo.getIdProfesor(),
                 nombreProfesor,
-                grupo.getCupoMaximo(),
+                CupoGrupo.esSinCupo(grupo, curso) ? null : grupo.getCupoMaximo(),
                 grupo.getModalidad(),
                 grupo.getAula(),
                 grupo.getFechaInicio(),
                 grupo.getFechaFin(),
                 grupo.getEstado(),
-                horariosResponse
+                horariosResponse,
+                CupoGrupo.esSinCupo(grupo, curso)
         );
     }
 }

@@ -164,7 +164,10 @@ public class CursoService {
 
         if (grupo != null) {
 
-            dto.setCupoMaximo(grupo.getCupoMaximo());
+            // Un curso a coordinar no tiene cupo: no se manda el valor guardado.
+            boolean sinCupo = CupoGrupo.esSinCupo(grupo, curso);
+            dto.setSinCupo(sinCupo);
+            dto.setCupoMaximo(sinCupo ? null : grupo.getCupoMaximo());
 
             Profesor profesor =
                     grupo.getIdProfesor() != null

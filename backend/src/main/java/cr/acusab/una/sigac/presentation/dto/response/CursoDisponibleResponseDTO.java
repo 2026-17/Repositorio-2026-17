@@ -28,8 +28,10 @@ public class CursoDisponibleResponseDTO {
     private String modalidad;
     private String aula;
 
-    private int cupoMaximo;
-    private int cupoDisponible;
+    // null en un grupo sin cupo (sinCupo = true, curso a coordinar en Dirección).
+    private Integer cupoMaximo;
+    private Integer cupoDisponible;
+    private Boolean sinCupo = false;
 
     private List<HorarioDTO> horarios = new ArrayList<>();
 

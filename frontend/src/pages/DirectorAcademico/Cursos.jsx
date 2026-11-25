@@ -391,7 +391,7 @@ function Cursos() {
                                         </td>
                                         <td data-label="Categoría">{curso.categoria ? <span className="inst">{curso.categoria}</span> : "—"}</td>
                                         <td data-label="Docente">{curso.docente || "—"}</td>
-                                        <td className="num" data-label="Cupo máximo">{curso.cupoMaximo ?? "—"}</td>
+                                        <td className="num" data-label="Cupo máximo">{curso.sinCupo ? "Sin cupo" : (curso.cupoMaximo ?? "—")}</td>
                                         <td className="actions">
                                             <div className="row-actions">
                                                 <button

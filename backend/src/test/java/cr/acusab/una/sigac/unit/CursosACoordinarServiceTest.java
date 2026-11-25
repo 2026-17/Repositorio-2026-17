@@ -199,7 +199,9 @@ class CursosACoordinarServiceTest {
         CursoACoordinarResponse g = grupos.get(0);
         assertEquals("MC-III-1", g.codigo());
         assertEquals("Música de Cámara III", g.nombreCurso());
-        assertEquals(40, g.cupoMaximo());
+        // Sin cupo: no se manda el valor guardado; los matriculados sí se cuentan.
+        assertNull(g.cupoMaximo());
+        assertTrue(g.sinCupo());
         assertEquals(1, g.matriculados());
         assertEquals("Violín", g.estudiantes().get(0).instrumento());
         assertEquals("111111111", g.estudiantes().get(0).cedula());

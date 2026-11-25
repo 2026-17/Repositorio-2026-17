@@ -40,6 +40,19 @@ const DIA_CORTO = Object.fromEntries(DIAS.map((d) => [d.value, d.corto]));
 export const TEXTO_HORARIO_A_COORDINAR = "A coordinar en Dirección";
 export const TEXTO_PROFESOR_POR_ESTUDIANTE = "Se asigna por estudiante";
 
+/*
+ * Esos grupos tampoco tienen cupo (sinCupo = true, cupoMaximo en null):
+ * nunca se llenan y no se muestra el valor guardado en la base de datos.
+ */
+export const TEXTO_SIN_CUPO = "Sin cupo";
+export const TEXTO_CUPO_FORMULARIO = "Sin cupo: se matricula según convenga.";
+
+// "7 matriculados" (o "1 matriculado").
+export function textoMatriculados(cantidad) {
+    const n = Number(cantidad) || 0;
+    return `${n} ${n === 1 ? "matriculado" : "matriculados"}`;
+}
+
 // "09:00:00" → "09:00"
 export function aHoraCorta(hora) {
     return String(hora || "").slice(0, 5);
