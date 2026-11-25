@@ -3,6 +3,7 @@ package cr.acusab.una.sigac.unit;
 import cr.acusab.una.sigac.data.entity.*;
 import cr.acusab.una.sigac.data.repository.*;
 import cr.acusab.una.sigac.logic.exception.BusinessException;
+import cr.acusab.una.sigac.logic.service.CupoGrupo;
 import cr.acusab.una.sigac.logic.service.GrupoService;
 import cr.acusab.una.sigac.logic.service.ValidacionHorarioProfesorService;
 import cr.acusab.una.sigac.presentation.dto.request.GrupoRequestDTO;
@@ -353,6 +354,78 @@ class GrupoServiceTest {
         verify(grupoRepository).save(argThat(g -> g.getIdProfesor() == null && "PUBLICADO".equals(g.getEstado())));
         // Sin horario ni profesor no se buscan choques.
         verify(grupoRepository, never()).findGruposProfesorEnPeriodo(any(), any(), any(), any());
+    }
+
+    @Test
+    void crear_cursoACoordinarSinCupo_seGuardaConCupoSinLimite() {
+        cursoACoordinar();
+        autenticar();
+        when(grupoRepository.save(any(Grupo.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        GrupoRequestDTO request = requestSinHorario("PUBLICADO");
+        request.setCupoMaximo(null);
+
+        var respuesta = service.crear(request);
+
+        verify(grupoRepository).save(argThat(g -> g.getCupoMaximo() == CupoGrupo.CUPO_SIN_LIMITE));
+        assertTrue(respuesta.getSinCupo());
+        assertNull(respuesta.getCupoMaximo());
+    }
+
+    @Test
+    void crear_cursoACoordinar_ignoraElCupoQueVenga() {
+        cursoACoordinar();
+        autenticar();
+        when(grupoRepository.save(any(Grupo.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        GrupoRequestDTO request = requestSinHorario("PUBLICADO");
+        request.setCupoMaximo((short) 12);
+
+        service.crear(request);
+
+        verify(grupoRepository).save(argThat(g -> g.getCupoMaximo() == CupoGrupo.CUPO_SIN_LIMITE));
+    }
+
+    @Test
+    void crear_cursoNormalSinCupo_daElErrorDeSiempre() {
+        GrupoRequestDTO request = request(LocalTime.of(8, 0), LocalTime.of(9, 0));
+        request.setCupoMaximo(null);
+
+        BusinessException error = assertThrows(BusinessException.class, () -> service.crear(request));
+
+        assertEquals("El cupo máximo es obligatorio.", error.getMessage());
+        verify(grupoRepository, never()).save(any(Grupo.class));
+    }
+
+    @Test
+    void actualizar_cursoACoordinar_conMuchosInscritos_noAplicaCupoMenorQueInscritos() {
+        cursoACoordinar();
+        Grupo grupo = grupoExistente();
+        autenticar();
+        when(grupoRepository.save(any(Grupo.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(matriculaDetalleRepository.contarCuposOcupados(anyCollection(), any()))
+                .thenReturn(List.<Object[]>of(new Object[]{20L, 1500L}));
+
+        GrupoRequestDTO request = requestSinHorario("PUBLICADO");
+        request.setCupoMaximo(null);
+
+        var respuesta = service.actualizar(20L, request);
+
+        assertEquals(CupoGrupo.CUPO_SIN_LIMITE, grupo.getCupoMaximo());
+        assertTrue(respuesta.getSinCupo());
+        assertNull(respuesta.getCupoMaximo());
+        assertEquals(1500L, respuesta.getInscritos());
+    }
+
+    @Test
+    void actualizar_cursoNormalSinCupo_daElErrorDeSiempre() {
+        grupoExistente();
+        GrupoRequestDTO request = request(LocalTime.of(9, 0), LocalTime.of(10, 0));
+        request.setCupoMaximo(null);
+
+        BusinessException error = assertThrows(BusinessException.class, () -> service.actualizar(20L, request));
+
+        assertEquals("El cupo máximo es obligatorio.", error.getMessage());
     }
 
     @Test

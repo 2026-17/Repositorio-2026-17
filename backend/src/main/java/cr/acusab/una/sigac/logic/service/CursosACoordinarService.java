@@ -136,9 +136,10 @@ public class CursosACoordinarService {
                     curso != null ? curso.getCodigo() : null,
                     curso != null ? curso.getNombre() : null,
                     grupo.getEstado(),
-                    grupo.getCupoMaximo(),
+                    CupoGrupo.esSinCupo(grupo, curso) ? null : (int) grupo.getCupoMaximo(),
                     estudiantes.size(),
-                    estudiantes
+                    estudiantes,
+                    CupoGrupo.esSinCupo(grupo, curso)
             ));
         }
 

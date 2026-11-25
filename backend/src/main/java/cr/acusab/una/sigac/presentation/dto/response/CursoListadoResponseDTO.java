@@ -59,6 +59,12 @@ public class CursoListadoResponseDTO {
     public String getDocente() { return docente; }
     public void setDocente(String docente) { this.docente = docente; }
 
+    // Grupo sin cupo (curso a coordinar): cupoMaximo viene en null.
+    private Boolean sinCupo = false;
+
+    public Boolean getSinCupo() { return sinCupo; }
+    public void setSinCupo(Boolean sinCupo) { this.sinCupo = sinCupo; }
+
     public Short getCupoMaximo() { return cupoMaximo; }
     public void setCupoMaximo(Short cupoMaximo) { this.cupoMaximo = cupoMaximo; }
 }

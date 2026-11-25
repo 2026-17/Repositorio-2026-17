@@ -799,18 +799,70 @@ class MatriculaEstudianteServiceTest {
     }
 
     @Test
-    void confirmar_cursoACoordinar_respetaPrerrequisitosYCupo() {
+    void confirmar_cursoACoordinar_respetaPrerrequisitosPeroNuncaSeLlena() {
 
         conMusicaDeCamara();
-        grupos.add(grupo(3L, 103L, 1));
+        // Guardado con 999 y con muchos más inscritos: igual no se llena.
+        grupos.add(grupo(3L, 103L, 999));
         requisitos.add(requisito("PRERREQUISITO", 103L, 101L, null));
-        ocupados.add(new Object[]{3L, 1L});
+        ocupados.add(new Object[]{3L, 5000L});
 
         MatriculaInvalidaException ex =
                 assertThrows(MatriculaInvalidaException.class, () -> service.confirmar(solicitud(3L)));
 
         assertTrue(ex.getErrores().stream().anyMatch(e -> e.contains("Prerrequisito incumplido")));
-        assertTrue(ex.getErrores().stream().anyMatch(e -> e.contains("no tiene cupos")));
+        assertTrue(ex.getErrores().stream().noneMatch(e -> e.contains("cupos")));
+    }
+
+    @Test
+    void confirmar_cursoACoordinarConMuchosInscritos_seMatricula() {
+
+        conMusicaDeCamara();
+        grupos.add(grupo(3L, 103L, 999));
+        ocupados.add(new Object[]{3L, 5000L});
+
+        MatriculaConfirmadaResponseDTO respuesta = service.confirmar(solicitud(3L));
+
+        OfertaMatriculaResponseDTO.GrupoDTO camara = respuesta.getCursos().get(0);
+        assertTrue(camara.getSinCupo());
+        assertNull(camara.getCupoMaximo());
+        assertNull(camara.getCupoDisponible());
+    }
+
+    @Test
+    void consultarMiOferta_cursoACoordinar_vieneSinCupoYSinNumeros() {
+
+        conMusicaDeCamara();
+        grupos.add(grupo(1L, 101L, 10));
+        grupos.add(grupo(3L, 103L, 999));
+        ocupados.add(new Object[]{3L, 1200L});
+
+        OfertaMatriculaResponseDTO oferta = service.consultarMiOferta();
+
+        OfertaMatriculaResponseDTO.GrupoDTO camara = oferta.getOferta().stream()
+                .filter(g -> g.getIdGrupo().equals(3L)).findFirst().orElseThrow();
+        assertTrue(camara.getSinCupo());
+        assertNull(camara.getCupoMaximo());
+        assertNull(camara.getCupoDisponible());
+
+        OfertaMatriculaResponseDTO.GrupoDTO guitarra = oferta.getOferta().stream()
+                .filter(g -> g.getIdGrupo().equals(1L)).findFirst().orElseThrow();
+        assertFalse(guitarra.getSinCupo());
+        assertEquals(10, guitarra.getCupoMaximo());
+        assertEquals(10, guitarra.getCupoDisponible());
+    }
+
+    @Test
+    void confirmar_cursoNormalLleno_sigueSinCupos() {
+
+        conMusicaDeCamara();
+        grupos.add(grupo(1L, 101L, 2));
+        ocupados.add(new Object[]{1L, 2L});
+
+        MatriculaInvalidaException ex =
+                assertThrows(MatriculaInvalidaException.class, () -> service.confirmar(solicitud(1L)));
+
+        assertTrue(ex.getErrores().stream().anyMatch(e -> e.contains("no tiene cupos disponibles")));
     }
 
     @Test

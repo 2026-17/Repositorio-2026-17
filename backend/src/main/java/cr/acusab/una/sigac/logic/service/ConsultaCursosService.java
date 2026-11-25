@@ -247,11 +247,18 @@ public class ConsultaCursosService {
                 dto.setProfesor(nombreCompleto(profesor));
             }
 
-            int cupoMaximo = grupo.getCupoMaximo();
-            long ocupados = ocupadosPorGrupo.getOrDefault(grupo.getId(), 0L);
+            // Un curso a coordinar no tiene cupo: no se manda el valor guardado.
+            if (CupoGrupo.esSinCupo(grupo, curso)) {
+                dto.setSinCupo(true);
+                dto.setCupoMaximo(null);
+                dto.setCupoDisponible(null);
+            } else {
+                int cupoMaximo = grupo.getCupoMaximo();
+                long ocupados = ocupadosPorGrupo.getOrDefault(grupo.getId(), 0L);
 
-            dto.setCupoMaximo(cupoMaximo);
-            dto.setCupoDisponible((int) Math.max(0, cupoMaximo - ocupados));
+                dto.setCupoMaximo(cupoMaximo);
+                dto.setCupoDisponible((int) Math.max(0, cupoMaximo - ocupados));
+            }
 
             for (HorarioGrupo horario :
                     horariosPorGrupo.getOrDefault(grupo.getId(), List.of())) {

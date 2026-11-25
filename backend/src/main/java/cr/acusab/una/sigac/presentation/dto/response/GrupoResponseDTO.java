@@ -36,6 +36,9 @@ public class GrupoResponseDTO {
 
     private List<Horario> horarios;
 
+    // Grupo sin cupo (curso a coordinar): cupoMaximo viene en null.
+    private Boolean sinCupo;
+
     @Getter
     @Setter
     @NoArgsConstructor

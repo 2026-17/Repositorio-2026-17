@@ -12,7 +12,7 @@ import { normalizarCodigoEscrito } from "../../utils/codigos";
 
 import { useDialog } from "../../components/dialog/useDialog";
 import { formularioModificado, useAvisoCambiosSinGuardar } from "../../hooks/useAvisoCambiosSinGuardar";
-import { DIAS, ESTADOS_GRUPO, MODALIDADES, aHoraCorta } from "./gruposComun";
+import { DIAS, ESTADOS_GRUPO, MODALIDADES, TEXTO_CUPO_FORMULARIO, aHoraCorta } from "./gruposComun";
 
 const HORARIO_VACIO = { diaSemana: "", horaInicio: "", horaFin: "", aula: "" };
 
@@ -261,11 +261,14 @@ function FormularioGrupo({ grupo = null, idCursoInicial = null, onCancel, onSucc
         if (!form.codigo.trim()) e.codigo = "Ingrese el código del grupo.";
         else if (form.codigo.trim().length > 40) e.codigo = "El código no puede superar los 40 caracteres.";
 
-        const cupo = Number(form.cupoMaximo);
-        if (!form.cupoMaximo) e.cupoMaximo = "Ingrese el cupo máximo.";
-        else if (!Number.isInteger(cupo) || cupo <= 0) e.cupoMaximo = "El cupo debe ser un número entero mayor que cero.";
-        else if (cupo > 500) e.cupoMaximo = "El cupo máximo no puede ser mayor que 500.";
-        else if (editando && cupo < grupo.inscritos) e.cupoMaximo = `El cupo no puede ser menor que los ${grupo.inscritos} estudiantes inscritos.`;
+        // Un curso a coordinar no tiene cupo: no se valida.
+        if (!aCoordinar) {
+            const cupo = Number(form.cupoMaximo);
+            if (!form.cupoMaximo) e.cupoMaximo = "Ingrese el cupo máximo.";
+            else if (!Number.isInteger(cupo) || cupo <= 0) e.cupoMaximo = "El cupo debe ser un número entero mayor que cero.";
+            else if (cupo > 500) e.cupoMaximo = "El cupo máximo no puede ser mayor que 500.";
+            else if (editando && cupo < grupo.inscritos) e.cupoMaximo = `El cupo no puede ser menor que los ${grupo.inscritos} estudiantes inscritos.`;
+        }
 
         if (["PUBLICADO", "EN_CURSO"].includes(form.estado) && !form.idProfesor && !aCoordinar) {
             e.idProfesor = "Un grupo publicado o en curso necesita un profesor asignado.";
@@ -344,7 +347,8 @@ function FormularioGrupo({ grupo = null, idCursoInicial = null, onCancel, onSucc
             idCurso: Number(form.idCurso),
             idPeriodo: Number(form.idPeriodo),
             codigo: form.codigo.trim().toUpperCase(),
-            cupoMaximo: Number(form.cupoMaximo),
+            // Sin cupo en un curso a coordinar: el servidor guarda su valor fijo.
+            cupoMaximo: aCoordinar ? null : Number(form.cupoMaximo),
             idProfesor: form.idProfesor ? Number(form.idProfesor) : null,
             modalidad: form.modalidad,
             aula: form.aula.trim() || null,
@@ -436,7 +440,9 @@ function FormularioGrupo({ grupo = null, idCursoInicial = null, onCancel, onSucc
 
                 {editando && grupo.inscritos > 0 && (
                     <Alert tone="info" className="form-alert" title={`${grupo.inscritos} ${grupo.inscritos === 1 ? "estudiante inscrito" : "estudiantes inscritos"}`}>
-                        Los cambios de horario, aula o profesor les afectan. El cupo no puede quedar por debajo de los inscritos.
+                        {aCoordinar
+                            ? "Los cambios de horario, aula o profesor les afectan."
+                            : "Los cambios de horario, aula o profesor les afectan. El cupo no puede quedar por debajo de los inscritos."}
                     </Alert>
                 )}
 
@@ -494,9 +500,17 @@ function FormularioGrupo({ grupo = null, idCursoInicial = null, onCancel, onSucc
                                 />
                             )}
                         </div>
-                        <Field id="cupoMaximo" label="Cupo máximo" hint={editando && grupo.inscritos > 0 ? `Mínimo ${grupo.inscritos} (inscritos).` : undefined} error={errores.cupoMaximo}>
-                            <input id="cupoMaximo" name="cupoMaximo" type="number" min={editando ? Math.max(1, grupo.inscritos) : 1} max="500" step="1" className="sg-input" value={form.cupoMaximo} onChange={handleChange} placeholder="Ej. 15" {...aria("cupoMaximo")} />
-                        </Field>
+                        {aCoordinar ? (
+                            // Curso a coordinar: el grupo no tiene cupo (nunca se llena).
+                            <div className="sg-field">
+                                <span className="sg-field__label">Cupo</span>
+                                <p className="muted grupo-sin-cupo">{TEXTO_CUPO_FORMULARIO}</p>
+                            </div>
+                        ) : (
+                            <Field id="cupoMaximo" label="Cupo máximo" hint={editando && grupo.inscritos > 0 ? `Mínimo ${grupo.inscritos} (inscritos).` : undefined} error={errores.cupoMaximo}>
+                                <input id="cupoMaximo" name="cupoMaximo" type="number" min={editando ? Math.max(1, grupo.inscritos) : 1} max="500" step="1" className="sg-input" value={form.cupoMaximo} onChange={handleChange} placeholder="Ej. 15" {...aria("cupoMaximo")} />
+                            </Field>
+                        )}
                         <Field id="idProfesor" label="Profesor" optional error={errores.idProfesor} select hint={aCoordinar ? "Se asigna por estudiante en «Cursos a coordinar»." : undefined}>
                             <select id="idProfesor" name="idProfesor" className="sg-input sg-select" value={form.idProfesor} onChange={handleChange} disabled={cargandoCatalogos} {...aria("idProfesor")}>
                                 <option value="">Sin asignar</option>

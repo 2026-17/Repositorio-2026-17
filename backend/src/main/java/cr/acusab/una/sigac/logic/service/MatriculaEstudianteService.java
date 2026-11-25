@@ -1637,7 +1637,8 @@ public class MatriculaEstudianteService {
                 }
             }
 
-            if (ocupados.getOrDefault(grupo.getId(), 0L) >= grupo.getCupoMaximo()) {
+            // Un grupo de un curso a coordinar no tiene cupo: nunca se llena.
+            if (CupoGrupo.estaLleno(grupo, curso, ocupados.getOrDefault(grupo.getId(), 0L))) {
                 errores.add(seleccion.esEspacio()
                         ? "El espacio " + etiqueta + " ya lo tomó otro estudiante. Elija otro espacio."
                         : "El grupo " + etiqueta + " no tiene cupos disponibles.");
@@ -2268,11 +2269,18 @@ public class MatriculaEstudianteService {
                 }
             }
 
-            int cupoMaximo = grupo.getCupoMaximo();
-            long ocupadosGrupo = ocupados.getOrDefault(grupo.getId(), 0L);
+            // Un curso a coordinar no tiene cupo: no se manda el valor guardado.
+            if (CupoGrupo.esSinCupo(grupo, curso)) {
+                dto.setSinCupo(true);
+                dto.setCupoMaximo(null);
+                dto.setCupoDisponible(null);
+            } else {
+                int cupoMaximo = grupo.getCupoMaximo();
+                long ocupadosGrupo = ocupados.getOrDefault(grupo.getId(), 0L);
 
-            dto.setCupoMaximo(cupoMaximo);
-            dto.setCupoDisponible((int) Math.max(0, cupoMaximo - ocupadosGrupo));
+                dto.setCupoMaximo(cupoMaximo);
+                dto.setCupoDisponible((int) Math.max(0, cupoMaximo - ocupadosGrupo));
+            }
 
             for (HorarioGrupo horario : horarios.getOrDefault(grupo.getId(), List.of())) {
 

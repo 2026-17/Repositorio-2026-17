@@ -29,6 +29,24 @@ export function textoCoordinacion(grupo) {
         : TEXTO_COORDINAR_EN_DIRECCION;
 }
 
+/*
+ * Grupos sin cupo (cursos a coordinar en Dirección): nunca se llenan y el
+ * servidor manda cupoMaximo y cupoDisponible en null. Ojo: en JavaScript
+ * null <= 0 es true, por eso se revisa sinCupo antes de comparar.
+ */
+export const TEXTO_SIN_CUPO = "Sin cupo";
+
+export function estaSinCuposDisponibles(grupo) {
+    if (grupo.sinCupo) return false;
+    return grupo.cupoDisponible != null && grupo.cupoDisponible <= 0;
+}
+
+// "3/10" o "Sin cupo" (para la columna Cupos).
+export function textoCupos(grupo) {
+    if (grupo.sinCupo) return TEXTO_SIN_CUPO;
+    return `${grupo.cupoDisponible}/${grupo.cupoMaximo}`;
+}
+
 // Columna Horario: en un curso a coordinar, lo que corresponde en su lugar.
 export function textoHorarioGrupo(grupo) {
     if (grupo.aCoordinar) {
@@ -140,7 +158,8 @@ export function tieneBloqueoEstatico({
         return "Ya matriculado en este curso durante el período vigente.";
     }
 
-    if (grupo.cupoDisponible <= 0) {
+    // Un grupo sin cupo (curso a coordinar) nunca se llena.
+    if (estaSinCuposDisponibles(grupo)) {
         return "Sin cupos disponibles.";
     }
 
