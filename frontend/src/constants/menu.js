@@ -6,6 +6,7 @@ import {
     ChartColumn,
     ClipboardList,
     GraduationCap,
+    Handshake,
     Library,
     Music,
     Music2,
@@ -82,6 +83,12 @@ export const MENU_POR_ROL = {
                     label: "Grupos",
                     icon: Users,
                     descripcion: "Abra grupos de un curso en un período con el botón \"Nuevo grupo\" (el código se sugiere solo) y consulte, modifique o elimine los existentes. Los que tienen matrículas se cancelan en lugar de eliminarse.",
+                },
+                {
+                    to: "/director-academico/cursos-a-coordinar",
+                    label: "Cursos a coordinar",
+                    icon: Handshake,
+                    descripcion: "Vea quién matriculó cursos como Música de Cámara, que se publican sin horario ni profesor, y asigne a cada estudiante su profesor y cómo cumplirá el curso.",
                 },
                 {
                     to: "/director-academico/espacios-instrumento",

@@ -12,6 +12,9 @@ import {
     espacioChocaCon,
     formatearHorarios,
     mapaAprobados,
+    textoCoordinacion,
+    textoHorarioGrupo,
+    textoProfesorGrupo,
     tieneBloqueoEstatico,
     validarSeleccion,
 } from "../../utils/matricula";
@@ -64,8 +67,16 @@ async function cargarTodo(token) {
     ]);
 }
 
+// En un curso a coordinar en Dirección, el profesor que asignó la Dirección.
 function textoProfesor(grupo) {
-    return grupo.profesor ?? "Por definir";
+    return textoProfesorGrupo(grupo);
+}
+
+// "Música de Cámara III (MC-III-1) · Coordinar en Dirección" o con horario y profesor.
+function lineaGrupo(g) {
+    return g.aCoordinar
+        ? `${g.nombreCurso} (${g.codigo}) · ${textoCoordinacion(g)}`
+        : `${g.nombreCurso} (${g.codigo}) · ${formatearHorarios(g.horarios)} · Profesor: ${textoProfesor(g)}`;
 }
 
 // Subtítulo de una fila matriculada: lección, agrupación o código del grupo.
@@ -335,9 +346,7 @@ function SeleccionCursos() {
                     ...espaciosElegidos.map(
                         (e) => `Lección individual · ${e.nombreCurso} · ${formatearHorarios(e.horarios)} · Profesor: ${textoProfesor(e)}`
                     ),
-                    ...gruposSeleccionados.map(
-                        (g) => `${g.nombreCurso} (${g.codigo}) · ${formatearHorarios(g.horarios)} · Profesor: ${textoProfesor(g)}`
-                    ),
+                    ...gruposSeleccionados.map(lineaGrupo),
                     ...agrupacionesSeleccionadas.map(
                         (a) => `Agrupación · ${a.nombre} · ${formatearHorarios(a.horarios)}`
                     ),
@@ -396,13 +405,13 @@ function SeleccionCursos() {
 
     // Filas del resumen: todo lo elegido, con nombre y horario (sin nivel en las agrupaciones).
     const filasResumen = [
-        ...espaciosElegidos.map((e) => ({ id: e.idGrupo, tipo: "Lección individual", nombre: e.nombreCurso, horarios: e.horarios, profesor: textoProfesor(e) })),
-        ...gruposSeleccionados.map((g) => ({ id: g.idGrupo, tipo: "Curso", nombre: g.nombreCurso, horarios: g.horarios, profesor: textoProfesor(g) })),
+        ...espaciosElegidos.map((e) => ({ id: e.idGrupo, tipo: "Lección individual", nombre: e.nombreCurso, horario: formatearHorarios(e.horarios), profesor: textoProfesor(e) })),
+        ...gruposSeleccionados.map((g) => ({ id: g.idGrupo, tipo: "Curso", nombre: g.nombreCurso, horario: textoHorarioGrupo(g), profesor: textoProfesor(g) })),
         ...agrupacionesSeleccionadas.map((a) => ({
             id: a.idGrupo,
             tipo: "Agrupación",
             nombre: a.nombre,
-            horarios: a.horarios,
+            horario: formatearHorarios(a.horarios),
             profesor: a.profesores?.length ? a.profesores.join(", ") : "Por definir",
         })),
     ];
@@ -480,7 +489,7 @@ function SeleccionCursos() {
                                         {confirmacion.cursos.map((curso) => (
                                             <tr key={curso.idGrupo}>
                                                 <td className="c-main"><b>{curso.nombreCurso}</b><span className="sub">{subtituloClase(curso)}</span></td>
-                                                <td data-label="Horario">{formatearHorarios(curso.horarios)}</td>
+                                                <td data-label="Horario">{textoHorarioGrupo(curso)}</td>
                                                 <td data-label="Profesor">{textoProfesor(curso)}</td>
                                                 <td className="num" data-label="Cupos">{curso.cupoDisponible}/{curso.cupoMaximo}</td>
                                             </tr>
@@ -524,7 +533,7 @@ function SeleccionCursos() {
                                                             <b>{grupo.nombreCurso}</b>
                                                             <span className="sub">{subtituloClase(grupo)}</span>
                                                         </td>
-                                                        <td data-label="Horario">{formatearHorarios(grupo.horarios)}</td>
+                                                        <td data-label="Horario">{textoHorarioGrupo(grupo)}</td>
                                                         <td data-label="Profesor">{textoProfesor(grupo)}</td>
                                                     </tr>
                                                 ))}
@@ -599,7 +608,10 @@ function SeleccionCursos() {
                                                             <span className="choice-main">
                                                                 <b>{grupo.nombreCurso}</b>
                                                                 <span>
-                                                                    {[grupo.codigo, grupo.nivel != null ? `Nivel ${grupo.nivel}` : null, formatearHorarios(grupo.horarios), textoProfesor(grupo)].filter(Boolean).join(" · ")}
+                                                                    {(grupo.aCoordinar
+                                                                        ? [grupo.codigo, grupo.nivel != null ? `Nivel ${grupo.nivel}` : null, textoCoordinacion(grupo)]
+                                                                        : [grupo.codigo, grupo.nivel != null ? `Nivel ${grupo.nivel}` : null, formatearHorarios(grupo.horarios), textoProfesor(grupo)]
+                                                                    ).filter(Boolean).join(" · ")}
                                                                 </span>
                                                                 {grupo.nombrePlan && <span className="opcion-plan">{grupo.nombrePlan}</span>}
                                                                 {mensajes.length > 0 && (
@@ -665,7 +677,7 @@ function SeleccionCursos() {
                                                     {filasResumen.map((fila) => (
                                                         <tr key={fila.id}>
                                                             <td className="c-main"><b>{fila.nombre}</b><span className="sub">{fila.tipo}</span></td>
-                                                            <td data-label="Horario">{formatearHorarios(fila.horarios)}</td>
+                                                            <td data-label="Horario">{fila.horario}</td>
                                                             <td data-label="Profesor">{fila.profesor}</td>
                                                         </tr>
                                                     ))}

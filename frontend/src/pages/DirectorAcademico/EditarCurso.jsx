@@ -1,5 +1,6 @@
 import RequisitosCursoOpcionales from "./RequisitosCursoOpcionales";
 import CasillaCursoInstrumento from "./CasillaCursoInstrumento";
+import CasillaCursoACoordinar from "./CasillaCursoACoordinar";
 import CamposEdadCurso from "./CamposEdadCurso";
 import { edadParaEnviar, erroresEdadCurso } from "./quienesPueden";
 import { useEffect, useMemo, useState } from "react";
@@ -33,6 +34,7 @@ function construirFormDesdeCurso(curso) {
                 ? String(curso.nivel)
                 : "",
         esCursoInstrumento: Boolean(curso?.esCursoInstrumento),
+        aCoordinar: Boolean(curso?.aCoordinar),
         // D7: vacío = sin límite.
         edadMinima: curso?.edadMinima != null ? String(curso.edadMinima) : "",
         edadMaxima: curso?.edadMaxima != null ? String(curso.edadMaxima) : "",
@@ -47,6 +49,7 @@ function normalizarForm(form) {
         idPrograma: Number(form.idPrograma),
         nivel: Number(form.nivel),
         esCursoInstrumento: Boolean(form.esCursoInstrumento),
+        aCoordinar: Boolean(form.aCoordinar),
         edadMinima: edadParaEnviar(form.edadMinima),
         edadMaxima: edadParaEnviar(form.edadMaxima),
         requisitos: form.requisitos,
@@ -161,6 +164,7 @@ function EditarCurso({ idCurso, onCancel, onSuccess }) {
             actual.idPrograma !== inicial.idPrograma ||
             actual.nivel !== inicial.nivel ||
             actual.esCursoInstrumento !== inicial.esCursoInstrumento ||
+            actual.aCoordinar !== inicial.aCoordinar ||
             actual.edadMinima !== inicial.edadMinima ||
             actual.edadMaxima !== inicial.edadMaxima ||
             JSON.stringify(actual.requisitos) !== JSON.stringify(inicial.requisitos)
@@ -218,6 +222,7 @@ function EditarCurso({ idCurso, onCancel, onSuccess }) {
         }
 
         if (actual.esCursoInstrumento !== inicial.esCursoInstrumento) cambios.push("Se cursa en espacios de instrumento");
+        if (actual.aCoordinar !== inicial.aCoordinar) cambios.push("Horario y profesor a coordinar en Dirección");
         if (actual.edadMinima !== inicial.edadMinima || actual.edadMaxima !== inicial.edadMaxima) cambios.push("Edades");
         if (JSON.stringify(actual.requisitos) !== JSON.stringify(inicial.requisitos)) cambios.push("Requisitos del curso");
         return cambios;
@@ -500,6 +505,11 @@ function EditarCurso({ idCurso, onCancel, onSuccess }) {
                                 <input id="nivel" name="nivel" type="number" className="sg-input" min="1" max="999" step="1" inputMode="numeric" value={form.nivel} onChange={handleChange} disabled={guardando} {...aria("nivel")} />
                             </Field>
                             <CamposEdadCurso form={form} errores={errores} onChange={handleChange} aria={aria} disabled={guardando} />
+                            <CasillaCursoACoordinar
+                                checked={form.aCoordinar}
+                                onChange={(valor) => setForm((prev) => ({ ...prev, aCoordinar: valor }))}
+                                disabled={guardando}
+                            />
                             <CasillaCursoInstrumento
                                 checked={form.esCursoInstrumento}
                                 onChange={(valor) => setForm((prev) => ({ ...prev, esCursoInstrumento: valor }))}

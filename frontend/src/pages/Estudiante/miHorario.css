@@ -11,6 +11,15 @@
     margin-bottom: var(--space-5);
 }
 
+/* Cursos a coordinar en Dirección: uno por línea. */
+.mi-horario__coordinar {
+    display: grid;
+    gap: var(--space-1);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
 .mi-horario__skeleton {
     display: grid;
     grid-template-columns: repeat(5, 1fr);

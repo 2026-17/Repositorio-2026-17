@@ -1,5 +1,6 @@
 import RequisitosCursoOpcionales from "./RequisitosCursoOpcionales";
 import CasillaCursoInstrumento from "./CasillaCursoInstrumento";
+import CasillaCursoACoordinar from "./CasillaCursoACoordinar";
 import CamposEdadCurso from "./CamposEdadCurso";
 import { edadParaEnviar, erroresEdadCurso } from "./quienesPueden";
 import { useEffect, useState } from "react";
@@ -25,6 +26,8 @@ const FORM_VACIO = {
     idPrograma: "",
     nivel: "",
     esCursoInstrumento: false,
+    // Música de Cámara: horario y profesor se coordinan en Dirección.
+    aCoordinar: false,
     // D7: opcionales (vacío = sin límite).
     edadMinima: "",
     edadMaxima: "",
@@ -234,6 +237,7 @@ function CrearCurso({ onCancel, onSuccess, idProgramaInicial }) {
             idPrograma: Number(form.idPrograma),
             nivel: Number(form.nivel),
             esCursoInstrumento: form.esCursoInstrumento,
+            aCoordinar: form.aCoordinar,
             edadMinima: edadParaEnviar(form.edadMinima),
             edadMaxima: edadParaEnviar(form.edadMaxima),
             requisitos: form.requisitos,
@@ -374,6 +378,11 @@ function CrearCurso({ onCancel, onSuccess, idProgramaInicial }) {
                             <input id="nivel" name="nivel" type="number" className="sg-input" min="1" max="999" step="1" inputMode="numeric" value={form.nivel} onChange={handleChange} placeholder="Ej. 1" {...aria("nivel")} />
                         </Field>
                         <CamposEdadCurso form={form} errores={errores} onChange={handleChange} aria={aria} disabled={guardando} />
+                        <CasillaCursoACoordinar
+                            checked={form.aCoordinar}
+                            onChange={(valor) => setForm((prev) => ({ ...prev, aCoordinar: valor }))}
+                            disabled={guardando}
+                        />
                         <CasillaCursoInstrumento
                             checked={form.esCursoInstrumento}
                             onChange={(valor) => setForm((prev) => ({ ...prev, esCursoInstrumento: valor }))}

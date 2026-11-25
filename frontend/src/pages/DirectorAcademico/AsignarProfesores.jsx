@@ -9,6 +9,7 @@ import Pagination from "../../components/ui/Pagination";
 import { useDialog } from "../../components/dialog/useDialog";
 import StatusBadge from "../../components/ui/StatusBadge";
 import "./asignarProfesores.css";
+import { TEXTO_HORARIO_A_COORDINAR, TEXTO_PROFESOR_POR_ESTUDIANTE } from "./gruposComun";
 
 const DIAS = ["", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 const TAMANO_PAGINA = 10;
@@ -350,7 +351,9 @@ function AsignarProfesores() {
                                                             {DIAS[Number(horario.diaSemana)]}: {String(horario.horaInicio).slice(0, 5)}–{String(horario.horaFin).slice(0, 5)}
                                                         </small>
                                                     )) : (
-                                                        <span className="asignar-profesores-sin-horario">Sin horario registrado</span>
+                                                        <span className="asignar-profesores-sin-horario">
+                                                            {item.aCoordinar ? TEXTO_HORARIO_A_COORDINAR : "Sin horario registrado"}
+                                                        </span>
                                                     )}
                                                 </td>
                                                 <td>
@@ -376,6 +379,8 @@ function AsignarProfesores() {
                                                 <td>
                                                     {item.idProfesor ? (
                                                         <StatusBadge tone="success" icon={UserCheck}>Asignado</StatusBadge>
+                                                    ) : item.aCoordinar ? (
+                                                        <StatusBadge tone="info">{TEXTO_PROFESOR_POR_ESTUDIANTE}</StatusBadge>
                                                     ) : horarioRegistrado ? (
                                                         <StatusBadge tone="warning">Pendiente</StatusBadge>
                                                     ) : (
