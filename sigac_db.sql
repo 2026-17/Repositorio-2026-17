@@ -14,7 +14,8 @@
 --    2. 2026-11-17_tipo_estudiante_inclusion.sql
 --    3. 2026-11-19_espacios_instrumento.sql
 --    4. 2026-11-24_espacios_varios_instrumentos.sql
---  (contactos_emergencia y el correo compartido ya están en este archivo.)
+--  (contactos_emergencia, el correo compartido y los cursos a coordinar
+--  de 2026-11-25_cursos_a_coordinar.sql ya están en este archivo.)
 -- =====================================================================
 
 -- ¡OJO! Descomentar esta línea BORRA la base completa con todos sus datos.
@@ -404,6 +405,8 @@ CREATE TABLE cursos (
     edad_maxima                    TINYINT UNSIGNED,
     -- Conjunto Instrumental (CI-%) y Coro (CORO-%): se cursan en agrupaciones
     es_curso_agrupacion            BOOLEAN      NOT NULL DEFAULT FALSE,
+    -- Música de Cámara (MC-%): horario y profesor se coordinan en Dirección
+    a_coordinar                    BOOLEAN      NOT NULL DEFAULT FALSE COMMENT 'Horario y profesor se coordinan en Dirección',
     PRIMARY KEY (id_curso),
     CONSTRAINT uq_cursos_codigo UNIQUE (codigo),
     INDEX idx_cursos_nombre (nombre),
@@ -953,6 +956,10 @@ CREATE TABLE matriculas_detalles (
      id_grupo             INT UNSIGNED NOT NULL,
      -- Agrupaciones: orden en que el estudiante las eligió (regla D4)
      orden_seleccion      SMALLINT UNSIGNED,
+     -- Cursos a coordinar: profesor que Dirección asigna a este estudiante
+     -- (NULL = sin asignar) y cómo cumplirá el curso
+     id_profesor_asignado INT UNSIGNED,
+     notas_coordinacion   VARCHAR(500),
      retirado             BOOLEAN      NOT NULL DEFAULT FALSE,
      fecha_retiro         DATE,
      motivo_retiro        VARCHAR(500),
@@ -961,9 +968,12 @@ CREATE TABLE matriculas_detalles (
      PRIMARY KEY (id_detalle_matricula),
      CONSTRAINT uq_matriculas_detalles_grupo UNIQUE (id_matricula, id_grupo),
      INDEX idx_matriculas_detalles_grupo (id_grupo, retirado),
+     INDEX idx_matriculas_detalles_profesor_asignado (id_profesor_asignado),
      CONSTRAINT fk_matriculas_detalles_matriculas FOREIGN KEY (id_matricula)
          REFERENCES matriculas (id_matricula) ON DELETE CASCADE,
      CONSTRAINT fk_matriculas_detalles_grupos FOREIGN KEY (id_grupo) REFERENCES grupos (id_grupo),
+     CONSTRAINT fk_matriculas_detalles_profesor_asignado FOREIGN KEY (id_profesor_asignado)
+         REFERENCES profesores (id_profesor) ON DELETE SET NULL,
 -- Si se retiró, debe tener fecha de retiro
      CONSTRAINT ck_matriculas_detalles_retiro CHECK (retirado = FALSE OR fecha_retiro IS NOT NULL)
 );
