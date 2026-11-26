@@ -38,6 +38,7 @@ export const SECCIONES = [
     { id: "instrumentos", titulo: "Instrumentos" },
     { id: "encargados", titulo: "Encargados" },
     { id: "poliza", titulo: "Póliza estudiantil" },
+    { id: "acceso", titulo: "Acceso a SIGAC" },
 ];
 
 const CAMPOS_POR_SECCION = {

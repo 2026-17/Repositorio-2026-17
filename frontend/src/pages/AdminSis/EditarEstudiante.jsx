@@ -18,6 +18,7 @@ import { API_URL } from "../../config/api";
 import { lanzarError, leerError, mensajeDeExcepcion } from "../../utils/api";
 import { hoyISO, limitesFechaNacimiento } from "../../utils/validaciones";
 import EncargadoEdicion from "./EncargadoEdicion";
+import AccesoSigac from "./AccesoSigac";
 import { ACCEPT_POLIZA, AYUDA_FORMATO_POLIZA } from "../../utils/validacionDocumento";
 import {
     MAX_CONTACTOS,
@@ -617,6 +618,8 @@ function EditarEstudiante({ studentId, onCancel, onSuccess } = {}) {
                                 </Field>
                             </div>
                         </section>
+
+                        <AccesoSigac key={id} idEstudiante={id} nombre={nombreVisible} activo={detalle.activo} />
 
                         <div className="panel sticky-save">
                             {cambios > 0

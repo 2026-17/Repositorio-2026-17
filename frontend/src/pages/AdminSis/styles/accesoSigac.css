@@ -1,0 +1,27 @@
+/* «Acceso a SIGAC» en Editar estudiante (AccesoSigac.jsx) */
+.acceso-sigac {
+    display: grid;
+    gap: var(--space-4);
+}
+
+.acceso-sigac p {
+    margin: 0;
+}
+
+.acceso-sigac .sg-alert__text {
+    display: grid;
+    gap: var(--space-3);
+    justify-items: start;
+}
+
+/* Grande y legible para dictarla o copiarla sin confundir caracteres */
+.acceso-sigac__contrasena {
+    font-family: "Courier New", Courier, ui-monospace, monospace;
+    font-size: 28px;
+    line-height: 36px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    color: var(--ink);
+    user-select: all;
+    overflow-wrap: anywhere;
+}
