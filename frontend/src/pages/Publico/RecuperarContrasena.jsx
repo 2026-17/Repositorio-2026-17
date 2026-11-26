@@ -34,6 +34,17 @@ async function leerMensaje(response, porDefecto) {
     return data?.message || porDefecto;
 }
 
+// Hora local para los avisos, por ejemplo «4:52 p. m.»
+function horaCorta(ms) {
+    return new Date(ms).toLocaleTimeString("es-CR", { hour: "numeric", minute: "2-digit" });
+}
+
+// proximoEn del backend (ISO-8601 UTC) en ms; si no viene, null
+function msDe(iso) {
+    const ms = iso ? Date.parse(iso) : NaN;
+    return Number.isFinite(ms) ? ms : null;
+}
+
 function formatearTiempo(segundos) {
     const m = String(Math.floor(segundos / 60)).padStart(2, "0");
     const s = String(segundos % 60).padStart(2, "0");
@@ -107,10 +118,17 @@ function RecuperarContrasena() {
     const [error, setError] = useState("");
     const [cargando, setCargando] = useState(false);
 
-    // Momentos (en ms) en que vence el código y en que se puede reenviar
+    // Momentos (en ms) en que vence el código y en que se puede reenviar.
+    // venceEn = null: no se sabe cuándo vence el último código (llegó un 429
+    // desde el paso 1, por ejemplo tras recargar); se deja escribirlo igual.
     const [venceEn, setVenceEn] = useState(0);
     const [reenvioEn, setReenvioEn] = useState(0);
     const [ahora, setAhora] = useState(() => Date.now());
+
+    // Límite de códigos por hora que informa el backend (igual exista o no la cédula).
+    // aviso: null | "nuevo" (reenvío) | "uno" (le queda 1) | "hora" (ya pidió todos)
+    const [restantes, setRestantes] = useState(null);
+    const [aviso, setAviso] = useState(null);
 
     // Reloj: actualiza "ahora" cada segundo mientras se está en el paso 2 o 3
     useEffect(() => {
@@ -125,15 +143,21 @@ function RecuperarContrasena() {
         if (titulo) titulo.focus();
     }, [paso]);
 
-    const segundosVigencia = Math.max(0, Math.ceil((venceEn - ahora) / 1000));
+    const vigenciaDesconocida = venceEn === null;
+    const segundosVigencia = vigenciaDesconocida ? 0 : Math.max(0, Math.ceil((venceEn - ahora) / 1000));
     const segundosReenvio = Math.max(0, Math.ceil((reenvioEn - ahora) / 1000));
-    const codigoVencido = segundosVigencia === 0;
+    const codigoVencido = !vigenciaDesconocida && segundosVigencia === 0;
 
     const requisitos = revisarContrasena(contrasena);
     const contrasenaValida = requisitos.every((r) => r.ok);
     const coinciden = confirmacion.length > 0 && contrasena === confirmacion;
 
-    async function enviarCodigo() {
+    /*
+     * Pide un código. Devuelve true si se pidió, "limite" si el backend
+     * respondió 429 DEMASIADOS_CODIGOS (igual se pasa al paso 2, para escribir
+     * el último código recibido) o false si hubo otro error.
+     */
+    async function enviarCodigo({ reenvio = false } = {}) {
         setError("");
         setCargando(true);
         try {
@@ -143,15 +167,39 @@ function RecuperarContrasena() {
                 body: JSON.stringify({ cedula: limpiarIdentificacion(cedula.trim()) }),
             });
 
+            const t = Date.now();
+            setAhora(t);
+
+            if (response.status === 429) {
+                const data = await response.clone().json().catch(() => null);
+                if (data?.codigo === "DEMASIADOS_CODIGOS") {
+                    setReenvioEn(msDe(data.proximoEn) ?? t + SEGUNDOS_ENTRE_ENVIOS * 1000);
+                    setRestantes(data.restantes);
+                    // Por la hora: aviso rojo. Por el minuto: solo el contador del botón.
+                    if (data.restantes === 0) setAviso("hora");
+                    // Desde el paso 1 no se sabe cuándo vence el último código
+                    if (paso === 1) {
+                        setVenceEn(null);
+                        setCodigo("");
+                    }
+                    return "limite";
+                }
+            }
+
             if (!response.ok) {
                 setError(await leerMensaje(response, "No se pudo enviar el código. Intente de nuevo."));
                 return false;
             }
 
-            const t = Date.now();
-            setAhora(t);
+            const data = await response.json().catch(() => null);
+            const quedan = Number.isInteger(data?.restantes) ? data.restantes : null;
             setVenceEn(t + MINUTOS_VIGENCIA * 60 * 1000);
-            setReenvioEn(t + SEGUNDOS_ENTRE_ENVIOS * 1000);
+            setReenvioEn(msDe(data?.proximoEn) ?? t + SEGUNDOS_ENTRE_ENVIOS * 1000);
+            setRestantes(quedan);
+            if (quedan === 0) setAviso("hora");
+            else if (quedan === 1) setAviso("uno");
+            else if (reenvio && quedan !== null) setAviso("nuevo");
+            else setAviso(null);
             setCodigo("");
             return true;
         } catch {
@@ -168,7 +216,7 @@ function RecuperarContrasena() {
             setError("Escriba su número de cédula.");
             return;
         }
-        if (await enviarCodigo()) setPaso(2);
+        if (await enviarCodigo({ reenvio: false })) setPaso(2);
     }
 
     function handleContinuar(event) {
@@ -220,6 +268,33 @@ function RecuperarContrasena() {
     const avisoError = error && (
         <Alert tone="danger" title={error} autoFocus />
     );
+
+    /*
+     * Aviso del límite de códigos (paso 2), según lo último que respondió el
+     * backend. El rojo se quita cuando ya puede pedir otro código.
+     */
+    let avisoLimite = null;
+    if (aviso === "hora" && segundosReenvio > 0) {
+        avisoLimite = (
+            <Alert tone="danger" title="Ya pidió 5 códigos en la última hora">
+                Por seguridad, podrá pedir otro a las {horaCorta(reenvioEn)}. Mientras tanto, el último código
+                que le llegó sigue sirviendo 15 minutos: búsquelo también en Correo no deseado o Spam.
+            </Alert>
+        );
+    } else if (aviso === "uno") {
+        avisoLimite = (
+            <Alert tone="warning" title="Le queda 1 código en esta hora">
+                Antes de pedir otro, revise Correo no deseado o Spam: el código pudo haber llegado ahí.
+            </Alert>
+        );
+    } else if (aviso === "nuevo" && restantes >= 2) {
+        avisoLimite = (
+            <Alert tone="info" title="Le enviamos un código nuevo">
+                El código anterior ya no sirve: use el del correo más reciente. Puede pedir {restantes} códigos
+                más en esta hora.
+            </Alert>
+        );
+    }
 
     return (
         <AuthLayout>
@@ -288,6 +363,8 @@ function RecuperarContrasena() {
                     <form onSubmit={handleContinuar} className="auth-form" noValidate>
                         {avisoError}
 
+                        {avisoLimite}
+
                         <fieldset className="fieldset">
                             <legend>Código de verificación</legend>
                             <CasillasCodigo
@@ -299,21 +376,27 @@ function RecuperarContrasena() {
                         </fieldset>
 
                         <div className="auth-row">
-                            <span id="vigencia-codigo" className={`timer${codigoVencido ? " is-expired" : ""}`}>
-                                <Clock size={16} strokeWidth={1.75} aria-hidden="true" />
-                                {codigoVencido
-                                    ? "El código venció. Solicite uno nuevo."
-                                    : <>El código vence en <b>{formatearTiempo(segundosVigencia)}</b></>}
-                            </span>
+                            {vigenciaDesconocida
+                                ? <span id="vigencia-codigo" className="timer" />
+                                : (
+                                    <span id="vigencia-codigo" className={`timer${codigoVencido ? " is-expired" : ""}`}>
+                                        <Clock size={16} strokeWidth={1.75} aria-hidden="true" />
+                                        {codigoVencido
+                                            ? "El código venció. Solicite uno nuevo."
+                                            : <>El código vence en <b>{formatearTiempo(segundosVigencia)}</b></>}
+                                    </span>
+                                )}
                             <button
                                 type="button"
                                 className="link-btn"
-                                onClick={enviarCodigo}
+                                onClick={() => enviarCodigo({ reenvio: true })}
                                 disabled={cargando || segundosReenvio > 0}
                             >
-                                {segundosReenvio > 0
-                                    ? `Reenviar en ${segundosReenvio} s`
-                                    : "Reenviar código"}
+                                {segundosReenvio === 0
+                                    ? "Reenviar código"
+                                    : segundosReenvio < 120
+                                        ? `Reenviar en ${segundosReenvio} s`
+                                        : `Disponible a las ${horaCorta(reenvioEn)}`}
                             </button>
                         </div>
 

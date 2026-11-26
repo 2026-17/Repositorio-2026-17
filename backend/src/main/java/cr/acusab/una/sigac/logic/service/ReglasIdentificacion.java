@@ -62,6 +62,14 @@ public final class ReglasIdentificacion {
      * Identificación para mostrar sin exponerla: solo los últimos 4 caracteres
      * (por ejemplo "*****0878"). Si es tan corta que se vería completa, no muestra ninguno.
      */
+    /**
+     * Identificación para comparar: sin espacios ni guiones y en mayúsculas
+     * ("1-0000-0878" y "100000878" son la misma).
+     */
+    public static String normalizar(String numero) {
+        return numero == null ? "" : numero.replaceAll("[\\s-]", "").toUpperCase(Locale.ROOT);
+    }
+
     public static String enmascarar(String numero) {
         String limpio = numero == null ? "" : numero.replaceAll("[\\s-]", "");
         return limpio.length() <= 4 ? "*****" : "*****" + limpio.substring(limpio.length() - 4);

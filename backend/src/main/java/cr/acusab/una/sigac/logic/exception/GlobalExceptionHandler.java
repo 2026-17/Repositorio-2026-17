@@ -61,6 +61,24 @@ public class GlobalExceptionHandler {
         return respuesta(HttpStatus.CONFLICT, ex.getMessage(), null);
     }
 
+    /*
+     * «Olvidé mi contraseña» con demasiados códigos pedidos: el formato de
+     * siempre más codigo, restantes y proximoEn (ISO-8601 UTC), para que la
+     * pantalla diga cuándo puede pedir otro.
+     */
+    @ExceptionHandler(DemasiadosCodigosException.class)
+    public ResponseEntity<Map<String, Object>> manejarDemasiadosCodigos(
+            DemasiadosCodigosException ex
+    ) {
+        Map<String, Object> cuerpo = new LinkedHashMap<>();
+        cuerpo.put("status", HttpStatus.TOO_MANY_REQUESTS.value());
+        cuerpo.put("codigo", DemasiadosCodigosException.CODIGO);
+        cuerpo.put("message", ex.getMessage());
+        cuerpo.put("restantes", ex.getRestantes());
+        cuerpo.put("proximoEn", ex.getProximoEn().toString());
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(cuerpo);
+    }
+
     @ExceptionHandler(ResponseStatusException.class)
     public ResponseEntity<Map<String, Object>> manejarResponseStatusException(
             ResponseStatusException ex

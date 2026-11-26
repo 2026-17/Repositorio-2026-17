@@ -21,6 +21,7 @@ import org.springframework.web.client.RestClient;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.Clock;
 import java.util.List;
 import java.util.Optional;
 
@@ -159,7 +160,8 @@ class CorreoCompartidoTest {
         CodigoVerificacionService codigos = mock(CodigoVerificacionService.class);
         EmailService email = mock(EmailService.class);
         AuthService auth = new AuthService(mock(AuthenticationManager.class), mock(JwtService.class), usuarioRepository,
-                roleRepository, mock(TokenRevocadoRepository.class), codigos, email, mock(PasswordEncoder.class));
+                roleRepository, mock(TokenRevocadoRepository.class), codigos, email, mock(PasswordEncoder.class),
+                new LimiteSolicitudesRecuperacion(Clock.systemUTC()));
 
         Usuario luis = cuenta(91L, "100000878", "Luis Prueba");
         when(usuarioRepository.findByCedula("100000878")).thenReturn(Optional.of(luis));

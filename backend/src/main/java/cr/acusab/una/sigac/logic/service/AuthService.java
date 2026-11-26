@@ -5,6 +5,7 @@ import cr.acusab.una.sigac.data.entity.CodigoVerificacion.Proposito;
 import cr.acusab.una.sigac.data.entity.Role;
 import cr.acusab.una.sigac.data.entity.TokensRevocado;
 import cr.acusab.una.sigac.data.entity.Usuario;
+import cr.acusab.una.sigac.logic.exception.DemasiadosCodigosException;
 import cr.acusab.una.sigac.data.repository.RoleRepository;
 import cr.acusab.una.sigac.data.repository.TokenRevocadoRepository;
 import cr.acusab.una.sigac.data.repository.UsuarioRepository;
@@ -38,12 +39,15 @@ public class AuthService {
     private final CodigoVerificacionService codigoVerificacionService;
     private final EmailService emailService;
     private final PasswordEncoder passwordEncoder;
+    private final LimiteSolicitudesRecuperacion limiteSolicitudesRecuperacion;
 
     public AuthService(AuthenticationManager authenticationManager, JwtService jwtService,
                        UsuarioRepository usuarioRepository, RoleRepository roleRepository,
                        TokenRevocadoRepository tokenRevocadoRepository,
                        CodigoVerificacionService codigoVerificacionService,
-                       EmailService emailService, PasswordEncoder passwordEncoder) {
+                       EmailService emailService, PasswordEncoder passwordEncoder,
+                       LimiteSolicitudesRecuperacion limiteSolicitudesRecuperacion) {
+        this.limiteSolicitudesRecuperacion = limiteSolicitudesRecuperacion;
         this.authenticationManager = authenticationManager;
         this.jwtService = jwtService;
         this.usuarioRepository = usuarioRepository;
@@ -121,8 +125,22 @@ public class AuthService {
      * "Olvidé mi contraseña", paso 1. El código se envía al correo de la cuenta.
      * Nunca revela si la cédula existe: si no existe, o si el envío falla, no se
      * avisa al usuario (solo queda en el log).
+     * <p>
+     * Antes de buscar el usuario se consulta el límite por cédula solicitada
+     * (exista o no). Si está bloqueada, lanza DemasiadosCodigosException (429)
+     * sin buscar el usuario ni enviar correo. Si no, devuelve cuántos códigos
+     * le quedan y cuándo puede pedir otro: valores que salen solo del límite,
+     * así que son iguales para una cédula registrada y una que no existe.
      */
-    public void solicitarCodigoRecuperacion(String cedula) {
+    public LimiteSolicitudesRecuperacion.Resultado solicitarCodigoRecuperacion(String cedula) {
+        LimiteSolicitudesRecuperacion.Resultado limite = limiteSolicitudesRecuperacion.intentar(cedula);
+        if (!limite.permitido()) {
+            String mensaje = limite.motivo() == LimiteSolicitudesRecuperacion.Motivo.HORA
+                    ? "Ya pidió " + CodigoVerificacionService.MAXIMO_POR_HORA + " códigos en la última hora."
+                    : "Espere un momento antes de pedir otro código.";
+            throw new DemasiadosCodigosException(mensaje, limite.restantes(), limite.proximoEn());
+        }
+
         usuarioRepository.findByCedula(cedula.trim()).ifPresent(usuario -> {
             try {
                 String codigo = codigoVerificacionService.generar(usuario, Proposito.RECUPERACION);
@@ -133,6 +151,7 @@ public class AuthService {
                 log.warn("No se envió el código de recuperación al usuario {}: {}", usuario.getId(), e.getReason());
             }
         });
+        return limite;
     }
 
     /** "Olvidé mi contraseña", paso 2: valida el código y guarda la nueva contraseña. */
