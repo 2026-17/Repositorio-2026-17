@@ -28,6 +28,7 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final ManejadorErroresSeguridad manejadorErroresSeguridad;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -99,6 +100,16 @@ public class SecurityConfig {
                         sessionManagement.sessionCreationPolicy(
                                 SessionCreationPolicy.STATELESS
                         )
+                )
+
+                /*
+                 * Respuestas con cuerpo JSON:
+                 * - 401 cuando no hay sesión o el token venció / es inválido;
+                 * - 403 cuando hay sesión pero el rol no tiene permiso.
+                 */
+                .exceptionHandling(excepciones -> excepciones
+                        .authenticationEntryPoint(manejadorErroresSeguridad)
+                        .accessDeniedHandler(manejadorErroresSeguridad)
                 )
 
                 .authorizeHttpRequests(auth -> auth
