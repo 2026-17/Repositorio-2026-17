@@ -4,6 +4,7 @@ import './styles/tokens.css'
 import './index.css'
 import App from './App.jsx'
 import DialogProvider from './components/dialog/DialogProvider.jsx'
+import { instalarVigilanteSesion } from './utils/vigilanteSesion.js'
 // Al final, para que los estilos base sean la versión oficial de las clases compartidas
 import './styles/components.css'
 import './styles/app.css'
@@ -15,6 +16,9 @@ try {
 } catch {
   /* sin almacenamiento: se usa el tema del sistema */
 }
+
+// Avisa cuando la sesión está por vencer o venció (una sola vez, antes de renderizar)
+instalarVigilanteSesion()
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

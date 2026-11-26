@@ -38,9 +38,20 @@ import Inicio from "./pages/Inicio/Inicio";
 import NoEncontrada from "./pages/Publico/NoEncontrada";
 
 import Header from "./components/Header";
+import AvisoSesionExpirada from "./components/AvisoSesionExpirada";
 import { useDialog } from "./components/dialog/useDialog";
 import { RUTA_INICIO, tieneAcceso } from "./constants/menu";
 import { cambioContrasenaPendiente, haySesion, RUTA_CAMBIO_CONTRASENA_TEMPORAL } from "./utils/sesion";
+
+// Raíz de todas las rutas: el aviso de sesión sale en cualquier pantalla.
+function Raiz() {
+    return (
+        <>
+            <Outlet />
+            <AvisoSesionExpirada />
+        </>
+    );
+}
 
 function Layout() {
     // Sin sesión no se entra al sistema
@@ -88,7 +99,7 @@ function GuardiaRol() {
 
 const router = createBrowserRouter(
     createRoutesFromElements(
-            <>
+            <Route element={<Raiz />}>
 
                 {/* =====================================================
                     Rutas públicas
@@ -307,7 +318,7 @@ const router = createBrowserRouter(
                     path="*"
                     element={<NoEncontrada />}
                 />
-            </>
+            </Route>
     )
 );
 

@@ -77,7 +77,23 @@
     border-radius: var(--radius-md);
 }
 
+/* Aviso de sesión (AvisoSesionExpirada): por encima de los demás diálogos y
+   avisos, y el aviso de 2 minutos arriba para no tapar las confirmaciones. */
+.dialog-backdrop.dialog-backdrop--sesion {
+    z-index: 90;
+}
+
+.toast-region.toast-region--sesion {
+    top: var(--space-5);
+    bottom: auto;
+    z-index: 85;
+}
+
 @media (max-width: 640px) {
+    .toast-region.toast-region--sesion {
+        top: 72px;
+    }
+
     .dialog-foot {
         flex-direction: column-reverse;
     }

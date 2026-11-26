@@ -23,6 +23,17 @@ export const RUTAS_POR_ROL = {
 // Pantalla para cambiar la contraseña temporal en el primer inicio de sesión
 export const RUTA_CAMBIO_CONTRASENA_TEMPORAL = "/cambiar-contrasena-temporal";
 
+/*
+ * Evento de esta pestaña cuando se guarda o se borra la sesión, para que el
+ * vigilante de sesión reprograme su temporizador. (Para las otras pestañas
+ * el navegador ya emite el evento "storage".)
+ */
+export const EVENTO_SESION_CAMBIO = "sigac:sesion-cambio";
+
+function avisarCambio() {
+    window.dispatchEvent(new Event(EVENTO_SESION_CAMBIO));
+}
+
 // data: LoginResponse del backend
 export function guardarSesion(data, cedula) {
     localStorage.setItem("token", data.token || "");
@@ -35,10 +46,33 @@ export function guardarSesion(data, cedula) {
     } else {
         localStorage.removeItem("requiereCambioContrasena");
     }
+    avisarCambio();
 }
 
 export function limpiarSesion() {
     CLAVES.forEach((clave) => localStorage.removeItem(clave));
+    avisarCambio();
+}
+
+/*
+ * Momento en que vence el token guardado, en milisegundos (Date.now()), o
+ * null si no hay token o no se puede leer.
+ *
+ * El JWT son tres partes separadas por puntos; la del medio (payload) es
+ * JSON en base64url. Se lee sin verificar la firma: solo sirve para avisar
+ * a tiempo, el backend es quien decide si el token vale.
+ */
+export function expiracionDelToken(token = localStorage.getItem("token")) {
+    try {
+        const payload = token?.split(".")[1];
+        if (!payload) return null;
+        const base64 = payload.replace(/-/g, "+").replace(/_/g, "/");
+        const relleno = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), "=");
+        const exp = JSON.parse(atob(relleno)).exp;
+        return Number.isFinite(exp) ? exp * 1000 : null;
+    } catch {
+        return null;
+    }
 }
 
 // Hay sesión si quedó un token guardado al iniciar sesión

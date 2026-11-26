@@ -26,7 +26,7 @@ export async function leerError(response, porDefecto) {
 
 function mensajeSinCuerpo(status, porDefecto) {
     if (status === 413) return "El archivo es demasiado grande.";
-    if (status === 401) return "La sesión ha expirado. Inicie sesión nuevamente.";
+    if (status === 401) return "Su sesión expiró. Inicie sesión de nuevo.";
     if (status === 403) return "No tiene permisos para realizar esta acción.";
     return porDefecto;
 }
