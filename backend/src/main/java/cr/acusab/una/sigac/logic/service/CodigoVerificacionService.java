@@ -24,8 +24,8 @@ public class CodigoVerificacionService {
 
     public static final int MINUTOS_VIGENCIA = 15;
     private static final int INTENTOS_MAXIMOS = 5;
-    private static final int MAXIMO_POR_HORA = 5;
-    private static final Duration ESPERA_ENTRE_ENVIOS = Duration.ofMinutes(1);
+    public static final int MAXIMO_POR_HORA = 5;
+    public static final Duration ESPERA_ENTRE_ENVIOS = Duration.ofMinutes(1);
 
     public static final String CODIGO_INVALIDO = "El código no es válido o ya venció. Solicite uno nuevo.";
 

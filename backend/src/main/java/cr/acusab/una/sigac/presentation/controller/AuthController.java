@@ -1,6 +1,7 @@
 package cr.acusab.una.sigac.presentation.controller;
 
 import cr.acusab.una.sigac.logic.service.AuthService;
+import cr.acusab.una.sigac.logic.service.LimiteSolicitudesRecuperacion;
 import cr.acusab.una.sigac.presentation.dto.request.CambiarContrasenaRequest;
 import cr.acusab.una.sigac.presentation.dto.request.CambioContrasenaTemporalRequest;
 import cr.acusab.una.sigac.presentation.dto.request.LoginRequest;
@@ -12,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 @RestController
@@ -51,11 +53,16 @@ public class AuthController {
 
     // Público. Siempre responde lo mismo, exista o no la cédula.
     @PostMapping("/recuperar-contrasena/solicitar")
-    public ResponseEntity<Map<String, String>> solicitarRecuperacion(
+    // restantes y proximoEn salen del límite por cédula, nunca del usuario.
+    public ResponseEntity<Map<String, Object>> solicitarRecuperacion(
             @Valid @RequestBody SolicitarRecuperacionRequest request) {
-        authService.solicitarCodigoRecuperacion(request.getCedula());
-        return ResponseEntity.ok(Map.of("message",
-                "Si la cédula está registrada, recibirá un código en el correo de la cuenta en unos minutos."));
+        LimiteSolicitudesRecuperacion.Resultado limite = authService.solicitarCodigoRecuperacion(request.getCedula());
+        Map<String, Object> cuerpo = new LinkedHashMap<>();
+        cuerpo.put("message",
+                "Si la cédula está registrada, recibirá un código en el correo de la cuenta en unos minutos.");
+        cuerpo.put("restantes", limite.restantes());
+        cuerpo.put("proximoEn", limite.proximoEn().toString());
+        return ResponseEntity.ok(cuerpo);
     }
 
     // Público.
