@@ -297,8 +297,8 @@ public class EmailService {
                           </tr>
                           <tr>
                             <td style="background-color:#fbfaf7; border-top:1px solid #ece9e2; padding:18px 32px; text-align:center; font-size:12px; line-height:1.5; color:#777777;">
-                              Este correo se envía automáticamente, por favor no lo responda.<br>
-                              ¿Dudas? Comuníquese con ACUSAB:<br>
+                            ¿Dudas? <strong>Responda este correo</strong> y su mensaje le llega a ACUSAB.<br>
+                            También puede escribir a:<br>
                               Correo: <a href="mailto:%s" style="color:#662483;">%s</a><br>
                               Teléfono: %s · WhatsApp: %s<br>
                               <a href="%s" target="_blank" style="color:#662483;">%s</a> · Sistema de Gestión Académica (SIGAC)
@@ -316,8 +316,8 @@ public class EmailService {
 
         String textoCompleto = texto.strip() + "\n\n" + """
                 --
-                Este correo se envía automáticamente, por favor no lo responda.
-                ¿Dudas? Comuníquese con ACUSAB:
+                ¿Dudas? Responda este correo y su mensaje le llega a ACUSAB.
+                También puede escribir a:
                 Correo: %s
                 Teléfono: %s · WhatsApp: %s
                 %s · Sistema de Gestión Académica (SIGAC)
