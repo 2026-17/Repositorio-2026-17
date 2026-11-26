@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { LogIn, TriangleAlert } from "lucide-react";
+import { LogIn, TriangleAlert, UserX } from "lucide-react";
 
 import Toast from "./ui/Toast";
 import {
@@ -52,12 +52,18 @@ export default function AvisoSesionExpirada() {
     return (
         <VentanaSesionExpirada
             mensaje={estado.mensaje || MENSAJE_POR_DEFECTO}
+            cuentaInactiva={estado.codigo === "CUENTA_INACTIVA"}
             volver={`${pathname}${search}${hash}`}
         />
     );
 }
 
-function VentanaSesionExpirada({ mensaje, volver }) {
+/*
+ * cuentaInactiva: la administración desactivó la cuenta mientras se usaba.
+ * Volver a ingresar no va a funcionar, así que cambia el título y el botón
+ * solo lleva al login (sin ?volver=).
+ */
+function VentanaSesionExpirada({ mensaje, cuentaInactiva, volver }) {
     const navigate = useNavigate();
     const botonRef = useRef(null);
 
@@ -88,13 +94,18 @@ function VentanaSesionExpirada({ mensaje, volver }) {
 
     function iniciarSesion() {
         descartarAvisoSesion();
-        navigate(`/login?volver=${encodeURIComponent(ruta)}`, { replace: true });
+        navigate(
+            cuentaInactiva ? "/login" : `/login?volver=${encodeURIComponent(ruta)}`,
+            { replace: true }
+        );
     }
+
+    const Icono = cuentaInactiva ? UserX : TriangleAlert;
 
     return (
         <div className="dialog-backdrop dialog-backdrop--sesion">
             <div
-                className="dialog dialog--aviso"
+                className={`dialog ${cuentaInactiva ? "dialog--error" : "dialog--aviso"}`}
                 role="alertdialog"
                 aria-modal="true"
                 aria-labelledby="sesion-expirada-titulo"
@@ -102,9 +113,11 @@ function VentanaSesionExpirada({ mensaje, volver }) {
             >
                 <div className="dialog-head">
                     <span className="dialog-head-icon" aria-hidden="true">
-                        <TriangleAlert size={20} strokeWidth={1.75} />
+                        <Icono size={20} strokeWidth={1.75} />
                     </span>
-                    <h2 id="sesion-expirada-titulo">Su sesión expiró</h2>
+                    <h2 id="sesion-expirada-titulo">
+                        {cuentaInactiva ? "Su cuenta está inactiva" : "Su sesión expiró"}
+                    </h2>
                 </div>
 
                 <div className="dialog-body">
@@ -120,8 +133,12 @@ function VentanaSesionExpirada({ mensaje, volver }) {
                         className="sg-btn sg-btn--primary"
                         onClick={iniciarSesion}
                     >
-                        <LogIn size={18} strokeWidth={1.75} aria-hidden="true" />
-                        Iniciar sesión
+                        {cuentaInactiva ? "Aceptar" : (
+                            <>
+                                <LogIn size={18} strokeWidth={1.75} aria-hidden="true" />
+                                Iniciar sesión
+                            </>
+                        )}
                     </button>
                 </div>
             </div>

@@ -162,7 +162,7 @@ class SesionExpiradaTest {
         mockMvc.perform(get(RUTA_PROTEGIDA).header("Authorization", "Bearer " + token("DIRECTOR_ACADEMICO")))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.message").value("Su cuenta está inactiva. Contacte a la administración."))
-                .andExpect(jsonPath("$.codigo").doesNotExist());
+                .andExpect(jsonPath("$.codigo").value("CUENTA_INACTIVA"));
     }
 
     private String token(String rol) {

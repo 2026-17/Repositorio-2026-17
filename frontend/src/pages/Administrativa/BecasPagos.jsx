@@ -24,7 +24,7 @@ import { iniciales, listaErrores } from "../../components/ui/utilidades";
 
 import { useDialog } from "../../components/dialog/useDialog";
 import CedulaInput from "../../components/ui/CedulaInput";
-import { lanzarError, mensajeDeExcepcion } from "../../utils/api";
+import { lanzarError, mensajeDeExcepcion, SesionExpiradaError } from "../../utils/api";
 import { mostrarIdentificacion, pareceCedula } from "../../utils/cedula";
 import { limpiarIdentificacion } from "../../utils/validaciones";
 
@@ -182,7 +182,7 @@ function SeccionBecas({ estudiante, periodos, authHeaders, dialog, onCambio }) {
                 headers: { ...authHeaders, "Content-Type": "application/json" },
                 body: JSON.stringify(payload),
             });
-            if (response.status === 401) throw new Error("La sesión ha expirado. Inicie sesión nuevamente.");
+            if (response.status === 401) throw new SesionExpiradaError();
             if (response.status === 403) throw new Error("No tiene permisos para gestionar becas.");
             if (!response.ok) await lanzarError(response, editando ? "No fue posible modificar la beca." : "No fue posible asignar la beca.");
 
@@ -208,7 +208,7 @@ function SeccionBecas({ estudiante, periodos, authHeaders, dialog, onCambio }) {
         setEliminando(beca.idBeca);
         try {
             const response = await fetch(`${API_URL}/becas/${beca.idBeca}`, { method: "DELETE", headers: authHeaders });
-            if (response.status === 401) throw new Error("La sesión ha expirado. Inicie sesión nuevamente.");
+            if (response.status === 401) throw new SesionExpiradaError();
             if (response.status === 403) throw new Error("No tiene permisos para eliminar becas.");
             if (!response.ok) await lanzarError(response, "No fue posible eliminar la beca.");
 
@@ -570,7 +570,7 @@ function Estudiantes() {
             });
             const body = await response.json().catch(() => ({}));
 
-            if (response.status === 401) throw new Error("La sesión ha expirado. Inicie sesión nuevamente.");
+            if (response.status === 401) throw new SesionExpiradaError();
             if (response.status === 403) throw new Error("No tiene permisos para consultar pagos.");
             if (!response.ok) throw new Error(body.message || "No fue posible consultar el estado de pago.");
 
@@ -638,7 +638,7 @@ function Estudiantes() {
             });
             const body = await response.json().catch(() => ({}));
 
-            if (response.status === 401) throw new Error("La sesión ha expirado. Inicie sesión nuevamente.");
+            if (response.status === 401) throw new SesionExpiradaError();
             if (response.status === 403) throw new Error("No tiene permisos para registrar pagos.");
             if (!response.ok) throw new Error(body.message || "No fue posible registrar el pago.");
 
@@ -657,7 +657,7 @@ function Estudiantes() {
         setAbriendoComprobante(clave);
         try {
             const response = await fetch(url, { headers: authHeaders });
-            if (response.status === 401) throw new Error("La sesión ha expirado. Inicie sesión nuevamente.");
+            if (response.status === 401) throw new SesionExpiradaError();
             if (response.status === 403) throw new Error("No tiene permisos para ver el comprobante.");
             if (!response.ok) {
                 await lanzarError(response, response.status === 404
@@ -681,7 +681,7 @@ function Estudiantes() {
         try {
             setEliminandoPago(true);
             const response = await fetch(url, { method: "DELETE", headers: authHeaders });
-            if (response.status === 401) throw new Error("La sesión ha expirado. Inicie sesión nuevamente.");
+            if (response.status === 401) throw new SesionExpiradaError();
             if (response.status === 403) throw new Error("No tiene permisos para eliminar pagos.");
             if (!response.ok) {
                 await lanzarError(response, response.status === 404

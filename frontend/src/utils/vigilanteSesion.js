@@ -35,7 +35,7 @@ const MENSAJE_OTRA_PESTANA =
 
 /*
  * Estado que muestra el aviso: null, { tipo: "por-vencer", vence } o
- * { tipo: "expirada", mensaje }. Es un objeto nuevo en cada cambio
+ * { tipo: "expirada", mensaje, codigo }. Es un objeto nuevo en cada cambio
  * (useSyncExternalStore compara por referencia).
  */
 let estado = null;
@@ -74,14 +74,15 @@ function cancelarTemporizadores() {
  * Emite la sesión expirada una sola vez, aunque fallen varias peticiones a
  * la vez o coincidan el temporizador y un 401.
  */
-function emitirExpirada(mensaje) {
+function emitirExpirada(mensaje, codigo) {
     if (estado?.tipo === "expirada") return;
 
     cancelarTemporizadores();
     tokenProgramado = null;
     limpiarSesion();
 
-    const detalle = { mensaje: mensaje || null };
+    // codigo: el del backend (SESION_EXPIRADA, CUENTA_INACTIVA...) o null.
+    const detalle = { mensaje: mensaje || null, codigo: codigo || null };
     cambiarEstado({ tipo: "expirada", ...detalle });
     window.dispatchEvent(new CustomEvent(EVENTO_SESION_EXPIRADA, { detail: detalle }));
 }
@@ -191,7 +192,8 @@ function revisarRespuesta(entrada, respuesta) {
             const mensaje = typeof datos?.message === "string" && datos.message.trim()
                 ? datos.message
                 : null;
-            emitirExpirada(mensaje);
+            const codigo = typeof datos?.codigo === "string" ? datos.codigo : null;
+            emitirExpirada(mensaje, codigo);
         })
         .finally(() => {
             leyendoRespuesta = false;

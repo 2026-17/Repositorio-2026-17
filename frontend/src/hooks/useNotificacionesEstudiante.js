@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from "react";
 
 import { API_URL } from "../config/api";
+import { SesionExpiradaError } from "../utils/api";
 
 /*
  * Notificaciones del estudiante compartidas entre la campana del Header y la
@@ -60,7 +61,7 @@ export function cargarNotificaciones() {
             const data = await leerCuerpo(response);
 
             if (response.status === 401) {
-                throw new Error("La sesión ha expirado. Inicie sesión nuevamente.");
+                throw new SesionExpiradaError();
             }
             if (response.status === 403) {
                 throw new Error("No tiene permisos para consultar estas notificaciones.");
@@ -91,7 +92,7 @@ export async function marcarNotificacionLeida(idNotificacion) {
     const data = await leerCuerpo(response);
 
     if (response.status === 401) {
-        throw new Error("La sesión ha expirado. Inicie sesión nuevamente.");
+        throw new SesionExpiradaError();
     }
     if (response.status === 403) {
         throw new Error("No tiene permisos para modificar esta notificación.");

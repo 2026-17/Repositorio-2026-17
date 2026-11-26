@@ -87,7 +87,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 if (!CuentaUsuarioService.ESTADO_ACTIVO.equalsIgnoreCase(estado.get())) {
                     response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                     response.setContentType("application/json;charset=UTF-8");
-                    response.getWriter().write("{\"status\":401,\"message\":"
+                    response.getWriter().write("{\"status\":401,\"codigo\":\"CUENTA_INACTIVA\",\"message\":"
                             + "\"Su cuenta está inactiva. Contacte a la administración.\"}");
                     return;
                 }

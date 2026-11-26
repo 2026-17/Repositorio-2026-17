@@ -1,4 +1,5 @@
 import { API_URL } from "../config/api";
+import { SesionExpiradaError } from "./api";
 
 // HU-10 - Consultar cursos disponibles de un período académico,
 // previo a solicitar matrícula.
@@ -13,7 +14,7 @@ async function leerRespuesta(response, mensajePorDefecto) {
     }
 
     if (response.status === 401) {
-        throw new Error("La sesión ha expirado. Inicie sesión nuevamente.");
+        throw new SesionExpiradaError();
     }
 
     if (response.status === 403) {

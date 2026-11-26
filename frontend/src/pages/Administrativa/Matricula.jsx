@@ -15,7 +15,7 @@ import StatusBadge from "../../components/ui/StatusBadge";
 import { iniciales } from "../../components/ui/utilidades";
 
 import { useDialog } from "../../components/dialog/useDialog";
-import { mensajeDeExcepcion } from "../../utils/api";
+import { mensajeDeExcepcion, SesionExpiradaError } from "../../utils/api";
 
 async function leerRespuesta(response) {
     try {
@@ -31,9 +31,7 @@ function validarEstadoRespuesta(
     mensajePorDefecto
 ) {
     if (response.status === 401) {
-        throw new Error(
-            "La sesión ha expirado. Inicie sesión nuevamente."
-        );
+        throw new SesionExpiradaError();
     }
 
     if (response.status === 403) {

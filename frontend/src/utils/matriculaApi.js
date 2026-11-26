@@ -1,4 +1,5 @@
 import { API_URL } from "../config/api";
+import { SesionExpiradaError } from "./api";
 
 // Historia 2 - Acceso al backend de matrícula del estudiante.
 // El estudiante y el período los determina el servidor a partir de la sesión.
@@ -13,7 +14,7 @@ async function leerRespuesta(response, mensajePorDefecto) {
     }
 
     if (response.status === 401) {
-        throw new Error("La sesión ha expirado. Inicie sesión nuevamente.");
+        throw new SesionExpiradaError();
     }
 
     if (response.status === 403) {
