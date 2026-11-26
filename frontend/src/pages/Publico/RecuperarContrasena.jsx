@@ -9,6 +9,7 @@ import Field from "../../components/ui/Field";
 import PasswordField from "../../components/ui/PasswordField";
 import RequisitosContrasena from "../../components/ui/RequisitosContrasena";
 import { revisarContrasena } from "../../components/ui/politicaContrasena";
+import { CONTACTO_ACUSAB, soloDigitos } from "../../constants/contacto";
 import { mostrarIdentificacion } from "../../utils/cedula";
 import { limpiarIdentificacion } from "../../utils/validaciones";
 import AuthLayout from "./AuthLayout";
@@ -315,6 +316,16 @@ function RecuperarContrasena() {
                                     : "Reenviar código"}
                             </button>
                         </div>
+
+                        {/* Hotmail/Outlook suele mandar el código a Correo no deseado */}
+                        <Alert tone="info">
+                            ¿No le llegó el código? Revise también la carpeta Correo no deseado o Spam.
+                            Si no lo encuentra, comuníquese con ACUSAB por WhatsApp al{" "}
+                            <a href={`https://wa.me/${soloDigitos(CONTACTO_ACUSAB.whatsapp)}`} target="_blank" rel="noopener noreferrer">
+                                8708-5959
+                            </a>{" "}
+                            para que le den acceso.
+                        </Alert>
 
                         <button
                             type="submit"

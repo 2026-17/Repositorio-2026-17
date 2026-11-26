@@ -1,12 +1,14 @@
 package cr.acusab.una.sigac.logic.service;
 
 import cr.acusab.una.sigac.data.entity.Usuario;
+import cr.acusab.una.sigac.data.repository.CodigoVerificacionRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.security.SecureRandom;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -32,10 +34,34 @@ public class ContrasenaTemporalService {
     private final SecureRandom random = new SecureRandom();
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
+    private final CodigoVerificacionRepository codigoVerificacionRepository;
 
-    public ContrasenaTemporalService(PasswordEncoder passwordEncoder, EmailService emailService) {
+    public ContrasenaTemporalService(PasswordEncoder passwordEncoder, EmailService emailService,
+                                     CodigoVerificacionRepository codigoVerificacionRepository) {
         this.passwordEncoder = passwordEncoder;
         this.emailService = emailService;
+        this.codigoVerificacionRepository = codigoVerificacionRepository;
+    }
+
+    /**
+     * Contraseña temporal que la administración entrega en persona (o por
+     * WhatsApp) cuando el correo no le llega al estudiante. NO envía correo.
+     * <p>
+     * Deja la cuenta pendiente de cambio, la desbloquea (intentos fallidos y
+     * bloqueo en cero) e invalida los códigos de verificación pendientes, para
+     * que no quede uno viejo en el correo. Quien llama guarda el usuario.
+     * <p>
+     * La contraseña en texto plano solo sale como valor de retorno: no se
+     * registra en logs, bitácora ni excepciones.
+     */
+    public String asignarSinCorreo(Usuario usuario) {
+        String contrasena = generar();
+        usuario.setHashContrasena(passwordEncoder.encode(contrasena));
+        usuario.setRequiereCambioContrasena(true);
+        usuario.setIntentosFallidos((short) 0);
+        usuario.setBloqueadoHasta(null);
+        codigoVerificacionRepository.invalidarPendientes(usuario, Instant.now());
+        return contrasena;
     }
 
     /**

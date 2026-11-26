@@ -1,12 +1,14 @@
 package cr.acusab.una.sigac.presentation.controller;
 
 import cr.acusab.una.sigac.logic.exception.EdicionEstudianteException;
+import cr.acusab.una.sigac.logic.service.AccesoEstudianteService;
 import cr.acusab.una.sigac.logic.service.DocumentoEstudianteService;
 import cr.acusab.una.sigac.logic.service.EstudianteEdicionService;
 import cr.acusab.una.sigac.logic.service.EstudianteService;
 import cr.acusab.una.sigac.presentation.dto.request.EstudianteCreateRequest;
 import cr.acusab.una.sigac.presentation.dto.request.EstudianteEdicionCompletaRequest;
 import cr.acusab.una.sigac.presentation.dto.request.EstudianteUpdateRequest;
+import cr.acusab.una.sigac.presentation.dto.response.ContrasenaTemporalResponse;
 import cr.acusab.una.sigac.presentation.dto.response.CuentaCorreoResponse;
 import cr.acusab.una.sigac.presentation.dto.response.DocumentoEstudianteResponse;
 import cr.acusab.una.sigac.presentation.dto.response.EstudianteBusquedaResponse;
@@ -16,10 +18,12 @@ import cr.acusab.una.sigac.presentation.dto.response.EstudianteResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.Validator;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -35,17 +39,20 @@ public class EstudianteController {
     private final DocumentoEstudianteService documentoEstudianteService;
     private final EstudianteEdicionService estudianteEdicionService;
     private final Validator validator;
+    private final AccesoEstudianteService accesoEstudianteService;
 
     public EstudianteController(
             EstudianteService estudianteService,
             DocumentoEstudianteService documentoEstudianteService,
             EstudianteEdicionService estudianteEdicionService,
-            Validator validator
+            Validator validator,
+            AccesoEstudianteService accesoEstudianteService
     ) {
         this.estudianteService = estudianteService;
         this.documentoEstudianteService = documentoEstudianteService;
         this.estudianteEdicionService = estudianteEdicionService;
         this.validator = validator;
+        this.accesoEstudianteService = accesoEstudianteService;
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -85,6 +92,22 @@ public class EstudianteController {
         return ResponseEntity.ok(
                 estudianteService.cuentasConCorreo(correo, excluirId)
         );
+    }
+
+    /*
+     * Contraseña temporal sin correo, para entregarla en persona cuando el
+     * correo no le llega al estudiante. no-store: el navegador y los proxies
+     * no deben guardar la respuesta.
+     */
+    @PostMapping("/{idEstudiante}/contrasena-temporal")
+    public ResponseEntity<ContrasenaTemporalResponse> generarContrasenaTemporal(
+            @PathVariable Long idEstudiante,
+            Authentication authentication
+    ) {
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.noStore())
+                .body(accesoEstudianteService.generarContrasenaTemporal(
+                        idEstudiante, authentication != null ? authentication.getName() : null));
     }
 
     @GetMapping("/{id}")

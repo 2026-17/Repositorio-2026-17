@@ -130,7 +130,28 @@ public class EmailService {
                 avisoSeguridad("No comparta esta contraseña con nadie. Si no esperaba este correo, "
                         + "comuníquese con la administración de ACUSAB."));
 
-        enviar(destinatario, "Su cuenta en SIGAC", contenido);
+        String texto = """
+                Bienvenido(a) a SIGAC
+
+                Hola, %s. Se creó su cuenta en el Sistema de Gestión Académica de ACUSAB. Para ingresar use estos datos:
+
+                %s
+
+                Cédula: %s
+                Contraseña temporal: %s
+
+                La primera vez que ingrese, el sistema le pedirá crear una contraseña nueva. La contraseña temporal deja de servir en cuanto la cambie.
+
+                Ingrese a SIGAC en esta dirección. En la pantalla Iniciar sesión escriba su cédula y la contraseña temporal.
+                %s
+
+                No comparta esta contraseña con nadie. Si no esperaba este correo, comuníquese con la administración de ACUSAB.
+                """.formatted(
+                Objects.toString(nombre, ""),
+                lineaCuentaTexto("Esta contraseña", nombre, ReglasIdentificacion.enmascarar(cedula)),
+                cedula, contrasena, sigacUrl + "/login");
+
+        enviar(destinatario, "Su cuenta en SIGAC", contenido, texto);
     }
 
     private void enviarCodigo(String destinatario, String nombre, String cedulaEnmascarada,
@@ -162,7 +183,42 @@ public class EmailService {
                 enlaceSigac(ruta, instruccion),
                 avisoSeguridad("<strong>¿No fue usted?</strong> " + avisoSeguridad));
 
-        enviar(destinatario, asunto, contenido);
+        String saludo = nombre == null || nombre.isBlank() ? "Hola." : "Hola, " + nombre.trim() + ".";
+        String texto = """
+                %s
+
+                %s %s
+
+                %s
+
+                Su código de verificación: %s
+                Vence en %d minutos y solo puede usarse una vez.
+
+                %s
+                %s
+
+                ¿No fue usted? %s
+                """.formatted(titulo, saludo, introduccion,
+                lineaCuentaTexto("Este código", nombre, cedulaEnmascarada),
+                codigo, minutosValidez,
+                sinEtiquetas(instruccion), sigacUrl + ruta,
+                avisoSeguridad);
+
+        enviar(destinatario, asunto, contenido, texto);
+    }
+
+    // Versión en texto plano de lineaCuenta
+    private static String lineaCuentaTexto(String sujeto, String nombre, String cedulaEnmascarada) {
+        String cedula = Objects.toString(cedulaEnmascarada, "");
+        String cuenta = nombre == null || nombre.isBlank()
+                ? "la cuenta con cédula " + cedula
+                : "la cuenta de " + nombre.trim() + " (cédula " + cedula + ")";
+        return sujeto + " es para " + cuenta + ".";
+    }
+
+    // Quita las etiquetas (<strong>...) de los textos fijos de este servicio
+    private static String sinEtiquetas(String html) {
+        return html.replaceAll("<[^>]+>", "");
     }
 
     // Varias cuentas pueden compartir un correo: el mensaje dice de cuál es.
@@ -208,7 +264,13 @@ public class EmailService {
                 """.formatted(texto);
     }
 
-    private void enviar(String destinatario, String asunto, String contenido) {
+    /**
+     * @param contenido cuerpo HTML del mensaje (va dentro de la plantilla)
+     * @param texto     el mismo mensaje en texto plano; se le agrega el pie de
+     *                  contacto. Microsoft (Hotmail/Outlook) confía más en los
+     *                  correos que traen las dos versiones.
+     */
+    private void enviar(String destinatario, String asunto, String contenido, String texto) {
         // Correo con tablas y estilos en línea: es lo que la mayoría de clientes
         // de correo (Gmail, Outlook) muestran de forma confiable.
         String html = """
@@ -252,11 +314,24 @@ public class EmailService {
                 CONTACTO_CORREO, CONTACTO_CORREO, CONTACTO_TELEFONO, CONTACTO_WHATSAPP,
                 HtmlUtils.htmlEscape(sigacUrl), HtmlUtils.htmlEscape(sigacUrl.replaceFirst("^https?://", "")));
 
+        String textoCompleto = texto.strip() + "\n\n" + """
+                --
+                Este correo se envía automáticamente, por favor no lo responda.
+                ¿Dudas? Comuníquese con ACUSAB:
+                Correo: %s
+                Teléfono: %s · WhatsApp: %s
+                %s · Sistema de Gestión Académica (SIGAC)
+                """.formatted(CONTACTO_CORREO, CONTACTO_TELEFONO, CONTACTO_WHATSAPP, sigacUrl);
+
+        // replyTo: noreply@acusab.ed.cr no recibe correo (el dominio no tiene MX),
+        // así que una respuesta llega al correo de ACUSAB.
         Map<String, Object> cuerpo = Map.of(
                 "sender", Map.of("name", remitenteNombre, "email", remitenteCorreo),
+                "replyTo", Map.of("email", CONTACTO_CORREO, "name", "ACUSAB"),
                 "to", List.of(Map.of("email", destinatario)),
                 "subject", asunto,
-                "htmlContent", html
+                "htmlContent", html,
+                "textContent", textoCompleto
         );
 
         try {
