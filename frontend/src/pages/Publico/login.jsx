@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
 import { API_URL } from "../../config/api";
 import Alert from "../../components/ui/Alert";
@@ -12,8 +12,23 @@ import AuthLayout from "./AuthLayout";
 
 import "./publico.css";
 
+/*
+ * ?volver=/ruta: pantalla donde estaba la persona cuando venció la sesión.
+ * Solo se aceptan rutas internas ("/..." pero no "//..." ni "/\..."), para
+ * que el enlace no pueda llevar a otro sitio.
+ */
+function rutaDeVuelta(volver) {
+    if (!volver || !volver.startsWith("/") || volver.startsWith("//") || volver.startsWith("/\\")) {
+        return null;
+    }
+    if (volver === "/" || volver.startsWith("/login")) return null;
+    return volver;
+}
+
 function Login() {
     const navigate = useNavigate();
+    const [parametros] = useSearchParams();
+    const volver = rutaDeVuelta(parametros.get("volver"));
 
     const [form, setForm] = useState({
         cedula: "",
@@ -92,10 +107,10 @@ function Login() {
             }
 
             /*
-             * Redirección según el rol
-             * devuelto por el backend.
+             * Vuelve a la pantalla donde venció la sesión; si no,
+             * redirección según el rol devuelto por el backend.
              */
-            const destino = RUTAS_POR_ROL[data.rol];
+            const destino = RUTAS_POR_ROL[data.rol] && (volver || RUTAS_POR_ROL[data.rol]);
 
             if (destino) {
                 navigate(destino, { replace: true });

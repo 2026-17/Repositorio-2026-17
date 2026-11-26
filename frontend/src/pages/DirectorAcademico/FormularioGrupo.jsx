@@ -7,7 +7,7 @@ import Alert from "../../components/ui/Alert";
 import { AyudaCodigoSugerido } from "../../components/ui/CodigoSugerido";
 import Field from "../../components/ui/Field";
 import { listaErrores } from "../../components/ui/utilidades";
-import { lanzarError, mensajeDeExcepcion } from "../../utils/api";
+import { lanzarError, mensajeDeExcepcion, SesionExpiradaError } from "../../utils/api";
 import { normalizarCodigoEscrito } from "../../utils/codigos";
 
 import { useDialog } from "../../components/dialog/useDialog";
@@ -126,7 +126,7 @@ function FormularioGrupo({ grupo = null, idCursoInicial = null, onCancel, onSucc
                 ]);
 
                 if (respuestas.some((r) => r.status === 401)) {
-                    throw new Error("La sesión ha expirado. Inicie sesión nuevamente.");
+                    throw new SesionExpiradaError();
                 }
                 if (respuestas.some((r) => r.status === 403)) {
                     throw new Error("No tiene permisos para consultar la información académica.");
@@ -378,7 +378,7 @@ function FormularioGrupo({ grupo = null, idCursoInicial = null, onCancel, onSucc
                 // La respuesta puede venir sin cuerpo.
             }
 
-            if (response.status === 401) throw new Error("La sesión ha expirado. Inicie sesión nuevamente.");
+            if (response.status === 401) throw new SesionExpiradaError();
             if (response.status === 403) throw new Error(editando ? "No tiene permisos para modificar grupos." : "No tiene permisos para crear grupos.");
 
             if (!response.ok) {

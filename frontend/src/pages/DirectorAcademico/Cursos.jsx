@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Ban, BookOpen, Music2, Pencil, Plus, Search, X } from "lucide-react";
 import { API_URL } from "../../config/api";
+import { SesionExpiradaError } from "../../utils/api";
 import "./cursos.css";
 import CrearCurso from "./CrearCurso";
 import EditarCurso from "./EditarCurso";
@@ -24,7 +25,7 @@ async function obtenerCursos() {
     });
 
     if (response.status === 401) {
-        throw new Error("La sesión ha expirado. Inicie sesión nuevamente.");
+        throw new SesionExpiradaError();
     }
     if (response.status === 403) {
         throw new Error("No tiene permisos para ver el listado de cursos.");
@@ -212,9 +213,7 @@ function Cursos() {
             }
 
             if (response.status === 401) {
-                throw new Error(
-                    "La sesión ha expirado. Inicie sesión nuevamente."
-                );
+                throw new SesionExpiradaError();
             }
 
             if (response.status === 403) {

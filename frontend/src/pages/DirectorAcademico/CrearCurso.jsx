@@ -6,6 +6,7 @@ import { edadParaEnviar, erroresEdadCurso } from "./quienesPueden";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { API_URL } from "../../config/api";
+import { SesionExpiradaError } from "../../utils/api";
 import { BookPlus, CalendarRange } from "lucide-react";
 import "./crearCurso.css";
 import Alert from "../../components/ui/Alert";
@@ -111,9 +112,7 @@ function CrearCurso({ onCancel, onSuccess, idProgramaInicial }) {
                 });
 
                 if (programasResponse.status === 401) {
-                    throw new Error(
-                        "La sesión ha expirado. Inicie sesión nuevamente."
-                    );
+                    throw new SesionExpiradaError();
                 }
 
                 if (programasResponse.status === 403) {
@@ -265,9 +264,7 @@ function CrearCurso({ onCancel, onSuccess, idProgramaInicial }) {
             }
 
             if (response.status === 401) {
-                throw new Error(
-                    "La sesión ha expirado. Inicie sesión nuevamente."
-                );
+                throw new SesionExpiradaError();
             }
 
             if (response.status === 403) {

@@ -24,6 +24,14 @@ import java.util.Set;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
+    /**
+     * Atributo de la petición que marca que trajo un token que ya no sirve
+     * (vencido, inválido, revocado o de una cédula que ya no existe). La
+     * petición sigue sin autenticación; si la ruta es protegida,
+     * ManejadorErroresSeguridad responde 401 SESION_EXPIRADA.
+     */
+    public static final String ATRIBUTO_SESION_INVALIDA = "sigac.sesionInvalida";
+
     private static final Set<String> RUTAS_CON_CAMBIO_PENDIENTE =
             Set.of("/auth/contrasena-temporal/cambiar", "/auth/logout");
 
@@ -72,13 +80,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 if (estado.isEmpty()) {
                     // La cédula del token ya no existe (p. ej. se corrigió la
                     // identificación): el token no autentica y se pide ingresar de nuevo.
+                    request.setAttribute(ATRIBUTO_SESION_INVALIDA, true);
                     filterChain.doFilter(request, response);
                     return;
                 }
                 if (!CuentaUsuarioService.ESTADO_ACTIVO.equalsIgnoreCase(estado.get())) {
                     response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                     response.setContentType("application/json;charset=UTF-8");
-                    response.getWriter().write("{\"status\":401,\"message\":"
+                    response.getWriter().write("{\"status\":401,\"codigo\":\"CUENTA_INACTIVA\",\"message\":"
                             + "\"Su cuenta está inactiva. Contacte a la administración.\"}");
                     return;
                 }
@@ -89,9 +98,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                         : List.of();
                 SecurityContextHolder.getContext().setAuthentication(
                         new UsernamePasswordAuthenticationToken(cedula, null, authorities));
+            } else {
+                // Token revocado: la sesión ya se cerró.
+                request.setAttribute(ATRIBUTO_SESION_INVALIDA, true);
             }
-        } catch (JwtInvalidoException ignored) {
-            // La petición continúa sin autenticación.
+        } catch (JwtInvalidoException e) {
+            // Token vencido, con firma inválida o malformado: la petición
+            // continúa sin autenticación (las rutas públicas siguen funcionando).
+            request.setAttribute(ATRIBUTO_SESION_INVALIDA, true);
         }
         filterChain.doFilter(request, response);
     }

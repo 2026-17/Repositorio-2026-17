@@ -1,11 +1,10 @@
 import { API_URL } from "../../config/api";
+import { SesionExpiradaError } from "../../utils/api";
 
 /*
  * Llamadas al backend de Programas académicos (/programas).
  * Todas lanzan Error con un mensaje listo para mostrar al usuario.
  */
-
-const MENSAJE_401 = "La sesión ha expirado. Inicie sesión nuevamente.";
 
 async function solicitar(ruta, { method = "GET", body, mensaje403, mensajeError } = {}) {
     const token = localStorage.getItem("token");
@@ -26,7 +25,7 @@ async function solicitar(ruta, { method = "GET", body, mensaje403, mensajeError 
         // La respuesta puede venir sin cuerpo.
     }
 
-    if (response.status === 401) throw new Error(MENSAJE_401);
+    if (response.status === 401) throw new SesionExpiradaError();
     if (response.status === 403) throw new Error(mensaje403 || "No tiene permisos para gestionar programas académicos.");
     if (!response.ok) {
         const error = new Error(data?.message || mensajeError || "No fue posible completar la operación.");

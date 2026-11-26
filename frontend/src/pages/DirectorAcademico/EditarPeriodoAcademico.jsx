@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Save } from "lucide-react";
 import { API_URL } from "../../config/api";
+import { SesionExpiradaError } from "../../utils/api";
 import "./crearCurso.css";
 import Alert from "../../components/ui/Alert";
 import Field from "../../components/ui/Field";
@@ -168,9 +169,7 @@ function EditarPeriodoAcademico({ periodo, onCancel, onSuccess }) {
             }
 
             if (response.status === 401) {
-                throw new Error(
-                    "La sesión ha expirado. Inicie sesión nuevamente."
-                );
+                throw new SesionExpiradaError();
             }
 
             if (response.status === 403) {

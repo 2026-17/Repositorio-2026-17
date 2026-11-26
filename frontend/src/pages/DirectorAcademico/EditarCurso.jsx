@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from "react";
 import { RotateCcw, Save } from "lucide-react";
 
 import { API_URL } from "../../config/api";
+import { SesionExpiradaError } from "../../utils/api";
 import "./editarCurso.css";
 import Alert from "../../components/ui/Alert";
 import Field from "../../components/ui/Field";
@@ -105,7 +106,7 @@ function EditarCurso({ idCurso, onCancel, onSuccess }) {
             ]);
 
             if (cursoResponse.status === 401 || programasResponse.status === 401) {
-                throw new Error("La sesión ha expirado. Inicie sesión nuevamente.");
+                throw new SesionExpiradaError();
             }
 
             if (cursoResponse.status === 403 || programasResponse.status === 403) {
@@ -384,9 +385,7 @@ function EditarCurso({ idCurso, onCancel, onSuccess }) {
                 await leerJsonSeguro(response);
 
             if (response.status === 401) {
-                throw new Error(
-                    "La sesión ha expirado. Inicie sesión nuevamente."
-                );
+                throw new SesionExpiradaError();
             }
 
             if (response.status === 403) {

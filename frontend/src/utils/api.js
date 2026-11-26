@@ -24,9 +24,28 @@ export async function leerError(response, porDefecto) {
     };
 }
 
+/*
+ * Mensaje único de sesión vencida (401) para todas las pantallas. Es el
+ * mismo que manda el backend en SESION_EXPIRADA.
+ */
+export const MENSAJE_SESION_EXPIRADA = "Su sesión expiró. Inicie sesión de nuevo.";
+
+/*
+ * Excepción que lanzan las pantallas cuando el backend responde 401. El
+ * vigilante de sesión ya muestra la ventana para volver a ingresar; esto
+ * solo corta la operación con el mismo mensaje en todas partes.
+ */
+export class SesionExpiradaError extends Error {
+    constructor(mensaje = MENSAJE_SESION_EXPIRADA) {
+        super(mensaje);
+        this.name = "SesionExpiradaError";
+        this.status = 401;
+    }
+}
+
 function mensajeSinCuerpo(status, porDefecto) {
     if (status === 413) return "El archivo es demasiado grande.";
-    if (status === 401) return "La sesión ha expirado. Inicie sesión nuevamente.";
+    if (status === 401) return MENSAJE_SESION_EXPIRADA;
     if (status === 403) return "No tiene permisos para realizar esta acción.";
     return porDefecto;
 }

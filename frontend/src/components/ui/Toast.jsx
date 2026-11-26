@@ -1,8 +1,10 @@
-import { CircleCheck, Info, X } from "lucide-react";
+import { CircleCheck, Info, TriangleAlert, X } from "lucide-react";
 
-// Confirmación breve (role="status"). Solo para éxito o información.
+const ICONOS = { success: CircleCheck, info: Info, warning: TriangleAlert };
+
+// Aviso breve (role="status"), no bloquea. tone: success | info | warning.
 export default function Toast({ tone = "success", onDismiss, children }) {
-    const Icono = tone === "success" ? CircleCheck : Info;
+    const Icono = ICONOS[tone] || Info;
     return (
         <div className={`sg-toast sg-toast--${tone}`} role="status" aria-live="polite">
             <Icono size={20} strokeWidth={1.75} className="sg-toast__icon" aria-hidden="true" />
